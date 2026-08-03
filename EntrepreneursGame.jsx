@@ -501,6 +501,8 @@ function onLaunch(pm, ind, depInds) { pm.offer[ind] += 1; depInds.forEach((d) =>
 /* ============================== GAME ENGINE ============================== */
 
 const BP_SELL_PRICE = { 1: 4, 2: 8, 3: 12 };
+/* Forced liquidation is punishing by design: a Blueprint fetches half what the same
+   card would earn through a voluntary SELL (4/8/12 -> 2/4/6). */
 const BP_SOLVENCY_PRICE = { 1: 2, 2: 4, 3: 6 };
 const ARCHETYPES = ["balanced", "rush_cheap", "upgrade_focus", "tech_heavy", "vest_rebuild"];
 const ARCHETYPE_LABEL = { balanced: "Balanced", rush_cheap: "Rush-Cheap", upgrade_focus: "Upgrade-Focus", tech_heavy: "Tech-Heavy", vest_rebuild: "Vest & Rebuild" };
@@ -536,7 +538,7 @@ function humansNeedingRepay(state) {
   });
 }
 function newPlayer(id, name, isHuman, cash, hand, archetype) {
-  return { id, name, isHuman, cash, hand, archetype, businesses: [], discsInBank: 0, epBank: 0, epLog: [] };
+  return { id, name, isHuman, cash, hand, archetype, businesses: [], discsInBank: 0, epBank: 0, epLog: [], industriesScored: [] };
 }
 const activeBiz = (p) => p.businesses.filter((b) => !b.distressed && !b.isHQ);
 const canLaunchMore = (p) => activeBiz(p).length < 5;
@@ -670,6 +672,16 @@ function pickLaunchCandidate(p, archetype, pm, missingInds, buffer, state) {
   return scored[0][1];
 }
 
+/* Entering an industry pays 5 EP straight away, the moment the first company of that
+   type is built, rather than waiting for a year-end. It is banked immediately and can
+   never be earned twice, so it is not placed on a card and does not need vesting. */
+function claimIndustryBonus(state, p, ind, log) {
+  p.industriesScored = p.industriesScored || [];
+  if (p.industriesScored.includes(ind)) return;
+  p.industriesScored.push(ind);
+  addEP(p, 5, `Entered ${ind}`, state.quarter);
+  if (log) log(`${p.name} enters ${ind} for the first time (+5 EP).`, p.id);
+}
 function doLaunch(state, p, bp, rng, log, manualFootprint) {
   const nPlots = SCALING[bp.ind] === "H" ? bp.lvl : 1;
   const footprint = manualFootprint || findFootprint(state.board, nPlots, rng, state, bp.ind);
@@ -684,6 +696,7 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   p.hand = p.hand.filter((x) => x !== bp);
   onLaunch(state.pm, bp.ind, bp.deps.map((d) => d.ind));
   log(`${p.name} launches ${bp.name} (${bp.ind} L${bp.lvl}) for $${bp.setup} (cash: $${Math.round(p.cash)}).`, p.id);
+  claimIndustryBonus(state, p, bp.ind, log);
   return true;
 }
 /* Returns null if the upgrade is legal, otherwise a short reason. Used to disable
@@ -728,6 +741,10 @@ function doDraw(state, p, industry, log) {
   log(`${p.name} draws from the ${industry} deck.`, p.id);
   return true;
 }
+/* Bumped automatically at build time from a hash of the rules code. The server reads
+   this file at boot, so if a deployment updates the client but not this file the two
+   will disagree and the UI says so instead of silently playing by old rules. */
+const ENGINE_VERSION = "6a30b69d";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -941,8 +958,9 @@ function runClosingRest(state, log) {
   if ([4, 8, 12].includes(quarter)) {
     for (const p of players) {
       for (const b of activeBiz(p)) if (!b.scored) { b.epOnCard = b.level; b.scored = true; }
-      const inds = new Set(activeBiz(p).map(bizInd));
-      if (inds.size) addEP(p, 5 * inds.size, `Year-end: ${inds.size} active ${inds.size === 1 ? "industry" : "industries"}`, quarter);
+      // Each industry pays its 5 EP once per game, the first year a company of that
+      // type is active. Entering a new industry is what scores, not holding one.
+      // (industry bonuses are awarded on construction, see claimIndustryBonus)
       // NOTE: previously a player at the 5-company cap sold its worst company here
       // every year end. That threw away 1 EP/level plus possibly 5 EP for the industry,
       // for no gain - being full is the goal, not a problem. Removed.
@@ -968,14 +986,22 @@ function awardRanked(state, scoreFn, label, log) {
     i = j + 1;
   }
 }
+/* The two endgame land awards, exposed so the standings can show the same running
+   totals players will actually be scored on. */
+function plotCount(state, p) {
+  return Object.values(state.board.owner).filter((id) => id === p.id).length;
+}
+function districtCount(state, p) {
+  const districts = new Set();
+  Object.entries(state.board.owner).forEach(([plot, id]) => {
+    if (id === p.id) districts.add(`${state.board.cellOf[plot].r},${state.board.cellOf[plot].c}`);
+  });
+  activeBiz(p).forEach((b) => b.footprint.forEach((plot) => districts.add(`${state.board.cellOf[plot].r},${state.board.cellOf[plot].c}`)));
+  return districts.size;
+}
 function finalizeGame(state) {
-  awardRanked(state, (p) => Object.values(state.board.owner).filter((id) => id === p.id).length, "The Real-Estate Mogul", null);
-  awardRanked(state, (p) => {
-    const districts = new Set();
-    Object.entries(state.board.owner).forEach(([plot, id]) => { if (id === p.id) districts.add(`${state.board.cellOf[plot].r},${state.board.cellOf[plot].c}`); });
-    activeBiz(p).forEach((b) => b.footprint.forEach((plot) => districts.add(`${state.board.cellOf[plot].r},${state.board.cellOf[plot].c}`)));
-    return districts.size;
-  }, "The Omnipresent", null);
+  awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", null);
+  awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", null);
   for (const p of state.players) {
     if (p.discsInBank) addEP(p, -5 * p.discsInBank, `Unpaid loans (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"})`, 12);
     const cashEP = Math.floor(p.cash / 10);
@@ -1107,6 +1133,7 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   p.businesses.push(distressedBiz);
   const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
   log(`${p.name} renovates a distressed structure${from} into ${bp.name} (${bp.ind} L${bp.lvl}) (cash: $${Math.round(p.cash)}).`, p.id);
+  claimIndustryBonus(state, p, bp.ind, log);
   return true;
 }
 function doSellPlot(state, p, plotKeyStr, log, solvency = false) {
@@ -1148,7 +1175,9 @@ function businessCanProduce(state, b) {
   return b.footprint.every((plot) => plot in state.board.owner);
 }
 function getBizTooltipInfo(state, biz) {
-  const owner = state.players.find((p) => p.businesses.includes(biz));
+  // A distressed company sits in the bank: it stays in its former owner's array for
+  // bookkeeping, but nobody owns it, so it must not be attributed to them.
+  const owner = biz.distressed ? null : state.players.find((p) => p.businesses.includes(biz));
   const plotOwnerIds = [...new Set(biz.footprint.map((pk) => state.board.owner[pk]).filter((v) => v !== undefined))];
   const plotOwners = plotOwnerIds.map((id) => state.players.find((p) => p.id === id)).filter(Boolean);
   return { owner, plotOwners, canProduce: businessCanProduce(state, biz) };
@@ -1378,15 +1407,22 @@ function botResolveOneAction(state, p, track, rng, log) {
 }
 
 /* ---------------- Planning / resolution phase drivers ---------------- */
+function workersPerPlayer(state) {
+  // Two-player games would leave the tracks half empty with two workers each, so the
+  // duel is played with three apiece to keep the placement contest meaningful.
+  return state.players.length === 2 ? 3 : 2;
+}
 function startPlanning(state) {
   state.tracks = makeTracks();
+  const W = workersPerPlayer(state);
+  const rep = (ids, k) => { const out = []; for (let i = 0; i < k; i++) out.push(...ids); return out; };
   if (state.doubleFirstPlayer !== null && state.doubleFirstPlayer !== undefined) {
     const dp = state.doubleFirstPlayer;
     const rest = state.turnOrder.filter((id) => id !== dp);
-    state.planningQueue = [dp, dp, ...rest, ...rest];
+    state.planningQueue = [dp, dp, ...rep(rest, W), ...(W > 2 ? [dp] : [])];
     state.doubleFirstPlayer = null; // one-time bonus, consumed
   } else {
-    state.planningQueue = [...state.turnOrder, ...state.turnOrder];
+    state.planningQueue = rep(state.turnOrder, W);
   }
   state.phase = "planning";
   state.resolutionQueue = [];
@@ -1637,6 +1673,18 @@ function initGame(numBots, seedNum, humanNames) {
    instead of mutating locally. In single-player NET stays null and nothing changes. */
 let NET = null;
 export function setNet(n) { NET = n; }
+export function getEngineVersion() { return ENGINE_VERSION; }
+/* Mirrors the server's own check so the UI only offers controls to the player who can
+   actually act, and so the host can tell who the table is stuck on. */
+function whoAwaited(st) {
+  if (!st) return null;
+  if (st.phase === "drafting") return st.awaitingPlayerId;
+  if (st.phase === "planning") return st.planningQueue[0];
+  if (st.phase === "resolving") return st.pendingHumanAction ? st.pendingHumanAction.playerId : null;
+  if (["delivering", "liquidating", "repayingLoans"].includes(st.phase)) return st.awaitingPlayerId;
+  if (st.phase === "placingLH") return st.turnOrder[0];
+  return null;
+}
 
 function Chip({ children, color, style }) {
   return (
@@ -1965,7 +2013,7 @@ function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot
 
   return (
     <div className="board-shell inline-block rounded-lg p-2" style={{ backgroundColor: "#0b0c0f", border: "1px solid #262a33" }}>
-      <div style={{ position: "relative", width: BOARD_PX, height: BOARD_PX }}>
+      <div style={{ position: "relative", width: BOARD_PX, height: BOARD_PX, overflow: "hidden", borderRadius: 2 }}>
         {layers}
       </div>
       <div className="flex flex-wrap gap-2 mt-2">
@@ -2233,7 +2281,7 @@ function TrackBoard({ state, human }) {
             {state.tracks[key].map((pid, i) => (
               <div key={i} className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold"
                 style={{ backgroundColor: pid !== null ? PLAYER_COLORS[pid] + "33" : "#1c1f26", border: `1px solid ${pid !== null ? PLAYER_COLORS[pid] : "#33384355"}` }}>
-                {pid !== null ? (pid === 0 ? "You".slice(0, 1) : state.players[pid].name.slice(0, 1)) : ""}
+                {pid !== null ? ((state.players[pid] || {}).name || "?").slice(0, 1) : ""}
               </div>
             ))}
           </div>
@@ -2299,7 +2347,7 @@ function LiquidationPanel({ state, human, log, onContinue }) {
           <div className="flex flex-wrap gap-2 mb-2">
             {ownedPlots.map((pk) => (
               <button key={pk} onClick={() => { if (NET) return NET.send("liquidate", { type: "plot", plot: pk }); doSellPlot(state, human, pk, log); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
-                {pk} <span style={{ color: "#f3a5a5" }}>${plotValue(state, pk)}</span>
+                {plotLabel(state.board, pk)} <span style={{ color: "#f3a5a5" }}>${plotValue(state, pk)}</span>
               </button>
             ))}
           </div>
@@ -2550,6 +2598,8 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
 export default function EntrepreneursGame({ online }) {
   const [screen, setScreen] = useState(online ? "play" : "setup");
   const [numBots, setNumBots] = useState(3);
+  const [playerName, setPlayerName] = useState(() => { try { return localStorage.getItem("entrepreneurs_name") || ""; } catch (_) { return ""; } });
+  useEffect(() => { try { localStorage.setItem("entrepreneurs_name", playerName); } catch (_) {} }, [playerName]);
   const [localState, setLocalState] = useState(null);
   const [localLogs, setLocalLogs] = useState([]);
   // Online: state and log come from the server and are read-only here; every action is
@@ -2562,6 +2612,11 @@ export default function EntrepreneursGame({ online }) {
   const [hover, setHover] = useState(null);
   const [epHover, setEpHover] = useState(null);
   const [pickMode, setPickMode] = useState(null); // {kind:'launch', bp, nPlots, selected:[]} | {kind:'buy', selected:[]}
+  const [waitSecs, setWaitSecs] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const [indTab, setIndTab] = useState("pots");
+  const [reviewing, setReviewing] = useState(false);
+  const startedAt = useRef(null);
   const [reSelection, setReSelection] = useState([]);
   const rngRef = useRef(null);
   const logEndRef = useRef(null);
@@ -2590,13 +2645,31 @@ export default function EntrepreneursGame({ online }) {
     if (state && state.phase === "placingLH" && (!pickMode || pickMode.kind !== "lh")) setPickMode({ kind: "lh", selected: [] });
   }, [state && state.phase]);
 
+  // total time this match has been running
+  useEffect(() => {
+    if (!state || state.phase === "gameover") return;
+    if (startedAt.current === null) startedAt.current = Date.now();
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt.current) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [state && state.phase === "gameover"]);
+
+  // how long the table has been waiting on the same player
+  const awaitedRef = useRef(null);
+  useEffect(() => {
+    if (!state) return;
+    const a = whoAwaited(state);
+    if (a !== awaitedRef.current) { awaitedRef.current = a; setWaitSecs(0); }
+    const id = setInterval(() => setWaitSecs((v) => v + 1), 1000);
+    return () => clearInterval(id);
+  }, [state]);
+
   const log = useCallback((msg, pid) => {
     setLogs((L) => [...L.slice(-79), { msg, pid, id: Math.random() }]);
   }, []);
 
   function startGame() {
     const seedNum = Math.floor(Math.random() * 1e9);
-    const s = initGame(numBots, seedNum);
+    const s = initGame(numBots, seedNum, [playerName.trim() || "You"]);
     rngRef.current = mulberry32(seedNum + 777);
     setLogs([]);
     const seat = s.turnOrder.indexOf(0) + 1;
@@ -2661,16 +2734,16 @@ export default function EntrepreneursGame({ online }) {
     if (state.phase === "gameover") setScreen("gameover");
   }
 
-  if (!online && screen === "setup") return <SetupScreen numBots={numBots} setNumBots={setNumBots} onStart={startGame} />;
-  if (screen === "gameover") return <GameOverScreen state={state} onRestart={() => setScreen("setup")} />;
+  if (!online && screen === "setup") return <SetupScreen numBots={numBots} setNumBots={setNumBots} onStart={startGame} playerName={playerName} setPlayerName={setPlayerName} />;
+  if (screen === "gameover" && !reviewing) return <GameOverScreen state={state} elapsed={elapsed} onRestart={() => setScreen("setup")} onReview={() => setReviewing(true)} />;
   // Online the server owns the phase, so surface the end screen straight from state.
   if (online && state && state.phase === "gameover") {
-    return <GameOverScreen state={state} onRestart={() => window.location.reload()} />;
+    if (!reviewing) return <GameOverScreen state={state} online={online} elapsed={elapsed} onRestart={online.onRematch} onReview={() => setReviewing(true)} />;
   }
 
   if (!state) return null;
   if (state.phase === "drafting") {
-    if (online) return <DraftScreen state={state} log={log} seatId={online.seat} onDone={null} />;
+    if (online) return <DraftScreen state={state} log={log} seatId={online.seat} host={online.host} onKick={online.onKick} onDone={null} />;
     return <DraftScreen state={state} log={log} onDone={() => {
       startPlanning(state); advancePlanning(state, rngRef.current, log);
       setState({ ...state });
@@ -2680,12 +2753,19 @@ export default function EntrepreneursGame({ online }) {
   const humanMeeplesLeft = state.planningQueue.filter((id) => id === human.id).length;
   /* Whose input is the game waiting on right now? Mirrors the server's check so the
      UI only offers controls to the player who can actually act. */
-  const awaitedId = state.phase === "drafting" ? state.awaitingPlayerId
-    : state.phase === "planning" ? state.planningQueue[0]
-    : state.phase === "resolving" ? (state.pendingHumanAction ? state.pendingHumanAction.playerId : null)
-    : ["delivering", "liquidating", "repayingLoans"].includes(state.phase) ? state.awaitingPlayerId
-    : state.phase === "placingLH" ? state.turnOrder[0]
-    : null;
+  const awaitedId = whoAwaited(state);
+  // who currently leads on land - shown in the standings so the two endgame awards
+  // are contested visibly rather than being a surprise at scoring
+  const landLead = (() => {
+    const mk = (fn) => {
+      const vals = state.players.map((p) => fn(state, p));
+      const best = Math.max(0, ...vals);
+      const set = new Set();
+      if (best > 0) state.players.forEach((p, i) => { if (vals[i] === best) set.add(p.id); });
+      return set;
+    };
+    return { plots: mk(plotCount), districts: mk(districtCount) };
+  })();
   const myTurn = !online || awaitedId === online.seat;
   const awaitedName = awaitedId != null && state.players.find((p) => p.id === awaitedId)
     ? state.players.find((p) => p.id === awaitedId).name : null;
@@ -2770,20 +2850,35 @@ export default function EntrepreneursGame({ online }) {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-bold text-white tracking-tight">ENTREPRENEURS</h1>
-            <div className="text-xs font-mono text-gray-400">
-              Year {year} &middot; Quarter {state.quarter} of 12 &middot; <span style={{ color: state.phase === "liquidating" ? "#fca5a5" : state.phase === "placingLH" || state.phase === "repayingLoans" ? "#67e8f9" : "#8fd3b6" }}>{state.phase === "planning" ? "Planning" : state.phase === "resolving" ? "Resolving actions" : state.phase === "delivering" ? "Delivering production" : state.phase === "liquidating" ? "Cash shortfall" : state.phase === "placingLH" ? "Placing Logistic Hub" : state.phase === "repayingLoans" ? "Loan repayment" : "\u2014"}</span>
-            </div>
+            <MatchTracker state={state} elapsed={elapsed} />
           </div>
           <PriceTicker pm={state.pm} />
         </div>
 
+        {reviewing && (
+          <div className="rounded-lg p-2 mb-3 flex items-center justify-between flex-wrap gap-2"
+            style={{ backgroundColor: "#1a2e26", border: "1px solid #2c5f4f" }}>
+            <span className="text-xs" style={{ color: "#d3fcec" }}>
+              Reviewing the final board &mdash; the game is over, nothing can be changed.
+            </span>
+            <button onClick={() => setReviewing(false)}
+              className="text-xs font-bold px-3 py-1 rounded"
+              style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
+              Back to results
+            </button>
+          </div>
+        )}
         <div className="board-grid">
-          <div className="board-col space-y-3">
+          <div className="board-col">
+            <div className="board-pane">
             <BoardView board={state.board} players={state.players} demand={state.demand} quarter={state.quarter} selectedPlot={selectedPlot} onSelectPlot={setSelectedPlot} selectMode={pickMode} selectCtx={{ state, player: human }} onSelectForLaunch={handlePickPlot} deliverInfo={deliverInfo} onDeliver={handleDeliverClick} onHoverBiz={(biz, x, y) => setHover(biz ? { biz, x, y } : null)} />
             <BizTooltip state={state} hover={hover} />
             <EPBreakdown hover={epHover} />
             <PlotInfo board={state.board} players={state.players} selectedPlot={selectedPlot} />
 
+            </div>
+
+            <div className="play-rail space-y-3">
             <TrackBoard state={state} human={human} />
 
             {isHumanPlanningTurn && (
@@ -2911,8 +3006,31 @@ export default function EntrepreneursGame({ online }) {
               </div>
             )}
             {!isHumanPlanningTurn && !isHumanResolving && !isHumanDelivering && !isHumanLiquidating && !isHumanPlacingLH && !isHumanRepaying && (
-              <div className="rounded-lg p-3 text-xs italic" style={{ backgroundColor: "#14161a", border: "1px solid #262a33", color: awaitedName ? "#8fd3b6" : "#6b7280" }}>
-                {awaitedName ? `Waiting for ${awaitedName}…` : "Waiting on other players…"}
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+                <div className="text-xs italic" style={{ color: awaitedName ? "#8fd3b6" : "#6b7280" }}>
+                  {awaitedName ? `Waiting for ${awaitedName}\u2026` : "Waiting on other players\u2026"}
+                </div>
+                {/* If someone has dropped out, the host can hand their seat to a bot so the
+                    table is not stuck waiting on a browser that is never coming back. */}
+                {online && online.host && awaitedId != null && awaitedId !== online.seat
+                  && state.players.find((p) => p.id === awaitedId && p.isHuman) && (
+                  <div className="mt-2 pt-2" style={{ borderTop: "1px solid #262a33" }}>
+                    {waitSecs >= 20 ? (
+                      <div className="text-[10px] text-gray-500 mb-1.5">
+                        {awaitedName} has not acted for {waitSecs}s. If they have disconnected you can hand their seat to a bot.
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-gray-600 mb-1.5">Host controls</div>
+                    )}
+                    <button onClick={() => {
+                        if (window.confirm(`Replace ${awaitedName} with a bot for the rest of the game? They will not be able to rejoin.`)) online.onKick(awaitedId);
+                      }}
+                      className="text-[10px] px-2 py-1 rounded"
+                      style={{ backgroundColor: "#2a2415", border: "1px solid #7a6a3f", color: "#f5d76e", cursor: "pointer" }}>
+                      Replace {awaitedName} with a bot
+                    </button>
+                  </div>
+                )}
               </div>
             )}
             {isHumanRepaying && (
@@ -2937,6 +3055,30 @@ export default function EntrepreneursGame({ online }) {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">Your player board <Help text="Your ten discs are your whole footprint: one per plot you own, one per active company, and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up." /></span>
                 <span className="text-[9px] font-mono text-gray-600">{human.name}</span>
+              </div>
+
+              {/* Each industry pays 5 EP once per game, the first year-end a company of
+                  that type is active. Filled = already banked, outline = still available. */}
+              <div className="flex items-center gap-1 mb-2">
+                {INDUSTRIES.map((ind) => {
+                  const done = (human.industriesScored || []).includes(ind);
+                  const live = activeBiz(human).some((b) => bizInd(b) === ind);
+                  return (
+                    <div key={ind} title={done ? `${ind}: 5 EP already scored` : live ? `${ind}: scores 5 EP at the next year end` : `${ind}: 5 EP available - build one`}
+                      className="flex-1 rounded text-center" style={{
+                        padding: "3px 0", fontSize: 9, fontWeight: 800, letterSpacing: 0.3,
+                        backgroundColor: done ? IND_COLOR[ind] : "transparent",
+                        color: done ? "#0e1014" : live ? IND_COLOR[ind] : "#4b5563",
+                        border: `1px ${done ? "solid" : live ? "dashed" : "solid"} ${done || live ? IND_COLOR[ind] : "#2b3040"}`,
+                      }}>
+                      {ind}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="text-[9px] text-gray-600 mb-2">
+                {(human.industriesScored || []).length}/6 industry bonuses banked
+                <span className="text-gray-700"> &middot; 5 EP each, once per game</span>
               </div>
 
               {(() => {
@@ -3013,11 +3155,12 @@ export default function EntrepreneursGame({ online }) {
                 {!activeBiz(human).length && <span className="text-xs text-gray-500 italic">None yet.</span>}
               </div>
             </div>
+            </div>
           </div>
 
           <div className="side-col space-y-3">
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text="Score = 1 EP per active company level + 5 EP per active industry, awarded at each year end. Plus endgame bonuses for most plots and most districts, $10 = 1 EP, and -5 EP per unpaid loan disc. Hover a player for the full breakdown." /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text="Score = 1 EP per active company level, plus 5 EP the first year you field each industry (once per game). Plus endgame bonuses for most plots and most districts, $10 = 1 EP, and -5 EP per unpaid loan disc. Hover a player for the full breakdown." /></div>
               <div className="space-y-2">
                 {[...state.players].sort((a, b) => epTotal(b) - epTotal(a)).map((p) => {
                   const onCards = p.businesses.reduce((s2, b) => s2 + (b.epOnCard || 0), 0);
@@ -3034,8 +3177,19 @@ export default function EntrepreneursGame({ online }) {
                         <div className="font-mono font-bold" style={{ color: "#8fd3b6" }}>{epTotal(p).toFixed(0)} EP</div>
                       </div>
                       <div className="flex items-center justify-between text-[9px] font-mono text-gray-500 mt-0.5">
-                        <span>${Math.round(p.cash)} &middot; {activeBiz(p).length}biz &middot; {p.discsInBank}disc</span>
+                        <span>${Math.round(p.cash)} &middot; {activeBiz(p).length}biz &middot; {p.hand.length}BP &middot; {p.discsInBank}disc</span>
                         <span>{p.epBank.toFixed(0)} banked{onCards > 0 ? ` + ${onCards} on cards` : ""}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[9px] font-mono mt-0.5">
+                        <span title="Plots owned - most at game end scores The Real-Estate Mogul"
+                          style={{ color: landLead.plots.has(p.id) ? "#f5d76e" : "#6b7280" }}>
+                          {landLead.plots.has(p.id) ? "\u265B " : ""}{plotCount(state, p)} plots
+                        </span>
+                        <span style={{ color: "#3a4152" }}>|</span>
+                        <span title="Districts you have a presence in - most at game end scores The Omnipresent"
+                          style={{ color: landLead.districts.has(p.id) ? "#f5d76e" : "#6b7280" }}>
+                          {landLead.districts.has(p.id) ? "\u265B " : ""}{districtCount(state, p)} districts
+                        </span>
                       </div>
                     </div>
                   );
@@ -3062,7 +3216,9 @@ export default function EntrepreneursGame({ online }) {
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 120 }}>
                 {state.players.flatMap((p) => p.businesses.filter((b) => b.distressed).map((b) => (
                   <div key={b.id} className="flex items-center justify-between text-[9px] rounded p-1" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}44` }}>
-                    <span className="text-gray-300">{b.bp.name}</span>
+                    <span className="text-gray-300">{b.bp.name}
+                      <span className="font-mono text-gray-500"> &middot; {b.footprint.map((pk) => plotLabel(state.board, pk)).join(" + ")}</span>
+                    </span>
                     <span className="font-mono text-gray-500">{b.bp.ind} L{b.level}</span>
                   </div>
                 )))}
@@ -3070,7 +3226,22 @@ export default function EntrepreneursGame({ online }) {
               </div>
             </div>
 
+            {/* Pots, Decks and Abilities are all reference material for the same six
+                industries, so they share one frame and one tab bar instead of three
+                tall panels competing for space. */}
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+              <div className="flex items-center gap-1 mb-2">
+                {[["pots", "Pots"], ["decks", "Decks"], ["abil", "Abilities"]].map(([k, label]) => (
+                  <button key={k} onClick={() => setIndTab(k)}
+                    className="flex-1 rounded text-xs font-bold uppercase tracking-wide"
+                    style={{ padding: "4px 0", border: "1px solid #262a33", cursor: "pointer",
+                      backgroundColor: indTab === k ? "#2c5f4f" : "#1c1f26",
+                      color: indTab === k ? "#d3fcec" : "#8b93a3" }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: indTab === "pots" ? "block" : "none" }}>
               <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Pots <Help text="When a company pays OPEX, that money (minus rent) lands in its suppliers' pots. Each quarter every pot is shared among the active businesses of that industry, weighted by level. Supplying industries nobody builds is very lucrative." /></div>
               <div className="text-[9px] text-gray-500 mb-1.5">Supplier OPEX collects here, then splits among that industry's active businesses by level.</div>
               <div className="grid grid-cols-2 gap-1.5">
@@ -3090,9 +3261,8 @@ export default function EntrepreneursGame({ online }) {
                   );
                 })}
               </div>
-            </div>
-
-            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+              </div>
+              <div style={{ display: indTab === "decks" ? "block" : "none" }}>
               <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Decks <Help text="Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from." /></div>
               <div className="grid grid-cols-2 gap-1.5">
                 {INDUSTRIES.map((ind) => {
@@ -3121,20 +3291,7 @@ export default function EntrepreneursGame({ online }) {
               </div>
             </div>
 
-            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ (keeps its building and your disc, siphons $5 from each neighbour's industry pot); the rest go distressed. In IPO Mode the first claim ends the game." /></div>
-              <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
-                {state.megacorpPool.map(([name, combo, ep], i) => (
-                  <div key={i} className="text-[9px] font-mono text-gray-400 flex justify-between">
-                    <span>{name}</span>
-                    <span>{Object.entries(combo).map(([l, n]) => `${n}\u00d7L${l}`).join("+")} → {ep}EP</span>
-                  </div>
-                ))}
-              </div>
-              <div className="text-[9px] text-gray-600 mt-1">{state.ipoTileClaimed ? "IPO tile claimed \u2014 all Board Meeting slots open." : "IPO tile not yet claimed."}</div>
-            </div>
-
-            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+              <div style={{ display: indTab === "abil" ? "block" : "none" }}>
               <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Abilities</div>
               <div className="space-y-1.5">
                 {INDUSTRIES.map((ind) => (
@@ -3143,9 +3300,32 @@ export default function EntrepreneursGame({ online }) {
                   </div>
                 ))}
               </div>
+              </div>
             </div>
 
-            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+            {/* The Megacorp list is short; the log shares its frame so the column
+                keeps a single, full-width block instead of two stubby ones. */}
+            <div className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ (keeps its building and your disc, siphons $5 from each neighbour's industry pot); the rest go distressed. In IPO Mode the first claim ends the game." /></div>
+              <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
+                {state.megacorpPool.map(([name, combo, ep], i) => (
+                  <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>
+                    <span className="text-gray-300">{name}</span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      {Object.entries(combo).map(([l, k], j) => (
+                        <span key={j} className="flex items-center gap-0.5 text-gray-400">
+                          {k}&times;<LevelBadge level={+l} />
+                        </span>
+                      ))}
+                      <span style={{ color: "#8fd3b6", fontWeight: 700 }}>{ep}EP</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="text-[9px] text-gray-600 mt-1">{state.ipoTileClaimed ? "IPO tile claimed \u2014 all Board Meeting slots open." : "IPO tile not yet claimed."}</div>
+              <div style={{ height: 1, backgroundColor: "#262a33", margin: "10px 0" }} />
+
               <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Log</div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 220 }}>
                 {logs.map((l) => (
@@ -3163,12 +3343,18 @@ export default function EntrepreneursGame({ online }) {
   );
 }
 
-function SetupScreen({ numBots, setNumBots, onStart }) {
+function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName }) {
   return (
     <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
       <div className="max-w-md w-full rounded-xl p-6" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
         <h1 className="text-2xl font-bold text-white tracking-tight mb-1">ENTREPRENEURS</h1>
         <p className="text-sm text-gray-400 mb-6">Build, produce, sell, score — 3 fiscal years, solo vs bots.</p>
+        <div className="mb-5">
+          <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Your name</div>
+          <input value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="You" maxLength={16}
+            className="w-full rounded-md px-3 py-2 text-sm"
+            style={{ backgroundColor: "#1c1f26", border: "1px solid #262a33", color: "#e5e7eb", outline: "none" }} />
+        </div>
         <div className="mb-6">
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Opponents</div>
           <div className="flex gap-2">
@@ -3197,11 +3383,22 @@ function SetupScreen({ numBots, setNumBots, onStart }) {
    Used across the panels so a first-timer can learn the game in place. */
 function Help({ text, label }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const show = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const W = 250, PAD = 8;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    // keep the panel inside the viewport, flipping to the left of the icon if needed
+    const x = Math.min(Math.max(PAD, r.right + 8), vw - W - PAD);
+    const y = Math.min(Math.max(PAD, r.top - 4), vh - 120);
+    setPos({ x, y });
+    setOpen(true);
+  };
   return (
-    <span style={{ position: "relative", display: "inline-flex" }}>
+    <span style={{ display: "inline-flex" }}>
       <button
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-        onMouseEnter={() => setOpen(true)}
+        onClick={(e) => { e.stopPropagation(); if (open) setOpen(false); else show(e); }}
+        onMouseEnter={show}
         onMouseLeave={() => setOpen(false)}
         aria-label={label || "Help"}
         style={{
@@ -3214,7 +3411,7 @@ function Help({ text, label }) {
       >?</button>
       {open && (
         <span style={{
-          position: "absolute", left: 18, top: -4, zIndex: 60, width: 230,
+          position: "fixed", left: pos.x, top: pos.y, zIndex: 9999, width: 250,
           backgroundColor: "#0e1014", border: "1px solid #3a4152", borderRadius: 6,
           padding: "7px 9px", fontSize: 10, lineHeight: 1.45, color: "#d1d5db",
           boxShadow: "0 6px 20px rgba(0,0,0,0.6)", pointerEvents: "none",
@@ -3228,7 +3425,7 @@ function Help({ text, label }) {
 /* ---------------- Starting BP draft ----------------
    Seating is random and the draft runs in reverse seat order, so the last
    player picks first. Bots have already taken theirs; this is the human's turn. */
-function DraftScreen({ state, log, onDone, seatId }) {
+function DraftScreen({ state, log, onDone, seatId, host, onKick }) {
   const human = seatId != null ? state.players.find((p) => p.id === seatId)
                                : state.players.find((p) => p.isHuman);
   const need = (state.draftCounts && state.draftCounts[human.id] != null)
@@ -3300,10 +3497,28 @@ function DraftScreen({ state, log, onDone, seatId }) {
         </div>
 
         {waitingFor ? (
-          <div className="w-full py-2.5 rounded-md text-sm font-bold text-center"
-            style={{ backgroundColor: "#1c1f26", color: "#8fd3b6" }}>
-            Waiting for {waitingFor} to draft&hellip;
-          </div>
+          <>
+            <div className="w-full py-2.5 rounded-md text-sm font-bold text-center"
+              style={{ backgroundColor: "#1c1f26", color: "#8fd3b6" }}>
+              Waiting for {waitingFor} to draft&hellip;
+            </div>
+            {/* Drafting is the first thing that happens, so it is where a player who
+                never made it into the game leaves everyone else stranded. */}
+            {host && onKick && state.awaitingPlayerId != null && state.awaitingPlayerId !== seatId && (
+              <div className="mt-2 pt-2 text-center" style={{ borderTop: "1px solid #262a33" }}>
+                <div className="text-[10px] text-gray-500 mb-1.5">
+                  If {waitingFor} has disconnected, you can hand their seat to a bot.
+                </div>
+                <button onClick={() => {
+                    if (window.confirm(`Replace ${waitingFor} with a bot for the rest of the game? They will not be able to rejoin.`)) onKick(state.awaitingPlayerId);
+                  }}
+                  className="text-[10px] px-2 py-1 rounded"
+                  style={{ backgroundColor: "#2a2415", border: "1px solid #7a6a3f", color: "#f5d76e", cursor: "pointer" }}>
+                  Replace {waitingFor} with a bot
+                </button>
+              </div>
+            )}
+          </>
         ) : onDone ? (
           <button onClick={onDone} disabled={picked < need}
             className="w-full py-2.5 rounded-md text-sm font-bold disabled:opacity-30"
@@ -3321,23 +3536,98 @@ function DraftScreen({ state, log, onDone, seatId }) {
   );
 }
 
-function GameOverScreen({ state, onRestart }) {
-  const ranked = [...state.players].sort((a, b) => b.epBank - a.epBank);
-  const [openId, setOpenId] = useState(ranked[0] ? ranked[0].id : null);
+/* A small stack of pips reads faster than "L3" when scanning a list of Megacorp
+   requirements: one filled block per level, so height maps to company size. */
+function LevelBadge({ level }) {
+  const COLORS = ["#6b7280", "#8fd3b6", "#67e8f9", "#f5d76e"];
   return (
-    <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
-      <div className="max-w-md w-full rounded-xl p-6" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-        <h1 className="text-xl font-bold text-white mb-1">Game Over</h1>
+    <span title={`Level ${level}`} style={{ display: "inline-flex", alignItems: "flex-end", gap: 1, verticalAlign: "middle", height: 11 }}>
+      {Array.from({ length: level }).map((_, i) => (
+        <span key={i} style={{
+          width: 3.5, height: 3 + i * 2.4, backgroundColor: COLORS[Math.min(level, 4) - 1],
+          borderRadius: 0.5, display: "inline-block",
+        }} />
+      ))}
+    </span>
+  );
+}
+/* Shows the whole match at a glance - which year, which quarter, which phase - rather
+   than a single line naming only the current step. */
+function MatchTracker({ state, elapsed }) {
+  const year = Math.ceil(state.quarter / 4);
+  const qInYear = ((state.quarter - 1) % 4) + 1;
+  const PHASES = [
+    ["planning", "Planning"], ["resolving", "Action"], ["production", "Production"],
+    ["delivering", "Revenue"], ["closing", "Closing"],
+  ];
+  const phaseNow =
+    state.phase === "planning" ? "planning"
+    : state.phase === "resolving" ? "resolving"
+    : state.phase === "production" ? "production"
+    : state.phase === "delivering" || state.phase === "liquidating" ? "delivering"
+    : ["placingLH", "repayingLoans"].includes(state.phase) ? "closing"
+    : null;
+  const detail =
+    state.phase === "delivering" ? "B2C" :
+    state.phase === "liquidating" ? "cash shortfall" :
+    state.phase === "placingLH" ? "hub placement" :
+    state.phase === "repayingLoans" ? "loan repayment" : null;
+  const pill = (label, on, done) => (
+    <span key={label} style={{
+      padding: "1.5px 6px", borderRadius: 3, fontSize: 10.5, fontWeight: on ? 800 : 600,
+      backgroundColor: on ? "#2c5f4f" : "transparent",
+      color: on ? "#d3fcec" : done ? "#6b7280" : "#8b93a3",
+      border: `1px solid ${on ? "#3f8a70" : "#262a33"}`,
+    }}>{label}</span>
+  );
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
+  const ss = String(elapsed % 60).padStart(2, "0");
+  const hh = Math.floor(elapsed / 3600);
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono" style={{ fontSize: 10.5 }}>
+      <span className="flex items-center gap-1">
+        {[1, 2, 3].map((y) => pill(`Y${y}`, y === year, y < year))}
+      </span>
+      <span style={{ color: "#3a4152" }}>|</span>
+      <span className="flex items-center gap-1">
+        {[1, 2, 3, 4].map((q) => pill(`Q${q}`, q === qInYear, q < qInYear))}
+      </span>
+      <span style={{ color: "#3a4152" }}>|</span>
+      <span className="flex items-center gap-1">
+        {PHASES.map(([k, label]) => pill(label, k === phaseNow, false))}
+      </span>
+      {detail && <span style={{ color: "#8fd3b6" }}>({detail})</span>}
+      <span style={{ color: "#3a4152" }}>|</span>
+      <span title="Time played" style={{ color: "#8b93a3" }}>
+        {hh > 0 ? `${hh}:` : ""}{mm}:{ss}
+      </span>
+    </div>
+  );
+}
+function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
+  const ranked = [...state.players].sort((a, b) => b.epBank - a.epBank);
+  const mm = String(Math.floor((elapsed || 0) / 60)).padStart(2, "0");
+  const ss = String((elapsed || 0) % 60).padStart(2, "0");
+  const hh = Math.floor((elapsed || 0) / 3600);
+  return (
+    <div className="w-full min-h-screen flex items-start justify-center p-4 overflow-y-auto" style={{ backgroundColor: "#0e1014" }}>
+      <div className="w-full rounded-xl p-6" style={{ maxWidth: 1200, backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+        <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
+          <h1 className="text-xl font-bold text-white">Game Over</h1>
+          <span className="text-xs font-mono text-gray-500">
+            match time {hh > 0 ? `${hh}:` : ""}{mm}:{ss}
+          </span>
+        </div>
         <p className="text-sm text-gray-400 mb-5">{ranked[0].name} wins with {ranked[0].epBank.toFixed(0)} EP.</p>
-        <div className="space-y-2 mb-6">
+        <div className="gameover-grid mb-6">
           {ranked.map((p, i) => {
-            const open = openId === p.id;
+            const open = true;                       // all breakdowns visible at once
             const log = p.epLog || [];
             const positives = log.filter((e) => e.amount > 0).reduce((s, e) => s + e.amount, 0);
             const negatives = log.filter((e) => e.amount < 0).reduce((s, e) => s + e.amount, 0);
             return (
               <div key={p.id} className="rounded-md" style={{ backgroundColor: i === 0 ? "#1a2e26" : "#1c1f26", border: i === 0 ? "1px solid #2c5f4f" : "1px solid transparent" }}>
-                <button onClick={() => setOpenId(open ? null : p.id)} className="w-full flex items-center justify-between p-2.5 text-left">
+                <div className="w-full flex items-center justify-between p-2.5 text-left">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono text-gray-500">#{i + 1}</span>
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PLAYER_COLORS[p.id] }} />
@@ -3345,9 +3635,8 @@ function GameOverScreen({ state, onRestart }) {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-mono font-bold text-white">{p.epBank.toFixed(0)} EP</span>
-                    <span className="text-[10px] text-gray-500">{open ? "\u25B4" : "\u25BE"}</span>
                   </div>
-                </button>
+                </div>
                 {open && (
                   <div className="px-2.5 pb-2.5">
                     <div className="rounded p-2" style={{ backgroundColor: "#101318" }}>
@@ -3379,9 +3668,22 @@ function GameOverScreen({ state, onRestart }) {
             );
           })}
         </div>
+        {online && !online.host ? (
+          <div className="w-full py-2.5 rounded-md text-sm font-bold text-center"
+            style={{ backgroundColor: "#1c1f26", color: "#8fd3b6" }}>
+            Waiting for the host to start a rematch&hellip;
+          </div>
+        ) : (
         <button onClick={onRestart} className="w-full py-2.5 rounded-md text-sm font-bold" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
-          Play Again
+          {online ? "Play again \u2014 same players" : "Play Again"}
         </button>
+        )}
+        {onReview && (
+          <button onClick={onReview} className="w-full mt-2 py-2 rounded-md text-xs font-semibold"
+            style={{ backgroundColor: "#1c1f26", color: "#8b93a3", border: "1px solid #262a33" }}>
+            Review the final board, log and stats
+          </button>
+        )}
       </div>
     </div>
   );

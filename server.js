@@ -30,7 +30,7 @@ function loadEngine() {
       doLaunch, doRenovate, doDraw, doUpgrade, claimMegacorp, doReposition, byId, activeBiz,
       eligibleSlotsFor, findDistressedTargets, renovationEligible, plotValue, discsFree,
       canLaunchMore, isCrossDistrictEdge, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal,
-      botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery,
+      botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, ENGINE_VERSION,
       bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER };
   `, sandbox);
   return box.exports;
@@ -67,8 +67,8 @@ function log(room) {
 function payloadFor(room) {
   const v = room.version || 0;
   return room.state
-    ? `{"type":"state","v":${v},"state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
-    : `{"type":"lobby","v":${v},"members":${JSON.stringify(room.members.map((m) => ({ name: m.name, seat: m.seat, host: m.host })))},"bots":${room.bots},"code":"${room.code}"}`;
+    ? `{"type":"state","v":${v},"engine":"${E.ENGINE_VERSION}","state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
+    : `{"type":"lobby","v":${v},"engine":"${E.ENGINE_VERSION}","members":${JSON.stringify(room.members.map((m) => ({ name: m.name, seat: m.seat, host: m.host })))},"bots":${room.bots},"code":"${room.code}"}`;
 }
 function broadcast(room) {
   room.version = (room.version || 0) + 1;
@@ -459,4 +459,7 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
-server.listen(PORT, () => console.log(`Entrepreneurs server on http://localhost:${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Entrepreneurs server on http://localhost:${PORT}`);
+  console.log(`Rules engine ${E.ENGINE_VERSION} (loaded from EntrepreneursGame.jsx)`);
+});
