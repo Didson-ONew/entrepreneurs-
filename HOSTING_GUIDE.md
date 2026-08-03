@@ -1,0 +1,167 @@
+# How to host Entrepreneurs and play with your friends
+### A guide that assumes nothing
+
+There are three ways to play, from easiest to most permanent:
+
+| | Good for | Needs an account? | Survives closing your PC? |
+|---|---|---|---|
+| **A. Same wi-fi** | Friends in the same house | No | No |
+| **B. Quick internet link** | A game night, friends anywhere | No | No |
+| **C. Free permanent hosting** | Playing regularly | Yes (free) | **Yes** |
+
+Whichever you choose, do **Step 0** and **Step 1** first.
+
+---
+
+## Step 0 — Install Node.js (one time only)
+
+Node.js is the free program that runs the game server. Nothing else is needed.
+
+1. Go to **https://nodejs.org**
+2. Click the big green **LTS** download button
+3. Run the installer, click Next until it finishes (all defaults are fine)
+
+To check it worked: open a terminal —
+- **Windows:** press the Windows key, type `cmd`, press Enter
+- **Mac:** press Cmd+Space, type `terminal`, press Enter
+
+Type `node -v` and press Enter. If you see something like `v22.11.0`, you're set.
+
+---
+
+## Step 1 — Get the game running on your computer
+
+1. Unzip **Entrepreneurs_Multiplayer.zip** somewhere easy, e.g. your Desktop.
+   You should end up with a folder containing `server.js` and other files.
+2. Open a terminal (see Step 0) and go into that folder:
+   - **Windows:** type `cd Desktop\entrepreneurs` (or wherever you unzipped) and press Enter.
+     Tip: type `cd `, then drag the folder from Explorer onto the terminal window, press Enter.
+   - **Mac:** type `cd ` (with a space), drag the folder onto the Terminal window, press Enter.
+3. Type: `node server.js` and press Enter.
+4. You should see: `Entrepreneurs server on http://localhost:8080`
+
+**That terminal window is now the game server. Leave it open while you play.**
+Closing it ends the server (nobody can play). To stop it on purpose: press Ctrl+C.
+
+5. Test it yourself: open your browser and go to **http://localhost:8080**
+   You should see the ENTREPRENEURS lobby. Type a name, pick some bots, Create room —
+   you're in. This is exactly what your friends will see.
+
+---
+
+## Option A — Friends in the same house (same wi-fi)
+
+Your friends connect straight to your computer. Nothing leaves your network.
+
+1. Find your computer's local address:
+   - **Windows:** in the terminal type `ipconfig` → look for **IPv4 Address**, e.g. `192.168.1.42`
+   - **Mac:** type `ipconfig getifaddr en0` → it prints e.g. `192.168.1.42`
+2. Keep `node server.js` running (Step 1).
+3. Tell your friends to open, on their phone or laptop (same wi-fi!):
+   **`http://192.168.1.42:8080`** (using YOUR number, not this example)
+4. You: Create room → a 6-character **room code** appears (e.g. `3F9A2C`).
+5. They: type their name, enter the code under **Join a friend** → Join room.
+6. When everyone's in, you press **Start game**.
+
+*If friends can't connect: it's almost always the firewall on your PC. On Windows, the
+first time you run `node server.js` a popup asks to allow access — click **Allow**.
+If you missed it: Windows Security → Firewall → Allow an app → find Node.js →
+tick both boxes.*
+
+---
+
+## Option B — Friends anywhere, quick link (game night)
+
+You run the server on your PC and a free "tunnel" gives it a temporary internet address.
+
+1. Keep `node server.js` running (Step 1).
+2. Open a **second** terminal window, same folder, and type:
+   ```
+   npx localtunnel --port 8080
+   ```
+   (First time it asks "Ok to proceed? (y)" — press y and Enter.)
+3. It prints a link like: `your url is: https://tidy-lions-know.loca.lt`
+4. Send that link to your friends. That's it — they open it, enter their name,
+   enter your room code, join.
+
+Notes worth knowing:
+- The first time a friend opens a loca.lt link, a plain page may ask them to click
+  a **Continue** button — that's normal, it's the tunnel service, not a scam.
+- The link dies when you close either terminal window. Next game night you run the
+  same two commands and get a fresh link.
+- If `localtunnel` is flaky, two equally free alternatives:
+  - **Cloudflare:** download `cloudflared`, then `cloudflared tunnel --url http://localhost:8080`
+  - **ngrok** (needs a free account): `ngrok http 8080`
+  Both print a link that works the same way.
+
+**Both terminals must stay open while you play** — one is the game, one is the link.
+
+---
+
+## Option C — Free permanent hosting (set up once, play any time)
+
+The game runs on Render's computers, not yours. Anyone can join any time from a fixed
+link, even when your PC is off. Free tier is plenty for this game.
+
+1. Put the game folder on GitHub:
+   1. Make a free account at **https://github.com**
+   2. Click **+** (top right) → **New repository** → name it `entrepreneurs` → Create
+   3. On the empty repository page click **uploading an existing file**,
+      drag ALL the files from the unzipped folder in, click **Commit changes**
+2. Make a free account at **https://render.com** (sign in *with GitHub* — easiest)
+3. In Render: **New → Web Service** → pick your `entrepreneurs` repository
+4. Fill the form:
+   - **Name:** anything, e.g. `entrepreneurs`
+   - **Build Command:** *leave empty*
+   - **Start Command:** `node server.js`
+   - **Instance Type:** Free
+5. Click **Deploy Web Service** and wait ~2 minutes.
+6. Render shows your permanent link at the top, like
+   **`https://entrepreneurs.onrender.com`** — that's your game, forever.
+   Send it to friends, create a room, share the code, play.
+
+One quirk of the free tier: if nobody has opened the link for ~15 minutes, the first
+visit takes ~30 seconds to wake up. After that it's instant. **Don't create the room
+until everyone has the page open** — a sleeping restart wipes rooms.
+
+---
+
+## How a game actually starts (any option)
+
+1. **Everyone opens the link** and types their name.
+2. **One person** (the host) clicks **Create room**, chooses how many **bots**
+   (bots fill seats so 2 humans + 2 bots is a 4-player game), and reads out the
+   **6-character room code**.
+3. **Everyone else** types the code under **Join a friend** → **Join room**.
+4. The host sees the player list fill up and presses **Start game**.
+5. Play. The game clearly shows whose turn it is; when it's not yours you'll see
+   *"Waiting for &lt;name&gt;…"*.
+
+Good to know while playing:
+- **Refreshing the page is safe.** You land right back in the game. Same for a phone
+  that locked its screen — just reopen the tab.
+- The **leave** link (top right) abandons the game for real.
+- One room = one game. For a rematch, create a fresh room and share the new code.
+
+---
+
+## When something goes wrong
+
+| Problem | Fix |
+|---|---|
+| `node` is "not recognized" | Node isn't installed (Step 0), or reopen the terminal after installing |
+| `EADDRINUSE` when starting | Something already uses port 8080. Start with another port: **Windows:** `set PORT=3000 && node server.js` · **Mac:** `PORT=3000 node server.js` — then use `:3000` in every link |
+| Friends on my wi-fi can't load the page | Allow Node through the firewall (see Option A) |
+| The localtunnel link doesn't load | Close the tunnel terminal, run `npx localtunnel --port 8080` again for a fresh link; or try the cloudflared alternative |
+| "No such room" when joining | Code typed wrong (it's 6 characters, 0-9 and A-F), or the server restarted since the room was made — create a new room |
+| "That game already started" | Games can't be joined mid-way by new players. A player who was already in just reopens the same link on the same device to resume |
+| Render link takes ages the first time | Free tier waking up — normal, ~30s, then fast |
+| Everything is weird / stuck | Host: Ctrl+C the server, `node server.js` again, everyone reopens, make a new room |
+
+---
+
+## What about the single-player version?
+
+`Entrepreneurs.html` in the same folder is the complete solo game against bots —
+double-click it, no server, no internet, works forever. The online version and the
+solo version are the same game with the same rules.

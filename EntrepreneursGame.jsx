@@ -1,0 +1,3388 @@
+import React, { useState, useCallback, useRef, useEffect } from "react";
+
+/* ============================== DATA ============================== */
+
+const BP_DATA = [{"code": "UT-01", "ind": "UT", "name": "Solar Field I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "HO", "val": 4}], "prod": 4}, {"code": "UT-02", "ind": "UT", "name": "Hydro-Farm Initiative I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "HO", "val": 4}], "prod": 4}, {"code": "UT-03", "ind": "UT", "name": "Wind Farm I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "TE", "val": 4}], "prod": 4}, {"code": "UT-04", "ind": "UT", "name": "Biomass Plant I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "TE", "val": 4}], "prod": 4}, {"code": "UT-05", "ind": "UT", "name": "Tidal Generator I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "HC", "val": 4}], "prod": 4}, {"code": "UT-06", "ind": "UT", "name": "Fusion Conduit Hub II", "lvl": 2, "setup": 20, "opex": 7, "deps": [{"ind": "HO", "val": 4}, {"ind": "TE", "val": 3}], "prod": 8}, {"code": "UT-07", "ind": "UT", "name": "Smart Grid Node II", "lvl": 2, "setup": 20, "opex": 7, "deps": [{"ind": "HO", "val": 4}, {"ind": "HC", "val": 3}], "prod": 8}, {"code": "UT-08", "ind": "UT", "name": "Oceanic Turbine II", "lvl": 2, "setup": 20, "opex": 7, "deps": [{"ind": "TE", "val": 4}, {"ind": "HC", "val": 3}], "prod": 8}, {"code": "UT-09", "ind": "UT", "name": "Geothermal Supernode III", "lvl": 3, "setup": 30, "opex": 10, "deps": [{"ind": "HO", "val": 4}, {"ind": "TE", "val": 3}, {"ind": "HC", "val": 3}], "prod": 16}, {"code": "UT-10", "ind": "UT", "name": "Antimatter Reactor III", "lvl": 3, "setup": 30, "opex": 10, "deps": [{"ind": "HO", "val": 4}, {"ind": "TE", "val": 3}, {"ind": "HC", "val": 3}], "prod": 16}, {"code": "RE-01", "ind": "RE", "name": "Corner Store I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "TE", "val": 5}], "prod": 4}, {"code": "RE-02", "ind": "RE", "name": "Pop-Up Kiosk I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "TE", "val": 5}], "prod": 4}, {"code": "RE-03", "ind": "RE", "name": "Local Market I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "HO", "val": 5}], "prod": 4}, {"code": "RE-04", "ind": "RE", "name": "Strip Mall I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "HO", "val": 5}], "prod": 4}, {"code": "RE-05", "ind": "RE", "name": "Vending Network I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "MA", "val": 5}], "prod": 4}, {"code": "RE-06", "ind": "RE", "name": "Supermarket II", "lvl": 2, "setup": 15, "opex": 9, "deps": [{"ind": "TE", "val": 5}, {"ind": "HO", "val": 4}], "prod": 8}, {"code": "RE-07", "ind": "RE", "name": "Department Store II", "lvl": 2, "setup": 15, "opex": 9, "deps": [{"ind": "TE", "val": 5}, {"ind": "MA", "val": 4}], "prod": 8}, {"code": "RE-08", "ind": "RE", "name": "Outlet Center II", "lvl": 2, "setup": 15, "opex": 9, "deps": [{"ind": "HO", "val": 5}, {"ind": "MA", "val": 4}], "prod": 8}, {"code": "RE-09", "ind": "RE", "name": "Mega-Mall III", "lvl": 3, "setup": 25, "opex": 14, "deps": [{"ind": "TE", "val": 6}, {"ind": "HO", "val": 4}, {"ind": "MA", "val": 4}], "prod": 16}, {"code": "RE-10", "ind": "RE", "name": "Omni-Channel Hub III", "lvl": 3, "setup": 25, "opex": 14, "deps": [{"ind": "TE", "val": 6}, {"ind": "HO", "val": 4}, {"ind": "MA", "val": 4}], "prod": 16}, {"code": "HO-01", "ind": "HO", "name": "Motel I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 3}, {"code": "HO-02", "ind": "HO", "name": "Bed & Breakfast I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 3}, {"code": "HO-03", "ind": "HO", "name": "Transit Hostel I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "HC", "val": 6}], "prod": 3}, {"code": "HO-04", "ind": "HO", "name": "Roadside Inn I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "HC", "val": 6}], "prod": 3}, {"code": "HO-05", "ind": "HO", "name": "Capsule Hotel I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "RE", "val": 6}], "prod": 3}, {"code": "HO-06", "ind": "HO", "name": "Business Hotel II", "lvl": 2, "setup": 15, "opex": 10, "deps": [{"ind": "MA", "val": 6}, {"ind": "HC", "val": 4}], "prod": 6}, {"code": "HO-07", "ind": "HO", "name": "Resort Lodge II", "lvl": 2, "setup": 15, "opex": 10, "deps": [{"ind": "MA", "val": 6}, {"ind": "RE", "val": 4}], "prod": 6}, {"code": "HO-08", "ind": "HO", "name": "Boutique Hotel II", "lvl": 2, "setup": 15, "opex": 10, "deps": [{"ind": "HC", "val": 6}, {"ind": "RE", "val": 4}], "prod": 6}, {"code": "HO-09", "ind": "HO", "name": "Luxury Casino III", "lvl": 3, "setup": 25, "opex": 16, "deps": [{"ind": "MA", "val": 6}, {"ind": "HC", "val": 5}, {"ind": "RE", "val": 5}], "prod": 12}, {"code": "HO-10", "ind": "HO", "name": "Orbit Resort III", "lvl": 3, "setup": 25, "opex": 16, "deps": [{"ind": "MA", "val": 6}, {"ind": "HC", "val": 5}, {"ind": "RE", "val": 5}], "prod": 12}, {"code": "MA-01", "ind": "MA", "name": "Assembly Workshop I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "HC", "val": 4}], "prod": 3}, {"code": "MA-02", "ind": "MA", "name": "Parts Fabricator I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "HC", "val": 4}], "prod": 3}, {"code": "MA-03", "ind": "MA", "name": "Textile Mill I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "RE", "val": 4}], "prod": 3}, {"code": "MA-04", "ind": "MA", "name": "Canning Facility I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "RE", "val": 4}], "prod": 3}, {"code": "MA-05", "ind": "MA", "name": "Injection Molder I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "UT", "val": 4}], "prod": 3}, {"code": "MA-06", "ind": "MA", "name": "Auto Plant II", "lvl": 2, "setup": 35, "opex": 7, "deps": [{"ind": "HC", "val": 4}, {"ind": "RE", "val": 3}], "prod": 6}, {"code": "MA-07", "ind": "MA", "name": "Microchip Foundry II", "lvl": 2, "setup": 35, "opex": 7, "deps": [{"ind": "HC", "val": 4}, {"ind": "UT", "val": 3}], "prod": 6}, {"code": "MA-08", "ind": "MA", "name": "Chemical Plant II", "lvl": 2, "setup": 35, "opex": 7, "deps": [{"ind": "RE", "val": 4}, {"ind": "UT", "val": 3}], "prod": 6}, {"code": "MA-09", "ind": "MA", "name": "Heavy Robotics III", "lvl": 3, "setup": 60, "opex": 10, "deps": [{"ind": "HC", "val": 4}, {"ind": "RE", "val": 3}, {"ind": "UT", "val": 3}], "prod": 12}, {"code": "MA-10", "ind": "MA", "name": "Orbital Shipyard III", "lvl": 3, "setup": 60, "opex": 10, "deps": [{"ind": "HC", "val": 4}, {"ind": "RE", "val": 3}, {"ind": "UT", "val": 3}], "prod": 12}, {"code": "HC-01", "ind": "HC", "name": "Urgent Care Clinic I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "RE", "val": 5}], "prod": 2}, {"code": "HC-02", "ind": "HC", "name": "Pharmacy I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "RE", "val": 5}], "prod": 2}, {"code": "HC-03", "ind": "HC", "name": "Dental Office I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "UT", "val": 5}], "prod": 2}, {"code": "HC-04", "ind": "HC", "name": "Wellness Center I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "UT", "val": 5}], "prod": 2}, {"code": "HC-05", "ind": "HC", "name": "Physical Therapy I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "TE", "val": 5}], "prod": 2}, {"code": "HC-06", "ind": "HC", "name": "General Hospital II", "lvl": 2, "setup": 35, "opex": 9, "deps": [{"ind": "RE", "val": 5}, {"ind": "UT", "val": 4}], "prod": 4}, {"code": "HC-07", "ind": "HC", "name": "Trauma Center II", "lvl": 2, "setup": 35, "opex": 9, "deps": [{"ind": "RE", "val": 5}, {"ind": "TE", "val": 4}], "prod": 4}, {"code": "HC-08", "ind": "HC", "name": "Specialized Clinic II", "lvl": 2, "setup": 35, "opex": 9, "deps": [{"ind": "UT", "val": 5}, {"ind": "TE", "val": 4}], "prod": 4}, {"code": "HC-09", "ind": "HC", "name": "Biotech Campus III", "lvl": 3, "setup": 60, "opex": 14, "deps": [{"ind": "RE", "val": 6}, {"ind": "UT", "val": 4}, {"ind": "TE", "val": 4}], "prod": 8}, {"code": "HC-10", "ind": "HC", "name": "Cybernetics Inst. III", "lvl": 3, "setup": 60, "opex": 14, "deps": [{"ind": "RE", "val": 6}, {"ind": "UT", "val": 4}, {"ind": "TE", "val": 4}], "prod": 8}, {"code": "TE-01", "ind": "TE", "name": "App Startup I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "UT", "val": 6}], "prod": 2}, {"code": "TE-02", "ind": "TE", "name": "Data Center I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "UT", "val": 6}], "prod": 2}, {"code": "TE-03", "ind": "TE", "name": "Server Farm I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 2}, {"code": "TE-04", "ind": "TE", "name": "IT Support Firm I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 2}, {"code": "TE-05", "ind": "TE", "name": "Cloud Provider I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "HO", "val": 6}], "prod": 2}, {"code": "TE-06", "ind": "TE", "name": "Software Campus II", "lvl": 2, "setup": 25, "opex": 10, "deps": [{"ind": "UT", "val": 6}, {"ind": "MA", "val": 4}], "prod": 4}, {"code": "TE-07", "ind": "TE", "name": "Network Hub II", "lvl": 2, "setup": 25, "opex": 10, "deps": [{"ind": "UT", "val": 6}, {"ind": "HO", "val": 4}], "prod": 4}, {"code": "TE-08", "ind": "TE", "name": "Telecom Provider II", "lvl": 2, "setup": 25, "opex": 10, "deps": [{"ind": "MA", "val": 6}, {"ind": "HO", "val": 4}], "prod": 4}, {"code": "TE-09", "ind": "TE", "name": "Sentient AI Cluster III", "lvl": 3, "setup": 40, "opex": 16, "deps": [{"ind": "UT", "val": 6}, {"ind": "MA", "val": 5}, {"ind": "HO", "val": 5}], "prod": 8}, {"code": "TE-10", "ind": "TE", "name": "Quantum Computing III", "lvl": 3, "setup": 40, "opex": 16, "deps": [{"ind": "UT", "val": 6}, {"ind": "MA", "val": 5}, {"ind": "HO", "val": 5}], "prod": 8}];
+
+const INDUSTRIES = ["UT", "RE", "HO", "MA", "HC", "TE"];
+const BASE_PRICE = { UT: 2, RE: 2, HO: 3, MA: 3, HC: 4, TE: 4 };
+const SCALING = { UT: "H", MA: "H", TE: "H", RE: "V", HO: "V", HC: "V" };
+const IND_COLOR = { UT: "#E8B330", RE: "#3FAE6A", HO: "#D65B4A", MA: "#9066C8", HC: "#3E8FD0", TE: "#D6428B" };
+const IND_NAME = { UT: "Utilities", RE: "Retail", HO: "Hospitality", MA: "Manufacturing", HC: "Healthcare", TE: "Technology" };
+const IND_ABILITY = {
+  UT: "Access demand on its level\u00d7level grid. No LH.",
+  RE: "Sell to 1 extra district per level. No LH.",
+  HO: "Sell 1 extra production per business/LH around it, per level.",
+  MA: "Sell 1 extra production to another industry's rows, per level.",
+  HC: "Reach any district near any LH, not just its own.",
+  TE: "Sell 2 tokens to every demand icon it reaches.",
+};
+
+const PLAYER_COLORS = ["#22D3EE", "#FB923C", "#A78BFA", "#FB7185"];
+
+/* ============================== BOARD ============================== */
+
+const COORDS = { NW: [0, 0], N: [1, 0], NE: [2, 0], W: [0, 1], E: [2, 1], SW: [0, 2], S: [1, 2], SE: [2, 2] };
+const ALL_POS = Object.keys(COORDS);
+function intraAdjacent(a, b) {
+  const [x1, y1] = COORDS[a], [x2, y2] = COORDS[b];
+  return Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2)) === 1;
+}
+const INTRA_GRAPH = {};
+ALL_POS.forEach((p) => (INTRA_GRAPH[p] = new Set()));
+for (let i = 0; i < ALL_POS.length; i++)
+  for (let j = i + 1; j < ALL_POS.length; j++) {
+    const a = ALL_POS[i], b = ALL_POS[j];
+    if (intraAdjacent(a, b)) {
+      INTRA_GRAPH[a].add(b);
+      INTRA_GRAPH[b].add(a);
+    }
+  }
+
+const TILES = {
+  R1: ["N", "E", "S", "W"], R2: ["NW", "NE", "SE", "SW"], R3: ["NW", "N", "NE", "S"],
+  R4: ["N", "SE", "S", "W"], R5: ["N", "NE", "E", "SE"],
+  C1: ["N", "E", "S", "W"], C2: ["NW", "NE", "SE", "SW"], C3: ["NW", "SE", "S", "W"],
+  C4: ["N", "NE", "E", "SW"], C5: ["E", "SE", "SW", "W"],
+  A1: ["N", "E", "S", "W"], A2: ["NW", "NE", "SE", "SW"], A3: ["N", "NE", "S", "SW"],
+  I1: ["N", "E", "S", "W"], I2: ["NW", "NE", "SE", "SW"], I3: ["NW", "N", "NE", "SW"],
+  FC: ["NE", "E", "SE", "S"], IA: ["SE", "S", "SW", "W"], CC: ["NW", "N", "SW", "W"], LM: ["NW", "N", "NE", "E"],
+};
+const SUBURB_POOL = ["R1", "R2", "R3", "R4", "R5", "C1", "C2", "C3", "C4", "C5", "A1", "A2", "A3", "I1", "I2", "I3"];
+const CENTER_POOL = ["FC", "IA", "CC", "LM"];
+const TILE_LABEL = { R:"#D65B4A22", C:"#3E8FD022" };
+
+const DEMAND_ROWS = {
+  R: ["UT", "RE", "HO", "UT"], C: ["RE", "UT", "MA", "RE"],
+  A: ["HO", "UT", "TE", "HO"], I: ["MA", "RE", "HC", "MA"],
+  FC: ["TE", "UT", "HC", "TE"], IA: ["MA", "RE", "TE", "MA"],
+  CC: ["HC", "HO", "TE", "HC"], LM: ["HO", "MA", "HC", "HO"],
+};
+function districtFamily(tname) {
+  return ["FC", "IA", "CC", "LM"].includes(tname) ? tname : tname[0];
+}
+
+const Y_MAP = { N: "S", S: "N", NE: "SE", SE: "NE", NW: "SW", SW: "NW" };
+const X_MAP = { E: "W", W: "E", NE: "NW", NW: "NE", SE: "SW", SW: "SE" };
+const HAS_N = new Set(["N", "NE", "NW"]), HAS_S = new Set(["S", "SE", "SW"]);
+const HAS_E = new Set(["E", "NE", "SE"]), HAS_W = new Set(["W", "NW", "SW"]);
+function crossLinks(r, c, pos) {
+  const links = [];
+  if (pos in Y_MAP) {
+    if (HAS_N.has(pos)) links.push([[r - 1, c], Y_MAP[pos]]);
+    if (HAS_S.has(pos)) links.push([[r + 1, c], Y_MAP[pos]]);
+  }
+  if (pos in X_MAP) {
+    if (HAS_E.has(pos)) links.push([[r, c + 1], X_MAP[pos]]);
+    if (HAS_W.has(pos)) links.push([[r, c - 1], X_MAP[pos]]);
+  }
+  return links;
+}
+const CENTER_CELLS = [[2, 2], [2, 3], [3, 2], [3, 3]];
+const OUTER_CELLS = [];
+for (let r = 1; r <= 4; r++) for (let c = 1; c <= 4; c++) if (!CENTER_CELLS.some(([cr, cc]) => cr === r && cc === c)) OUTER_CELLS.push([r, c]);
+
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function shuffle(arr, rng) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function sample(arr, n, rng) { return shuffle(arr, rng).slice(0, n); }
+function plotKey(r, c, pos) { return `${r},${c},${pos}`; }
+
+function buildBoard(rng) {
+  const tiles = {};
+  const centers = shuffle(CENTER_POOL, rng);
+  CENTER_CELLS.forEach(([r, c], i) => (tiles[`${r},${c}`] = centers[i]));
+  const chosen = sample(SUBURB_POOL, 12, rng);
+  const slots = shuffle(OUTER_CELLS, rng);
+  chosen.forEach((name, i) => { const [r, c] = slots[i]; tiles[`${r},${c}`] = name; });
+
+  const graph = {}, cellOf = {};
+  Object.entries(tiles).forEach(([key, tname]) => {
+    const [r, c] = key.split(",").map(Number);
+    TILES[tname].forEach((pos) => { const k = plotKey(r, c, pos); graph[k] = new Set(); cellOf[k] = { r, c, pos, tname }; });
+  });
+  Object.entries(tiles).forEach(([key, tname]) => {
+    const [r, c] = key.split(",").map(Number);
+    const plots = TILES[tname];
+    for (let i = 0; i < plots.length; i++) for (let j = i + 1; j < plots.length; j++) {
+      if (INTRA_GRAPH[plots[i]].has(plots[j])) {
+        const a = plotKey(r, c, plots[i]), b = plotKey(r, c, plots[j]);
+        graph[a].add(b); graph[b].add(a);
+      }
+    }
+  });
+  Object.entries(tiles).forEach(([key, tname]) => {
+    const [r, c] = key.split(",").map(Number);
+    TILES[tname].forEach((pos) => {
+      crossLinks(r, c, pos).forEach(([[nr, nc], npos]) => {
+        const nkey = `${nr},${nc}`;
+        if (tiles[nkey] && TILES[tiles[nkey]].includes(npos)) {
+          const a = plotKey(r, c, pos), b = plotKey(nr, nc, npos);
+          graph[a].add(b); graph[b].add(a);
+        }
+      });
+    });
+  });
+  const centerPlots = Object.keys(cellOf).filter((k) => CENTER_CELLS.some(([cr, cc]) => cr === cellOf[k].r && cc === cellOf[k].c));
+  const distFromCenter = bfsDistances(graph, centerPlots);
+  const board = { tiles, graph, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhEdges: [] };
+  board.priceLattice = computePriceLattice(board);
+  return board;
+}
+function bfsDistances(graph, startNodes) {
+  const dist = {};
+  startNodes.forEach((n) => (dist[n] = 0));
+  const queue = [...startNodes];
+  while (queue.length) {
+    const cur = queue.shift();
+    for (const n of graph[cur] || []) if (!(n in dist)) { dist[n] = dist[cur] + 1; queue.push(n); }
+  }
+  return dist;
+}
+function edgeKey(a, b) { return a < b ? `${a}|${b}` : `${b}|${a}`; }
+function plotHasLH(board, plot) { return board.lhEdges.some((e) => e[0] === plot || e[1] === plot); }
+const LOCAL5 = { NW: [0, 0], N: [0, 2], NE: [0, 4], W: [2, 0], E: [2, 4], SW: [4, 0], S: [4, 2], SE: [4, 4] };
+function isCCDistrict0(dr, dc) { return CENTER_CELLS.some(([cr, cc]) => cr - 1 === dr && cc - 1 === dc); }
+
+/* ---------- Price lattice ----------
+   Prices live on the roads, on a 9x9 lattice over the 4x4 district grid.
+   Even index = a road line; odd index = a district's middle. (odd,odd) is a
+   district centre and carries no price. Corner positions (even,even) sit where
+   up to 4 districts meet; mid positions sit beside a district's middle plot.
+   Values reproduce the printed board: 6 dead centre down to 1 at the outer edge. */
+function computePriceLattice(board) {
+  const exists = (dr, dc) => dr >= 0 && dr < 4 && dc >= 0 && dc < 4 && !!board.tiles[`${dr + 1},${dc + 1}`];
+  const isCC = (dr, dc) => exists(dr, dc) && isCCDistrict0(dr, dc);
+  const lat = {};
+  for (let r = 0; r <= 8; r++) {
+    for (let c = 0; c <= 8; c++) {
+      const rEven = r % 2 === 0, cEven = c % 2 === 0;
+      if (!rEven && !cEven) continue; // district centre: no price
+      let touching;
+      if (rEven && cEven) {
+        const i = r / 2, j = c / 2;
+        touching = [[i - 1, j - 1], [i - 1, j], [i, j - 1], [i, j]];
+      } else if (rEven) {
+        const i = r / 2, k = (c - 1) / 2;
+        touching = [[i - 1, k], [i, k]];
+      } else {
+        const j = c / 2, k = (r - 1) / 2;
+        touching = [[k, j - 1], [k, j]];
+      }
+      const live = touching.filter(([a, b]) => exists(a, b));
+      const nCC = live.filter(([a, b]) => isCC(a, b)).length;
+      let v;
+      if (rEven && cEven) v = nCC === 4 ? 6 : nCC >= 1 ? 4 : live.length >= 2 ? 2 : 1;
+      else v = nCC === 2 ? 5 : live.length === 2 ? 3 : 1;
+      lat[`${r},${c}`] = v;
+    }
+  }
+  return lat;
+}
+/* A plot's road-price position: district (1-indexed) + its ring slot. */
+function latticeKeyForCell(cell) {
+  const [lr, lc] = LOCAL5[cell.pos];
+  return `${2 * (cell.r - 1) + lr / 2},${2 * (cell.c - 1) + lc / 2}`;
+}
+function plotValue(state, plotKeyStr) {
+  const board = state.board;
+  const cell = board.cellOf[plotKeyStr];
+  let base = 1;
+  if (cell && board.priceLattice) {
+    const v = board.priceLattice[latticeKeyForCell(cell)];
+    if (v !== undefined) base = v;
+  }
+  const occupiedNeighbors = [...board.graph[plotKeyStr]].filter((n) => n in board.occupiedBy).length;
+  const lhBonus = plotHasLH(board, plotKeyStr) ? 1 : 0;
+  return base + occupiedNeighbors + lhBonus;
+}
+function isCrossDistrictEdge(board, a, b) {
+  const ca = board.cellOf[a], cb = board.cellOf[b];
+  return ca.r !== cb.r || ca.c !== cb.c;
+}
+function placeNewLH(state, rng, log) {
+  const allEdges = [];
+  const seen = new Set();
+  for (const a of Object.keys(state.board.graph)) {
+    for (const b of state.board.graph[a]) {
+      const ek = edgeKey(a, b);
+      if (seen.has(ek)) continue;
+      seen.add(ek);
+      if (!isCrossDistrictEdge(state.board, a, b)) continue; // LH only sits between two districts
+      const alreadyLH = state.board.lhEdges.some((e) => edgeKey(e[0], e[1]) === ek);
+      if (!alreadyLH) allEdges.push([a, b]);
+    }
+  }
+  if (!allEdges.length) return;
+  const [a, b] = allEdges[Math.floor(rng() * allEdges.length)];
+  state.board.lhEdges.push([a, b]);
+  const famA = districtFamily(state.board.cellOf[a].tname), famB = districtFamily(state.board.cellOf[b].tname);
+  const touchesHC = DEMAND_ROWS[famA].includes("HC") || DEMAND_ROWS[famB].includes("HC");
+  if (touchesHC) {
+    log(`A new Logistic Hub opens near ${state.board.cellOf[a].tname}/${state.board.cellOf[b].tname} \u2014 Healthcare demand grows.`, null);
+  } else {
+    log(`A new Logistic Hub opens near ${state.board.cellOf[a].tname}/${state.board.cellOf[b].tname}.`, null);
+  }
+}
+function freeNeighbors(board, plot) { return [...board.graph[plot]].filter((n) => !(n in board.occupiedBy)); }
+function ownedFreeNeighbors(board, plot) { return freeNeighbors(board, plot).filter((n) => n in board.owner); }
+/* Rank candidate plots by how much demand a business of `ind` could actually reach
+   from there: open icons in the home district, plus hub access if the industry can
+   use it. Building blind was leaving ~80% of bot production unsold. */
+function plotDemandScore(state, ind, plotKeyStr) {
+  const board = state.board;
+  const c = board.cellOf[plotKeyStr];
+  if (!c) return 0;
+  const tileKey = `${c.r},${c.c}`;
+  const t = state.demand && state.demand.tiles ? state.demand.tiles[tileKey] : null;
+  let score = 0;
+  if (t) {
+    t.rows.forEach((rowInd, rowIdx) => {
+      if (rowInd !== ind) return;
+      const openable = rowIdx >= 2 && state.quarter <= 4 ? 0 : 1;
+      for (let l = 0; l < 4; l++) if (openable && !t.filled[rowIdx][l]) score += 1;
+    });
+  }
+  const canLH = ind !== "UT" && ind !== "RE";
+  if (canLH && plotHasLH(board, plotKeyStr)) score += 6;      // opens the whole hub network
+  return score;
+}
+function findFootprint(board, nPlots, rng, state, ind) {
+  let pool = Object.keys(board.graph).filter((p) => !(p in board.occupiedBy) && p in board.owner);
+  if (state && ind) {
+    // prefer plots where this industry can actually sell
+    pool = pool.map((pk) => [pk, plotDemandScore(state, ind, pk)])
+               .sort((a, b) => b[1] - a[1])
+               .map(([pk]) => pk);
+  }
+  const candidates = state && ind ? pool : shuffle(pool, rng);
+  for (const start of candidates) {
+    const cluster = new Set([start]);
+    let frontier = ownedFreeNeighbors(board, start);
+    while (cluster.size < nPlots && frontier.length) {
+      const idx = Math.floor(rng() * frontier.length);
+      const nxt = frontier.splice(idx, 1)[0];
+      if (cluster.has(nxt)) continue;
+      cluster.add(nxt);
+      frontier = frontier.concat(ownedFreeNeighbors(board, nxt).filter((p) => !cluster.has(p)));
+    }
+    if (cluster.size >= nPlots) return [...cluster].slice(0, nPlots);
+  }
+  return null;
+}
+function adjacentFreePlot(board, footprint, rng) {
+  const opts = new Set();
+  footprint.forEach((p) => ownedFreeNeighbors(board, p).forEach((n) => opts.add(n)));
+  footprint.forEach((p) => opts.delete(p));
+  const arr = [...opts];
+  if (!arr.length) return null;
+  return arr[Math.floor(rng() * arr.length)];
+}
+
+/* ============================== DEMAND POOL (per-district 4x4 grid) ============================== */
+
+const HC_CARRYING_FAMILIES = Object.entries(DEMAND_ROWS).filter(([f, rows]) => rows.includes("HC")).map(([f]) => f);
+function makeDemandPool(board, rng) {
+  const tiles = {};
+  Object.entries(board.tiles).forEach(([key, tname]) => {
+    const fam = districtFamily(tname);
+    tiles[key] = { rows: DEMAND_ROWS[fam], filled: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] };
+  });
+  return { tiles, hcBonusTiles: [] };
+}
+function unlockY2(pool) { /* rows 2-3 gate purely on quarter at read-time; nothing to mutate */ }
+function refreshY3(pool) {
+  Object.values(pool.tiles).forEach((t) => { t.filled = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]; });
+}
+function slotOpen(pool, tileKey, rowIdx, levelIdx, quarter) {
+  const t = pool.tiles[tileKey];
+  if (!t) return false;
+  if (rowIdx >= 2 && quarter <= 4) return false;   // rows 3-4 open at the END of Y1, i.e. from Q5
+  return !t.filled[rowIdx][levelIdx];
+}
+function slotIndustry(pool, tileKey, rowIdx) { return pool.tiles[tileKey]?.rows[rowIdx]; }
+
+/* ---- reachability: which tiles can a business deliver to ---- */
+function tileGridDist(a, b) {
+  const [ar, ac] = a.split(",").map(Number), [br, bc] = b.split(",").map(Number);
+  return Math.max(Math.abs(ar - br), Math.abs(ac - bc));
+}
+function footprintDistricts(board, footprint) {
+  return new Set(footprint.map((plot) => { const c = board.cellOf[plot]; return `${c.r},${c.c}`; }));
+}
+function lhAdjacentDistricts(board, fromDistricts) {
+  const out = new Set();
+  board.lhEdges.forEach(([a, b]) => {
+    const da = `${board.cellOf[a].r},${board.cellOf[a].c}`, db = `${board.cellOf[b].r},${board.cellOf[b].c}`;
+    if (fromDistricts.has(da)) out.add(db);
+    if (fromDistricts.has(db)) out.add(da);
+  });
+  return out;
+}
+function allDistrictKeys(board) { return [...new Set(Object.keys(board.cellOf).map((p) => { const c = board.cellOf[p]; return `${c.r},${c.c}`; }))]; }
+function bestExtraDistrictsForRE(state, biz, count, home) {
+  const others = allDistrictKeys(state.board).filter((d) => !home.has(d));
+  const openCount = (d) => {
+    const t = state.demand.tiles[d];
+    if (!t) return 0;
+    let n = 0;
+    t.rows.forEach((rowInd, rowIdx) => {
+      if (rowInd !== "RE") return;
+      if (rowIdx >= 2 && state.quarter < 4) return;
+      for (let l = 0; l < Math.min(biz.level, 4); l++) if (!t.filled[rowIdx][l]) n++;
+    });
+    return n;
+  };
+  others.sort((a, b) => openCount(b) - openCount(a) || tileGridDist([...home][0], a) - tileGridDist([...home][0], b));
+  return others.slice(0, count);
+}
+function reachableDistricts(state, biz, chosenExtra) {
+  const board = state.board;
+  const home = footprintDistricts(board, biz.footprint);
+  const out = new Set(home);
+  // Utilities and Retail can never use Logistic Hubs; Healthcare uses the network natively,
+  // everyone else needs a footprint plot actually touching a hub.
+  const canUseLH = bizInd(biz) !== "UT" && bizInd(biz) !== "RE";
+  const touchesAnyLH = biz.footprint.some((plot) => plotHasLH(board, plot));
+  if (canUseLH && (bizInd(biz) === "HC" || touchesAnyLH)) {
+    // full shared LH network: every district touched by ANY placed LH becomes reachable
+    board.lhEdges.forEach(([a, b]) => { out.add(`${board.cellOf[a].r},${board.cellOf[a].c}`); out.add(`${board.cellOf[b].r},${board.cellOf[b].c}`); });
+  }
+  if (bizInd(biz) === "UT") {
+    allDistrictKeys(board).forEach((d) => { if ([...home].some((h) => tileGridDist(h, d) < biz.level)) out.add(d); });
+  }
+  if (bizInd(biz) === "RE") {
+    const explicit = chosenExtra || (state.reChoices && state.reChoices[biz.id]);
+    const extra = explicit || bestExtraDistrictsForRE(state, biz, biz.level, home);
+    extra.forEach((d) => out.add(d));
+  }
+  return out;
+}
+function adjacencyBonusCount(state, biz) {
+  const board = state.board;
+  const seen = new Set();
+  biz.footprint.forEach((plot) => {
+    board.graph[plot].forEach((n) => {
+      if (biz.footprint.includes(n)) return;
+      const occupied = n in board.occupiedBy;
+      const hasLH = board.lhEdges.some((e) => e[0] === n || e[1] === n);
+      if (occupied || hasLH) seen.add(n);
+    });
+  });
+  return seen.size;
+}
+function exchangeRate(state, biz) {
+  if (bizInd(biz) === "TE") return 2;   // Technology is the only doubler
+  return 1;
+}
+/* Hospitality sells one unit per demand icon like everyone else, but additionally moves
+   one extra unit for every business or Logistic Hub within `level` plots of its footprint.
+   Those extra units are sold straight at the industry price - they need no demand icon. */
+function hoBonusUnits(state, biz) {
+  if (bizInd(biz) !== "HO") return 0;
+  const board = state.board;
+  const foot = new Set(biz.footprint);
+  const seen = new Set(biz.footprint);
+  let frontier = [...biz.footprint];
+  const countedBiz = new Set();
+  let hubs = 0;
+  for (let step = 0; step < biz.level; step++) {
+    const next = [];
+    for (const plot of frontier) {
+      for (const n of (board.graph[plot] || [])) {
+        if (seen.has(n)) continue;
+        seen.add(n);
+        next.push(n);
+        const id = board.occupiedBy[n];
+        if (id !== undefined && !foot.has(n)) countedBiz.add(id);
+        if (board.lhEdges.some((e) => e[0] === n || e[1] === n)) hubs++;
+      }
+    }
+    frontier = next;
+    if (!frontier.length) break;
+  }
+  return countedBiz.size + hubs;
+}
+function eligibleSlotsFor(state, biz) {
+  const reach = reachableDistricts(state, biz);
+  const ind = bizInd(biz), lvl = biz.level;
+  const out = [];
+  reach.forEach((tileKey) => {
+    const t = state.demand.tiles[tileKey];
+    if (!t) return;
+    t.rows.forEach((rowInd, rowIdx) => {
+      if (rowInd !== ind) return;
+      for (let levelIdx = 0; levelIdx < Math.min(lvl, 4); levelIdx++) {
+        if (slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter)) out.push({ tileKey, rowIdx, levelIdx, cross: false });
+      }
+    });
+  });
+  if (ind === "MA") {
+    const home = footprintDistricts(state.board, biz.footprint);
+    home.forEach((tileKey) => {
+      const t = state.demand.tiles[tileKey];
+      if (!t) return;
+      t.rows.forEach((rowInd, rowIdx) => {
+        if (rowInd === ind) return; // own-industry slots already covered above
+        for (let levelIdx = 0; levelIdx < Math.min(lvl, 4); levelIdx++) {
+          if (slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter)) out.push({ tileKey, rowIdx, levelIdx, cross: true });
+        }
+      });
+    });
+  }
+  return out;
+}
+function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
+  if (!slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter)) return 0;
+  const slotInd = slotIndustry(state.demand, tileKey, rowIdx);
+  if (cross) {
+    if (bizInd(biz) !== "MA" || slotInd === bizInd(biz)) return 0;
+    if (!footprintDistricts(state.board, biz.footprint).has(tileKey)) return 0;
+  } else if (slotInd !== bizInd(biz)) return 0;
+  if (levelIdx >= biz.level) return 0;
+  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
+  return cross ? 1 : exchangeRate(state, biz);
+}
+function autoDeliver(state, p, biz) {
+  let remaining = bizProd(biz);
+  // Hospitality moves extra units straight to neighbours, no demand icon required
+  const hoBonus = Math.min(remaining, hoBonusUnits(state, biz));
+  if (hoBonus > 0) { p.cash += hoBonus * price(state.pm, bizInd(biz)); remaining -= hoBonus; }
+  let crossRemaining = bizInd(biz) === "MA" ? biz.level : 0;
+  let sold = 0;
+  const slots = eligibleSlotsFor(state, biz);
+  for (const s of slots) {
+    if (s.cross) {
+      if (crossRemaining <= 0) continue;
+      const got = deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, true);
+      if (got > 0) { sold += got; crossRemaining -= got; }
+    } else {
+      if (remaining <= 0) continue;
+      const got = deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, false);
+      if (got > 0) { sold += Math.min(got, remaining); remaining -= Math.min(got, remaining); }
+    }
+  }
+  const leftover = Math.max(0, remaining);
+  p.cash += sold * price(state.pm, bizInd(biz)) + leftover * 1;
+}
+
+function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
+  const bizId = state.deliveringBizId;
+  const biz = human.businesses.find((b) => b.id === bizId);
+  if (!biz) return false;
+  const got = deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross);
+  if (got <= 0) return false;
+  human.cash += got * price(state.pm, bizInd(biz));
+  if (cross) state.crossSellRemaining[bizId] = Math.max(0, (state.crossSellRemaining[bizId] || 0) - got);
+  else state.deliveryRemaining[bizId] = Math.max(0, (state.deliveryRemaining[bizId] || 0) - got);
+  log(`${human.name} delivers ${got} ${bizInd(biz)}${cross ? " (cross-sell)" : ""} to ${state.board.tiles[tileKey]} for $${got * price(state.pm, bizInd(biz))}.`, human.id);
+  return true;
+}
+
+
+function makePriceMatrix() {
+  const demand = {}, offer = {};
+  INDUSTRIES.forEach((i) => { demand[i] = 0; offer[i] = 0; });
+  return { demand, offer };
+}
+function price(pm, ind) { return Math.max(1, BASE_PRICE[ind] + pm.demand[ind] - Math.floor(pm.offer[ind] / 2)); }
+function onLaunch(pm, ind, depInds) { pm.offer[ind] += 1; depInds.forEach((d) => (pm.demand[d] += 1)); }
+
+/* ============================== GAME ENGINE ============================== */
+
+const BP_SELL_PRICE = { 1: 4, 2: 8, 3: 12 };
+const BP_SOLVENCY_PRICE = { 1: 2, 2: 4, 3: 6 };
+const ARCHETYPES = ["balanced", "rush_cheap", "upgrade_focus", "tech_heavy", "vest_rebuild"];
+const ARCHETYPE_LABEL = { balanced: "Balanced", rush_cheap: "Rush-Cheap", upgrade_focus: "Upgrade-Focus", tech_heavy: "Tech-Heavy", vest_rebuild: "Vest & Rebuild" };
+
+let bizIdCounter = 1;
+function newBusiness(bp, footprint, quarterBuilt) {
+  return { id: bizIdCounter++, bp, footprint, level: bp.lvl, upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt };
+}
+const bizOpex = (b) => b.bp.opex * (b.upgraded ? 2 : 1);
+const bizProd = (b) => b.bp.prod * (b.upgraded ? 2 : 1);
+const bizSetup = (b) => b.bp.setup;
+const bizInd = (b) => b.bp.ind;
+
+const byId = (state, id) => state.players.find((p) => p.id === id);
+/* Multiplayer: several players can be human, so every interactive phase works through
+   a queue of player ids in turn order rather than assuming a single "the human". */
+function humansNeedingLiquidation(state) {
+  return state.turnOrder.filter((id) => {
+    const p = byId(state, id);
+    return p.isHuman && committedOpex(p) > 0 && p.cash < committedOpex(p);
+  });
+}
+function humansNeedingDelivery(state) {
+  return state.turnOrder.filter((id) => {
+    const p = byId(state, id);
+    return p.isHuman && humanDeliveryQueue(state, p).length > 0;
+  });
+}
+function humansNeedingRepay(state) {
+  return state.turnOrder.filter((id) => {
+    const p = byId(state, id);
+    return p.isHuman && p.discsInBank > 0;
+  });
+}
+function newPlayer(id, name, isHuman, cash, hand, archetype) {
+  return { id, name, isHuman, cash, hand, archetype, businesses: [], discsInBank: 0, epBank: 0, epLog: [] };
+}
+const activeBiz = (p) => p.businesses.filter((b) => !b.distressed && !b.isHQ);
+const canLaunchMore = (p) => activeBiz(p).length < 5;
+const committedOpex = (p) => activeBiz(p).reduce((s, b) => s + bizOpex(b), 0);
+function safeToSpend(p, spend, addedOpex = 0, buffer = 0.4) {
+  return p.cash - spend >= (committedOpex(p) + addedOpex) * buffer;
+}
+/* The cost of caution falls as the game shortens: an unused company slot earns
+   nothing, while a company built now still scores at every remaining year end. */
+function expansionBuffer(state) {
+  return state.quarter >= 9 ? 0.15 : state.quarter >= 5 ? 0.28 : 0.4;
+}
+/* Scoring rewards breadth (5 EP per distinct active industry) and endgame bonuses
+   reward land and district spread. Bots were hoarding cash and finishing with ~1.6
+   companies of a possible 5, so expansion is weighted much more aggressively. */
+function missingIndustries(p) {
+  const have = new Set(activeBiz(p).map(bizInd));
+  return new Set(INDUSTRIES.filter((i) => !have.has(i)));
+}
+function districtsTouched(state, p) {
+  const d = new Set();
+  Object.entries(state.board.owner).forEach(([pk, v]) => {
+    if (v !== p.id) return;
+    const c = state.board.cellOf[pk];
+    if (c) d.add(`${c.r},${c.c}`);
+  });
+  activeBiz(p).forEach((b) => b.footprint.forEach((pk) => {
+    const c = state.board.cellOf[pk];
+    if (c) d.add(`${c.r},${c.c}`);
+  }));
+  return d;
+}
+function addEP(p, amount, label, quarter) {
+  if (!amount) return;
+  p.epBank += amount;
+  if (!p.epLog) p.epLog = [];
+  p.epLog.push({ label, amount, quarter });
+}
+/* What a player would score if the game ended right now: banked EPs plus the
+   tokens still sitting on scored BP cards (those vest at the Grand Finale). */
+function epTotal(p) {
+  return p.epBank + p.businesses.reduce((s, b) => s + (b.epOnCard || 0), 0);
+}
+function vest(p, b, quarter) {
+  if (b.epOnCard > 0) { addEP(p, b.epOnCard, `Vested: ${b.bp.name}`, quarter); b.epOnCard = 0; }
+}
+
+function sellCompany(p, b, solvency = false) {
+  let recv;
+  if (solvency) recv = b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4);
+  else recv = b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2);
+  p.cash += recv; b.distressed = true; vest(p, b);
+  return recv;
+}
+function sellBpFromHand(state, p, bp, solvency = false) {
+  const table = solvency ? BP_SOLVENCY_PRICE : BP_SELL_PRICE;
+  p.cash += table[bp.lvl] || (solvency ? 2 : 4);
+  p.hand = p.hand.filter((x) => x !== bp);
+  if (state.decks[bp.ind]) state.decks[bp.ind].push(bp); // returns to bottom of its industry deck, recyclable
+}
+function worstRoiBusiness(p, pm, quarter, minAge = 1) {
+  const cands = activeBiz(p).filter((b) => quarter - b.quarterBuilt >= minAge);
+  if (!cands.length) return null;
+  const roi = (b) => bizProd(b) * price(pm, bizInd(b)) - bizOpex(b) - 3 * b.level;
+  return cands.reduce((worst, b) => (roi(b) < roi(worst) ? b : worst), cands[0]);
+}
+/* Score a Blueprint for launching. Price is the dominant term: an industry everyone
+   is flooding drops toward $1 while an unbuilt one everybody depends on can reach $9+,
+   so the same card can be worth several times more depending on the market. A flat
+   breadth bonus used to swamp this entirely, which had bots piling into whatever was
+   cheapest regardless of what it sold for. */
+function launchScore(state, p, bp, archetype) {
+  const pm = state.pm;
+  const px = price(pm, bp.ind);
+
+  // --- true cost, not just the printed setup ---
+  // Horizontal industries (UT/MA/TE) need one plot per level, and upgrading needs yet
+  // another adjacent plot. That land is a real outlay the printed setup hides, and it
+  // is why a level-3 Manufacturing is the most expensive thing on the board.
+  const nPlots = SCALING[bp.ind] === "H" ? bp.lvl : 1;
+  const owned = Object.entries(state.board.owner).filter(([k, v]) =>
+    v === p.id && !(k in state.board.occupiedBy)).length;
+  const mustBuy = Math.max(0, nPlots - owned);
+  const landCost = mustBuy * 3;                 // mid-board plots run about $3
+  const totalOutlay = bp.setup + landCost;
+
+  // --- rent comes back if you stand on your own land ---
+  // Rent is $3 per level, so a business on land you own returns that rent to you,
+  // which materially narrows the gap between cheap-OPEX and expensive-OPEX industries.
+  const rent = 3 * bp.lvl;
+  const rentBack = owned >= nPlots ? rent : 0;
+  const effOpex = bp.opex + rent - rentBack;
+
+  const gross = bp.prod * px;
+  const net = gross - effOpex;
+  // per-quarter return on the FULL outlay, the honest comparison between cards
+  let s = net / Math.max(1, totalOutlay);
+
+  // horizontal builds also need a contiguous cluster, which gets harder as the city
+  // fills and constrains where the business can ever be upgraded
+  if (SCALING[bp.ind] === "H" && bp.lvl >= 2) s *= 0.85;
+
+  // Building your own industry pushes its price DOWN (2 launches = -$1) while every
+  // dependent build pushes it UP. Prefer industries the table is under-supplying.
+  const ownActive = state.players.reduce((n, pl) =>
+    n + activeBiz(pl).filter((b) => bizInd(b) === bp.ind).length, 0);
+  s *= 1 / (1 + 0.45 * ownActive);              // crowding penalty
+  // price relative to the card's own base: a doubled price is worth chasing hard
+  s *= Math.pow(px / BASE_PRICE[bp.ind], 1.1);
+  if (px <= 1) s *= 0.3;                        // selling at $1 is barely above recycling
+
+  // breadth is worth 5 EP/year, but must not drown the market signal
+  const have = new Set(activeBiz(p).map(bizInd));
+  if (!have.has(bp.ind)) s += 0.9;
+
+  if (archetype === "rush_cheap") s += (30 - bp.setup) / 30;
+  else if (archetype === "tech_heavy" && bp.ind === "TE") s += 0.5;
+  return s;
+}
+function pickLaunchCandidate(p, archetype, pm, missingInds, buffer, state) {
+  if (!p.hand.length) return null;
+  let scored = [];
+  for (const bp of p.hand) {
+    if (!safeToSpend(p, bp.setup, bp.opex, buffer)) continue;
+    const s = state ? launchScore(state, p, bp, archetype)
+                    : (bp.prod * price(pm, bp.ind) - bp.opex) / Math.max(1, bp.setup);
+    scored.push([s, bp]);
+  }
+  if (!scored.length) return null;
+  scored.sort((a, b) => b[0] - a[0]);
+  return scored[0][1];
+}
+
+function doLaunch(state, p, bp, rng, log, manualFootprint) {
+  const nPlots = SCALING[bp.ind] === "H" ? bp.lvl : 1;
+  const footprint = manualFootprint || findFootprint(state.board, nPlots, rng, state, bp.ind);
+  if (!footprint || footprint.length !== nPlots) return false;
+  if (!footprint.every((plot) => plot in state.board.owner && !(plot in state.board.occupiedBy))) return false;
+  if (p.cash < bp.setup) return false;
+  if (discsFree(state, p) <= 0) return false;   // no disc left to mark the new company
+  p.cash -= bp.setup;
+  const biz = newBusiness(bp, footprint, state.quarter);
+  footprint.forEach((plot) => (state.board.occupiedBy[plot] = biz.id));
+  p.businesses.push(biz);
+  p.hand = p.hand.filter((x) => x !== bp);
+  onLaunch(state.pm, bp.ind, bp.deps.map((d) => d.ind));
+  log(`${p.name} launches ${bp.name} (${bp.ind} L${bp.lvl}) for $${bp.setup} (cash: $${Math.round(p.cash)}).`, p.id);
+  return true;
+}
+/* Returns null if the upgrade is legal, otherwise a short reason. Used to disable
+   the button up front instead of burning the action and logging a failure. */
+function upgradeBlockedReason(state, p, b) {
+  if (b.isHQ) return "is a Megacorp HQ";
+  if (b.upgraded) return "already upgraded";
+  if (p.cash < bizSetup(b)) return `needs $${bizSetup(b)}, you have $${Math.round(p.cash)}`;
+  if (SCALING[bizInd(b)] === "H") {
+    const opts = adjacentOwnedFreePlots(state.board, b.footprint);
+    if (!opts.length) return "no owned, empty plot adjacent to it";
+  }
+  return null;
+}
+function adjacentOwnedFreePlots(board, footprint) {
+  const out = new Set();
+  footprint.forEach((pk) => (board.graph[pk] || []).forEach((n) => {
+    if (!footprint.includes(n) && n in board.owner && !(n in board.occupiedBy)) out.add(n);
+  }));
+  return [...out];
+}
+function doUpgrade(state, p, b, rng, log, manualPlot) {
+  if (b.upgraded) return false;
+  if (p.cash < bizSetup(b)) return false;   // affordability only - safeToSpend is a bot heuristic
+  if (SCALING[bizInd(b)] === "H") {
+    const newPlot = manualPlot || adjacentFreePlot(state.board, b.footprint, rng);
+    if (!newPlot || !(newPlot in state.board.owner) || newPlot in state.board.occupiedBy) return false;
+    p.cash -= bizSetup(b);
+    b.footprint.push(newPlot);
+    state.board.occupiedBy[newPlot] = b.id;
+  } else {
+    p.cash -= bizSetup(b);
+  }
+  b.upgraded = true; b.level += 1;
+  vest(p, b, state.quarter); b.scored = false;
+  log(`${p.name} upgrades ${b.bp.name} to level ${b.level} for $${bizSetup(b)} (cash: $${Math.round(p.cash)}).`, p.id);
+  return true;
+}
+function doDraw(state, p, industry, log) {
+  if (!state.decks[industry] || !state.decks[industry].length || p.hand.length >= 5) return false;
+  p.hand.push(state.decks[industry].shift());
+  log(`${p.name} draws from the ${industry} deck.`, p.id);
+  return true;
+}
+const DISCS_PER_PLAYER = 10;
+/* Every disc a player owns is committed somewhere: on a plot they own, on an active
+   business, or sitting in the bank against a loan. Ten discs, no more. */
+function plotsOwned(state, p) {
+  return Object.values(state.board.owner).filter((v) => v === p.id).length;
+}
+function discsUsed(state, p) {
+  return plotsOwned(state, p) + activeBiz(p).length + p.discsInBank;
+}
+function discsFree(state, p) { return DISCS_PER_PLAYER - discsUsed(state, p); }
+
+function doLoan(state, p, log) {
+  if (p.discsInBank >= DISCS_PER_PLAYER) { log(`${p.name} has no discs left to pledge for a loan.`, p.id); return false; }
+  if (discsFree(state, p) <= 0) { log(`${p.name} has all ${DISCS_PER_PLAYER} discs committed \u2014 cannot take a loan.`, p.id); return false; }
+  p.cash += 20; p.discsInBank += 1;
+  log(`${p.name} takes a loan (+$20, +1 disc) (cash: $${Math.round(p.cash)}, discs used: ${discsUsed(state, p)}/${DISCS_PER_PLAYER}).`, p.id);
+  return true;
+}
+function doSellCompany(p, b, log) {
+  const recv = sellCompany(p, b, false);
+  log(`${p.name} sells ${b.bp.name} for $${recv} (cash: $${Math.round(p.cash)}).`, p.id);
+}
+function doSellBP(state, p, bp, log) {
+  sellBpFromHand(state, p, bp, false);
+  log(`${p.name} sells ${bp.name} from hand (cash: $${Math.round(p.cash)}).`, p.id);
+}
+
+function botTakeActions(state, p, rng, log, nActions) {
+  for (let i = 0; i < nActions; i++) {
+    let did = false;
+    const bill = committedOpex(p);
+    if (bill > p.cash) {
+      if (p.hand.length) {
+        const bp = p.hand.reduce((a, b) => ((BP_SELL_PRICE[a.lvl] || 4) < (BP_SELL_PRICE[b.lvl] || 4) ? a : b));
+        sellBpFromHand(state, p, bp, false); did = true;
+      } else if (activeBiz(p).length) {
+        sellCompany(p, worstRoiBusiness(p, state.pm, state.quarter, 0), false); did = true;
+      }
+      if (did) continue;
+    }
+    if (p.archetype === "vest_rebuild") {
+      const year = state.quarter <= 4 ? 1 : state.quarter <= 8 ? 2 : 3;
+      if (year === 2) for (const b of activeBiz(p)) if (!b.upgraded && doUpgrade(state, p, b, rng, log)) { did = true; break; }
+    }
+    if (!did && p.archetype === "upgrade_focus") {
+      for (const b of activeBiz(p)) if (!b.upgraded && doUpgrade(state, p, b, rng, log)) { did = true; break; }
+    }
+    if (!did && canLaunchMore(p)) {
+      const bp = pickLaunchCandidate(p, p.archetype, state.pm, undefined, undefined, state);
+      if (bp && doLaunch(state, p, bp, rng, log)) did = true;
+    }
+    if (!did && p.hand.length < 4 && state.drawPile.length) { p.hand.push(state.drawPile.pop()); did = true; }
+    if (!did && p.discsInBank > 0 && p.cash - 20 >= committedOpex(p) * 1.5) { p.cash -= 20; p.discsInBank -= 1; did = true; }
+    if (!did && activeBiz(p).length) {
+      const worst = worstRoiBusiness(p, state.pm, state.quarter, 1);
+      if (worst) {
+        const roi = bizProd(worst) * price(state.pm, bizInd(worst)) - bizOpex(worst) - 3 * worst.level;
+        if (roi < -3) { sellCompany(p, worst, false); did = true; }
+      }
+    }
+    if (!did) { p.cash += 20; p.discsInBank += 1; did = true; }
+  }
+}
+
+function runProduction(state, log) {
+  const { players, board, pm } = state;
+  for (const p of players) {
+    let bill = committedOpex(p);
+    while (p.cash < bill && p.hand.length) {
+      const bp = p.hand.reduce((a, b) => ((BP_SELL_PRICE[a.lvl] || 4) < (BP_SELL_PRICE[b.lvl] || 4) ? a : b));
+      sellBpFromHand(state, p, bp, false);
+    }
+    while (p.cash < bill) {
+      const cheapPlot = cheapestOwnedPlot(state, p);
+      if (!cheapPlot) break;
+      doSellPlot(state, p, cheapPlot, log, false);
+      bill = committedOpex(p);
+    }
+    while (p.cash < bill) {
+      const worst = worstRoiBusiness(p, pm, state.quarter, 0);
+      if (!worst) break;
+      sellCompany(p, worst, false);
+      bill = committedOpex(p);
+    }
+    if (p.cash < bill) { p.cash += 20; p.discsInBank += 1; }
+  }
+  for (const p of players) {
+    for (const b of activeBiz(p)) {
+      const cost = bizOpex(b);
+      if (p.cash < cost) {
+        state.solvencyEvents++;
+        let debt = cost - p.cash; p.cash = 0;
+        while (debt > 0 && p.hand.length) {
+          const bp = p.hand.reduce((a, x) => ((BP_SOLVENCY_PRICE[a.lvl] || 2) < (BP_SOLVENCY_PRICE[x.lvl] || 2) ? a : x));
+          const before = p.cash; sellBpFromHand(state, p, bp, true); debt -= p.cash - before;
+        }
+        while (debt > 0) {
+          const cheapPlot = cheapestOwnedPlot(state, p);
+          if (!cheapPlot) break;
+          const before = p.cash; doSellPlot(state, p, cheapPlot, log, true); debt -= p.cash - before;
+        }
+        const liquidatable = activeBiz(p).filter((x) => x.id !== b.id);
+        for (const x of liquidatable) { if (debt <= 0) break; const before = p.cash; sellCompany(p, x, true); debt -= p.cash - before; }
+        sellCompany(p, b, true);
+        log(`${p.name} enters SOLVENCY on ${b.bp.name}.`, p.id);
+        continue;
+      }
+      p.cash -= cost;
+      const rentTotal = 3 * b.level;
+      const nPlots = b.footprint.length;
+      const perPlot = nPlots ? rentTotal / nPlots : 0;
+      for (const plot of b.footprint) {
+        const ownerId = board.owner[plot];
+        if (ownerId !== undefined) { const owner = players.find((pl) => pl.id === ownerId); if (owner) owner.cash += perPlot; }
+      }
+      // whatever survives rent flows into each supplier's industry pot, split in
+      // proportion to what this business owes them
+      if (!state.pots) state.pots = Object.fromEntries(INDUSTRIES.map((i) => [i, 0]));
+      const toPots = Math.max(0, cost - rentTotal);
+      const depTotal = b.bp.deps.reduce((s2, d) => s2 + d.val, 0) || 1;
+      b.bp.deps.forEach((d) => { state.pots[d.ind] += toPots * (d.val / depTotal); });
+    }
+  }
+}
+/* Revenue - B2B. Each industry pot is shared among the active businesses of that
+   industry, weighted by company level. An industry with no active business keeps
+   its pot for a later quarter. */
+function runB2B(state, log) {
+  if (!state.pots) return;
+  runMegacorpSyphon(state, log);
+  for (const ind of INDUSTRIES) {
+    const pot = state.pots[ind];
+    if (pot <= 0.005) continue;
+    const recipients = [];
+    state.players.forEach((p) => activeBiz(p).forEach((b) => { if (bizInd(b) === ind) recipients.push({ p, b }); }));
+    if (!recipients.length) continue;                    // nobody to pay: carries over
+    const totalLevels = recipients.reduce((s2, r) => s2 + r.b.level, 0) || 1;
+    recipients.forEach((r) => { r.p.cash += pot * (r.b.level / totalLevels); });
+    if (log) log(`${ind} pot of $${pot.toFixed(0)} shared among ${recipients.length} ${ind} business${recipients.length === 1 ? "" : "es"}.`, null);
+    state.pots[ind] = 0;
+  }
+}
+function potRecipients(state, ind) {
+  let n = 0, levels = 0;
+  state.players.forEach((p) => activeBiz(p).forEach((b) => { if (bizInd(b) === ind) { n++; levels += b.level; } }));
+  return { n, levels };
+}
+
+function runBotRevenue(state) {
+  for (const p of state.players) {
+    if (p.isHuman) continue;
+    for (const b of activeBiz(p)) if (businessCanProduce(state, b)) autoDeliver(state, p, b);
+  }
+}
+function humanDeliveryQueue(state, human) {
+  return activeBiz(human).filter((b) => businessCanProduce(state, b) && (bizProd(b) > 0 || (bizInd(b) === "MA" && b.level > 0)));
+}
+function doPlaceLH(state, a, b, log) {
+  const ek = edgeKey(a, b);
+  if (state.board.lhEdges.some((e) => edgeKey(e[0], e[1]) === ek)) return false;
+  if (!state.board.graph[a] || !state.board.graph[a].has(b)) return false;
+  if (!isCrossDistrictEdge(state.board, a, b)) return false;
+  state.board.lhEdges.push([a, b]);
+  const famA = districtFamily(state.board.cellOf[a].tname), famB = districtFamily(state.board.cellOf[b].tname);
+  const touchesHC = DEMAND_ROWS[famA].includes("HC") || DEMAND_ROWS[famB].includes("HC");
+  log(`A new Logistic Hub opens near ${state.board.cellOf[a].tname}/${state.board.cellOf[b].tname}${touchesHC ? " \u2014 Healthcare demand grows." : "."}`, null);
+  return true;
+}
+function runClosing(state, log, rng) {
+  const { quarter, demand } = state;
+  if (quarter === 4) unlockY2(demand);
+  if (quarter === 8) refreshY3(demand);
+  const firstPlayer = byId(state, state.turnOrder[0]);
+  if (firstPlayer.isHuman) {
+    state.phase = "placingLH";
+    state.awaitingPlayerId = firstPlayer.id;
+    return;
+  }
+  placeNewLH(state, rng, log);
+  // NOTE: year-end scoring lives in runClosingRest, which finishQuarterAfterLH always
+  // calls. Calling it here too would score the year twice whenever the human is not
+  // the first player (the branch above returns early only for the human).
+}
+const LOAN_REPAY_RATE = { 4: 30, 8: 35, 12: 40 };
+function doRepayLoan(p, quarter, log) {
+  const rate = LOAN_REPAY_RATE[quarter];
+  if (!rate || p.discsInBank <= 0 || p.cash < rate) return false;
+  p.cash -= rate;
+  p.discsInBank -= 1;
+  log(`${p.name} repays a loan for $${rate} (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"} left).`, p.id);
+  return true;
+}
+function botRepayLoans(state, p, quarter, log) {
+  const rate = LOAN_REPAY_RATE[quarter];
+  if (!rate) return;
+  if (quarter === 12) {
+    // Final scoring: there is no next quarter to fund. An unpaid disc is -5 EP, while
+    // the $40 it costs is only worth 4 EP as cash, so clearing debt is strictly better.
+    while (p.discsInBank > 0 && p.cash >= rate) {
+      if (!doRepayLoan(p, quarter, log)) break;
+    }
+    return;
+  }
+  // mid-game: repay while it still leaves enough cash to cover committed OPEX
+  while (p.discsInBank > 0 && p.cash - rate >= committedOpex(p) * 0.6) {
+    if (!doRepayLoan(p, quarter, log)) break;
+  }
+}
+function runClosingRest(state, log) {
+  const { players, quarter } = state;
+  if ([4, 8, 12].includes(quarter)) {
+    for (const p of players) {
+      for (const b of activeBiz(p)) if (!b.scored) { b.epOnCard = b.level; b.scored = true; }
+      const inds = new Set(activeBiz(p).map(bizInd));
+      if (inds.size) addEP(p, 5 * inds.size, `Year-end: ${inds.size} active ${inds.size === 1 ? "industry" : "industries"}`, quarter);
+      // NOTE: previously a player at the 5-company cap sold its worst company here
+      // every year end. That threw away 1 EP/level plus possibly 5 EP for the industry,
+      // for no gain - being full is the goal, not a problem. Removed.
+    }
+    log(`\u2014\u2014\u2014 Year-end scoring complete (Q${quarter}) \u2014\u2014\u2014`, null);
+    if (quarter === 12) for (const p of players) for (const b of p.businesses) vest(p, b, quarter);
+    for (const p of players) if (!p.isHuman) botRepayLoans(state, p, quarter, log);
+  }
+}
+function awardRanked(state, scoreFn, label, log) {
+  const scores = state.players.map((p) => ({ p, s: scoreFn(p) })).filter((x) => x.s > 0);
+  if (!scores.length) return;
+  scores.sort((a, b) => b.s - a.s);
+  const values = [10, 5];
+  let i = 0;
+  while (i < scores.length && i < values.length) {
+    let j = i;
+    while (j + 1 < scores.length && scores[j + 1].s === scores[i].s) j++;
+    const tiedCount = j - i + 1;
+    const pot = values.slice(i, Math.min(j + 1, values.length)).reduce((a, b) => a + b, 0);
+    const share = pot / tiedCount;
+    for (let k = i; k <= j; k++) { addEP(scores[k].p, share, label, 12); if (log) log(`${scores[k].p.name} earns ${label} (+${share.toFixed(1)} EP).`, scores[k].p.id); }
+    i = j + 1;
+  }
+}
+function finalizeGame(state) {
+  awardRanked(state, (p) => Object.values(state.board.owner).filter((id) => id === p.id).length, "The Real-Estate Mogul", null);
+  awardRanked(state, (p) => {
+    const districts = new Set();
+    Object.entries(state.board.owner).forEach(([plot, id]) => { if (id === p.id) districts.add(`${state.board.cellOf[plot].r},${state.board.cellOf[plot].c}`); });
+    activeBiz(p).forEach((b) => b.footprint.forEach((plot) => districts.add(`${state.board.cellOf[plot].r},${state.board.cellOf[plot].c}`)));
+    return districts.size;
+  }, "The Omnipresent", null);
+  for (const p of state.players) {
+    if (p.discsInBank) addEP(p, -5 * p.discsInBank, `Unpaid loans (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"})`, 12);
+    const cashEP = Math.floor(p.cash / 10);
+    if (cashEP) addEP(p, cashEP, `Cash on hand ($${Math.round(p.cash)})`, 12);
+  }
+}
+
+/* ---------------- Megacorp tiles ---------------- */
+const MEGACORP_TILES = [
+  ["Local Syndicate", { 1: 3 }, 8], ["Founders\u2019 Pact", { 1: 2, 2: 1 }, 9],
+  ["Continental Holdings", { 1: 4 }, 10], ["Twin Ventures", { 1: 1, 2: 2 }, 10],
+  ["Silent Merger", { 2: 3 }, 11], ["Neighborhood Holdings", { 1: 3, 2: 1 }, 12],
+  ["Regional Consolidated", { 2: 2, 3: 1 }, 13], ["Crosstown Alliance", { 1: 2, 2: 2 }, 13],
+  ["Metro Trust", { 2: 1, 3: 2 }, 14], ["Crossroads Deal", { 1: 1, 2: 3 }, 14],
+  ["Skyline Consolidated", { 3: 3 }, 15], ["Apex Group", { 2: 2, 3: 2 }, 16],
+  ["Titan Industries", { 3: 2, 4: 1 }, 17], ["Empire Holdings", { 3: 3, 4: 1 }, 19],
+  ["Colossus Group", { 3: 2, 4: 2 }, 22], ["Omnicorp", { 3: 1, 4: 3 }, 25],
+];
+function tryMatchMegacorp(bizList, combo) {
+  const needed = { ...combo };
+  const have = [];
+  for (const b of bizList) { if (needed[b.level] > 0) { needed[b.level] -= 1; have.push(b); } }
+  return Object.values(needed).every((v) => v <= 0) ? have : null;
+}
+function bestMegacorpMatch(bizList, pool) {
+  let best = null;
+  for (const tile of pool) {
+    const [name, combo, ep] = tile;
+    const have = tryMatchMegacorp(bizList, combo);
+    if (have && (!best || ep > best.ep)) best = { tile, have, ep };
+  }
+  return best;
+}
+function claimMegacorp(state, p, log, hqChoice) {
+  const match = bestMegacorpMatch(activeBiz(p), state.megacorpPool);
+  if (!state.ipoTileClaimed) {
+    addEP(p, 5, "IPO tile", state.quarter);
+    state.ipoTileClaimed = true;
+    state.tracks.board_meeting[1] = state.tracks.board_meeting[1] === undefined ? null : state.tracks.board_meeting[1];
+    log(`${p.name} claims the IPO tile (+5 EP, EP total: ${p.epBank.toFixed(0)}) \u2014 Board Meeting's extra slots are now open.`, p.id);
+    return true;
+  }
+  if (!match) { log(`${p.name} has no company combo matching an available Megacorp tile.`, p.id); return false; }
+  const [name, combo, ep] = match.tile;
+  // One of the merged companies becomes the Megacorp HQ: it keeps its building and the
+  // owner's disc, gains a Megacorp block, and its BP returns to its industry deck.
+  // Bots take the highest-level company; the human is asked to choose.
+  const hq = hqChoice && match.have.includes(hqChoice)
+    ? hqChoice
+    : match.have.reduce((a, b) => (b.level > a.level ? b : a));
+  match.have.forEach((b) => {
+    vest(p, b, state.quarter);
+    if (b === hq) return;
+    b.distressed = true;
+  });
+  hq.isHQ = true;
+  hq.distressed = false;
+  hq.megacorpName = name;
+  if (state.decks && state.decks[hq.bp.ind]) state.decks[hq.bp.ind].push(hq.bp);   // BP back to its deck
+  addEP(p, ep, `Megacorp: ${name}`, state.quarter);
+  state.megacorpPool = state.megacorpPool.filter((t) => t !== match.tile);
+  log(`${p.name} forms Megacorp "${name}" (+${ep} EP, EP total: ${p.epBank.toFixed(0)}) \u2014 ${hq.bp.name} becomes its HQ, ${match.have.length - 1} other compan${match.have.length - 1 === 1 ? "y goes" : "ies go"} distressed.`, p.id);
+  return true;
+}
+
+/* Revenue - B2B, step 1: every Megacorp HQ siphons $5 out of the industry pot that each
+   adjacent active business draws from, before the pots are shared out. */
+function runMegacorpSyphon(state, log) {
+  if (!state.pots) return;
+  for (const p of state.players) {
+    for (const hq of p.businesses.filter((b) => b.isHQ)) {
+      const neighbourIds = new Set();
+      hq.footprint.forEach((pk) => {
+        (state.board.graph[pk] || []).forEach((n) => {
+          const id = state.board.occupiedBy[n];
+          if (id !== undefined && id !== hq.id) neighbourIds.add(id);
+        });
+      });
+      let taken = 0;
+      neighbourIds.forEach((id) => {
+        for (const q of state.players) {
+          const b = q.businesses.find((x) => x.id === id);
+          if (!b || b.distressed || b.isHQ) continue;
+          const ind = bizInd(b);
+          const take = Math.min(5, state.pots[ind] || 0);
+          state.pots[ind] -= take;
+          taken += take;
+        }
+      });
+      if (taken > 0) {
+        p.cash += taken;
+        log(`Megacorp "${hq.megacorpName}" siphons $${taken.toFixed(0)} from neighbouring industries' pots.`, p.id);
+      }
+    }
+  }
+}
+
+/* ---------------- Renovation & plot market ---------------- */
+function renovationEligible(distressedBiz, bp) {
+  if (distressedBiz.level !== bp.lvl) return false;
+  if (distressedBiz.level === 1) return true;
+  return SCALING[bizInd(distressedBiz)] === SCALING[bp.ind];
+}
+function findDistressedTargets(state) {
+  const out = [];
+  for (const p of state.players) for (const b of p.businesses) if (b.distressed) out.push(b);
+  return out;
+}
+function doRenovate(state, p, distressedBiz, bp, log) {
+  const cost = Math.floor(bp.setup / 2);
+  if (p.cash < cost) return false;
+  // renovating brings a structure back online, so it counts against the active-company cap
+  if (!p.businesses.includes(distressedBiz) && !canLaunchMore(p)) return false;
+  if (!p.businesses.includes(distressedBiz) && discsFree(state, p) <= 0) return false;
+  if (p.businesses.includes(distressedBiz) && activeBiz(p).length >= 5) return false;
+  // A distressed structure still sits in its previous owner's ledger. Detach it there
+  // first, otherwise the same business object ends up listed under both players.
+  const prev = state.players.find((pl) => pl.businesses.includes(distressedBiz));
+  if (prev) prev.businesses = prev.businesses.filter((b) => b !== distressedBiz);
+  p.cash -= cost;
+  distressedBiz.distressed = false;
+  distressedBiz.bp = bp;
+  distressedBiz.level = bp.lvl;
+  distressedBiz.upgraded = false;
+  distressedBiz.scored = false;
+  distressedBiz.epOnCard = 0;
+  distressedBiz.quarterBuilt = state.quarter;
+  p.hand = p.hand.filter((x) => x !== bp);
+  p.businesses.push(distressedBiz);
+  const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
+  log(`${p.name} renovates a distressed structure${from} into ${bp.name} (${bp.ind} L${bp.lvl}) (cash: $${Math.round(p.cash)}).`, p.id);
+  return true;
+}
+function doSellPlot(state, p, plotKeyStr, log, solvency = false) {
+  if (state.board.owner[plotKeyStr] !== p.id) return false;
+  const fullVal = plotValue(state, plotKeyStr);
+  const val = solvency ? Math.floor(fullVal / 2) : fullVal;
+  delete state.board.owner[plotKeyStr];
+  p.cash += val;
+  log(`${p.name} sells a plot for $${val}${solvency ? " (SOLVENCY)" : ""}. Any business standing on it can no longer produce until it's bought back.`, p.id);
+  return true;
+}
+function cheapestOwnedPlot(state, p) {
+  const owned = Object.entries(state.board.owner).filter(([k, v]) => v === p.id).map(([k]) => k);
+  if (!owned.length) return null;
+  const ownBizPlots = new Set(activeBiz(p).flatMap((b) => b.footprint));
+  const spare = owned.filter((k) => !ownBizPlots.has(k));
+  const pool = spare.length ? spare : owned;
+  return pool.map((k) => [k, plotValue(state, k)]).sort((a, b) => a[1] - b[1])[0][0];
+}
+function doBuyPlot(state, p, plotKeyStr, log) {
+  if (plotKeyStr in state.board.owner) return false;
+  if (discsFree(state, p) <= 0) return false;   // no disc left to mark ownership
+  const cost = plotValue(state, plotKeyStr);
+  if (p.cash < cost) return false;
+  p.cash -= cost;
+  state.board.owner[plotKeyStr] = p.id;
+  log(`${p.name} buys a plot for $${cost} (cash: $${Math.round(p.cash)}).`, p.id);
+  return true;
+}
+/* Human-readable plot label: district tile name + compass slot + grid coords,
+   e.g. "R1 NE (2,3)" - matches how districts are named everywhere else. */
+function plotLabel(board, plotKeyStr) {
+  const c = board.cellOf[plotKeyStr];
+  if (!c) return plotKeyStr;
+  const tname = board.tiles[`${c.r},${c.c}`] || "?";
+  return `${tname} ${c.pos} (${c.r},${c.c})`;
+}
+function businessCanProduce(state, b) {
+  return b.footprint.every((plot) => plot in state.board.owner);
+}
+function getBizTooltipInfo(state, biz) {
+  const owner = state.players.find((p) => p.businesses.includes(biz));
+  const plotOwnerIds = [...new Set(biz.footprint.map((pk) => state.board.owner[pk]).filter((v) => v !== undefined))];
+  const plotOwners = plotOwnerIds.map((id) => state.players.find((p) => p.id === id)).filter(Boolean);
+  return { owner, plotOwners, canProduce: businessCanProduce(state, biz) };
+}
+
+/* ---------------- Turn-order / tracks ---------------- */
+function makeTracks() {
+  return { raise_capital: [null, null, null, null], ma: [null, null, null, null], rd: [null, null, null, null], board_meeting: [null, null, null] };
+}
+function trackBonusOrder(slots) {
+  const filled = [];
+  slots.forEach((pid, i) => { if (pid !== null) filled.push(i); });
+  const out = filled.map((i) => ({ playerId: slots[i], slotIndex: i, actions: 1 + filled.filter((j) => j > i).length }));
+  out.sort((a, b) => b.slotIndex - a.slotIndex);
+  return out;
+}
+function doReposition(state, p, log) {
+  state.turnOrder = [p.id, ...state.turnOrder.filter((id) => id !== p.id)];
+  state.doubleFirstPlayer = p.id;
+  log(`${p.name} takes REPOSITION \u2014 moves to 1st in turn order and places both meeples at once next quarter.`, p.id);
+}
+
+const TRACK_ACTIONS = { raise_capital: ["LOAN", "SELL"], ma: ["BUY", "LAUNCH"], rd: ["RESEARCH", "UPGRADE"] };
+const TRACK_LABEL = { raise_capital: "Raise Capital", ma: "M&A", rd: "R&D", board_meeting: "Board Meeting" };
+
+/* How much does this bot want the Board Meeting track this quarter?
+   Returns 0-100. Board Meeting costs BOTH meeples, so it only ever commits at the
+   start of its own quarter, never by pulling a meeple it has already placed. */
+function megacorpWorthIt(state, p, match) {
+  if (!match) return false;
+  // Merging destroys the companies: each was worth ~1 EP/level per year-end plus 5 EP
+  // for its industry if it was the only one. Only merge when the tile clearly beats
+  // what those companies would have kept earning.
+  const ep = match.tile[2];
+  const yearsLeft = Math.max(0, 3 - Math.ceil(state.quarter / 4) + 1);
+  const lostLevels = match.have.reduce((s, b) => s + b.level, 0);
+  const have = activeBiz(p);
+  const indsAfter = new Set(have.filter((b) => !match.have.includes(b)).map(bizInd));
+  const indsBefore = new Set(have.map(bizInd));
+  const lostInds = indsBefore.size - indsAfter.size;
+  const forgone = lostLevels * yearsLeft + lostInds * 5 * yearsLeft;
+  return ep >= forgone;
+}
+
+function boardMeetingDesire(state, p) {
+  const bmOpen = state.tracks.board_meeting.some((s, i) => s === null && (i === 0 || state.ipoTileClaimed));
+  if (!bmOpen) return 0;
+  const meeplesLeft = (state.planningQueue || []).filter((id) => id === p.id).length;
+  if (meeplesLeft < 2) return 0;                       // don't waste an already-placed meeple
+
+  if (state.ipoTileClaimed) {
+    // a Megacorp is the single biggest EP swing on the board - always worth both meeples
+    const m = bestMegacorpMatch(activeBiz(p), state.megacorpPool);
+    if (m && megacorpWorthIt(state, p, m)) return 100;
+  } else {
+    // the IPO tile is 5 EP for free and unlocks the two extra Board Meeting slots
+    return activeBiz(p).length >= 1 ? 75 : 35;
+  }
+  // otherwise, is it worth seizing the front of the turn order?
+  // sitting late means everyone else picks their track (and their FILO bonus) before you.
+  // This costs two meeples for one action, so only the back of the order bothers.
+  const idx = state.turnOrder.indexOf(p.id);
+  if (idx >= 2 && activeBiz(p).length >= 1) return 8 + idx * 9;     // 3rd 26, 4th 35
+  return 0;
+}
+
+function botChoosePlanningTrack(state, p) {
+  const openTrack = (name) => state.tracks[name].some((s) => s === null);
+  const boardMeetingOpen = state.tracks.board_meeting.some((s, i) => s === null && (i === 0 || state.ipoTileClaimed));
+
+  const bmDesire = boardMeetingDesire(state, p);
+  if (bmDesire >= 70) return "board_meeting";
+  if (bmDesire > 0) {
+    // deterministic jitter, so bots vary quarter to quarter without breaking seeded replays
+    const jitter = (state.quarter * 31 + p.id * 17 + activeBiz(p).length * 11) % 100;
+    if (jitter < bmDesire) return "board_meeting";
+  }
+
+  const cheapestHandSetup = p.hand.length ? Math.min(...p.hand.map((bp) => bp.setup)) : Infinity;
+  const nothingAffordable = p.cash < cheapestHandSetup && p.hand.length > 0;
+  const outOfCards = p.hand.length === 0;
+  let order;
+  if (outOfCards) order = ["rd", "ma", "raise_capital"];        // nothing to build without Blueprints
+  else if (nothingAffordable) order = ["raise_capital", "rd", "ma"];
+  else if (p.archetype === "upgrade_focus") order = activeBiz(p).length ? ["rd", "ma", "raise_capital"] : ["ma", "rd", "raise_capital"];
+  else if (p.archetype === "rush_cheap") order = ["ma", "rd", "raise_capital"];
+  else if (p.archetype === "tech_heavy") order = ["ma", "rd", "raise_capital"];
+  else order = committedOpex(p) > p.cash * 0.7 ? ["raise_capital", "ma", "rd"] : ["ma", "rd", "raise_capital"];
+  for (const t of order) if (openTrack(t)) return t;
+  if (boardMeetingOpen) return "board_meeting";
+  return order.find((t) => openTrack(t)) || "raise_capital";
+}
+
+function placeMeeple(state, playerId, track) {
+  if (track === "board_meeting") {
+    // pull both meeples together: remove any existing single-track placement first
+    for (const tn of ["raise_capital", "ma", "rd"]) {
+      const idx = state.tracks[tn].indexOf(playerId);
+      if (idx !== -1) state.tracks[tn][idx] = null;
+    }
+    const slotIdx = state.tracks.board_meeting.findIndex((s, i) => s === null && (i === 0 || state.ipoTileClaimed));
+    if (slotIdx === -1) return false;
+    state.tracks.board_meeting[slotIdx] = playerId;
+    return true;
+  }
+  const idx = state.tracks[track].indexOf(null);
+  if (idx === -1) return false;
+  state.tracks[track][idx] = playerId;
+  return true;
+}
+
+function buildResolutionQueue(state) {
+  const queue = [];
+  for (const tn of ["raise_capital", "ma", "rd"]) {
+    trackBonusOrder(state.tracks[tn]).forEach((e) => queue.push({ track: tn, playerId: e.playerId, actionsRemaining: e.actions }));
+  }
+  const bmFilled = [];
+  state.tracks.board_meeting.forEach((pid, i) => { if (pid !== null) bmFilled.push(i); });
+  bmFilled.sort((a, b) => b - a).forEach((i) => queue.push({ track: "board_meeting", playerId: state.tracks.board_meeting[i], actionsRemaining: 1 }));
+  return queue;
+}
+
+/* ---------------- Bot action resolution ---------------- */
+function botResolveOneAction(state, p, track, rng, log) {
+  if (track === "raise_capital") {
+    const LOAN_CEILING = 60; // once cash comfortably covers most BPs, more loans are pure EP cost with no upside
+    // Each disc is a guaranteed -5 EP unless bought back for $30-40, and bots rarely
+    // end with that spare. Borrow late only when it converts straight into a company.
+    const lateGame = state.quarter >= 9;
+    const MAX_VOLUNTARY_DISCS = lateGame ? 1 : 3;
+    const genuineNeed = committedOpex(p) > p.cash * 0.8 || p.cash < 15;
+    // a company that cannot produce is pure OPEX drain - sell it before anything else
+    const dead = activeBiz(p).find((b) => !businessCanProduce(state, b));
+    if (dead) { sellCompany(p, dead, false); log(`${p.name} sells ${dead.bp.name} \u2014 it sits on land nobody owns and cannot produce.`, p.id); return; }
+    if (genuineNeed && p.discsInBank >= 3 && activeBiz(p).length) {
+      // already carrying real debt just to keep the lights on - cut the worst offender loose
+      // instead of financing it forever with more loans
+      const worst = worstRoiBusiness(p, state.pm, state.quarter, 0);
+      if (worst) { sellCompany(p, worst, false); log(`${p.name} cuts loose ${worst.bp.name} rather than take another loan to cover it (cash: $${Math.round(p.cash)}).`, p.id); }
+      else doLoan(state, p, log);
+    } else if (genuineNeed) doLoan(state, p, log);
+    else if (p.hand.length > 3) { sellBpFromHand(state, p, p.hand.reduce((a, b) => (BP_SELL_PRICE[a.lvl] || 4) > (BP_SELL_PRICE[b.lvl] || 4) ? a : b), false); log(`${p.name} sells a BP from hand.`, p.id); }
+    else if (p.cash < LOAN_CEILING && p.discsInBank < MAX_VOLUNTARY_DISCS
+             && p.hand.length > 0 && canLaunchMore(p) && discsFree(state, p) > 0) doLoan(state, p, log);
+    else log(`${p.name} has plenty of cash and nothing to sell \u2014 sits this one out.`, p.id);
+  } else if (track === "ma") {
+    // A company standing on land nobody owns cannot produce. Buy the ground back if it is
+    // affordable and worth it; otherwise cut the dead weight loose rather than sit on it.
+    const stuck = activeBiz(p).filter((b) => !businessCanProduce(state, b));
+    if (stuck.length) {
+      const b = stuck[0];
+      const missing = b.footprint.filter((pk) => !(pk in state.board.owner));
+      const cost = missing.reduce((s2, pk) => s2 + plotValue(state, pk), 0);
+      const worthIt = cost <= bizSetup(b) * 0.75 && p.cash >= cost && discsFree(state, p) >= missing.length;
+      if (worthIt) {
+        let bought = 0;
+        for (const pk of missing) if (doBuyPlot(state, p, pk, log)) bought++;
+        if (bought) { log(`${p.name} buys back land under ${b.bp.name} so it can produce again.`, p.id); return; }
+      }
+    }
+    const distressed = findDistressedTargets(state);
+    const renoOpt = distressed.map((db) => ({ db, bp: p.hand.find((bp) => renovationEligible(db, bp)) })).find((o) => o.bp);
+    if (renoOpt && p.cash >= Math.floor(renoOpt.bp.setup / 2) && doRenovate(state, p, renoOpt.db, renoOpt.bp, log)) return;
+    if (canLaunchMore(p) && discsFree(state, p) > 0) {
+      // 5 EP per distinct industry makes breadth worth far more than a marginally
+      // better card in an industry already covered
+      const bp = pickLaunchCandidate(p, p.archetype, state.pm, missingIndustries(p), undefined, state);
+      if (bp && doLaunch(state, p, bp, rng, log)) return;
+    }
+    // no valid owned footprint to build on (or nothing worth building) -> buy a plot instead,
+    // preferring cheap ones adjacent to what's already owned -- but only if plot count is
+    // actually the binding constraint; if enough owned+free plots already exist for the
+    // largest footprint in hand, the real blocker is cash, and buying more won't help
+    const maxNeeded = p.hand.length ? Math.max(...p.hand.map((bp) => (SCALING[bp.ind] === "H" ? bp.lvl : 1))) : 0;
+    const freeOwnedAnywhere = Object.keys(state.board.graph).filter((k) => k in state.board.owner && !(k in state.board.occupiedBy)).length;
+    const unowned = Object.keys(state.board.graph).filter((k) => !(k in state.board.owner));
+    // Always keep discs in hand for future companies: each active company is worth
+    // 1 EP/level plus 5 EP for a new industry, far more than a spare plot.
+    const companySlotsLeft = Math.max(0, 5 - activeBiz(p).length);
+    const reserveForCompanies = Math.min(companySlotsLeft, 2);
+    const mayBuyLand = discsFree(state, p) > reserveForCompanies;
+    if (unowned.length && freeOwnedAnywhere < maxNeeded && mayBuyLand) {
+      const ownedByMe = Object.entries(state.board.owner).filter(([k, v]) => v === p.id).map(([k]) => k);
+      const adjacentCandidates = new Set();
+      ownedByMe.forEach((owned) => { [...state.board.graph[owned]].forEach((n) => { if (unowned.includes(n)) adjacentCandidates.add(n); }); });
+      // Buying the cheapest plot always meant the board edge, where demand is thinnest -
+      // bots ended up unable to sell ~80% of what they produced. Weigh reachable demand
+      // for the industries actually in hand against the price instead.
+      const wantInds = p.hand.length ? [...new Set(p.hand.map((bp) => bp.ind))] : INDUSTRIES;
+      const pool = adjacentCandidates.size ? [...adjacentCandidates] : unowned;
+      const ranked = pool.map((k) => {
+        const cost = plotValue(state, k);
+        const demand = Math.max(...wantInds.map((ind) => plotDemandScore(state, ind, k)));
+        return { k, cost, score: demand * 3 - cost };
+      }).sort((a, b) => b.score - a.score);
+      const pick = ranked.find((r) => p.cash >= r.cost);
+      if (pick && doBuyPlot(state, p, pick.k, log)) return;
+    }
+    log(`${p.name} finds nothing worth building right now.`, p.id);
+  } else if (track === "rd") {
+    // A bot with no Blueprints cannot expand at all, so restocking beats upgrading
+    // whenever the hand is thin and there is still room to build.
+    const starved = p.hand.length === 0 || (p.hand.length < 2 && canLaunchMore(p) && discsFree(state, p) > 0);
+    const upgradable = starved ? null : activeBiz(p).find((b) => !b.upgraded && safeToSpend(p, bizSetup(b), bizOpex(b)));
+    if (upgradable) doUpgrade(state, p, upgradable, rng, log);
+    else {
+      const openDecks = INDUSTRIES.filter((ind) => state.decks[ind] && state.decks[ind].length);
+      if (openDecks.length) {
+        let best = openDecks[0], bestScore = -Infinity;
+        for (const ind of openDecks) {
+          const top = state.decks[ind][0];
+          // Research is a bet on where the market will be, so weigh the same crowding
+          // and price signals as launching. Drawing into a flooded $1 industry wastes
+          // the action even when the card itself looks cheap.
+          const s = launchScore(state, p, top, p.archetype);
+          if (s > bestScore) { bestScore = s; best = ind; }
+        }
+        doDraw(state, p, best, log);
+      }
+    }
+  } else if (track === "board_meeting") {
+    const match = bestMegacorpMatch(activeBiz(p), state.megacorpPool);
+    if (!state.ipoTileClaimed) claimMegacorp(state, p, log);
+    else if (match && megacorpWorthIt(state, p, match)) claimMegacorp(state, p, log);
+    else doReposition(state, p, log);
+  }
+}
+
+/* ---------------- Planning / resolution phase drivers ---------------- */
+function startPlanning(state) {
+  state.tracks = makeTracks();
+  if (state.doubleFirstPlayer !== null && state.doubleFirstPlayer !== undefined) {
+    const dp = state.doubleFirstPlayer;
+    const rest = state.turnOrder.filter((id) => id !== dp);
+    state.planningQueue = [dp, dp, ...rest, ...rest];
+    state.doubleFirstPlayer = null; // one-time bonus, consumed
+  } else {
+    state.planningQueue = [...state.turnOrder, ...state.turnOrder];
+  }
+  state.phase = "planning";
+  state.resolutionQueue = [];
+  state.pendingHumanAction = null;
+}
+function consumePlanningTurn(state, playerId, track) {
+  if (track === "board_meeting") {
+    state.planningQueue = state.planningQueue.filter((id) => id !== playerId);
+  } else {
+    const idx = state.planningQueue.indexOf(playerId);
+    if (idx !== -1) state.planningQueue.splice(idx, 1);
+  }
+}
+function advancePlanning(state, rng, log) {
+  while (state.planningQueue.length) {
+    const pid = state.planningQueue[0];
+    const p = state.players.find((pl) => pl.id === pid);
+    if (p.isHuman) return; // wait for UI
+    const track = botChoosePlanningTrack(state, p);
+    const ok = placeMeeple(state, pid, track);
+    if (!ok) { state.planningQueue.shift(); continue; }
+    log(`${p.name} places on ${TRACK_LABEL[track]}.`, p.id);
+    consumePlanningTurn(state, pid, track);
+  }
+  state.resolutionQueue = buildResolutionQueue(state);
+  state.phase = "resolving";
+  advanceResolution(state, rng, log);
+}
+function advanceResolution(state, rng, log) {
+  while (state.resolutionQueue.length) {
+    const entry = state.resolutionQueue[0];
+    const p = state.players.find((pl) => pl.id === entry.playerId);
+    if (p.isHuman) { state.pendingHumanAction = entry; return; }
+    for (let i = 0; i < entry.actionsRemaining; i++) botResolveOneAction(state, p, entry.track, rng, log);
+    state.resolutionQueue.shift();
+  }
+  state.pendingHumanAction = null;
+  state.liqQueue = humansNeedingLiquidation(state);
+  if (state.liqQueue.length) {
+    state.phase = "liquidating";
+    state.awaitingPlayerId = state.liqQueue[0];
+    return;
+  }
+  proceedToProduction(state, log, rng);
+}
+function proceedToProduction(state, log, rng) {
+  state.phase = "production";
+  runProduction(state, log);
+  runBotRevenue(state);
+  state.deliveryRemaining = {};
+  state.crossSellRemaining = {};
+  state.reChoices = {};   // Retail re-picks its extra districts every delivery
+  state.hoBonusPaid = {};
+  state.delQueue = humansNeedingDelivery(state);
+  if (state.delQueue.length) {
+    startDeliveryFor(state, state.delQueue[0], log);
+    return;
+  }
+  finishQuarter(state, log, rng);
+}
+function startDeliveryFor(state, playerId, log) {
+  const human = byId(state, playerId);
+  const pending = humanDeliveryQueue(state, human);
+  {
+    state.phase = "delivering";
+    state.awaitingPlayerId = playerId;
+    pending.forEach((b) => {
+      let prod = bizProd(b);
+      const bonus = Math.min(prod, hoBonusUnits(state, b));
+      if (bonus > 0) {
+        human.cash += bonus * price(state.pm, bizInd(b));
+        prod -= bonus;
+        state.hoBonusPaid[b.id] = bonus;
+        log(`${b.bp.name} moves ${bonus} unit${bonus === 1 ? "" : "s"} to neighbouring businesses/hubs for $${bonus * price(state.pm, bizInd(b))}.`, human.id);
+      }
+      state.deliveryRemaining[b.id] = prod;
+      state.crossSellRemaining[b.id] = bizInd(b) === "MA" ? b.level : 0;
+    });
+    state.deliveringBizId = pending[0].id;
+  }
+}
+/* The player finished liquidating: move to the next one who needs it, then carry on. */
+function humanLiquidationDone(state, rng, log) {
+  state.liqQueue = (state.liqQueue || []).filter((id) => id !== state.awaitingPlayerId);
+  const still = humansNeedingLiquidation(state).filter((id) => state.liqQueue.includes(id));
+  if (still.length) { state.awaitingPlayerId = still[0]; state.phase = "liquidating"; return; }
+  state.awaitingPlayerId = null;
+  proceedToProduction(state, log, rng);
+}
+function nextDeliveryTarget(state) {
+  const human = byId(state, state.awaitingPlayerId);
+  if (!human) return null;
+  return activeBiz(human).find((b) => (state.deliveryRemaining[b.id] || 0) > 0 || (state.crossSellRemaining[b.id] || 0) > 0) || null;
+}
+function skipDelivery(state, human, bizId, log) {
+  const remaining = (state.deliveryRemaining[bizId] || 0) + (state.crossSellRemaining[bizId] || 0);
+  if (remaining > 0) { human.cash += remaining; log(`Unsold production recycled for $${remaining}.`, human.id); }
+  state.deliveryRemaining[bizId] = 0;
+  state.crossSellRemaining[bizId] = 0;
+}
+function finishDelivery(state, log, rng) {
+  const next = nextDeliveryTarget(state);
+  if (next) { state.deliveringBizId = next.id; return; }
+  // this player is done - hand delivery to the next human who has production
+  state.delQueue = (state.delQueue || []).filter((id) => id !== state.awaitingPlayerId);
+  if (state.delQueue.length) { startDeliveryFor(state, state.delQueue[0], log); return; }
+  state.deliveringBizId = null;
+  state.awaitingPlayerId = null;
+  finishQuarter(state, log, rng);
+}
+function finishQuarter(state, log, rng) {
+  state.phase = "production";
+  runB2B(state, log);            // Revenue - B2B: share out the industry pots
+  runClosing(state, log, rng);
+  if (state.phase === "placingLH") return; // paused for human's LH choice; UI resumes via finishQuarterAfterLH
+  finishQuarterAfterLH(state, log, rng);
+}
+function finishQuarterAfterLH(state, log, rng) {
+  runClosingRest(state, log);
+  state.awaitingPlayerId = null;
+  if ([4, 8, 12].includes(state.quarter)) {
+    state.repayQueue = humansNeedingRepay(state);
+    if (state.repayQueue.length) {
+      state.phase = "repayingLoans";
+      state.awaitingPlayerId = state.repayQueue[0];
+      return; // paused for each human's optional repayment
+    }
+  }
+  finishQuarterAfterRepay(state, log, rng);
+}
+function finishQuarterAfterRepay(state, log, rng) {
+  // more humans still owed a repayment window?
+  if (state.phase === "repayingLoans") {
+    state.repayQueue = (state.repayQueue || []).filter((id) => id !== state.awaitingPlayerId);
+    if (state.repayQueue.length) { state.awaitingPlayerId = state.repayQueue[0]; return; }
+    state.awaitingPlayerId = null;
+  }
+  const summary = state.players.map((p) => `${p.name} $${Math.round(p.cash)}/${p.epBank.toFixed(0)}EP/${activeBiz(p).length}biz`).join("  \u00b7  ");
+  log(`\u2500 End of Q${state.quarter}: ${summary}`, null);
+  if (state.quarter >= 12) {
+    finalizeGame(state);
+    state.phase = "gameover";
+    log("=== GAME OVER \u2014 final scoring complete ===", null);
+    return;
+  }
+  state.quarter += 1;
+  log(`\u25b6 Year ${Math.ceil(state.quarter / 4)}, Quarter ${state.quarter}`, null);
+  startPlanning(state);
+  advancePlanning(state, rng, log);
+}
+function humanCompleteResolutionAction(state, rng, log) {
+  const entry = state.resolutionQueue[0];
+  entry.actionsRemaining -= 1;
+  if (entry.actionsRemaining <= 0) state.resolutionQueue.shift();
+  state.pendingHumanAction = null;
+  advanceResolution(state, rng, log);
+}
+
+const STARTING = { 4: [[25, 1], [25, 2], [20, 2], [20, 3]], 3: [[25, 1], [25, 2], [20, 3]], 2: [[20, 2], [20, 2]] };
+
+/* humanNames: optional array of display names for human seats. Single player passes
+   nothing and gets one human ("You") plus bots; the online server passes one name per
+   connected player. */
+function initGame(numBots, seedNum, humanNames) {
+  const rng = mulberry32(seedNum);
+  const nHumans = humanNames && humanNames.length ? humanNames.length : 1;
+  const nPlayers = nHumans + numBots;
+  const board = buildBoard(rng);
+  const demand = makeDemandPool(board, rng);
+  const pm = makePriceMatrix();
+
+  const bpByInd = {};
+  INDUSTRIES.forEach((i) => (bpByInd[i] = []));
+  BP_DATA.forEach((bp) => bpByInd[bp.ind].push(bp));
+  const decks = {};
+  INDUSTRIES.forEach((ind) => {
+    const byLevel = { 1: [], 2: [], 3: [] };
+    bpByInd[ind].forEach((bp) => byLevel[bp.lvl].push(bp));
+    decks[ind] = [...shuffle(byLevel[1], rng), ...shuffle(byLevel[2], rng), ...shuffle(byLevel[3], rng)];
+  });
+
+  const starting = STARTING[nPlayers];
+  // Seating is randomised: the human is not automatically the first player.
+  const seats = shuffle(Array.from({ length: nPlayers }, (_, i) => i), rng);   // seats[k] = player id sitting kth
+  const seatOf = {};
+  seats.forEach((pid, k) => { seatOf[pid] = k; });
+
+  const players = [];
+  for (let i = 0; i < nPlayers; i++) {
+    const [cash] = starting[seatOf[i]];        // capital follows the seat, not the player id
+    if (i < nHumans) {
+      const nm = humanNames && humanNames[i] ? humanNames[i] : "You";
+      players.push(newPlayer(i, nm, true, cash, [], null));
+    } else {
+      const arch = ARCHETYPES[(i - nHumans) % ARCHETYPES.length];
+      players.push(newPlayer(i, `${ARCHETYPE_LABEL[arch]} Bot`, false, cash, [], arch));
+    }
+  }
+  // Starting BPs are drafted in REVERSE seat order, so the last player picks first.
+  // Bots draft immediately; the human's picks are made on the setup screen.
+  const draftOrder = [...seats].reverse();
+  // Each human drafts their own starting hand, in reverse seat order (last picks first).
+  const draftCounts = {};
+  players.filter((p) => p.isHuman).forEach((p) => { draftCounts[p.id] = starting[seatOf[p.id]][1]; });
+  const draftQueue = draftOrder.filter((id) => byId({ players }, id).isHuman);
+  const humanDraftCount = draftCounts[0] || 0;   // kept for the single-player UI
+  for (const pid of draftOrder) {
+    const p = players.find((x) => x.id === pid);
+    const n = starting[seatOf[pid]][1];
+    if (p.isHuman) continue;                   // filled in by the draft screen
+    for (let k = 0; k < n; k++) {
+      const avail = INDUSTRIES.filter((ind) => decks[ind].length > 0);
+      if (!avail.length) break;
+      // bots take the best-looking top card by simple value-per-cost
+      let best = avail[0], bestScore = -Infinity;
+      for (const ind of avail) {
+        const top = decks[ind][0];
+        const sc = (top.prod * BASE_PRICE[ind] - top.opex) / Math.max(1, top.setup);
+        if (sc > bestScore) { bestScore = sc; best = ind; }
+      }
+      p.hand.push(decks[best].shift());
+    }
+  }
+  const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers + 1);
+  return {
+    board, demand, pm, players, decks, quarter: 1, solvencyEvents: 0, rngSeed: seedNum, rngCalls: 0,
+    turnOrder: seats,                      // randomised seating
+    seats, humanDraftCount, draftCounts, draftQueue,
+    awaitingPlayerId: draftQueue.length ? draftQueue[0] : null,
+    phase: draftQueue.length ? "drafting" : "planning",
+    tracks: makeTracks(),
+    megacorpPool, ipoTileClaimed: false,
+    planningQueue: [],
+    resolutionQueue: [],
+    pendingHumanAction: null,
+    deliveryRemaining: {},
+    reChoices: {},
+    pots: Object.fromEntries(INDUSTRIES.map((i) => [i, 0])),
+    doubleFirstPlayer: null,
+    crossSellRemaining: {},
+    deliveringBizId: null,
+  };
+}
+
+/* ============================== REACT UI ============================== */
+
+/* Online play: the client sets NET, and every action handler dispatches to the server
+   instead of mutating locally. In single-player NET stays null and nothing changes. */
+let NET = null;
+export function setNet(n) { NET = n; }
+
+function Chip({ children, color, style }) {
+  return (
+    <span
+      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
+      style={{ backgroundColor: color + "22", color, border: `1px solid ${color}55`, ...style }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function PriceTicker({ pm }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {INDUSTRIES.map((ind) => (
+        <div key={ind} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md" style={{ backgroundColor: "#1c1f26" }}>
+          <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: IND_COLOR[ind] }} />
+          <span className="text-xs font-mono text-gray-300">{ind}</span>
+          <span className="text-sm font-mono font-bold text-white">${price(pm, ind)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const DIST_TYPE_COLOR = { R: "#2E7D4F", C: "#B9702E", A: "#2E6FA8", I: "#5B5F6B", CTR: "#7A3F6E" };
+const DIST_TYPE_LABEL = { R: "Residential", C: "Commercial", A: "Academic", I: "Industrial", CTR: "City Center" };
+function distTypeOf(tname) { return ["FC", "IA", "CC", "LM"].includes(tname) ? "CTR" : tname[0]; }
+
+
+function DemandCenter({ tname, demand, quarter, tileKey, deliverInfo, onDeliver }) {
+  const fam = districtFamily(tname);
+  const t = demand.tiles[tileKey];
+  const rows = t.rows;
+  const y2Open = quarter > 4;   // rows 3-4 open from Q5 (end of Year 1)
+  return (
+    <div className="flex flex-col items-center justify-center h-full w-full select-none" style={{ gap: 2, padding: 3 }}>
+      <div className="font-bold text-white/70 tracking-wide" style={{ fontSize: 9, lineHeight: 1 }}>{tname}</div>
+      {rows.map((ind, rowIdx) => {
+        const locked = rowIdx >= 2 && !y2Open;
+        return (
+          <div key={rowIdx} className="flex items-center" style={{ gap: 2, opacity: locked ? 0.45 : 1 }}
+            title={locked ? "Locked until Year 2 (opens at the end of Q4)" : undefined}>
+            {locked && <span style={{ fontSize: 8, lineHeight: 1, marginRight: 1 }}>{"\uD83D\uDD12"}</span>}
+            {[0, 1, 2, 3].map((levelIdx) => {
+              const filled = !!t.filled[rowIdx][levelIdx];
+              const isNormalEligible = !locked && !filled && deliverInfo && deliverInfo.ind === ind && levelIdx < deliverInfo.level && deliverInfo.reach.has(tileKey);
+              const isCrossEligible = !locked && !filled && deliverInfo && deliverInfo.crossActive && ind !== deliverInfo.ind && levelIdx < deliverInfo.level && deliverInfo.crossHome.has(tileKey);
+              const isEligible = isNormalEligible || isCrossEligible;
+              let bg = filled ? "#00000055" : IND_COLOR[ind] + "aa";
+              return (
+                <div key={levelIdx}
+                  onClick={() => { if (isEligible) onDeliver(tileKey, rowIdx, levelIdx, isCrossEligible); }}
+                  title={`${ind} \u00b7 Lvl ${levelIdx + 1}${filled ? " (met)" : ""}${isCrossEligible ? " (cross-sell)" : ""}`}
+                  className={isEligible ? "cursor-pointer" : ""}
+                  style={{ width: 16, height: 13, borderRadius: 2, backgroundColor: bg,
+                    border: isCrossEligible ? "2px solid #f5a623" : isNormalEligible ? "2px solid #ffffff" : "1px solid #00000044",
+                    boxShadow: isEligible ? "0 0 4px rgba(255,255,255,0.5)" : "none" }}
+                />
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function computeEligiblePlots(board, selectMode, ctx) {
+  if (!selectMode) return new Set();
+  if (selectMode.kind === "buy") {
+    if (selectMode.selected.length >= 1) return new Set();
+    // only offer plots this player can actually afford right now; anything else
+    // would just be refused (server-side, as a toast) when confirmed
+    const canPay = (k) => !ctx || plotValue(ctx.state, k) <= ctx.player.cash;
+    return new Set(Object.keys(board.graph).filter((k) => !(k in board.owner) && canPay(k)));
+  }
+  if (selectMode.kind === "lh") {
+    if (selectMode.selected.length >= 2) return new Set();
+    const hasLH = (x, y) => board.lhEdges.some((e) => edgeKey(e[0], e[1]) === edgeKey(x, y));
+    if (!selectMode.selected.length) {
+      return new Set(Object.keys(board.graph).filter((k) =>
+        [...board.graph[k]].some((n) => isCrossDistrictEdge(board, k, n) && !hasLH(k, n))
+      ));
+    }
+    const [a] = selectMode.selected;
+    return new Set([...board.graph[a]].filter((n) => isCrossDistrictEdge(board, a, n) && !hasLH(a, n)));
+  }
+  const { selected, nPlots } = selectMode;
+  if (selected.length >= nPlots) return new Set();
+  const ownedFree = (k) => k in board.owner && !(k in board.occupiedBy);
+  if (!selected.length) return new Set(Object.keys(board.graph).filter(ownedFree));
+  const opts = new Set();
+  selected.forEach((p) => board.graph[p].forEach((n) => { if (ownedFree(n) && !selected.includes(n)) opts.add(n); }));
+  return opts;
+}
+
+/* ============================== BOARD GEOMETRY ==============================
+   Absolute pixel layout. A "district tile" is the district body plus the road
+   on its top/left; roads are shared with neighbours, and one trailing road
+   closes the board. The district body carries the district's base colour and
+   fully encompasses its 4 plots, leaving a WALL margin so the plots read as
+   sitting inside the district's walls.
+
+     PLOT  size of one plot
+     IGAP  gap between slots inside a district
+     WALL  district wall margin around the outermost plots
+     ROAD  road width (= PLOT, so a road intersection is one plot square)
+   ---------------------------------------------------------------------- */
+const PLOT = 26, IGAP = 3, WALL = 6, ROAD = 26;
+const SLOT = PLOT + IGAP;                       // pitch between ring slots
+const BODY = 5 * PLOT + 4 * IGAP + 2 * WALL;    // district body edge length
+const PITCH = BODY + ROAD;                      // district-to-district pitch
+const BOARD_PX = 4 * PITCH + ROAD;              // whole board edge length
+
+const ROAD_COLOR = "#c8cfdd";                   // light roads, as on the printed board
+const PLOT_EMPTY = "#20232c";
+
+function districtOrigin(i0) { return ROAD + i0 * PITCH; }
+function roadOrigin(i) { return i * PITCH; }
+function slotOffset(k) { return WALL + k * SLOT; }
+
+/* rect of a plot, given 1-indexed district coords + ring position */
+function plotRect(dr, dc, pos) {
+  const [lr, lc] = LOCAL5[pos];
+  return {
+    x: districtOrigin(dc - 1) + slotOffset(lc),
+    y: districtOrigin(dr - 1) + slotOffset(lr),
+    w: PLOT, h: PLOT,
+  };
+}
+function plotRectOf(board, plotKeyStr) {
+  const c = board.cellOf[plotKeyStr];
+  return c ? plotRect(c.r, c.c, c.pos) : null;
+}
+/* the demand block fills ring slots 1..3 in both directions */
+function demandRect(dr, dc) {
+  const x = districtOrigin(dc - 1) + slotOffset(1);
+  const y = districtOrigin(dr - 1) + slotOffset(1);
+  const size = 3 * PLOT + 2 * IGAP;
+  return { x, y, w: size, h: size };
+}
+
+/* ---- price tag geometry ----
+   Corner tags (4 districts meeting) are cross-shaped: they fill the road
+   intersection and reach half a plot down each of the four road arms.
+   Mid tags sit beside a district's middle plot and are twice a plot long,
+   centred on that plot. */
+function cornerTagRect(i, j) {
+  const cx = roadOrigin(j) + ROAD / 2;
+  const cy = roadOrigin(i) + ROAD / 2;
+  const w = ROAD + PLOT, h = ROAD + PLOT;   // ROAD + half a plot on each side
+  return { x: cx - w / 2, y: cy - h / 2, w, h };
+}
+const CROSS_CLIP = (() => {
+  const w = ROAD + PLOT, h = ROAD + PLOT;
+  const ax = (w - ROAD) / 2, ay = (h - ROAD) / 2;
+  const pts = [
+    [ax, 0], [w - ax, 0], [w - ax, ay], [w, ay], [w, h - ay], [w - ax, h - ay],
+    [w - ax, h], [ax, h], [ax, h - ay], [0, h - ay], [0, ay], [ax, ay],
+  ];
+  return `polygon(${pts.map(([x, y]) => `${x}px ${y}px`).join(", ")})`;
+})();
+function midTagRect(latR, latC) {
+  const rEven = latR % 2 === 0;
+  if (rEven) {
+    // on a horizontal road, beside district column (latC-1)/2
+    const k = (latC - 1) / 2;
+    const cx = districtOrigin(k) + slotOffset(2) + PLOT / 2;
+    return { x: cx - PLOT, y: roadOrigin(latR / 2), w: 2 * PLOT, h: ROAD };
+  }
+  // on a vertical road, beside district row (latR-1)/2
+  const k = (latR - 1) / 2;
+  const cy = districtOrigin(k) + slotOffset(2) + PLOT / 2;
+  return { x: roadOrigin(latC / 2), y: cy - PLOT, w: ROAD, h: 2 * PLOT };
+}
+
+/* ---- footprint grouping ----
+   Every plot of a multi-plot business is outlined in its industry colour, and
+   game-adjacent pairs are joined by a connector bar so the footprint reads as
+   one company even when it spans a road. */
+function computeFootprintOverlays(board, players) {
+  const outlines = [], connectors = [];
+  for (const p of players) {
+    for (const b of p.businesses) {
+      if (b.distressed || b.footprint.length < 2) continue;
+      const color = IND_COLOR[bizInd(b)];
+      b.footprint.forEach((pk) => {
+        const r = plotRectOf(board, pk);
+        if (r) outlines.push({ key: `fo-${b.id}-${pk}`, r, color });
+      });
+      for (let i = 0; i < b.footprint.length; i++) {
+        for (let j = i + 1; j < b.footprint.length; j++) {
+          const a = b.footprint[i], c = b.footprint[j];
+          if (!board.graph[a] || !board.graph[a].has(c)) continue;
+          const ra = plotRectOf(board, a), rb = plotRectOf(board, c);
+          if (!ra || !rb) continue;
+          const acx = ra.x + ra.w / 2, acy = ra.y + ra.h / 2;
+          const bcx = rb.x + rb.w / 2, bcy = rb.y + rb.h / 2;
+          const T = 5;
+          if (Math.abs(acy - bcy) < Math.abs(acx - bcx)) {
+            const x1 = Math.min(ra.x + ra.w, rb.x + rb.w), x2 = Math.max(ra.x, rb.x);
+            connectors.push({ key: `fc-${b.id}-${i}-${j}`, color,
+              r: { x: x1, y: (acy + bcy) / 2 - T / 2, w: Math.max(0, x2 - x1), h: T } });
+          } else {
+            const y1 = Math.min(ra.y + ra.h, rb.y + rb.h), y2 = Math.max(ra.y, rb.y);
+            connectors.push({ key: `fc-${b.id}-${i}-${j}`, color,
+              r: { x: (acx + bcx) / 2 - T / 2, y: y1, w: T, h: Math.max(0, y2 - y1) } });
+          }
+        }
+      }
+    }
+  }
+  return { outlines, connectors };
+}
+
+function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot, selectMode, selectCtx, onSelectForLaunch, deliverInfo, onDeliver, onHoverBiz }) {
+  const eligible = computeEligiblePlots(board, selectMode, selectCtx);
+  const { outlines, connectors } = computeFootprintOverlays(board, players);
+  const layers = [];
+
+  // 1. road surface: the whole board is road-coloured, districts are laid on top
+  layers.push(
+    <div key="roads" style={{ position: "absolute", inset: 0, backgroundColor: ROAD_COLOR, borderRadius: 4 }} />
+  );
+
+  // 2. district bodies (base colour = the district's "walls"), then demand block
+  for (let dr = 1; dr <= 4; dr++) {
+    for (let dc = 1; dc <= 4; dc++) {
+      const tname = board.tiles[`${dr},${dc}`];
+      if (!tname) continue;
+      const bg = DIST_TYPE_COLOR[distTypeOf(tname)];
+      layers.push(
+        <div key={`d-${dr}-${dc}`} style={{
+          position: "absolute", left: districtOrigin(dc - 1), top: districtOrigin(dr - 1),
+          width: BODY, height: BODY, backgroundColor: bg, borderRadius: 6,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.45)",
+        }} />
+      );
+      const dm = demandRect(dr, dc);
+      layers.push(
+        <div key={`dm-${dr}-${dc}`} style={{
+          position: "absolute", left: dm.x, top: dm.y, width: dm.w, height: dm.h,
+          backgroundColor: "rgba(0,0,0,0.16)", borderRadius: 4, overflow: "hidden",
+        }}>
+          <DemandCenter tname={tname} demand={demand} quarter={quarter}
+            tileKey={`${dr},${dc}`} deliverInfo={deliverInfo} onDeliver={onDeliver} />
+        </div>
+      );
+    }
+  }
+
+  // 3. price tags on the roads
+  const lat = board.priceLattice || {};
+  const lhTagKeys = new Set();
+  board.lhEdges.forEach(([a, b]) => {
+    const ca = board.cellOf[a], cb = board.cellOf[b];
+    if (ca) lhTagKeys.add(latticeKeyForCell(ca));
+    if (cb) lhTagKeys.add(latticeKeyForCell(cb));
+  });
+  for (let r = 0; r <= 8; r++) {
+    for (let c = 0; c <= 8; c++) {
+      const v = lat[`${r},${c}`];
+      if (v === undefined) continue;
+      const isCorner = r % 2 === 0 && c % 2 === 0;
+      const rect = isCorner ? cornerTagRect(r / 2, c / 2) : midTagRect(r, c);
+      layers.push(
+        <div key={`pt-${r}-${c}`} style={{
+          position: "absolute", left: rect.x, top: rect.y, width: rect.w, height: rect.h,
+          backgroundColor: "#000000", clipPath: isCorner ? CROSS_CLIP : undefined,
+          borderRadius: isCorner ? 0 : 3,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          pointerEvents: "none",
+        }}>
+          <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#ffffff", lineHeight: 1 }}>{v}</span>
+        </div>
+      );
+    }
+  }
+
+  // 4. Logistic Hub discs, on the road between the two plots they join
+  board.lhEdges.forEach(([a, b], i) => {
+    const ra = plotRectOf(board, a), rb = plotRectOf(board, b);
+    if (!ra || !rb) return;
+    const cx = (ra.x + ra.w / 2 + rb.x + rb.w / 2) / 2;
+    const cy = (ra.y + ra.h / 2 + rb.y + rb.h / 2) / 2;
+    const d = 15;
+    layers.push(
+      <div key={`lh-${i}`} title="Logistic Hub" style={{
+        position: "absolute", left: cx - d / 2, top: cy - d / 2, width: d, height: d,
+        borderRadius: "50%", backgroundColor: "#111827",
+        border: "2.5px solid #22D3EE", boxShadow: "0 0 6px rgba(34,211,238,0.9)",
+        pointerEvents: "none", zIndex: 4,
+      }} />
+    );
+  });
+
+  // 5. footprint connectors (under plots), then plots, then outlines
+  connectors.forEach(({ key, r, color }) => layers.push(
+    <div key={key} style={{ position: "absolute", left: r.x, top: r.y, width: r.w, height: r.h,
+      backgroundColor: color, opacity: 0.95, zIndex: 2 }} />
+  ));
+
+  for (let dr = 1; dr <= 4; dr++) {
+    for (let dc = 1; dc <= 4; dc++) {
+      const tname = board.tiles[`${dr},${dc}`];
+      if (!tname) continue;
+      for (const pos of TILES[tname]) {
+        const key = plotKey(dr, dc, pos);
+        const r = plotRect(dr, dc, pos);
+        layers.push(
+          <PlotCell key={key} plotKeyStr={key} board={board} players={players} rect={r}
+            selected={selectedPlot === key} onSelect={onSelectPlot}
+            eligible={eligible.has(key)} chosen={selectMode ? selectMode.selected.includes(key) : false}
+            onChoose={onSelectForLaunch} onHoverBiz={onHoverBiz} />
+        );
+      }
+    }
+  }
+
+  outlines.forEach(({ key, r, color }) => layers.push(
+    <div key={key} style={{ position: "absolute", left: r.x - 2, top: r.y - 2, width: r.w + 4, height: r.h + 4,
+      border: `2px solid ${color}`, borderRadius: 5, pointerEvents: "none", zIndex: 3 }} />
+  ));
+
+  return (
+    <div className="board-shell inline-block rounded-lg p-2" style={{ backgroundColor: "#0b0c0f", border: "1px solid #262a33" }}>
+      <div style={{ position: "relative", width: BOARD_PX, height: BOARD_PX }}>
+        {layers}
+      </div>
+      <div className="flex flex-wrap gap-2 mt-2">
+        {Object.entries(DIST_TYPE_LABEL).map(([k, label]) => (
+          <div key={k} className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: DIST_TYPE_COLOR[k] }} />
+            <span className="text-[9px] text-gray-400">{label}</span>
+          </div>
+        ))}
+        {selectMode && (
+          <div className="flex items-center gap-1 ml-2">
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: "#0d2818", border: "2px solid #4ade80" }} />
+            <span className="text-[9px]" style={{ color: "#4ade80" }}>Click to build here</span>
+          </div>
+        )}
+        <div className="flex items-center gap-1 ml-2">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ border: "2px solid #22D3EE" }} />
+          <span className="text-[9px] text-gray-400">Logistic Hub ({board.lhEdges.length})</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligible, chosen, onChoose, onHoverBiz }) {
+  const bizId = board.occupiedBy[plotKeyStr];
+  const ownerId = board.owner[plotKeyStr];
+  let fill = PLOT_EMPTY;
+  let foundBiz = null;
+  if (bizId !== undefined) {
+    for (const p of players) {
+      const b = p.businesses.find((bb) => bb.id === bizId);
+      // a distressed structure belongs to nobody: show it derelict, not in an owner's colour
+      if (b) { fill = b.distressed ? "#4a4d57" : IND_COLOR[b.bp.ind]; foundBiz = b; break; }
+    }
+  }
+  if (chosen) fill = "#1a4a2e";
+  else if (eligible) fill = "#0d2818";
+  const ownerColor = ownerId !== undefined ? PLAYER_COLORS[ownerId] : null;
+  const border = chosen || eligible ? "2px solid #4ade80"
+    : selected ? "2px solid #ffffff"
+    : "1px solid rgba(0,0,0,0.5)";
+  const isVertical = foundBiz && SCALING[bizInd(foundBiz)] === "V";
+  const hasLH = plotHasLH(board, plotKeyStr);
+  return (
+    <div
+      onClick={() => { if (eligible && onChoose) onChoose(plotKeyStr); else onSelect(plotKeyStr); }}
+      onMouseEnter={(e) => { if (foundBiz && onHoverBiz) { const b = e.currentTarget.getBoundingClientRect(); onHoverBiz(foundBiz, b.right, b.top); } }}
+      onMouseLeave={() => { if (foundBiz && onHoverBiz) onHoverBiz(null); }}
+      className="cursor-pointer"
+      title={hasLH ? "Adjacent to a Logistic Hub" : undefined}
+      style={{
+        position: "absolute", left: rect.x, top: rect.y, width: rect.w, height: rect.h,
+        backgroundColor: fill, border, borderRadius: 4, zIndex: 3,
+        boxSizing: "border-box",
+      }}
+    >
+      {ownerColor && (
+        <span style={{ position: "absolute", inset: 1, borderRadius: "50%",
+          border: `2px solid ${ownerColor}`, pointerEvents: "none" }} />
+      )}
+      {foundBiz && foundBiz.distressed && (
+        <span title="Distressed - unowned" style={{ position: "absolute", inset: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 11, fontWeight: 800, color: "#f5a623", pointerEvents: "none" }}>!</span>
+      )}
+      {isVertical && foundBiz.level > 1 && Array.from({ length: Math.min(foundBiz.level - 1, 3) }).map((_, i) => (
+        <span key={i} style={{ position: "absolute", inset: 5 + i * 3.5,
+          border: `1px solid ${IND_COLOR[bizInd(foundBiz)]}`, opacity: 0.95, pointerEvents: "none" }} />
+      ))}
+      {foundBiz && foundBiz.isHQ && (
+        <span title={`Megacorp HQ: ${foundBiz.megacorpName}`} style={{
+          position: "absolute", inset: 3, borderRadius: 2, backgroundColor: "#f5d76e",
+          border: "1.5px solid #7a5c00", pointerEvents: "none",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 9, fontWeight: 800, color: "#3a2c00",
+        }}>HQ</span>
+      )}
+    </div>
+  );
+}
+
+function EPBreakdown({ hover }) {
+  if (!hover || !hover.p) return null;
+  const p = hover.p;
+  const onCards = p.businesses.filter((b) => (b.epOnCard || 0) > 0);
+  const onCardTotal = onCards.reduce((s, b) => s + b.epOnCard, 0);
+  const log = p.epLog || [];
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1400;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 900;
+  const W = 250, PAD = 10;
+  const below = hover.y < vh / 2;
+  const vertical = below ? { top: Math.min(hover.y, vh - PAD) } : { bottom: Math.max(PAD, vh - hover.y - 4) };
+  return (
+    <div className="fixed z-50 rounded-md p-2.5 pointer-events-none" style={{
+      left: Math.max(PAD, Math.min(hover.x - W - 12, vw - W - PAD)),
+      ...vertical, width: W, maxHeight: vh - 2 * PAD, overflowY: "auto",
+      backgroundColor: "#0e1014", border: `1px solid ${PLAYER_COLORS[p.id]}88`, boxShadow: "0 4px 16px rgba(0,0,0,0.55)",
+    }}>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs font-bold" style={{ color: PLAYER_COLORS[p.id] }}>{p.name}</span>
+        <span className="text-xs font-bold font-mono" style={{ color: "#8fd3b6" }}>{epTotal(p).toFixed(0)} EP</span>
+      </div>
+      {!log.length && !onCards.length && <div className="text-[10px] text-gray-500 italic">No points scored yet.</div>}
+      {log.length > 0 && (
+        <>
+          <div className="text-[9px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Banked</div>
+          <div className="space-y-0.5 mb-1.5">
+            {log.map((e, i) => (
+              <div key={i} className="flex items-start justify-between gap-2 text-[10px]">
+                <span className="text-gray-300 leading-tight">
+                  {e.label}{e.quarter ? <span className="text-gray-600"> &middot; Q{e.quarter}</span> : null}
+                </span>
+                <span className="font-mono shrink-0" style={{ color: e.amount < 0 ? "#fca5a5" : "#8fd3b6" }}>
+                  {e.amount > 0 ? "+" : ""}{e.amount.toFixed(0)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      {onCards.length > 0 && (
+        <>
+          <div className="text-[9px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">On cards (not yet vested)</div>
+          <div className="space-y-0.5">
+            {onCards.map((b) => (
+              <div key={b.id} className="flex items-start justify-between gap-2 text-[10px]">
+                <span className="text-gray-300 leading-tight">{b.bp.name}</span>
+                <span className="font-mono shrink-0" style={{ color: "#a5d6f3" }}>+{b.epOnCard}</span>
+              </div>
+            ))}
+          </div>
+          <div className="text-[9px] text-gray-600 mt-1">{onCardTotal} EP vest at game end, or sooner if upgraded, sold or merged.</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function BizTooltip({ state, hover }) {
+  if (!hover || !hover.biz) return null;
+  const b = hover.biz;
+  const { owner, plotOwners, canProduce } = getBizTooltipInfo(state, b);
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1400;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 900;
+  const W = 210, PAD = 10;
+  // Anchor to whichever edge is nearer so the panel always grows *into* the viewport:
+  // in the lower half we pin its bottom above the cursor, in the upper half we pin its top below.
+  const below = hover.y < vh / 2;
+  const vertical = below
+    ? { top: Math.min(hover.y + 14, vh - PAD) }
+    : { bottom: Math.max(PAD, vh - hover.y + 14) };
+  return (
+    <div className="fixed z-50 rounded-md p-2.5 pointer-events-none" style={{
+      left: Math.max(PAD, Math.min(hover.x + 14, vw - W - PAD)),
+      ...vertical,
+      width: W, maxHeight: vh - 2 * PAD, overflowY: "auto",
+      backgroundColor: "#0e1014", border: `1px solid ${IND_COLOR[b.bp.ind]}88`, boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+    }}>
+      <div className="flex items-center justify-between mb-1">
+        <Chip color={IND_COLOR[b.bp.ind]}>{b.bp.ind}</Chip>
+        <span className="text-[10px] font-mono text-gray-400">Lvl {b.level}{b.upgraded ? " \u2191" : ""}</span>
+      </div>
+      <div className="text-xs font-bold text-gray-100 mb-1.5">{b.bp.name}</div>
+      <div className="text-[10px] font-mono text-gray-300 space-y-0.5">
+        <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: owner ? PLAYER_COLORS[owner.id] : "#666" }} /> Biz owner: {owner ? owner.name : "\u2014"}</div>
+        <div className="flex items-center gap-1 flex-wrap">
+          <span>Plot owner{plotOwners.length !== 1 ? "s" : ""}:</span>
+          {plotOwners.length ? plotOwners.map((p) => (
+            <span key={p.id} className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PLAYER_COLORS[p.id] }} />{p.name}</span>
+          )) : <span className="text-red-400">none (can't produce)</span>}
+        </div>
+        <div>Setup: ${bizSetup(b)} &middot; Opex: ${bizOpex(b)}</div>
+        <div>Split: {b.bp.deps.map((d) => `${d.ind} $${d.val}${b.upgraded ? "\u00d72" : ""}`).join(", ") || "\u2014"}</div>
+        <div>Production: {bizProd(b)}/qtr</div>
+        {!canProduce && <div className="text-red-400">Land unowned — not producing</div>}
+      </div>
+    </div>
+  );
+}
+function PlotInfo({ board, players, selectedPlot }) {
+  if (!selectedPlot) return <div className="text-[10px] text-gray-500 italic px-1">Click a plot to inspect it.</div>;
+  const [r, c, pos] = selectedPlot.split(",");
+  const tname = board.tiles[`${r},${c}`];
+  const bizId = board.occupiedBy[selectedPlot];
+  const ownerId = board.owner[selectedPlot];
+  let ownerName = "Unowned", biz = null, bizOwnerName = null;
+  if (ownerId !== undefined) ownerName = players.find((p) => p.id === ownerId)?.name || "Unowned";
+  if (bizId !== undefined) {
+    for (const p of players) { const b = p.businesses.find((bb) => bb.id === bizId); if (b) { biz = b; bizOwnerName = p.name; break; } }
+  }
+  return (
+    <div className="text-[10px] font-mono text-gray-300 px-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+      <span className="text-gray-500">{tname} &middot; {pos}</span>
+      <span>Land owner: <span className="text-gray-100">{ownerName}</span></span>
+      {biz ? (
+        <span>
+          Business: <span style={{ color: biz.distressed ? "#8b93a3" : IND_COLOR[biz.bp.ind] }}>{biz.bp.name}</span>
+          {" "}(L{biz.level}{biz.upgraded ? "\u2191" : ""}) &mdash;{" "}
+          {biz.distressed
+            ? <span style={{ color: "#f5a623" }}>Distressed &middot; unowned (renovate via M&amp;A &rarr; Buy)</span>
+            : biz.isHQ
+              ? <span style={{ color: "#f5d76e" }}>Megacorp HQ &ldquo;{biz.megacorpName}&rdquo; &middot; {bizOwnerName}</span>
+              : bizOwnerName}
+        </span>
+      ) : (
+        <span className="text-gray-500">Empty plot</span>
+      )}
+    </div>
+  );
+}
+
+function BPCard({ bp, onClick, disabled, small }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`text-left rounded-md p-2 transition ${disabled ? "opacity-40 cursor-not-allowed" : "hover:brightness-125 cursor-pointer"}`}
+      style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, width: small ? 128 : 148 }}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <Chip color={IND_COLOR[bp.ind]}>{bp.ind}</Chip>
+        <span className="text-[10px] font-mono text-gray-400">Lvl {bp.lvl}</span>
+      </div>
+      <div className="text-xs font-semibold text-gray-100 leading-tight mb-1.5" style={{ minHeight: 28 }}>{bp.name}</div>
+      <div className="text-[10px] font-mono text-gray-400 space-y-0.5">
+        <div>Setup ${bp.setup} &middot; Opex ${bp.opex}</div>
+        <div>Prod {bp.prod} &middot; {bp.deps.map((d) => `${d.ind} $${d.val}`).join(", ")}</div>
+      </div>
+    </button>
+  );
+}
+
+function BizCard({ b, onUpgrade, onSell, canUpgrade }) {
+  return (
+    <div className="rounded-md p-2" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, width: 148 }}>
+      <div className="flex items-center justify-between mb-1">
+        <Chip color={IND_COLOR[b.bp.ind]}>{b.bp.ind}</Chip>
+        <span className="text-[10px] font-mono text-gray-400">Lvl {b.level}{b.upgraded ? " \u2191" : ""}</span>
+      </div>
+      <div className="text-xs font-semibold text-gray-100 leading-tight mb-1.5" style={{ minHeight: 28 }}>{b.bp.name}</div>
+      <div className="text-[10px] font-mono text-gray-400 mb-1.5">Opex ${bizOpex(b)} &middot; Prod {bizProd(b)}</div>
+      <div className="flex gap-1">
+        <button onClick={onUpgrade} disabled={!canUpgrade} className="flex-1 text-[10px] px-1.5 py-1 rounded font-semibold disabled:opacity-30 disabled:cursor-not-allowed"
+          style={{ backgroundColor: "#2a2e38", color: "#e5e7eb" }}>Upgrade</button>
+        <button onClick={onSell} className="flex-1 text-[10px] px-1.5 py-1 rounded font-semibold" style={{ backgroundColor: "#3a2020", color: "#f3a5a5" }}>Sell</button>
+      </div>
+    </div>
+  );
+}
+
+function TrackBoard({ state, human }) {
+  const tracks = [
+    ["raise_capital", "Raise Capital", ["LOAN", "SELL"]],
+    ["ma", "M&A", ["BUY", "LAUNCH"]],
+    ["rd", "R&D", ["RESEARCH", "UPGRADE"]],
+  ];
+  return (
+    <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+      <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">Planning &amp; Action Tracks <Help text="Place two workers, then tracks resolve first-in, last-out: whoever placed LAST acts FIRST. Committing early earns +1 extra action for every player who joins after you, but they all act before you do." /></div>
+      {tracks.map(([key, label, actions]) => (
+        <div key={key} className="flex items-center gap-2">
+          <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0">{label}</div>
+          <div className="flex gap-1">
+            {state.tracks[key].map((pid, i) => (
+              <div key={i} className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold"
+                style={{ backgroundColor: pid !== null ? PLAYER_COLORS[pid] + "33" : "#1c1f26", border: `1px solid ${pid !== null ? PLAYER_COLORS[pid] : "#33384355"}` }}>
+                {pid !== null ? (pid === 0 ? "You".slice(0, 1) : state.players[pid].name.slice(0, 1)) : ""}
+              </div>
+            ))}
+          </div>
+          <div className="text-[9px] font-mono text-gray-600">{actions.join(" / ")}</div>
+        </div>
+      ))}
+      <div className="flex items-center gap-2">
+        <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0">Board Mtg</div>
+        <div className="flex gap-1">
+          {state.tracks.board_meeting.map((pid, i) => {
+            const locked = i > 0 && !state.ipoTileClaimed;
+            return (
+              <div key={i} className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold"
+                style={{ backgroundColor: locked ? "#0e1014" : pid !== null ? PLAYER_COLORS[pid] + "33" : "#1c1f26", border: `1px solid ${locked ? "#262a33" : pid !== null ? PLAYER_COLORS[pid] : "#33384355"}`, opacity: locked ? 0.4 : 1 }}>
+                {locked ? "\ud83d\udd12" : pid !== null ? (pid === 0 ? "Y" : state.players[pid].name.slice(0, 1)) : ""}
+              </div>
+            );
+          })}
+        </div>
+        <div className="text-[9px] font-mono text-gray-600">IPO / REPOSITION</div>
+      </div>
+    </div>
+  );
+}
+
+function LiquidationPanel({ state, human, log, onContinue }) {
+  const needed = committedOpex(human);
+  const short = Math.max(0, needed - human.cash);
+  const ownedPlots = Object.entries(state.board.owner).filter(([k, v]) => v === human.id).map(([k]) => k);
+  return (
+    <div className="rounded-lg p-3" style={{ backgroundColor: "#2a1a1a", border: "1px solid #7a3f3f" }}>
+      <div className="text-xs font-bold mb-1" style={{ color: "#fca5a5" }}>
+        Cash shortfall — this quarter's OPEX bill is ${needed}, you have ${Math.round(human.cash)} ({short > 0 ? `$${Math.round(short)} short` : "covered, you may continue"})
+      </div>
+      <div className="text-[10px] text-gray-400 mb-2">You choose what to liquidate. Sell hand BPs, businesses, or plots below until covered, then continue.</div>
+      {human.hand.length > 0 && (
+        <>
+          <div className="text-[10px] text-gray-400 mb-1">Hand BPs:</div>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {human.hand.map((bp, i) => (
+              <button key={i} onClick={() => { if (NET) return NET.send("liquidate", { type: "bp", index: i }); doSellBP(state, human, bp, log); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#e5e7eb" }}>
+                {bp.name} <span style={{ color: "#f3a5a5" }}>${BP_SELL_PRICE[bp.lvl] || 4}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      {activeBiz(human).length > 0 && (
+        <>
+          <div className="text-[10px] text-gray-400 mb-1">Businesses:</div>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {activeBiz(human).map((b) => (
+              <button key={b.id} onClick={() => { if (NET) return NET.send("liquidate", { type: "biz", bizId: b.id }); doSellCompany(human, b, log); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
+                {b.bp.name} <span style={{ color: "#f3a5a5" }}>${b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2)}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      {ownedPlots.length > 0 && (
+        <>
+          <div className="text-[10px] text-gray-400 mb-1">Owned plots:</div>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {ownedPlots.map((pk) => (
+              <button key={pk} onClick={() => { if (NET) return NET.send("liquidate", { type: "plot", plot: pk }); doSellPlot(state, human, pk, log); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
+                {pk} <span style={{ color: "#f3a5a5" }}>${plotValue(state, pk)}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      <button onClick={() => { if (NET) return NET.send("liquidateDone", {}); onContinue(true); }} disabled={short > 0 && (human.hand.length > 0 || activeBiz(human).length > 0 || ownedPlots.length > 0)}
+        className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
+        Continue
+      </button>
+      {!human.hand.length && !activeBiz(human).length && !ownedPlots.length && short > 0 && (
+        <div className="text-[10px] text-red-400 mt-2">Nothing left to sell — continuing will trigger involuntary SOLVENCY at discounted rates.</div>
+      )}
+    </div>
+  );
+}
+
+function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy }) {
+  const entry = state.pendingHumanAction;
+  const [mode, setMode] = useState(null);
+  useEffect(() => { setMode(null); }, [entry?.track, entry?.actionsRemaining]);
+  if (!entry) return null;
+  const label = TRACK_LABEL[entry.track];
+
+  function finish() { setMode(null); onDone(); }
+
+  const distressedTargets = findDistressedTargets(state);
+  const renoOptions = distressedTargets.map((db) => ({ db, bps: human.hand.filter((bp) => renovationEligible(db, bp)) })).filter((o) => o.bps.length);
+  const ownedPlots = Object.entries(state.board.owner).filter(([k, v]) => v === human.id).map(([k]) => k);
+  const unownedPlots = Object.keys(state.board.graph).filter((k) => !(k in state.board.owner));
+  const upgradable = activeBiz(human).filter((b) => !b.upgraded);
+  const megacorpMatch = bestMegacorpMatch(activeBiz(human), state.megacorpPool);
+
+  return (
+    <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold" style={{ color: "#d3fcec" }}>Your turn — {label}</span>
+        <span className="text-[10px] font-mono text-gray-400">{entry.actionsRemaining} action{entry.actionsRemaining > 1 ? "s" : ""} left this track</span>
+      </div>
+
+      {entry.track === "raise_capital" && mode === null && (
+        <div className="flex gap-2">
+          <button onClick={() => { if (NET) return NET.send("act", { type: "loan" }); doLoan(state, human, log); finish(); }} disabled={discsFree(state, human) <= 0}
+            className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Take Loan (+$20, +1 disc)</button>
+          <button onClick={() => setMode("sell")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Sell for cash</button>
+        </div>
+      )}
+      {entry.track === "raise_capital" && mode === "sell" && (
+        <div className="space-y-2">
+          <div className="text-[10px] text-gray-400">Hand BPs (${BP_SELL_PRICE[1]}/${BP_SELL_PRICE[2]}/${BP_SELL_PRICE[3]} by level):</div>
+          <div className="flex flex-wrap gap-2">
+            {human.hand.map((bp, i) => (
+              <button key={i} onClick={() => { if (NET) return NET.send("act", { type: "sellBP", index: i }); doSellBP(state, human, bp, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#e5e7eb" }}>
+                {bp.name} <span style={{ color: "#f3a5a5" }}>${BP_SELL_PRICE[bp.lvl] || 4}</span>
+              </button>
+            ))}
+          </div>
+          <div className="text-[10px] text-gray-400">Businesses:</div>
+          <div className="flex flex-wrap gap-2">
+            {activeBiz(human).map((b) => (
+              <button key={b.id} onClick={() => { if (NET) return NET.send("act", { type: "sellCompany", bizId: b.id }); doSellCompany(human, b, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
+                {b.bp.name} <span style={{ color: "#f3a5a5" }}>${b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2)}</span>
+              </button>
+            ))}
+          </div>
+          <div className="text-[10px] text-gray-400">Owned plots (value = printed road price, +$1 per adjacent business, +$1 if adjacent to an LH):</div>
+          <div className="flex flex-wrap gap-2">
+            {ownedPlots.length ? ownedPlots.map((pk) => (
+              <button key={pk} onClick={() => { if (NET) return NET.send("act", { type: "sellPlot", plot: pk }); doSellPlot(state, human, pk, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
+                {plotLabel(state.board, pk)} <span style={{ color: "#f3a5a5" }}>${plotValue(state, pk)}</span>
+              </button>
+            )) : <span className="text-[10px] text-gray-600 italic">None owned.</span>}
+          </div>
+          <button onClick={() => setMode(null)} className="text-[10px] text-gray-500 underline">back</button>
+        </div>
+      )}
+
+      {entry.track === "ma" && mode === null && (
+        <div className="flex gap-2">
+          <button onClick={() => setMode("launch")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Launch</button>
+          <button onClick={() => setMode("buy")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Buy</button>
+        </div>
+      )}
+      {entry.track === "ma" && mode === "launch" && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {human.hand.map((bp, i) => (
+              <BPCard key={i} bp={bp} disabled={!canLaunchMore(human) || human.cash < bp.setup || discsFree(state, human) <= 0} onClick={() => onStartLaunch(bp)} small />
+            ))}
+            {!human.hand.length && <span className="text-xs text-gray-500 italic">Hand is empty.</span>}
+          </div>
+          {(() => { const why = !canLaunchMore(human) ? "you already have 5 active companies" : discsFree(state, human) <= 0 ? `all ${DISCS_PER_PLAYER} of your discs are committed` : null; return why ? <div className="text-[9px]" style={{ color: "#fca5a5" }}>Can't launch: {why}.</div> : null; })()}
+          <div className="text-[9px] text-gray-500">Pick a BP, then click its plot(s) on the board — owned, unoccupied plots only. Horizontal industries at level 2+ need a connected cluster.</div>
+          <button onClick={() => setMode(null)} className="text-[10px] text-gray-500 underline">back</button>
+        </div>
+      )}
+      {entry.track === "ma" && mode === "buy" && (
+        <div className="space-y-2">
+          <div className="text-[10px] text-gray-400">Renovate a distressed structure (pay half the BP's setup) \u2014 location matters, since renovating changes industry:</div>
+          <div className="flex flex-col gap-1.5">
+            {renoOptions.length ? renoOptions.map(({ db, bps }) => {
+              const locs = [...new Set(db.footprint.map((pk) => state.board.tiles[`${state.board.cellOf[pk].r},${state.board.cellOf[pk].c}`]))];
+              const nearLH = db.footprint.some((pk) => plotHasLH(state.board, pk));
+              return (
+                <div key={db.id} className="rounded p-1.5" style={{ backgroundColor: "#161920", border: "1px solid #33384355" }}>
+                  <div className="text-[9px] text-gray-500 mb-1">
+                    Was {db.bp.ind} L{db.level} — {locs.join("+")} ({db.footprint.length} plot{db.footprint.length > 1 ? "s" : ""}){nearLH ? " \u00b7 near a Logistic Hub" : ""}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {bps.map((bp, i) => (
+                      <button key={i} onClick={() => { if (NET) return NET.send("act", { type: "renovate", bizId: db.id, index: human.hand.indexOf(bp) }); doRenovate(state, human, db, bp, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#e5e7eb" }}>
+                        {bp.name} <span style={{ color: "#a5d6f3" }}>${Math.floor(bp.setup / 2)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            }) : <span className="text-[10px] text-gray-600 italic">No eligible distressed structures for your hand.</span>}
+          </div>
+          <div className="text-[10px] text-gray-400">
+            Buy a plot ({unownedPlots.length ? `$${Math.min(...unownedPlots.map((pk) => plotValue(state, pk)))}\u2013$${Math.max(...unownedPlots.map((pk) => plotValue(state, pk)))}` : "none left"}):
+          </div>
+          {(() => {
+            const noDiscs = discsFree(state, human) <= 0;
+            const cheapest = unownedPlots.length ? Math.min(...unownedPlots.map((pk) => plotValue(state, pk))) : 0;
+            const tooPoor = unownedPlots.length > 0 && human.cash < cheapest;
+            const blocked = !unownedPlots.length ? "no unowned plots left"
+              : noDiscs ? `all ${DISCS_PER_PLAYER} of your discs are committed`
+              : tooPoor ? `cheapest plot costs $${cheapest}, you have $${Math.round(human.cash)}`
+              : null;
+            return (
+              <>
+                <button onClick={() => onStartBuy()} disabled={!!blocked}
+                  className="text-[10px] px-2 py-1 rounded disabled:opacity-30" style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
+                  Pick a plot to buy ({unownedPlots.length} available)
+                </button>
+                {blocked && <div className="text-[9px] mt-0.5" style={{ color: "#fca5a5" }}>Can't buy: {blocked}.</div>}
+              </>
+            );
+          })()}
+          <button onClick={() => setMode(null)} className="text-[10px] text-gray-500 underline block">back</button>
+        </div>
+      )}
+
+      {entry.track === "rd" && mode === null && (
+        <div className="flex gap-2">
+          <button onClick={() => setMode("research")} disabled={human.hand.length >= 5} className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Research (choose a deck)</button>
+          <button onClick={() => setMode("upgrade")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Upgrade</button>
+        </div>
+      )}
+      {entry.track === "rd" && mode === "research" && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {INDUSTRIES.map((ind) => {
+              const deck = state.decks[ind];
+              const top = deck && deck[0];
+              return (
+                <button key={ind} onClick={() => { if (NET) return NET.send("act", { type: "research", ind }); doDraw(state, human, ind, log); finish(); }} disabled={!top}
+                  className="text-left rounded-md p-2 disabled:opacity-30" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}55`, width: 118 }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <Chip color={IND_COLOR[ind]}>{ind}</Chip>
+                    <span className="text-[9px] font-mono text-gray-500">{deck ? deck.length : 0} left</span>
+                  </div>
+                  {top ? (
+                    <>
+                      <div className="text-[10px] font-semibold text-gray-200 leading-tight" style={{ minHeight: 22 }}>{top.name}</div>
+                      <div className="text-[9px] font-mono text-gray-500">Lvl {top.lvl} &middot; ${top.setup}</div>
+                    </>
+                  ) : <div className="text-[9px] text-gray-600 italic">Empty</div>}
+                </button>
+              );
+            })}
+          </div>
+          <button onClick={() => setMode(null)} className="text-[10px] text-gray-500 underline">back</button>
+        </div>
+      )}
+      {entry.track === "rd" && mode === "upgrade" && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {upgradable.length ? upgradable.map((b) => {
+              const why = upgradeBlockedReason(state, human, b);
+              return (
+                <div key={b.id} style={{ width: 170 }}>
+                  <button disabled={!!why}
+                    onClick={() => { if (NET) return NET.send("act", { type: "upgrade", bizId: b.id }); const ok = doUpgrade(state, human, b, rng, log); if (ok) finish(); }}
+                    className="text-[10px] px-2 py-1 rounded w-full text-left disabled:opacity-30"
+                    style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
+                    {b.bp.name} <span className="text-gray-500">L{b.level}&rarr;{b.level + 1}</span> <span style={{ color: "#a5d6f3" }}>${bizSetup(b)}</span>
+                  </button>
+                  {why && <div className="text-[9px] mt-0.5" style={{ color: "#fca5a5" }}>{why}</div>}
+                </div>
+              );
+            }) : <span className="text-[10px] text-gray-600 italic">Nothing eligible to upgrade.</span>}
+          </div>
+          <button onClick={() => setMode(null)} className="text-[10px] text-gray-500 underline">back</button>
+        </div>
+      )}
+
+      {entry.track === "board_meeting" && mode !== "hq" && (
+        <div className="flex gap-2">
+          <button onClick={() => { if (state.ipoTileClaimed && megacorpMatch) return setMode("hq"); if (NET) return NET.send("act", { type: "megacorp" }); claimMegacorp(state, human, log); finish(); }}
+            className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+            {!state.ipoTileClaimed ? "Claim IPO tile (+5 EP)" : megacorpMatch ? `Form "${megacorpMatch.tile[0]}" (+${megacorpMatch.tile[2]} EP)` : "IPO (no combo available)"}
+          </button>
+          <button onClick={() => { if (NET) return NET.send("act", { type: "reposition" }); doReposition(state, human, log); finish(); }} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Reposition (become 1st)</button>
+        </div>
+      )}
+      {entry.track === "board_meeting" && mode === "hq" && megacorpMatch && (
+        <div className="space-y-2">
+          <div className="text-[11px] font-bold" style={{ color: "#d3fcec" }}>
+            Choose the HQ for &ldquo;{megacorpMatch.tile[0]}&rdquo;
+          </div>
+          <div className="text-[10px] text-gray-400">
+            The company you pick keeps its building and your disc, gains a Megacorp block, and returns its
+            BP to its industry deck. It will siphon $5 from each neighbouring business's industry pot every
+            B2B. The other {megacorpMatch.have.length - 1} go to the bank as Distressed Assets.
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {megacorpMatch.have.map((b) => {
+              const nbrs = new Set();
+              b.footprint.forEach((pk) => (state.board.graph[pk] || []).forEach((n) => {
+                const id = state.board.occupiedBy[n];
+                if (id !== undefined && id !== b.id) nbrs.add(id);
+              }));
+              return (
+                <button key={b.id} onClick={() => { if (NET) return NET.send("act", { type: "megacorp", hqId: b.id }); claimMegacorp(state, human, log, b); finish(); }}
+                  className="text-left rounded-md p-2" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}77`, width: 150 }}>
+                  <div className="flex items-center justify-between mb-0.5">
+                    <Chip color={IND_COLOR[b.bp.ind]}>{b.bp.ind}</Chip>
+                    <span className="text-[10px] font-mono text-gray-400">L{b.level}</span>
+                  </div>
+                  <div className="text-[10px] font-semibold text-gray-100 leading-tight">{b.bp.name}</div>
+                  <div className="text-[9px] font-mono mt-0.5" style={{ color: nbrs.size ? "#8fd3b6" : "#6b7280" }}>
+                    {nbrs.size} neighbour{nbrs.size === 1 ? "" : "s"} to siphon
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <button onClick={() => setMode(null)} className="text-[10px] text-gray-500 underline">back</button>
+        </div>
+      )}
+
+      <button onClick={() => { if (NET) return NET.send("act", { type: "pass" }); finish(); }} className="text-[10px] text-gray-500 underline">Pass this action</button>
+    </div>
+  );
+}
+
+export default function EntrepreneursGame({ online }) {
+  const [screen, setScreen] = useState(online ? "play" : "setup");
+  const [numBots, setNumBots] = useState(3);
+  const [localState, setLocalState] = useState(null);
+  const [localLogs, setLocalLogs] = useState([]);
+  // Online: state and log come from the server and are read-only here; every action is
+  // dispatched through NET and comes back as a pushed state.
+  const state = online ? online.state : localState;
+  const logs = online ? online.logs : localLogs;
+  const setState = online ? (() => {}) : setLocalState;
+  const setLogs = online ? (() => {}) : setLocalLogs;
+  const [selectedPlot, setSelectedPlot] = useState(null);
+  const [hover, setHover] = useState(null);
+  const [epHover, setEpHover] = useState(null);
+  const [pickMode, setPickMode] = useState(null); // {kind:'launch', bp, nPlots, selected:[]} | {kind:'buy', selected:[]}
+  const [reSelection, setReSelection] = useState([]);
+  const rngRef = useRef(null);
+  const logEndRef = useRef(null);
+
+  // Scroll the log's own container rather than calling scrollIntoView, which walks up
+  // the ancestor chain and yanks the whole page (and the board) around on every entry.
+  useEffect(() => {
+    const end = logEndRef.current;
+    if (!end) return;
+    const box = end.parentElement;
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [logs]);
+
+  // A click focuses the button; when the panel re-renders and that button moves, the
+  // browser scrolls to chase it and the board jumps away. Removing focus after every
+  // click removes the thing it chases, which is more reliable than fighting the scroll.
+  useEffect(() => {
+    const onPointerUp = () => {
+      const el = document.activeElement;
+      if (el && typeof el.blur === "function" && el.tagName === "BUTTON") el.blur();
+    };
+    document.addEventListener("pointerup", onPointerUp, true);
+    return () => document.removeEventListener("pointerup", onPointerUp, true);
+  }, []);
+  useEffect(() => {
+    if (state && state.phase === "placingLH" && (!pickMode || pickMode.kind !== "lh")) setPickMode({ kind: "lh", selected: [] });
+  }, [state && state.phase]);
+
+  const log = useCallback((msg, pid) => {
+    setLogs((L) => [...L.slice(-79), { msg, pid, id: Math.random() }]);
+  }, []);
+
+  function startGame() {
+    const seedNum = Math.floor(Math.random() * 1e9);
+    const s = initGame(numBots, seedNum);
+    rngRef.current = mulberry32(seedNum + 777);
+    setLogs([]);
+    const seat = s.turnOrder.indexOf(0) + 1;
+    const ord = seat === 1 ? "1st" : seat === 2 ? "2nd" : seat === 3 ? "3rd" : `${seat}th`;
+    log(`New game: You vs ${numBots} bot${numBots > 1 ? "s" : ""}. You are seated ${ord} in turn order.`, null);
+    if (s.phase !== "drafting") { startPlanning(s); advancePlanning(s, rngRef.current, log); }
+    setState(s);
+    setScreen(s.phase === "gameover" ? "gameover" : "playing");
+  }
+
+  const human = online ? state?.players.find((p) => p.id === online.seat) : state?.players[0];
+
+  function handlePlaceMeeple(track) {
+    if (NET) return NET.send("plan", { track });
+    if (!state || state.phase !== "planning") return;
+    if (state.planningQueue[0] !== human.id) return;
+    const ok = placeMeeple(state, human.id, track);
+    if (!ok) { log(`No open slot on ${TRACK_LABEL[track]}.`, human.id); setState({ ...state }); return; }
+    log(`You place on ${TRACK_LABEL[track]}.`, human.id);
+    consumePlanningTurn(state, human.id, track);
+    advancePlanning(state, rngRef.current, log);
+    setState({ ...state });
+    if (state.phase === "gameover") setScreen("gameover");
+  }
+
+  function handleResolutionDone() {
+    if (!state) return;
+    humanCompleteResolutionAction(state, rngRef.current, log);
+    setState({ ...state });
+    if (state.phase === "gameover") setScreen("gameover");
+  }
+
+  function handleStartLaunch(bp) {
+    const nPlots = SCALING[bp.ind] === "H" ? bp.lvl : 1;
+    setPickMode({ kind: "launch", bp, nPlots, selected: [] });
+  }
+  function handleStartBuy() {
+    setPickMode({ kind: "buy", selected: [] });
+  }
+  function handlePickPlot(plotKeyStr) {
+    setPickMode((pm) => pm ? { ...pm, selected: [...pm.selected, plotKeyStr] } : pm);
+  }
+  function handleCancelPick() { setPickMode(null); }
+  function handleConfirmPick() {
+    if (!state || !pickMode) return;
+    if (NET) {
+      if (pickMode.kind === "launch") NET.send("act", { type: "launch", index: human.hand.indexOf(pickMode.bp), footprint: pickMode.selected });
+      else if (pickMode.kind === "buy") NET.send("act", { type: "buyPlot", plot: pickMode.selected[0] });
+      setPickMode(null);
+      return;
+    }
+    if (pickMode.kind === "launch") {
+      const ok = doLaunch(state, human, pickMode.bp, rngRef.current, log, pickMode.selected);
+      if (!ok) log(`Couldn't launch ${pickMode.bp.name} on that selection.`, human.id);
+    } else if (pickMode.kind === "buy") {
+      const ok = doBuyPlot(state, human, pickMode.selected[0], log);
+      if (!ok) log(`Couldn't buy that plot.`, human.id);
+    }
+    setPickMode(null);
+    humanCompleteResolutionAction(state, rngRef.current, log);
+    setState({ ...state });
+    if (state.phase === "gameover") setScreen("gameover");
+  }
+
+  if (!online && screen === "setup") return <SetupScreen numBots={numBots} setNumBots={setNumBots} onStart={startGame} />;
+  if (screen === "gameover") return <GameOverScreen state={state} onRestart={() => setScreen("setup")} />;
+  // Online the server owns the phase, so surface the end screen straight from state.
+  if (online && state && state.phase === "gameover") {
+    return <GameOverScreen state={state} onRestart={() => window.location.reload()} />;
+  }
+
+  if (!state) return null;
+  if (state.phase === "drafting") {
+    if (online) return <DraftScreen state={state} log={log} seatId={online.seat} onDone={null} />;
+    return <DraftScreen state={state} log={log} onDone={() => {
+      startPlanning(state); advancePlanning(state, rngRef.current, log);
+      setState({ ...state });
+    }} />;
+  }
+  const year = Math.ceil(state.quarter / 4);
+  const humanMeeplesLeft = state.planningQueue.filter((id) => id === human.id).length;
+  /* Whose input is the game waiting on right now? Mirrors the server's check so the
+     UI only offers controls to the player who can actually act. */
+  const awaitedId = state.phase === "drafting" ? state.awaitingPlayerId
+    : state.phase === "planning" ? state.planningQueue[0]
+    : state.phase === "resolving" ? (state.pendingHumanAction ? state.pendingHumanAction.playerId : null)
+    : ["delivering", "liquidating", "repayingLoans"].includes(state.phase) ? state.awaitingPlayerId
+    : state.phase === "placingLH" ? state.turnOrder[0]
+    : null;
+  const myTurn = !online || awaitedId === online.seat;
+  const awaitedName = awaitedId != null && state.players.find((p) => p.id === awaitedId)
+    ? state.players.find((p) => p.id === awaitedId).name : null;
+  const isHumanPlanningTurn = state.phase === "planning" && state.planningQueue[0] === human.id && myTurn;
+  const isHumanResolving = state.phase === "resolving" && state.pendingHumanAction && state.pendingHumanAction.playerId === human.id && myTurn;
+  const isHumanDelivering = state.phase === "delivering" && myTurn;
+  const isHumanLiquidating = state.phase === "liquidating" && myTurn;
+  const isHumanPlacingLH = state.phase === "placingLH" && myTurn;
+  const isHumanRepaying = state.phase === "repayingLoans" && myTurn;
+  const deliveringBiz = isHumanDelivering ? human.businesses.find((b) => b.id === state.deliveringBizId) : null;
+  const needsREChoice = deliveringBiz && bizInd(deliveringBiz) === "RE" && !state.reChoices[deliveringBiz.id];
+  const deliverInfo = deliveringBiz && !needsREChoice ? {
+    ind: bizInd(deliveringBiz), level: deliveringBiz.level, reach: reachableDistricts(state, deliveringBiz),
+    crossActive: bizInd(deliveringBiz) === "MA" && (state.crossSellRemaining[deliveringBiz.id] || 0) > 0,
+    crossHome: bizInd(deliveringBiz) === "MA" ? footprintDistricts(state.board, deliveringBiz.footprint) : new Set(),
+  } : null;
+
+  function handleConfirmREChoice() {
+    if (!state || !deliveringBiz) return;
+    if (NET) { NET.send("reChoice", { bizId: deliveringBiz.id, districts: reSelection }); setReSelection([]); return; }
+    state.reChoices[deliveringBiz.id] = reSelection;
+    setReSelection([]);
+    setState({ ...state });
+  }
+  function toggleReDistrict(d, max) {
+    setReSelection((sel) => sel.includes(d) ? sel.filter((x) => x !== d) : sel.length < max ? [...sel, d] : sel);
+  }
+
+  function handleRepayOne() {
+    if (!state) return;
+    if (NET) return NET.send("repay", {});
+    doRepayLoan(human, state.quarter, log);
+    setState({ ...state });
+  }
+  function handleDoneRepaying() {
+    if (!state) return;
+    if (NET) return NET.send("repayDone", {});
+    finishQuarterAfterRepay(state, log, rngRef.current);
+    setState({ ...state });
+    if (state.phase === "gameover") setScreen("gameover");
+  }
+
+  function handleConfirmLH() {
+    if (!state || !pickMode || pickMode.kind !== "lh" || pickMode.selected.length < 2) return;
+    if (NET) { NET.send("placeLH", { a: pickMode.selected[0], b: pickMode.selected[1] }); setPickMode(null); return; }
+    doPlaceLH(state, pickMode.selected[0], pickMode.selected[1], log);
+    setPickMode(null);
+    finishQuarterAfterLH(state, log, rngRef.current);
+    setState({ ...state });
+    if (state.phase === "gameover") setScreen("gameover");
+  }
+
+  function handleLiquidationContinue(proceed) {
+    if (!state) return;
+    if (NET) { if (proceed) NET.send("liquidateDone", {}); return; }
+    if (proceed) humanLiquidationDone(state, rngRef.current, log);
+    setState({ ...state });
+    if (state.phase === "gameover") setScreen("gameover");
+  }
+
+  function handleDeliverClick(tileKey, rowIdx, levelIdx, cross) {
+    if (!state || !deliveringBiz) return;
+    if (NET) return NET.send("deliver", { tileKey, rowIdx, levelIdx, cross: !!cross });
+    humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log);
+    const stillHas = (state.deliveryRemaining[deliveringBiz.id] || 0) > 0 || (state.crossSellRemaining[deliveringBiz.id] || 0) > 0;
+    if (!stillHas) finishDelivery(state, log, rngRef.current);
+    setState({ ...state });
+    if (state.phase === "gameover") setScreen("gameover");
+  }
+  function handleSkipDelivery() {
+    if (!state || !deliveringBiz) return;
+    if (NET) return NET.send("skipDelivery", {});
+    skipDelivery(state, human, deliveringBiz.id, log);
+    finishDelivery(state, log, rngRef.current);
+    setState({ ...state });
+    if (state.phase === "gameover") setScreen("gameover");
+  }
+
+  return (
+    <div className="w-full min-h-screen p-4" style={{ backgroundColor: "#0e1014", fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-lg font-bold text-white tracking-tight">ENTREPRENEURS</h1>
+            <div className="text-xs font-mono text-gray-400">
+              Year {year} &middot; Quarter {state.quarter} of 12 &middot; <span style={{ color: state.phase === "liquidating" ? "#fca5a5" : state.phase === "placingLH" || state.phase === "repayingLoans" ? "#67e8f9" : "#8fd3b6" }}>{state.phase === "planning" ? "Planning" : state.phase === "resolving" ? "Resolving actions" : state.phase === "delivering" ? "Delivering production" : state.phase === "liquidating" ? "Cash shortfall" : state.phase === "placingLH" ? "Placing Logistic Hub" : state.phase === "repayingLoans" ? "Loan repayment" : "\u2014"}</span>
+            </div>
+          </div>
+          <PriceTicker pm={state.pm} />
+        </div>
+
+        <div className="board-grid">
+          <div className="board-col space-y-3">
+            <BoardView board={state.board} players={state.players} demand={state.demand} quarter={state.quarter} selectedPlot={selectedPlot} onSelectPlot={setSelectedPlot} selectMode={pickMode} selectCtx={{ state, player: human }} onSelectForLaunch={handlePickPlot} deliverInfo={deliverInfo} onDeliver={handleDeliverClick} onHoverBiz={(biz, x, y) => setHover(biz ? { biz, x, y } : null)} />
+            <BizTooltip state={state} hover={hover} />
+            <EPBreakdown hover={epHover} />
+            <PlotInfo board={state.board} players={state.players} selectedPlot={selectedPlot} />
+
+            <TrackBoard state={state} human={human} />
+
+            {isHumanPlanningTurn && (
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
+                <div className="text-xs font-bold mb-2" style={{ color: "#d3fcec" }}>Place a meeple ({humanMeeplesLeft} left this quarter)</div>
+                <div className="flex flex-wrap gap-2">
+                  {["raise_capital", "ma", "rd"].map((t) => (
+                    <button key={t} onClick={() => handlePlaceMeeple(t)} disabled={!state.tracks[t].includes(null)}
+                      className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+                      {TRACK_LABEL[t]}
+                    </button>
+                  ))}
+                  <button onClick={() => handlePlaceMeeple("board_meeting")}
+                    disabled={!state.tracks.board_meeting.some((s, i) => s === null && (i === 0 || state.ipoTileClaimed))}
+                    className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+                    Board Meeting (both meeples)
+                  </button>
+                </div>
+              </div>
+            )}
+            {isHumanResolving && pickMode && (
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
+                  {pickMode.kind === "launch" ? `Placing ${pickMode.bp.name} \u2014 select ${pickMode.selected.length}/${pickMode.nPlots} plot(s)` : `Pick a plot to buy \u2014 ${pickMode.selected.length}/1 selected`}
+                </div>
+                <div className="text-[10px] text-gray-400 mb-2">Click highlighted plots on the board above.</div>
+                {computeEligiblePlots(state.board, pickMode, { state, player: human }).size === 0 && pickMode.selected.length < (pickMode.kind === "buy" ? 1 : pickMode.nPlots) && (
+                  <div className="text-[10px] text-red-400 mb-2">No more eligible adjacent plots — this cluster can't be completed here. Cancel and try elsewhere, or buy more land first.</div>
+                )}
+                <div className="flex gap-2">
+                  <button onClick={handleConfirmPick} disabled={pickMode.selected.length < (pickMode.kind === "buy" ? 1 : pickMode.nPlots)}
+                    className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>Confirm</button>
+                  <button onClick={handleCancelPick} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Cancel</button>
+                </div>
+              </div>
+            )}
+            {isHumanResolving && !pickMode && <ActionPanel state={state} human={human} rng={rngRef.current} log={log} onDone={handleResolutionDone} onStartLaunch={handleStartLaunch} onStartBuy={handleStartBuy} />}
+            {isHumanDelivering && needsREChoice && (
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
+                  {deliveringBiz.bp.name} may reach {deliveringBiz.level} extra district{deliveringBiz.level > 1 ? "s" : ""} this delivery — pick {reSelection.length}/{deliveringBiz.level}
+                </div>
+                <div className="text-[10px] text-gray-400 mb-2">Retail may sell to any district(s) beyond its own, one per level. Choose which.</div>
+                <div className="flex flex-wrap gap-1.5 mb-2" style={{ maxHeight: 160, overflowY: "auto" }}>
+                  {allDistrictKeys(state.board).filter((d) => !footprintDistricts(state.board, deliveringBiz.footprint).has(d)).map((d) => {
+                    const tname = state.board.tiles[d];
+                    const chosen = reSelection.includes(d);
+                    return (
+                      <button key={d} onClick={() => toggleReDistrict(d, deliveringBiz.level)}
+                        className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: chosen ? "#1a4a2e" : "#1c1f26", border: chosen ? "1px solid #4ade80" : "1px solid #33384355", color: "#e5e7eb" }}>
+                        {tname}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button onClick={handleConfirmREChoice} disabled={reSelection.length < 1 && deliveringBiz.level > 0}
+                  className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
+                  Confirm reach
+                </button>
+              </div>
+            )}
+            {isHumanDelivering && deliveringBiz && !needsREChoice && (
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
+                  Delivering {deliveringBiz.bp.name} ({bizInd(deliveringBiz)} L{deliveringBiz.level}) — {state.deliveryRemaining[deliveringBiz.id]} unit(s) left
+                  {bizInd(deliveringBiz) === "MA" && (state.crossSellRemaining[deliveringBiz.id] || 0) > 0 && <span> &middot; <span style={{ color: "#f5a623" }}>{state.crossSellRemaining[deliveringBiz.id]} cross-sell unit(s)</span></span>}
+                </div>
+                {state.hoBonusPaid && state.hoBonusPaid[deliveringBiz.id] > 0 && (
+                  <div className="text-[10px] mb-1" style={{ color: "#8fd3b6" }}>
+                    Hospitality bonus: {state.hoBonusPaid[deliveringBiz.id]} unit(s) already sold to neighbouring businesses/hubs.
+                  </div>
+                )}
+                {(() => {
+                  const slots = eligibleSlotsFor(state, deliveringBiz).length;
+                  const rate = exchangeRate(state, deliveringBiz);
+                  const capacity = slots * rate;
+                  const left = state.deliveryRemaining[deliveringBiz.id] || 0;
+                  if (capacity >= left) return null;
+                  const ind = bizInd(deliveringBiz);
+                  const vertical = SCALING[ind] === "V";
+                  const onLH = deliveringBiz.footprint.some((pk) => plotHasLH(state.board, pk));
+                  const canLH = ind !== "UT" && ind !== "RE";
+                  const why = ind === "HC" ? "Healthcare already reaches the whole hub network."
+                    : !canLH ? `${ind} cannot use Logistic Hubs — its reach grows only with level.`
+                    : onLH ? "It is on the hub network; more hubs will open more districts."
+                    : "It is not touching a Logistic Hub, so it can only sell in its own district.";
+                  return (
+                    <div className="rounded p-1.5 mb-2" style={{ backgroundColor: "#2a2415", border: "1px solid #7a6a3f" }}>
+                      <div className="text-[10px]" style={{ color: "#f5d76e" }}>
+                        Only {capacity} of {left} unit{left === 1 ? "" : "s"} can be sold: {slots} open demand icon{slots === 1 ? "" : "s"} in reach{rate > 1 ? ` × ${rate} per icon` : ""}.
+                      </div>
+                      <div className="text-[9px] text-gray-400 mt-0.5">
+                        {why}{vertical ? " Single-plot industries stay in one district unless a hub links them out." : ""} The rest recycles at $1/unit.
+                      </div>
+                    </div>
+                  );
+                })()}
+                <div className="text-[10px] text-gray-400 mb-2">
+                  Click a highlighted demand cell (white border) to sell there.
+                  {bizInd(deliveringBiz) === "MA" && <span> Amber-bordered cells are cross-sell slots — Manufacturing may fill another industry's demand within its own footprint.</span>}
+                  {" "}Leftover recycles at $1/unit.
+                </div>
+                <button onClick={handleSkipDelivery} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+                  Recycle remainder &amp; move on
+                </button>
+              </div>
+            )}
+            {isHumanLiquidating && <LiquidationPanel state={state} human={human} log={log} onContinue={handleLiquidationContinue} />}
+            {isHumanPlacingLH && pickMode && pickMode.kind === "lh" && (
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#0f2530", border: "1px solid #22D3EE" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#67e8f9" }}>
+                  You're 1st in turn order \u2014 place this quarter's Logistic Hub ({pickMode.selected.length}/2 plots picked)
+                </div>
+                <div className="text-[10px] text-gray-400 mb-2">Click two adjacent plots on the board to place the hub between them.</div>
+                {pickMode.selected.length === 1 && computeEligiblePlots(state.board, pickMode).size === 0 && (
+                  <div className="text-[10px] text-red-400 mb-2">That plot's neighbors all already have a hub \u2014 reset and pick a different starting plot.</div>
+                )}
+                <div className="flex gap-2">
+                  <button onClick={handleConfirmLH} disabled={pickMode.selected.length < 2}
+                    className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#0e5f6f", color: "#d3fcec" }}>Confirm placement</button>
+                  {pickMode.selected.length > 0 && (
+                    <button onClick={() => setPickMode({ kind: "lh", selected: [] })} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Reset selection</button>
+                  )}
+                </div>
+              </div>
+            )}
+            {!isHumanPlanningTurn && !isHumanResolving && !isHumanDelivering && !isHumanLiquidating && !isHumanPlacingLH && !isHumanRepaying && (
+              <div className="rounded-lg p-3 text-xs italic" style={{ backgroundColor: "#14161a", border: "1px solid #262a33", color: awaitedName ? "#8fd3b6" : "#6b7280" }}>
+                {awaitedName ? `Waiting for ${awaitedName}…` : "Waiting on other players…"}
+              </div>
+            )}
+            {isHumanRepaying && (
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#0f2530", border: "1px solid #22D3EE" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#67e8f9" }}>
+                  Year-end: you may repay loan discs at ${LOAN_REPAY_RATE[state.quarter]} each — {human.discsInBank} disc{human.discsInBank === 1 ? "" : "s"} outstanding (−{human.discsInBank * 5} EP if left unpaid)
+                </div>
+                <div className="text-[10px] text-gray-400 mb-2">You have ${Math.round(human.cash)} cash.</div>
+                <div className="flex gap-2">
+                  <button onClick={handleRepayOne} disabled={human.discsInBank <= 0 || human.cash < LOAN_REPAY_RATE[state.quarter]}
+                    className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#0e5f6f", color: "#d3fcec" }}>
+                    Repay 1 disc (−${LOAN_REPAY_RATE[state.quarter]})
+                  </button>
+                  <button onClick={handleDoneRepaying} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">Your player board <Help text="Your ten discs are your whole footprint: one per plot you own, one per active company, and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up." /></span>
+                <span className="text-[9px] font-mono text-gray-600">{human.name}</span>
+              </div>
+
+              {(() => {
+                const opex = committedOpex(human);
+                const after = human.cash - opex;
+                const discs = human.discsInBank;
+                const tiles = [
+                  { label: "CASH", value: `$${Math.round(human.cash)}`, color: "#8fd3b6" },
+                  { label: "OPEX / QTR", value: `$${Math.round(opex)}`, color: "#f3b0a5" },
+                  { label: "AFTER OPEX", value: `${after < 0 ? "\u2212" : ""}$${Math.abs(Math.round(after))}`, color: after < 0 ? "#fca5a5" : "#e5e7eb" },
+                  { label: "LOAN DISCS", value: `${discs}`, sub: discs ? `\u2212${discs * 5} EP` : "none", color: discs ? "#fca5a5" : "#6b7280" },
+                  { label: "DISCS USED", value: `${discsUsed(state, human)}/${DISCS_PER_PLAYER}`,
+                    sub: `${plotsOwned(state, human)} land \u00b7 ${activeBiz(human).length} biz \u00b7 ${discs} loan`,
+                    color: discsFree(state, human) <= 0 ? "#fca5a5" : discsFree(state, human) <= 2 ? "#f5a623" : "#e5e7eb" },
+                ];
+                return (
+                  <div className="flex gap-1.5 mb-3">
+                    {tiles.map((t) => (
+                      <div key={t.label} className="flex-1 rounded p-1.5" style={{ backgroundColor: "#1c1f26", border: "1px solid #2b3040" }}>
+                        <div className="text-[8px] font-bold text-gray-500 tracking-wide mb-0.5">{t.label}</div>
+                        <div className="text-sm font-bold font-mono leading-tight" style={{ color: t.color }}>{t.value}</div>
+                        {t.sub && <div className="text-[8px] font-mono text-gray-600">{t.sub}</div>}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {committedOpex(human) > human.cash && (
+                <div className="rounded p-1.5 mb-3" style={{ backgroundColor: "#2a1a1a", border: "1px solid #7a3f3f" }}>
+                  <div className="text-[9px] font-bold" style={{ color: "#fca5a5" }}>
+                    Short ${Math.round(committedOpex(human) - human.cash)} for next quarter's OPEX &mdash; raise cash or you'll be forced to liquidate.
+                  </div>
+                </div>
+              )}
+
+              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">
+                Hand &mdash; {human.hand.length}/5
+              </div>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {human.hand.map((bp, i) => <BPCard key={i} bp={bp} disabled small />)}
+                {!human.hand.length && <span className="text-xs text-gray-500 italic">Empty.</span>}
+              </div>
+
+              <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">
+                Portfolio &mdash; {activeBiz(human).length}/5
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {activeBiz(human).map((b) => {
+                  const canProd = businessCanProduce(state, b);
+                  return (
+                    <div key={b.id} className="rounded-md p-2" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, width: 148, opacity: canProd ? 1 : 0.5 }}
+                      onMouseEnter={(e) => { const r = e.currentTarget.getBoundingClientRect(); setHover({ biz: b, x: r.right, y: r.top }); }}
+                      onMouseLeave={() => setHover(null)}>
+                      <div className="flex items-center justify-between mb-1">
+                        <Chip color={IND_COLOR[b.bp.ind]}>{b.bp.ind}</Chip>
+                        <span className="text-[10px] font-mono text-gray-400">Lvl {b.level}{b.upgraded ? " \u2191" : ""}</span>
+                      </div>
+                      <div className="text-xs font-semibold text-gray-100 leading-tight mb-1" style={{ minHeight: 28 }}>{b.bp.name}</div>
+                      <div className="flex items-center justify-between text-[9px] font-mono">
+                        <span style={{ color: "#f3b0a5" }}>opex ${bizOpex(b)}</span>
+                        <span className="text-gray-400">prod {bizProd(b)}</span>
+                      </div>
+                      {b.epOnCard > 0 && (
+                        <div className="flex items-center gap-1 mt-1 rounded px-1 py-0.5" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
+                          <span className="text-[9px] font-bold" style={{ color: "#8fd3b6" }}>{b.epOnCard} EP</span>
+                          <span className="text-[8px] text-gray-500">on card &mdash; vests if upgraded/sold</span>
+                        </div>
+                      )}
+                      {!canProd && <div className="text-[9px] text-red-400 mt-0.5">Land unowned &mdash; can't produce</div>}
+                    </div>
+                  );
+                })}
+                {!activeBiz(human).length && <span className="text-xs text-gray-500 italic">None yet.</span>}
+              </div>
+            </div>
+          </div>
+
+          <div className="side-col space-y-3">
+            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text="Score = 1 EP per active company level + 5 EP per active industry, awarded at each year end. Plus endgame bonuses for most plots and most districts, $10 = 1 EP, and -5 EP per unpaid loan disc. Hover a player for the full breakdown." /></div>
+              <div className="space-y-2">
+                {[...state.players].sort((a, b) => epTotal(b) - epTotal(a)).map((p) => {
+                  const onCards = p.businesses.reduce((s2, b) => s2 + (b.epOnCard || 0), 0);
+                  return (
+                    <div key={p.id} className="rounded p-1.5" style={{ backgroundColor: "#1c1f26" }}
+                      onMouseEnter={(e) => { const r = e.currentTarget.getBoundingClientRect(); setEpHover({ p, x: r.left, y: r.top }); }}
+                      onMouseLeave={() => setEpHover(null)}>
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PLAYER_COLORS[p.id] }} />
+                          <span className="font-semibold text-gray-200">{p.name}</span>
+                          {state.turnOrder[0] === p.id && <span className="text-[8px] font-mono text-gray-500">1st</span>}
+                        </div>
+                        <div className="font-mono font-bold" style={{ color: "#8fd3b6" }}>{epTotal(p).toFixed(0)} EP</div>
+                      </div>
+                      <div className="flex items-center justify-between text-[9px] font-mono text-gray-500 mt-0.5">
+                        <span>${Math.round(p.cash)} &middot; {activeBiz(p).length}biz &middot; {p.discsInBank}disc</span>
+                        <span>{p.epBank.toFixed(0)} banked{onCards > 0 ? ` + ${onCards} on cards` : ""}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="text-[9px] text-gray-600 mt-1.5">Hover a player for a full scoring breakdown.</div>
+            </div>
+
+            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">The Bank <Help text="Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$35/$40. Distressed companies sit here until someone renovates them via M&amp;A - Buy." /></div>
+              <div className="text-[9px] text-gray-500 mb-1.5">Loan discs (−5 EP each at game end):</div>
+              <div className="space-y-1 mb-2">
+                {state.players.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between text-[10px] rounded p-1" style={{ backgroundColor: "#1c1f26" }}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PLAYER_COLORS[p.id] }} />
+                      <span className="text-gray-300">{p.name}</span>
+                    </div>
+                    <span className="font-mono text-gray-400">{p.discsInBank} disc{p.discsInBank === 1 ? "" : "s"}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="text-[9px] text-gray-500 mb-1.5">Distressed companies (renovate via M&A → Buy):</div>
+              <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 120 }}>
+                {state.players.flatMap((p) => p.businesses.filter((b) => b.distressed).map((b) => (
+                  <div key={b.id} className="flex items-center justify-between text-[9px] rounded p-1" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}44` }}>
+                    <span className="text-gray-300">{b.bp.name}</span>
+                    <span className="font-mono text-gray-500">{b.bp.ind} L{b.level}</span>
+                  </div>
+                )))}
+                {!state.players.some((p) => p.businesses.some((b) => b.distressed)) && <div className="text-[9px] text-gray-600 italic">None yet.</div>}
+              </div>
+            </div>
+
+            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Pots <Help text="When a company pays OPEX, that money (minus rent) lands in its suppliers' pots. Each quarter every pot is shared among the active businesses of that industry, weighted by level. Supplying industries nobody builds is very lucrative." /></div>
+              <div className="text-[9px] text-gray-500 mb-1.5">Supplier OPEX collects here, then splits among that industry's active businesses by level.</div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {INDUSTRIES.map((ind) => {
+                  const pot = state.pots ? state.pots[ind] : 0;
+                  const { n, levels } = potRecipients(state, ind);
+                  return (
+                    <div key={ind} className="rounded p-1.5" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}44` }}>
+                      <div className="flex items-center justify-between">
+                        <Chip color={IND_COLOR[ind]}>{ind}</Chip>
+                        <span className="text-[11px] font-bold font-mono" style={{ color: pot > 0 ? "#8fd3b6" : "#4b5563" }}>${pot.toFixed(0)}</span>
+                      </div>
+                      <div className="text-[8px] font-mono text-gray-500 mt-0.5">
+                        {n ? `${n} biz \u00b7 ${levels} lvl` : "no takers \u2014 carries over"}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Decks <Help text="Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from." /></div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {INDUSTRIES.map((ind) => {
+                  const deck = state.decks[ind];
+                  const top = deck && deck[0];
+                  return (
+                    <div key={ind} className="rounded p-1.5" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}55` }}>
+                      <div className="flex items-center justify-between">
+                        <Chip color={IND_COLOR[ind]}>{ind}</Chip>
+                        <span className="text-[8px] font-mono text-gray-500">{deck ? deck.length : 0} left</span>
+                      </div>
+                      {top ? (
+                        <>
+                          <div className="text-[9px] text-gray-300 leading-tight mt-0.5">{top.name}</div>
+                          <div className="text-[8px] font-mono text-gray-500 leading-tight">
+                            L{top.lvl} &middot; set ${top.setup} &middot; opex ${top.opex} &middot; prod {top.prod}
+                          </div>
+                          <div className="text-[8px] font-mono leading-tight" style={{ color: "#a5b4cf" }}>
+                            {top.deps.map((d) => `${d.ind} $${d.val}`).join(" \u00b7 ")}
+                          </div>
+                        </>
+                      ) : <div className="text-[9px] text-gray-600 italic mt-0.5">Empty</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ (keeps its building and your disc, siphons $5 from each neighbour's industry pot); the rest go distressed. In IPO Mode the first claim ends the game." /></div>
+              <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
+                {state.megacorpPool.map(([name, combo, ep], i) => (
+                  <div key={i} className="text-[9px] font-mono text-gray-400 flex justify-between">
+                    <span>{name}</span>
+                    <span>{Object.entries(combo).map(([l, n]) => `${n}\u00d7L${l}`).join("+")} → {ep}EP</span>
+                  </div>
+                ))}
+              </div>
+              <div className="text-[9px] text-gray-600 mt-1">{state.ipoTileClaimed ? "IPO tile claimed \u2014 all Board Meeting slots open." : "IPO tile not yet claimed."}</div>
+            </div>
+
+            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Abilities</div>
+              <div className="space-y-1.5">
+                {INDUSTRIES.map((ind) => (
+                  <div key={ind} className="text-[10px] leading-snug">
+                    <Chip color={IND_COLOR[ind]}>{ind}</Chip> <span className="text-gray-400">{IND_ABILITY[ind]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Log</div>
+              <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 220 }}>
+                {logs.map((l) => (
+                  <div key={l.id} className="text-[10px] font-mono leading-snug" style={{ color: l.pid !== null ? PLAYER_COLORS[l.pid] : "#8b93a3" }}>
+                    {l.msg}
+                  </div>
+                ))}
+                <div ref={logEndRef} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SetupScreen({ numBots, setNumBots, onStart }) {
+  return (
+    <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
+      <div className="max-w-md w-full rounded-xl p-6" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+        <h1 className="text-2xl font-bold text-white tracking-tight mb-1">ENTREPRENEURS</h1>
+        <p className="text-sm text-gray-400 mb-6">Build, produce, sell, score — 3 fiscal years, solo vs bots.</p>
+        <div className="mb-6">
+          <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Opponents</div>
+          <div className="flex gap-2">
+            {[1, 2, 3].map((n) => (
+              <button key={n} onClick={() => setNumBots(n)}
+                className="flex-1 py-2 rounded-md text-sm font-semibold transition"
+                style={{ backgroundColor: numBots === n ? "#2c5f4f" : "#1c1f26", color: numBots === n ? "#d3fcec" : "#9ca3af", border: "1px solid #262a33" }}>
+                {n} bot{n > 1 ? "s" : ""}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mb-6 flex flex-wrap gap-1.5">
+          {INDUSTRIES.map((ind) => (<Chip key={ind} color={IND_COLOR[ind]}>{IND_NAME[ind]}</Chip>))}
+        </div>
+        <button onClick={onStart} className="w-full py-2.5 rounded-md text-sm font-bold" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
+          Start Game
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Help affordance ----------------
+   A small "?" the player can tap or hover for a plain-language explanation.
+   Used across the panels so a first-timer can learn the game in place. */
+function Help({ text, label }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span style={{ position: "relative", display: "inline-flex" }}>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        aria-label={label || "Help"}
+        style={{
+          width: 13, height: 13, borderRadius: "50%", lineHeight: "11px",
+          fontSize: 9, fontWeight: 700, color: "#8b93a3",
+          backgroundColor: "#1c1f26", border: "1px solid #3a4152",
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          cursor: "help", flexShrink: 0,
+        }}
+      >?</button>
+      {open && (
+        <span style={{
+          position: "absolute", left: 18, top: -4, zIndex: 60, width: 230,
+          backgroundColor: "#0e1014", border: "1px solid #3a4152", borderRadius: 6,
+          padding: "7px 9px", fontSize: 10, lineHeight: 1.45, color: "#d1d5db",
+          boxShadow: "0 6px 20px rgba(0,0,0,0.6)", pointerEvents: "none",
+          fontWeight: 400, textTransform: "none", letterSpacing: 0,
+        }}>{text}</span>
+      )}
+    </span>
+  );
+}
+
+/* ---------------- Starting BP draft ----------------
+   Seating is random and the draft runs in reverse seat order, so the last
+   player picks first. Bots have already taken theirs; this is the human's turn. */
+function DraftScreen({ state, log, onDone, seatId }) {
+  const human = seatId != null ? state.players.find((p) => p.id === seatId)
+                               : state.players.find((p) => p.isHuman);
+  const need = (state.draftCounts && state.draftCounts[human.id] != null)
+    ? state.draftCounts[human.id] : (state.humanDraftCount || 0);
+  const myTurn = seatId == null || state.awaitingPlayerId === seatId;
+  const waitingFor = !myTurn && state.awaitingPlayerId != null
+    ? (state.players.find((p) => p.id === state.awaitingPlayerId) || {}).name : null;
+  const [, force] = useState(0);
+  const picked = human.hand.length;
+  const seat = state.turnOrder.indexOf(human.id) + 1;
+  const ord = seat === 1 ? "1st" : seat === 2 ? "2nd" : seat === 3 ? "3rd" : `${seat}th`;
+
+  function take(ind) {
+    if (!myTurn) return;
+    if (picked >= need) return;
+    if (!state.decks[ind] || !state.decks[ind].length) return;
+    if (NET) return NET.send("draft", { ind });
+    const card = state.decks[ind].shift();
+    human.hand.push(card);
+    log(`You draft ${card.name} (${card.ind} L${card.lvl}).`, human.id);
+    force((v) => v + 1);
+  }
+
+  return (
+    <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
+      <div className="w-full rounded-xl p-6" style={{ maxWidth: 620, backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+        <h1 className="text-xl font-bold text-white mb-1">Draft your starting Blueprints</h1>
+        <p className="text-sm text-gray-400 mb-1">
+          You are seated <span className="text-gray-200 font-semibold">{ord}</span> this game.
+          Later seats start with less cash but draft earlier &mdash; pick {need} card{need === 1 ? "" : "s"}.
+        </p>
+        <p className="text-[11px] text-gray-500 mb-4">
+          Each industry deck is ordered level 1 on top, level 3 at the bottom, and its top card is always public.
+        </p>
+
+        <div className="grid grid-cols-3 gap-2 mb-5">
+          {INDUSTRIES.map((ind) => {
+            const deck = state.decks[ind] || [];
+            const top = deck[0];
+            const done = picked >= need;
+            return (
+              <button key={ind} onClick={() => take(ind)} disabled={!top || done || !myTurn}
+                className="text-left rounded-md p-2 disabled:opacity-30"
+                style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}66` }}>
+                <div className="flex items-center justify-between mb-1">
+                  <Chip color={IND_COLOR[ind]}>{ind}</Chip>
+                  <span className="text-[9px] font-mono text-gray-500">{deck.length} left</span>
+                </div>
+                {top ? (
+                  <>
+                    <div className="text-[10px] font-semibold text-gray-100 leading-tight" style={{ minHeight: 26 }}>{top.name}</div>
+                    <div className="text-[9px] font-mono text-gray-500">L{top.lvl} &middot; set ${top.setup} &middot; opex ${top.opex} &middot; prod {top.prod}</div>
+                    <div className="text-[9px] font-mono" style={{ color: "#a5b4cf" }}>
+                      {top.deps.map((d) => `${d.ind} $${d.val}`).join(" \u00b7 ")}
+                    </div>
+                  </>
+                ) : <div className="text-[10px] text-gray-600 italic">Empty</div>}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="rounded-md p-2 mb-4" style={{ backgroundColor: "#101318" }}>
+          <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Your hand &mdash; {picked}/{need}</div>
+          <div className="flex flex-wrap gap-2">
+            {human.hand.map((bp, i) => <BPCard key={i} bp={bp} disabled small />)}
+            {!picked && <span className="text-[10px] text-gray-600 italic">Nothing drafted yet.</span>}
+          </div>
+        </div>
+
+        {waitingFor ? (
+          <div className="w-full py-2.5 rounded-md text-sm font-bold text-center"
+            style={{ backgroundColor: "#1c1f26", color: "#8fd3b6" }}>
+            Waiting for {waitingFor} to draft&hellip;
+          </div>
+        ) : onDone ? (
+          <button onClick={onDone} disabled={picked < need}
+            className="w-full py-2.5 rounded-md text-sm font-bold disabled:opacity-30"
+            style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
+            {picked < need ? `Pick ${need - picked} more` : "Start Year 1"}
+          </button>
+        ) : (
+          <div className="w-full py-2.5 rounded-md text-sm font-bold text-center"
+            style={{ backgroundColor: "#1c1f26", color: "#9ca3af" }}>
+            {picked < need ? `Pick ${need - picked} more` : "Waiting for the others\u2026"}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function GameOverScreen({ state, onRestart }) {
+  const ranked = [...state.players].sort((a, b) => b.epBank - a.epBank);
+  const [openId, setOpenId] = useState(ranked[0] ? ranked[0].id : null);
+  return (
+    <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
+      <div className="max-w-md w-full rounded-xl p-6" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+        <h1 className="text-xl font-bold text-white mb-1">Game Over</h1>
+        <p className="text-sm text-gray-400 mb-5">{ranked[0].name} wins with {ranked[0].epBank.toFixed(0)} EP.</p>
+        <div className="space-y-2 mb-6">
+          {ranked.map((p, i) => {
+            const open = openId === p.id;
+            const log = p.epLog || [];
+            const positives = log.filter((e) => e.amount > 0).reduce((s, e) => s + e.amount, 0);
+            const negatives = log.filter((e) => e.amount < 0).reduce((s, e) => s + e.amount, 0);
+            return (
+              <div key={p.id} className="rounded-md" style={{ backgroundColor: i === 0 ? "#1a2e26" : "#1c1f26", border: i === 0 ? "1px solid #2c5f4f" : "1px solid transparent" }}>
+                <button onClick={() => setOpenId(open ? null : p.id)} className="w-full flex items-center justify-between p-2.5 text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-gray-500">#{i + 1}</span>
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PLAYER_COLORS[p.id] }} />
+                    <span className="text-sm font-semibold text-gray-200">{p.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono font-bold text-white">{p.epBank.toFixed(0)} EP</span>
+                    <span className="text-[10px] text-gray-500">{open ? "\u25B4" : "\u25BE"}</span>
+                  </div>
+                </button>
+                {open && (
+                  <div className="px-2.5 pb-2.5">
+                    <div className="rounded p-2" style={{ backgroundColor: "#101318" }}>
+                      {!log.length && <div className="text-[10px] text-gray-500 italic">No points scored.</div>}
+                      <div className="space-y-0.5">
+                        {log.map((e, k) => (
+                          <div key={k} className="flex items-start justify-between gap-2 text-[10px]">
+                            <span className="text-gray-300 leading-tight">
+                              {e.label}{e.quarter ? <span className="text-gray-600"> &middot; Q{e.quarter}</span> : null}
+                            </span>
+                            <span className="font-mono shrink-0" style={{ color: e.amount < 0 ? "#fca5a5" : "#8fd3b6" }}>
+                              {e.amount > 0 ? "+" : ""}{e.amount.toFixed(0)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {log.length > 0 && (
+                        <div className="flex items-center justify-between mt-1.5 pt-1.5 text-[10px] font-mono" style={{ borderTop: "1px solid #262a33" }}>
+                          <span className="text-gray-500">
+                            earned +{positives.toFixed(0)}{negatives < 0 ? `, lost ${negatives.toFixed(0)}` : ""}
+                          </span>
+                          <span className="font-bold" style={{ color: "#8fd3b6" }}>{p.epBank.toFixed(0)} EP</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <button onClick={onRestart} className="w-full py-2.5 rounded-md text-sm font-bold" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
+          Play Again
+        </button>
+      </div>
+    </div>
+  );
+}
