@@ -30,6 +30,7 @@ function loadEngine() {
       doLaunch, doRenovate, doDraw, doUpgrade, claimMegacorp, doReposition, byId, activeBiz,
       eligibleSlotsFor, findDistressedTargets, renovationEligible, plotValue, discsFree,
       canLaunchMore, isCrossDistrictEdge, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal,
+      botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery,
       bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER };
   `, sandbox);
   return box.exports;
@@ -94,6 +95,65 @@ function pump(room) {
       E.advanceResolution(st, rng, lg);
     } else return;                                   // drafting / delivering / liquidating / placingLH / repayingLoans / gameover
   }
+}
+
+/* Hand a human seat to a bot. Used when a player disconnects for good, so the rest of
+   the table is not held hostage by someone who has closed their browser. */
+function convertToBot(room, seat) {
+  const st = room.state;
+  if (!st) return false;
+  const p = E.byId(st, seat);
+  if (!p || !p.isHuman) return false;
+  const lg = log(room);
+  p.isHuman = false;
+  p.archetype = "balanced";
+  if (!/\(bot\)$/.test(p.name)) p.name = `${p.name} (bot)`;
+  const drop = (q) => (st[q] || []).filter((x) => x !== seat);
+  st.draftQueue = drop("draftQueue");
+  st.delQueue = drop("delQueue");
+  st.liqQueue = drop("liqQueue");
+  st.repayQueue = drop("repayQueue");
+  lg(`${p.name} is now played by a bot.`, seat);
+
+  // if the game was waiting on this seat, resolve that step as the bot
+  const waiting = whoIsAwaited(st) === seat;
+  if (waiting) {
+    if (st.phase === "drafting") {
+      const need = (st.draftCounts || {})[seat] || 0;
+      while (p.hand.length < need) {
+        const avail = E.INDUSTRIES.filter((i) => st.decks[i] && st.decks[i].length);
+        if (!avail.length) break;
+        p.hand.push(st.decks[avail[Math.floor(room.rng() * avail.length)]].shift());
+      }
+      if (st.draftQueue.length) st.awaitingPlayerId = st.draftQueue[0];
+      else { st.awaitingPlayerId = null; E.startPlanning(st); E.advancePlanning(st, room.rng, lg); }
+    } else if (st.phase === "resolving" && st.pendingHumanAction) {
+      E.botResolveOneAction(st, p, st.pendingHumanAction.track, room.rng, lg);
+      E.humanCompleteResolutionAction(st, room.rng, lg);
+    } else if (st.phase === "delivering") {
+      let guard = 0;
+      while (E.nextDeliveryTarget(st) && guard++ < 40) E.skipDelivery(st, p, st.deliveringBizId, lg);
+      E.finishDelivery(st, lg, room.rng);
+    } else if (st.phase === "liquidating") {
+      E.humanLiquidationDone(st, room.rng, lg);
+    } else if (st.phase === "placingLH") {
+      const g = st.board.graph;
+      let done = false;
+      for (const a of Object.keys(g)) {
+        for (const b of g[a]) {
+          if (!E.isCrossDistrictEdge(st.board, a, b)) continue;
+          if (E.doPlaceLH(st, a, b, lg)) { done = true; break; }
+        }
+        if (done) break;
+      }
+      E.finishQuarterAfterLH(st, lg, room.rng);
+    } else if (st.phase === "repayingLoans") {
+      E.botRepayLoans(st, p, st.quarter, lg);
+      E.finishQuarterAfterRepay(st, lg, room.rng);
+    }
+  }
+  pump(room);
+  return true;
 }
 
 /* ---------- action handling (authoritative) ---------- */
@@ -272,6 +332,29 @@ const server = http.createServer(async (req, res) => {
       else { room.members[0].host = true; broadcast(room); }
     }
     return json(res, { ok: true });
+  }
+
+  if (p === "/api/kick" && req.method === "POST") {
+    const b = await body(req);
+    const room = rooms.get((b.code || "").toUpperCase());
+    if (!room) return json(res, { error: "No such room." }, 404);
+    const host = room.members.find((m) => m.token === b.token);
+    if (!host || !host.host) return json(res, { error: "Only the host can do that." }, 403);
+    const target = room.members.find((m) => m.seat === (b.seat | 0));
+    if (!target) return json(res, { error: "No such player." }, 404);
+    if (target.host) return json(res, { error: "The host cannot remove themselves." }, 400);
+    if (!room.state) {
+      // still in the lobby: drop them and renumber the seats
+      room.members = room.members.filter((m) => m !== target);
+      room.members.forEach((m, k) => { m.seat = k; });
+      broadcast(room);
+      return json(res, { ok: true, removed: true });
+    }
+    // mid-game: a bot takes the seat over so play can continue
+    if (!convertToBot(room, target.seat)) return json(res, { error: "That seat is already a bot." }, 400);
+    target.replaced = true;
+    broadcast(room);
+    return json(res, { ok: true, replaced: true });
   }
 
   if (p === "/api/start" && req.method === "POST") {
