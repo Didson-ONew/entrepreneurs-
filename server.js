@@ -334,6 +334,22 @@ const server = http.createServer(async (req, res) => {
     return json(res, { ok: true });
   }
 
+  if (p === "/api/rematch" && req.method === "POST") {
+    const b = await body(req);
+    const room = rooms.get((b.code || "").toUpperCase());
+    if (!room) return json(res, { error: "No such room." }, 404);
+    const me = room.members.find((m) => m.token === b.token);
+    if (!me || !me.host) return json(res, { error: "Only the host can start a rematch." }, 403);
+    // Keep the same people and seats; just clear the finished game so everyone lands
+    // back in the waiting room ready to go again.
+    room.state = null;
+    room.rng = null;
+    room.logs = [];
+    room.members.forEach((m) => { m.replaced = false; });
+    broadcast(room);
+    return json(res, { ok: true });
+  }
+
   if (p === "/api/kick" && req.method === "POST") {
     const b = await body(req);
     const room = rooms.get((b.code || "").toUpperCase());
