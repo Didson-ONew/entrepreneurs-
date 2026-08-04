@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 /* ============================== DATA ============================== */
 
@@ -744,7 +745,7 @@ function doDraw(state, p, industry, log) {
 /* Bumped automatically at build time from a hash of the rules code. The server reads
    this file at boot, so if a deployment updates the client but not this file the two
    will disagree and the UI says so instead of silently playing by old rules. */
-const ENGINE_VERSION = "6a30b69d";
+const ENGINE_VERSION = "e482940b";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -2108,7 +2109,7 @@ function EPBreakdown({ hover }) {
   const below = hover.y < vh / 2;
   const vertical = below ? { top: Math.min(hover.y, vh - PAD) } : { bottom: Math.max(PAD, vh - hover.y - 4) };
   return (
-    <div className="fixed z-50 rounded-md p-2.5 pointer-events-none" style={{
+    <Floating><div className="fixed rounded-md p-2.5 pointer-events-none" style={{ zIndex: 9999,
       left: Math.max(PAD, Math.min(hover.x - W - 12, vw - W - PAD)),
       ...vertical, width: W, maxHeight: vh - 2 * PAD, overflowY: "auto",
       backgroundColor: "#0e1014", border: `1px solid ${PLAYER_COLORS[p.id]}88`, boxShadow: "0 4px 16px rgba(0,0,0,0.55)",
@@ -2149,7 +2150,7 @@ function EPBreakdown({ hover }) {
           <div className="text-[9px] text-gray-600 mt-1">{onCardTotal} EP vest at game end, or sooner if upgraded, sold or merged.</div>
         </>
       )}
-    </div>
+    </div></Floating>
   );
 }
 
@@ -2167,7 +2168,7 @@ function BizTooltip({ state, hover }) {
     ? { top: Math.min(hover.y + 14, vh - PAD) }
     : { bottom: Math.max(PAD, vh - hover.y + 14) };
   return (
-    <div className="fixed z-50 rounded-md p-2.5 pointer-events-none" style={{
+    <Floating><div className="fixed rounded-md p-2.5 pointer-events-none" style={{ zIndex: 9999,
       left: Math.max(PAD, Math.min(hover.x + 14, vw - W - PAD)),
       ...vertical,
       width: W, maxHeight: vh - 2 * PAD, overflowY: "auto",
@@ -2191,7 +2192,7 @@ function BizTooltip({ state, hover }) {
         <div>Production: {bizProd(b)}/qtr</div>
         {!canProduce && <div className="text-red-400">Land unowned — not producing</div>}
       </div>
-    </div>
+    </div></Floating>
   );
 }
 function PlotInfo({ board, players, selectedPlot }) {
@@ -3381,6 +3382,10 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName }
 /* ---------------- Help affordance ----------------
    A small "?" the player can tap or hover for a plain-language explanation.
    Used across the panels so a first-timer can learn the game in place. */
+function Floating({ children }) {
+  if (typeof document === "undefined") return null;
+  return createPortal(children, document.body);
+}
 function Help({ text, label }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -3410,13 +3415,13 @@ function Help({ text, label }) {
         }}
       >?</button>
       {open && (
-        <span style={{
+        <Floating><span style={{
           position: "fixed", left: pos.x, top: pos.y, zIndex: 9999, width: 250,
           backgroundColor: "#0e1014", border: "1px solid #3a4152", borderRadius: 6,
           padding: "7px 9px", fontSize: 10, lineHeight: 1.45, color: "#d1d5db",
           boxShadow: "0 6px 20px rgba(0,0,0,0.6)", pointerEvents: "none",
           fontWeight: 400, textTransform: "none", letterSpacing: 0,
-        }}>{text}</span>
+        }}>{text}</span></Floating>
       )}
     </span>
   );

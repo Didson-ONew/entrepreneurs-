@@ -18,7 +18,8 @@ const ROOT = __dirname;
 function loadEngine() {
   const src = fs.readFileSync(path.join(ROOT, "EntrepreneursGame.jsx"), "utf8");
   const cut = src.indexOf("/* ============================== REACT UI ============================== */");
-  const logic = src.slice(0, cut).replace(/^import.*$/m, "");
+  // strip every ESM import: this file is evaluated as a plain script, not a module
+  const logic = src.slice(0, cut).replace(/^\s*import\s.*$/gm, "");
   const box = {};
   const sandbox = { console, Math, Set, Object, Array, JSON, box };
   vm.createContext(sandbox);
