@@ -145,6 +145,23 @@ Good to know while playing:
 
 ---
 
+## Updating your hosted game
+
+When you get new files, upload **all of them that changed**, not just the page. In
+particular the server reads the rules out of `EntrepreneursGame.jsx` when it starts, so
+these three usually travel together:
+
+| File | What it holds |
+|---|---|
+| `online.html` | the page your friends load |
+| `EntrepreneursGame.jsx` | **the rules** — the server reads this at boot |
+| `server.js` | rooms, turns and syncing |
+
+If the page is newer than the rules file, a yellow bar appears at the top of the game
+saying so, naming both versions. On Render, drag the changed files into your repository
+and commit; it redeploys in a couple of minutes and your link stays the same. Restarting
+wipes any room in progress, so update between matches.
+
 ## When something goes wrong
 
 | Problem | Fix |
@@ -155,6 +172,13 @@ Good to know while playing:
 | The localtunnel link doesn't load | Close the tunnel terminal, run `npx localtunnel --port 8080` again for a fresh link; or try the cloudflared alternative |
 | "No such room" when joining | Code typed wrong (it's 6 characters, 0-9 and A-F), or the server restarted since the room was made — create a new room |
 | "That game already started" | Games can't be joined mid-way by new players. A player who was already in just reopens the same link on the same device to resume |
+| A player left / closed their browser and the game is stuck on them | The host sees **"Replace &lt;name&gt; with a bot"** on the waiting screen (and on the draft screen). A bot takes over their seat and play continues. They cannot rejoin afterwards |
+| Someone needs removing before the game starts | Host clicks **remove** next to their name in the waiting room |
+| I closed my tab and want back into my game | Just reopen the link on the **same device and browser** — you are put straight back in. (This only fails if the host already replaced you with a bot) |
+| A player is stuck on the waiting screen after the host pressed Start | Fixed in the current build. If it still happens, check the small pill at the top right of their screen: **live** or **syncing** are both fine; **offline** means their browser can't reach the server at all — have them reopen the link |
+| A yellow "older game rules" bar appears | Your `EntrepreneursGame.jsx` on the server is out of date — upload the current one and restart |
+| A rule I asked for doesn't seem to apply online | Same cause: the rules live in `EntrepreneursGame.jsx`, which the server loads at boot. Check the boot log for the `Rules engine ...` line |
+| Someone clicked **Create room** when they meant to join | On their waiting-room screen click **"Cancel this room and go back"** — that returns them to the lobby so they can enter your code. (Closing the browser tab completely and reopening the link also works.) |
 | Render link takes ages the first time | Free tier waking up — normal, ~30s, then fast |
 | Everything is weird / stuck | Host: Ctrl+C the server, `node server.js` again, everyone reopens, make a new room |
 

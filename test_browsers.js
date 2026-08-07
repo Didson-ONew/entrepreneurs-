@@ -165,6 +165,7 @@ const T0 = Date.now();
   const ctxA = await browser.newContext({ viewport: { width: 1400, height: 950 } });
   const ctxB = await browser.newContext({ viewport: { width: 1400, height: 950 } });
   const A = await ctxA.newPage(), B = await ctxB.newPage();
+  await A.addInitScript(() => { try { localStorage.setItem('entrepreneurs_tutorial_seen','1'); } catch(e) {} });
   const errs = [];
   A.on("pageerror", (e) => errs.push("A: " + e.message));
   B.on("pageerror", (e) => errs.push("B: " + e.message));
@@ -219,7 +220,7 @@ const T0 = Date.now();
     try { b = await tryAct(B); } catch (e) { console.log("B err:", e.message.slice(0, 80)); }
     if (a) hist["A:" + a] = (hist["A:" + a] || 0) + 1;
     if (b) hist["B:" + b] = (hist["B:" + b] || 0) + 1;
-    const qm = ta.match(/Quarter (\d+) of 12/);
+    const qm = ta.match(/\bQ(\d)\b[\s\S]{0,80}?(Planning|Action|Production|Revenue|Closing)/);
     const qNow = qm ? +qm[1] : 0;
     if (qNow > lastQ) { lastQ = qNow; lastQStep = steps; console.log(`  Q${qNow} at step ${steps}`); }
     if (steps - lastQStep > 150) {
@@ -250,7 +251,7 @@ const T0 = Date.now();
   }
 
   const finalA = await txt(A), finalB = await txt(B);
-  const q = (finalA.match(/Quarter (\d+) of 12/) || [])[1];
+  const q = (finalA.match(/\bQ(\d)\b[\s\S]{0,80}?(Planning|Action|Production|Revenue|Closing)/) || [])[1];
   console.log(`\nactions taken: ${acted} | quarter reached: ${q || "end"}`);
   console.log("A reached Game Over:", /Game Over/.test(finalA));
   console.log("B reached Game Over:", /Game Over/.test(finalB));

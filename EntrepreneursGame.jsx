@@ -745,7 +745,7 @@ function doDraw(state, p, industry, log) {
 /* Bumped automatically at build time from a hash of the rules code. The server reads
    this file at boot, so if a deployment updates the client but not this file the two
    will disagree and the UI says so instead of silently playing by old rules. */
-const ENGINE_VERSION = "e482940b";
+const ENGINE_VERSION = "40de976a";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1186,7 +1186,9 @@ function getBizTooltipInfo(state, biz) {
 
 /* ---------------- Turn-order / tracks ---------------- */
 function makeTracks() {
-  return { raise_capital: [null, null, null, null], ma: [null, null, null, null], rd: [null, null, null, null], board_meeting: [null, null, null] };
+  // Board Meeting holds two players (both meeples each). Seat 2 stays blocked by the
+  // IPO tile until a player goes public and claims it.
+  return { raise_capital: [null, null, null, null], ma: [null, null, null, null], rd: [null, null, null, null], board_meeting: [null, null] };
 }
 function trackBonusOrder(slots) {
   const filled = [];
@@ -1203,6 +1205,14 @@ function doReposition(state, p, log) {
 
 const TRACK_ACTIONS = { raise_capital: ["LOAN", "SELL"], ma: ["BUY", "LAUNCH"], rd: ["RESEARCH", "UPGRADE"] };
 const TRACK_LABEL = { raise_capital: "Raise Capital", ma: "M&A", rd: "R&D", board_meeting: "Board Meeting" };
+/* Plain-language description of every action, used on the track board and again on the
+   placement buttons, so a new player never has to guess what a track does. */
+const TRACK_HELP = {
+  raise_capital: "Turn assets into cash. LOAN takes $20 from the bank for one of your discs (buy it back later or lose 5 EP). SELL turns a plot, an unbuilt Blueprint, or a whole company into money at market value.",
+  ma: "Grow your footprint. BUY takes an unowned plot, or renovates a distressed company for half its Blueprint's setup cost. LAUNCH builds a Blueprint from your hand onto plots you own \u2014 and pays you 5 EP the first time you enter each industry.",
+  rd: "Improve what you have. RESEARCH draws the face-up top card of any industry deck. UPGRADE pays a company's setup cost again to double its production and OPEX, and raise its level by one.",
+  board_meeting: "The power track. Both your workers go here together. GO PUBLIC claims the IPO tile the first time, then merges companies into a Megacorp for big EP. REPOSITION moves you to first in turn order.",
+};
 
 /* How much does this bot want the Board Meeting track this quarter?
    Returns 0-100. Board Meeting costs BOTH meeples, so it only ever commits at the
@@ -1223,6 +1233,20 @@ function megacorpWorthIt(state, p, match) {
   return ep >= forgone;
 }
 
+/* Going public is only a legal choice when it can actually do something: claim the IPO
+   tile the first time, or afterwards merge a real set of companies into a Megacorp.
+   Otherwise the player is restricted to Reposition. */
+function canGoPublic(state, p) {
+  if (!state.ipoTileClaimed) return true;
+  return !!bestMegacorpMatch(activeBiz(p), state.megacorpPool);
+}
+function goPublicBlockedReason(state, p) {
+  if (canGoPublic(state, p)) return null;
+  if (!state.megacorpPool.length) return "no Megacorp tiles left";
+  const n = activeBiz(p).length;
+  if (!n) return "you have no active companies to merge";
+  return "none of the available Megacorp tiles match your companies";
+}
 function boardMeetingDesire(state, p) {
   const bmOpen = state.tracks.board_meeting.some((s, i) => s === null && (i === 0 || state.ipoTileClaimed));
   if (!bmOpen) return 0;
@@ -1280,7 +1304,7 @@ function placeMeeple(state, playerId, track) {
       if (idx !== -1) state.tracks[tn][idx] = null;
     }
     const slotIdx = state.tracks.board_meeting.findIndex((s, i) => s === null && (i === 0 || state.ipoTileClaimed));
-    if (slotIdx === -1) return false;
+    if (slotIdx === -1) return false;   // second seat is under the IPO tile until it is claimed
     state.tracks.board_meeting[slotIdx] = playerId;
     return true;
   }
@@ -1402,7 +1426,7 @@ function botResolveOneAction(state, p, track, rng, log) {
   } else if (track === "board_meeting") {
     const match = bestMegacorpMatch(activeBiz(p), state.megacorpPool);
     if (!state.ipoTileClaimed) claimMegacorp(state, p, log);
-    else if (match && megacorpWorthIt(state, p, match)) claimMegacorp(state, p, log);
+    else if (canGoPublic(state, p) && match && megacorpWorthIt(state, p, match)) claimMegacorp(state, p, log);
     else doReposition(state, p, log);
   }
 }
@@ -2277,7 +2301,9 @@ function TrackBoard({ state, human }) {
       <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">Planning &amp; Action Tracks <Help text="Place two workers, then tracks resolve first-in, last-out: whoever placed LAST acts FIRST. Committing early earns +1 extra action for every player who joins after you, but they all act before you do." /></div>
       {tracks.map(([key, label, actions]) => (
         <div key={key} className="flex items-center gap-2">
-          <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0">{label}</div>
+          <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0 flex items-center gap-1">
+            {label} <Help text={TRACK_HELP[key]} />
+          </div>
           <div className="flex gap-1">
             {state.tracks[key].map((pid, i) => (
               <div key={i} className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold"
@@ -2290,7 +2316,9 @@ function TrackBoard({ state, human }) {
         </div>
       ))}
       <div className="flex items-center gap-2">
-        <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0">Board Mtg</div>
+        <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0 flex items-center gap-1">
+          Board Mtg <Help text={TRACK_HELP.board_meeting} />
+        </div>
         <div className="flex gap-1">
           {state.tracks.board_meeting.map((pid, i) => {
             const locked = i > 0 && !state.ipoTileClaimed;
@@ -2302,7 +2330,7 @@ function TrackBoard({ state, human }) {
             );
           })}
         </div>
-        <div className="text-[9px] font-mono text-gray-600">IPO / REPOSITION</div>
+        <div className="text-[9px] font-mono text-gray-600">GO PUBLIC / REPOSITION</div>
       </div>
     </div>
   );
@@ -2546,15 +2574,24 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
         </div>
       )}
 
-      {entry.track === "board_meeting" && mode !== "hq" && (
-        <div className="flex gap-2">
-          <button onClick={() => { if (state.ipoTileClaimed && megacorpMatch) return setMode("hq"); if (NET) return NET.send("act", { type: "megacorp" }); claimMegacorp(state, human, log); finish(); }}
-            className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
-            {!state.ipoTileClaimed ? "Claim IPO tile (+5 EP)" : megacorpMatch ? `Form "${megacorpMatch.tile[0]}" (+${megacorpMatch.tile[2]} EP)` : "IPO (no combo available)"}
-          </button>
-          <button onClick={() => { if (NET) return NET.send("act", { type: "reposition" }); doReposition(state, human, log); finish(); }} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Reposition (become 1st)</button>
+      {entry.track === "board_meeting" && mode !== "hq" && (() => {
+        const blocked = goPublicBlockedReason(state, human);
+        return (
+        <div>
+          <div className="flex gap-2 flex-wrap">
+            <button disabled={!!blocked}
+              onClick={() => { if (state.ipoTileClaimed && megacorpMatch) return setMode("hq"); if (NET) return NET.send("act", { type: "megacorp" }); claimMegacorp(state, human, log); finish(); }}
+              className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+              {!state.ipoTileClaimed ? "Go Public \u2014 take the IPO tile (+5 EP)"
+                : megacorpMatch ? `Go Public \u2014 form "${megacorpMatch.tile[0]}" (+${megacorpMatch.tile[2]} EP)`
+                : "Go Public"}
+            </button>
+            <button onClick={() => { if (NET) return NET.send("act", { type: "reposition" }); doReposition(state, human, log); finish(); }} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Reposition (become 1st)</button>
+          </div>
+          {blocked && <div className="text-[10px] mt-1" style={{ color: "#fca5a5" }}>Can&rsquo;t go public: {blocked}. Reposition is your only option this turn.</div>}
         </div>
-      )}
+        );
+      })()}
       {entry.track === "board_meeting" && mode === "hq" && megacorpMatch && (
         <div className="space-y-2">
           <div className="text-[11px] font-bold" style={{ color: "#d3fcec" }}>
@@ -2596,6 +2633,144 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
   );
 }
 
+/* ---------------- First-time tutorial ----------------
+   A short, skippable walkthrough shown the first time someone plays. It teaches the
+   loop rather than the rulebook: what you are trying to do, how a quarter runs, and
+   the two things that surprise new players (FILO resolution and the supply chain).
+   Reopenable any time from the "?" in the header. */
+const TUTORIAL = [
+  {
+    title: "You are building a city's economy",
+    body: "Every player is a founder. You buy land, build companies on it, and sell what they produce to the districts around them. The winner is whoever scores the most Entrepreneurial Points (EP) by the end of Year 3.",
+    points: [
+      "3 years, 4 quarters each \u2014 12 rounds in total",
+      "Points come from company levels, entering new industries, and owning land",
+      "Money is not points, but $10 converts to 1 EP at the very end",
+    ],
+  },
+  {
+    title: "Six industries that feed each other",
+    body: "Every company pays OPEX each quarter to companies in other industries \u2014 its suppliers, printed on its Blueprint. Those payments are the heart of the game.",
+    points: [
+      "UT \u2192 HO \u2192 MA \u2192 HC \u2192 RE \u2192 TE \u2192 back to UT",
+      "Your OPEX lands in your suppliers' industry pots, and is shared out to whoever owns companies there",
+      "So building in an industry nobody serves can be very profitable",
+    ],
+  },
+  {
+    title: "Prices move as the city is built",
+    body: "Build a company and you push your own industry's price DOWN \u2014 more supply. Every supplier you now pay gets pushed UP \u2014 more demand. Watch the price strip at the top.",
+    points: [
+      "A crowded industry can fall to $1, where selling barely beats recycling",
+      "A neglected industry can climb past $8 per unit",
+      "Reading this market is the main skill in the game",
+    ],
+  },
+  {
+    title: "A quarter, step by step",
+    body: "Each of the 12 quarters runs through the same five phases. You only make decisions in the first two.",
+    points: [
+      "PLANNING \u2014 place your workers on the action tracks",
+      "ACTION \u2014 tracks resolve and you take your actions",
+      "PRODUCTION \u2014 OPEX and rent are paid automatically",
+      "REVENUE \u2014 you deliver production to demand icons for cash",
+      "CLOSING \u2014 a Logistic Hub is placed; years end with scoring",
+    ],
+  },
+  {
+    title: "Placing workers: last in, first out",
+    body: "This is the rule that catches everyone. Workers are placed left to right, but each track resolves RIGHT TO LEFT.",
+    points: [
+      "Placing early earns +1 extra action for every player who joins after you",
+      "But all of them act before you do, and may take what you wanted",
+      "Placing last means acting first, with only one action",
+    ],
+  },
+  {
+    title: "Selling what you produce",
+    body: "During Revenue you deliver production to demand icons in districts your company can reach. Each icon pays the current market price for that industry.",
+    points: [
+      "A company reaches the district it sits in, plus anything its ability grants",
+      "Logistic Hubs link districts together \u2014 but Utilities and Retail can never use them",
+      "Anything you cannot sell recycles for just $1 per unit",
+    ],
+  },
+  {
+    title: "Winning",
+    body: "Score steadily rather than chasing one big move. Breadth pays early, size pays late.",
+    points: [
+      "5 EP the first time you build in each of the six industries \u2014 paid immediately",
+      "1 EP per company level at each year end, placed on the card",
+      "10 EP for the most plots owned, 10 EP for presence in the most districts",
+      "Going public and forming a Megacorp is worth 8\u201325 EP, but consumes companies",
+    ],
+  },
+];
+
+function Tutorial({ onClose }) {
+  const [i, setI] = useState(0);
+  const step = TUTORIAL[i];
+  const last = i === TUTORIAL.length - 1;
+  return (
+    <Floating>
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 10000, backgroundColor: "rgba(6,8,11,0.82)",
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+      }} onClick={onClose}>
+        <div onClick={(e) => e.stopPropagation()} style={{
+          width: "100%", maxWidth: 560, backgroundColor: "#14161a",
+          border: "1px solid #2c5f4f", borderRadius: 12, padding: 22,
+          boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#8fd3b6" }}>
+              HOW TO PLAY &nbsp;{i + 1}/{TUTORIAL.length}
+            </span>
+            <button onClick={onClose} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 11, cursor: "pointer" }}>
+              skip
+            </button>
+          </div>
+
+          <h2 style={{ fontSize: 19, fontWeight: 700, color: "#ffffff", margin: "6px 0 8px" }}>{step.title}</h2>
+          <p style={{ fontSize: 13, lineHeight: 1.5, color: "#c3c9d4", margin: 0 }}>{step.body}</p>
+
+          <ul style={{ margin: "12px 0 0", padding: 0, listStyle: "none" }}>
+            {step.points.map((p, k) => (
+              <li key={k} style={{ display: "flex", gap: 8, fontSize: 12, lineHeight: 1.45, color: "#9aa3b2", marginBottom: 5 }}>
+                <span style={{ color: "#2c5f4f", fontWeight: 700 }}>&#9679;</span>
+                <span>{p}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div style={{ display: "flex", gap: 4, margin: "18px 0 12px" }}>
+            {TUTORIAL.map((_, k) => (
+              <span key={k} onClick={() => setI(k)} style={{
+                flex: 1, height: 3, borderRadius: 2, cursor: "pointer",
+                backgroundColor: k <= i ? "#2c5f4f" : "#262a33",
+              }} />
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => setI((v) => Math.max(0, v - 1))} disabled={i === 0}
+              style={{
+                padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                backgroundColor: "#1c1f26", color: "#8b93a3", border: "1px solid #262a33",
+                opacity: i === 0 ? 0.35 : 1,
+              }}>Back</button>
+            <button onClick={() => (last ? onClose() : setI((v) => v + 1))}
+              style={{
+                flex: 1, padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                backgroundColor: "#2c5f4f", color: "#d3fcec", border: "none",
+              }}>{last ? "Start playing" : "Next"}</button>
+          </div>
+        </div>
+      </div>
+    </Floating>
+  );
+}
+
 export default function EntrepreneursGame({ online }) {
   const [screen, setScreen] = useState(online ? "play" : "setup");
   const [numBots, setNumBots] = useState(3);
@@ -2617,6 +2792,17 @@ export default function EntrepreneursGame({ online }) {
   const [elapsed, setElapsed] = useState(0);
   const [indTab, setIndTab] = useState("pots");
   const [reviewing, setReviewing] = useState(false);
+  const [tutorial, setTutorial] = useState(false);
+  useEffect(() => {
+    // open once for a first-time player, then never again unless they ask
+    try {
+      if (!localStorage.getItem("entrepreneurs_tutorial_seen")) setTutorial(true);
+    } catch (_) {}
+  }, []);
+  const closeTutorial = () => {
+    try { localStorage.setItem("entrepreneurs_tutorial_seen", "1"); } catch (_) {}
+    setTutorial(false);
+  };
   const startedAt = useRef(null);
   const [reSelection, setReSelection] = useState([]);
   const rngRef = useRef(null);
@@ -2735,7 +2921,12 @@ export default function EntrepreneursGame({ online }) {
     if (state.phase === "gameover") setScreen("gameover");
   }
 
-  if (!online && screen === "setup") return <SetupScreen numBots={numBots} setNumBots={setNumBots} onStart={startGame} playerName={playerName} setPlayerName={setPlayerName} />;
+  if (!online && screen === "setup") return (
+    <>
+      {tutorial && <Tutorial onClose={closeTutorial} />}
+      <SetupScreen numBots={numBots} setNumBots={setNumBots} onStart={startGame} playerName={playerName} setPlayerName={setPlayerName} onTutorial={() => setTutorial(true)} />
+    </>
+  );
   if (screen === "gameover" && !reviewing) return <GameOverScreen state={state} elapsed={elapsed} onRestart={() => setScreen("setup")} onReview={() => setReviewing(true)} />;
   // Online the server owns the phase, so surface the end screen straight from state.
   if (online && state && state.phase === "gameover") {
@@ -2850,12 +3041,20 @@ export default function EntrepreneursGame({ online }) {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-lg font-bold text-white tracking-tight">ENTREPRENEURS</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-white tracking-tight">ENTREPRENEURS</h1>
+              <button onClick={() => setTutorial(true)} title="How to play"
+                className="text-[10px] px-2 py-0.5 rounded"
+                style={{ backgroundColor: "#1c1f26", border: "1px solid #2c5f4f", color: "#8fd3b6", cursor: "pointer" }}>
+                How to play
+              </button>
+            </div>
             <MatchTracker state={state} elapsed={elapsed} />
           </div>
           <PriceTicker pm={state.pm} />
         </div>
 
+        {tutorial && <Tutorial onClose={closeTutorial} />}
         {reviewing && (
           <div className="rounded-lg p-2 mb-3 flex items-center justify-between flex-wrap gap-2"
             style={{ backgroundColor: "#1a2e26", border: "1px solid #2c5f4f" }}>
@@ -2887,17 +3086,28 @@ export default function EntrepreneursGame({ online }) {
                 <div className="text-xs font-bold mb-2" style={{ color: "#d3fcec" }}>Place a meeple ({humanMeeplesLeft} left this quarter)</div>
                 <div className="flex flex-wrap gap-2">
                   {["raise_capital", "ma", "rd"].map((t) => (
-                    <button key={t} onClick={() => handlePlaceMeeple(t)} disabled={!state.tracks[t].includes(null)}
-                      className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
-                      {TRACK_LABEL[t]}
-                    </button>
+                    <span key={t} className="inline-flex items-center gap-1">
+                      <button onClick={() => handlePlaceMeeple(t)} disabled={!state.tracks[t].includes(null)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+                        {TRACK_LABEL[t]}
+                      </button>
+                      <Help text={TRACK_HELP[t]} />
+                    </span>
                   ))}
-                  <button onClick={() => handlePlaceMeeple("board_meeting")}
-                    disabled={!state.tracks.board_meeting.some((s, i) => s === null && (i === 0 || state.ipoTileClaimed))}
-                    className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
-                    Board Meeting (both meeples)
-                  </button>
+                  <span className="inline-flex items-center gap-1">
+                    <button onClick={() => handlePlaceMeeple("board_meeting")}
+                      disabled={!state.tracks.board_meeting.some((s, i) => s === null && (i === 0 || state.ipoTileClaimed))}
+                      className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+                      Board Meeting (both meeples)
+                    </button>
+                    <Help text={TRACK_HELP.board_meeting} />
+                  </span>
                 </div>
+                {!state.ipoTileClaimed && (
+                  <div className="text-[10px] text-gray-500 mt-1.5">
+                    Board Meeting seats two players, but the second seat is under the IPO tile until someone goes public.
+                  </div>
+                )}
               </div>
             )}
             {isHumanResolving && pickMode && (
@@ -3344,12 +3554,18 @@ export default function EntrepreneursGame({ online }) {
   );
 }
 
-function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName }) {
+function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, onTutorial }) {
   return (
     <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
       <div className="max-w-md w-full rounded-xl p-6" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
         <h1 className="text-2xl font-bold text-white tracking-tight mb-1">ENTREPRENEURS</h1>
         <p className="text-sm text-gray-400 mb-6">Build, produce, sell, score — 3 fiscal years, solo vs bots.</p>
+        {onTutorial && (
+          <button onClick={onTutorial} className="w-full mb-5 py-2 rounded-md text-xs font-semibold"
+            style={{ backgroundColor: "#1c1f26", border: "1px solid #2c5f4f", color: "#8fd3b6" }}>
+            New here? Read How to play first
+          </button>
+        )}
         <div className="mb-5">
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Your name</div>
           <input value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="You" maxLength={16}

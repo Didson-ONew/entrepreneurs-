@@ -194,9 +194,14 @@ html, body { background-color: #0e1014; }
 /* On desktop the sidebar scrolls independently so the page itself stays put and the
    board never gets pushed out of view when panels grow. */
 @media (min-width: 1101px) {
-  .board-grid { align-items: start; }
-  /* Both columns scroll inside themselves, so the page as a whole never scrolls and
-     the board cannot be pushed out of view when a panel grows after an action. */
+  /* The whole app was capped at 72rem, which left no room for more than one column of
+     panels beside the 746px board. Let it use the real width of a desktop monitor. */
+  .max-w-6xl { max-width: min(1880px, 99vw) !important; }
+  .board-grid {
+    align-items: start;
+    /* The board keeps its natural width; everything else shares the rest. */
+    grid-template-columns: auto minmax(0, 1fr);
+  }
   .board-col, .side-col {
     position: sticky;
     top: 8px;
@@ -204,15 +209,36 @@ html, body { background-color: #0e1014; }
     overflow-y: auto;
     padding-right: 4px;
   }
-  /* Keep the board itself pinned at the top of its column: the action panels below it
-     grow and shrink between phases, and the board should never be pushed off-screen. */
-  .board-col > .board-shell {
+  .side-col { z-index: 5; }
+  .board-pane > .board-shell {
     position: sticky;
     top: 0;
     z-index: 5;
     background-color: #0e1014;
   }
+  .play-rail > * + * { margin-top: 0.6rem; }
+  /* A single tall stack of panels meant constant scrolling. Flow them into as many
+     columns as the screen allows instead, so standings, bank, pots, decks, megacorps
+     and the log are all on screen at once. */
+  .side-col {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+    gap: 0.6rem;
+    align-content: start;
+  }
+  .side-col > * + * { margin-top: 0 !important; }   /* space-y-3 does not apply in a grid */
 }
+
+/* ===========================================================
+   Readability: the interface was built at 8-10px, which is hard
+   work on a large monitor. Nudge every small size up a step.
+   =========================================================== */
+.text-\[8px\]  { font-size: 9.5px; }
+.text-\[9px\]  { font-size: 10.5px; }
+.text-\[10px\] { font-size: 11.5px; }
+.text-\[11px\] { font-size: 12.5px; }
+.text-xs        { font-size: 13px; line-height: 1.15rem; }
+.text-sm        { font-size: 14.5px; line-height: 1.3rem; }
 
 /* the board is a fixed 746px square; let it shrink on small screens */
 .board-shell { max-width: 100%; }
@@ -237,4 +263,45 @@ html, body { background-color: #0e1014; }
 @media (max-width: 520px) {
   .max-w-6xl { padding-left: 0.25rem; padding-right: 0.25rem; }
   .p-4 { padding: 0.5rem; }
+}
+
+
+/* ===========================================================
+   Wide desktops: the tracks, the action panel and your own
+   ledger sit in a rail to the LEFT of the board instead of
+   below it, so the things you click are never off-screen.
+   =========================================================== */
+@media (min-width: 1500px) {
+  .board-col {
+    display: grid;
+    grid-template-columns: 360px auto;
+    gap: 0.7rem;
+    align-items: start;
+    overflow: visible;
+    max-height: none;
+    position: static;
+  }
+  .play-rail {
+    order: -1;                       /* rail first, board second */
+    position: sticky;
+    top: 8px;
+    max-height: calc(100vh - 16px);
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .board-pane {
+    position: sticky;
+    top: 8px;
+    z-index: 20;          /* hover panels from the right-hand districts must sit
+                             above the side column, which is also sticky */
+  }
+}
+
+
+/* Game Over: every player's breakdown is shown at once, side by side. */
+.gameover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.6rem;
+  align-items: start;
 }

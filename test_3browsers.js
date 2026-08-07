@@ -61,6 +61,7 @@ async function tryAct(p) {
   for (const n of names) {
     const ctx = await browser.newContext({ viewport: { width: 1500, height: 950 } });
     const p = await ctx.newPage();
+  await p.addInitScript(() => { try { localStorage.setItem('entrepreneurs_tutorial_seen','1'); } catch(e) {} });
     p.on("pageerror", (e) => errs.push(`${n}: ${e.message}`));
     pages.push(p);
   }
@@ -87,14 +88,14 @@ async function tryAct(p) {
 
   await A.getByText(/Start game/).click();
   let entered = true;
-  for (const p of pages) entered = entered && (await waitText(p, /Quarter|Draft your starting/));
+  for (const p of pages) entered = entered && (await waitText(p, /PLANNING & ACTION TRACKS|Draft your starting/));
   console.log("all three entered the game:", entered);
 
   const acted = { Ana: 0, Bruno: 0, Cleo: 0 };
   let steps = 0, quarter = 0;
   while (steps++ < 140) {
     const t = await txt(A);
-    const m = t.match(/Quarter (\d+) of 12/);
+    const m = t.match(/\bQ(\d)\b[\s\S]{0,80}?(Planning|Action|Production|Revenue|Closing)/);
     if (m) quarter = Math.max(quarter, +m[1]);
     if (quarter >= 3 || /Game Over/.test(t)) break;
     for (let i = 0; i < 3; i++) {
@@ -109,7 +110,7 @@ async function tryAct(p) {
 
   // sync check: all three show the same quarter and standings header
   const t3 = await Promise.all(pages.map(txt));
-  const qs = t3.map((t) => (t.match(/Quarter (\d+) of 12/) || [])[1]);
+  const qs = t3.map((t) => (t.match(/\bQ(\d)\b[\s\S]{0,80}?(Planning|Action|Production|Revenue|Closing)/) || [])[1]);
   console.log("quarters shown:", JSON.stringify(qs), "| in sync:", qs.every((q) => q === qs[0]));
   console.log("page errors:", errs.length ? errs.slice(0, 3) : "none");
   await browser.close();

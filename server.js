@@ -30,7 +30,7 @@ function loadEngine() {
       humanDeliver, doRepayLoan, doLoan, doBuyPlot, doSellPlot, doSellBP, doSellCompany,
       doLaunch, doRenovate, doDraw, doUpgrade, claimMegacorp, doReposition, byId, activeBiz,
       eligibleSlotsFor, findDistressedTargets, renovationEligible, plotValue, discsFree,
-      canLaunchMore, isCrossDistrictEdge, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal,
+      canLaunchMore, isCrossDistrictEdge, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal, canGoPublic,
       botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, ENGINE_VERSION,
       bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER };
   `, sandbox);
@@ -218,7 +218,10 @@ function applyAction(room, seat, action, data) {
       }
       else if (t === "research") ok = E.doDraw(st, p, d.ind, lg);
       else if (t === "upgrade") { const b = p.businesses.find((x) => x.id === d.bizId); ok = !!b && E.doUpgrade(st, p, b, rng, lg, d.plot); }
-      else if (t === "megacorp") { const hq = p.businesses.find((x) => x.id === d.hqId); ok = E.claimMegacorp(st, p, lg, hq); }
+      else if (t === "megacorp") {
+        if (!E.canGoPublic(st, p)) return { error: "You cannot go public: no Megacorp tile matches your companies." };
+        const hq = p.businesses.find((x) => x.id === d.hqId); ok = E.claimMegacorp(st, p, lg, hq);
+      }
       else if (t === "reposition") { E.doReposition(st, p, lg); ok = true; }
       else if (t === "pass") ok = true;
       else return { error: "Unknown action." };

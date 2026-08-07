@@ -18,6 +18,7 @@ async function waitText(p, re, ms = 8000) {
   const ctxA = await browser.newContext({ viewport: { width: 1500, height: 950 } });
   const ctxB = await browser.newContext({ viewport: { width: 1500, height: 950 } });
   const A = await ctxA.newPage(), B = await ctxB.newPage();
+  await A.addInitScript(() => { try { localStorage.setItem('entrepreneurs_tutorial_seen','1'); } catch(e) {} });
   const errsA = [], errsB = [];
   A.on("pageerror", (e) => errsA.push(e.message));
   B.on("pageerror", (e) => errsB.push(e.message));
@@ -37,8 +38,8 @@ async function waitText(p, re, ms = 8000) {
   await waitText(B, /Room code/);
 
   await A.getByText(/Start game/).click();
-  const inA = await waitText(A, /Quarter|Draft your starting/);
-  const inB = await waitText(B, /Quarter|Draft your starting/);
+  const inA = await waitText(A, /PLANNING & ACTION TRACKS|Draft your starting/);
+  const inB = await waitText(B, /PLANNING & ACTION TRACKS|Draft your starting/);
   console.log("both entered the game:", inA && inB);
 
   // let a few server updates land
@@ -49,7 +50,7 @@ async function waitText(p, re, ms = 8000) {
 
   // ---- the moment of truth: B refreshes mid-game ----
   await B.reload();
-  const resumed = await waitText(B, /Quarter|Draft your starting/, 10000);
+  const resumed = await waitText(B, /PLANNING & ACTION TRACKS|Draft your starting/, 10000);
   const notLobby = !/Create room/.test(await txt(B));
   console.log("B resumed into the game after refresh:", resumed && notLobby);
   const roomShown = new RegExp("room " + code).test(await txt(B));
