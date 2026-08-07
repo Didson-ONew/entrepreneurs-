@@ -745,7 +745,7 @@ function doDraw(state, p, industry, log) {
 /* Bumped automatically at build time from a hash of the rules code. The server reads
    this file at boot, so if a deployment updates the client but not this file the two
    will disagree and the UI says so instead of silently playing by old rules. */
-const ENGINE_VERSION = "40de976a";
+const ENGINE_VERSION = "834bb97d";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -2867,7 +2867,12 @@ export default function EntrepreneursGame({ online }) {
     setScreen(s.phase === "gameover" ? "gameover" : "playing");
   }
 
-  const human = online ? state?.players.find((p) => p.id === online.seat) : state?.players[0];
+  // A spectator has no seat, so fall back to the first player purely so the read-only
+  // panels have something to render. Every control is gated on `isSpectator` below.
+  const isSpectator = !!(online && online.spectator);
+  const human = online
+    ? (state?.players.find((p) => p.id === online.seat) || state?.players[0])
+    : state?.players[0];
 
   function handlePlaceMeeple(track) {
     if (NET) return NET.send("plan", { track });
@@ -2935,7 +2940,8 @@ export default function EntrepreneursGame({ online }) {
 
   if (!state) return null;
   if (state.phase === "drafting") {
-    if (online) return <DraftScreen state={state} log={log} seatId={online.seat} host={online.host} onKick={online.onKick} onDone={null} />;
+    if (online) return <DraftScreen state={state} log={log} seatId={isSpectator ? null : online.seat}
+      host={!isSpectator && online.host} onKick={online.onKick} onDone={null} spectator={isSpectator} />;
     return <DraftScreen state={state} log={log} onDone={() => {
       startPlanning(state); advancePlanning(state, rngRef.current, log);
       setState({ ...state });
@@ -2958,7 +2964,7 @@ export default function EntrepreneursGame({ online }) {
     };
     return { plots: mk(plotCount), districts: mk(districtCount) };
   })();
-  const myTurn = !online || awaitedId === online.seat;
+  const myTurn = !online || (!isSpectator && awaitedId === online.seat);
   const awaitedName = awaitedId != null && state.players.find((p) => p.id === awaitedId)
     ? state.players.find((p) => p.id === awaitedId).name : null;
   const isHumanPlanningTurn = state.phase === "planning" && state.planningQueue[0] === human.id && myTurn;
@@ -3598,7 +3604,7 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
 /* ---------------- Help affordance ----------------
    A small "?" the player can tap or hover for a plain-language explanation.
    Used across the panels so a first-timer can learn the game in place. */
-function Floating({ children }) {
+export function Floating({ children }) {
   if (typeof document === "undefined") return null;
   return createPortal(children, document.body);
 }
@@ -3646,12 +3652,15 @@ function Help({ text, label }) {
 /* ---------------- Starting BP draft ----------------
    Seating is random and the draft runs in reverse seat order, so the last
    player picks first. Bots have already taken theirs; this is the human's turn. */
-function DraftScreen({ state, log, onDone, seatId, host, onKick }) {
-  const human = seatId != null ? state.players.find((p) => p.id === seatId)
-                               : state.players.find((p) => p.isHuman);
+function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
+  // A spectator holds no seat, so fall back to any human just to have something to
+  // render; the draft controls below are hidden for them anyway.
+  const human = (seatId != null ? state.players.find((p) => p.id === seatId) : null)
+             || state.players.find((p) => p.isHuman)
+             || state.players[0];
   const need = (state.draftCounts && state.draftCounts[human.id] != null)
     ? state.draftCounts[human.id] : (state.humanDraftCount || 0);
-  const myTurn = seatId == null || state.awaitingPlayerId === seatId;
+  const myTurn = !spectator && (seatId == null || state.awaitingPlayerId === seatId);
   const waitingFor = !myTurn && state.awaitingPlayerId != null
     ? (state.players.find((p) => p.id === state.awaitingPlayerId) || {}).name : null;
   const [, force] = useState(0);

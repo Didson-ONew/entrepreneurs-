@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import Game, { setNet, getEngineVersion } from "./EntrepreneursGame.jsx";
+import Game, { setNet, getEngineVersion, Floating } from "./EntrepreneursGame.jsx";
 
 const api = async (path, body) => {
   const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -40,7 +40,8 @@ function Lobby({ onEnter }) {
     if (!code.trim()) return setErr("Enter the room code.");
     const r = await api("/api/join", { code: code.trim().toUpperCase(), name: name.trim() });
     if (r.body.error) return setErr(r.body.error);
-    onEnter({ code: r.body.code, token: r.body.token, seat: r.body.seat, host: false, name: name.trim() });
+    onEnter({ code: r.body.code, token: r.body.token, seat: r.body.seat, host: false,
+      name: name.trim(), spectator: !!r.body.spectator });
   });
 
   return (
@@ -69,6 +70,10 @@ function Lobby({ onEnter }) {
 
         <div className="rounded-lg p-3" style={{ backgroundColor: "#101318" }}>
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Join a friend</div>
+          <p className="text-[10px] text-gray-500 mb-2">
+            If the game has already started or the table is full, you will join as a
+            watcher — you can see the whole board, chat and talk, but not play.
+          </p>
           <input style={{ ...field, textTransform: "uppercase", letterSpacing: 2, fontFamily: "ui-monospace, monospace" }}
             placeholder="ROOM CODE" value={code} maxLength={6}
             onChange={(e) => setCode(e.target.value)} />
@@ -136,9 +141,22 @@ function WaitingRoom({ me, lobby, onLeave }) {
         )}
         {err && <div className="text-xs mt-3" style={{ color: "#fca5a5" }}>{err}</div>}
 
+        {lobby && lobby.watchers && lobby.watchers.length > 0 && (
+          <div className="mt-3">
+            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">
+              Watching ({lobby.watchers.length})
+            </div>
+            <div className="text-[11px] text-gray-400">{lobby.watchers.join(", ")}</div>
+          </div>
+        )}
+        {me.spectator && (
+          <div className="mt-3 rounded p-2 text-[11px]" style={{ backgroundColor: "#1c2733", color: "#8fd3b6" }}>
+            You are watching this room. The host starts the game when the players are ready.
+          </div>
+        )}
         <button onClick={onLeave} className="w-full mt-3 text-xs"
           style={{ background: "none", border: "none", color: "#6b7280", textDecoration: "underline", cursor: "pointer", padding: "6px 0" }}>
-          {me.host ? "Cancel this room and go back" : "Leave this room"}
+          {me.spectator ? "Stop watching" : me.host ? "Cancel this room and go back" : "Leave this room"}
         </button>
         <p className="text-[10px] text-gray-600 mt-1 text-center">
           Meant to join a friend instead? Go back and use their room code.
@@ -191,6 +209,301 @@ const store = {
   clear() { try { localStorage.removeItem(STORE_KEY); } catch (_) {} },
 };
 
+/* ---------------- Table chat + voice ----------------
+   Chat rides on the state payload the client already receives, so it needs no
+   transport of its own.
+
+   Voice is a small WebRTC mesh: with at most four players that is six connections,
+   which browsers handle comfortably. The server only relays the handshake; the audio
+   itself flows directly between players and never touches the host. */
+
+const STUN = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:global.stun.twilio.com:3478" }];
+
+function useVoice(me, active) {
+  const [on, setOn] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [peers, setPeers] = useState([]);      // [{seat, name, speaking}]
+  const [error, setError] = useState("");
+  const localStream = useRef(null);
+  const conns = useRef(new Map());             // seat -> RTCPeerConnection
+  const audios = useRef(new Map());            // seat -> HTMLAudioElement
+  const pollRef = useRef(null);
+
+  const post = (body) =>
+    fetch("/api/signal", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: me.code, token: me.token, ...body }) }).then((r) => r.json());
+
+  function attach(seat, stream) {
+    let el = audios.current.get(seat);
+    if (!el) {
+      el = document.createElement("audio");
+      el.autoplay = true;
+      el.dataset.seat = String(seat);
+      document.body.appendChild(el);
+      audios.current.set(seat, el);
+    }
+    el.srcObject = stream;
+    el.play().catch(() => {});
+  }
+
+  function makeConn(seat) {
+    if (conns.current.has(seat)) return conns.current.get(seat);
+    const pc = new RTCPeerConnection({ iceServers: STUN });
+    if (localStream.current) localStream.current.getTracks().forEach((t) => pc.addTrack(t, localStream.current));
+    pc.onicecandidate = (e) => { if (e.candidate) post({ kind: "ice", to: seat, payload: e.candidate }); };
+    pc.ontrack = (e) => attach(seat, e.streams[0]);
+    pc.onconnectionstatechange = () => {
+      if (["failed", "closed", "disconnected"].includes(pc.connectionState)) {
+        setPeers((ps) => ps.map((p) => (p.seat === seat ? { ...p, failed: pc.connectionState === "failed" } : p)));
+      }
+    };
+    conns.current.set(seat, pc);
+    return pc;
+  }
+
+  async function callPeer(seat) {
+    const pc = makeConn(seat);
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    post({ kind: "offer", to: seat, payload: offer });
+  }
+
+  async function handle(msg) {
+    if (msg.kind === "presence") {
+      setPeers((ps) => {
+        const rest = ps.filter((p) => p.seat !== msg.from);
+        return msg.on ? [...rest, { seat: msg.from, name: msg.name }] : rest;
+      });
+      if (!msg.on) {
+        const pc = conns.current.get(msg.from);
+        if (pc) { pc.close(); conns.current.delete(msg.from); }
+        const el = audios.current.get(msg.from);
+        if (el) { el.remove(); audios.current.delete(msg.from); }
+      } else if (msg.from > me.seat) {
+        // deterministic tie-break: the lower seat always makes the offer
+        callPeer(msg.from);
+      }
+      return;
+    }
+    if (msg.kind === "offer") {
+      const pc = makeConn(msg.from);
+      await pc.setRemoteDescription(new RTCSessionDescription(msg.payload));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      post({ kind: "answer", to: msg.from, payload: answer });
+      setPeers((ps) => (ps.some((p) => p.seat === msg.from) ? ps : [...ps, { seat: msg.from, name: msg.name }]));
+    } else if (msg.kind === "answer") {
+      const pc = conns.current.get(msg.from);
+      if (pc && pc.signalingState !== "stable") await pc.setRemoteDescription(new RTCSessionDescription(msg.payload));
+    } else if (msg.kind === "ice") {
+      const pc = conns.current.get(msg.from);
+      if (pc) { try { await pc.addIceCandidate(new RTCIceCandidate(msg.payload)); } catch (_) {} }
+    }
+  }
+
+  async function start() {
+    setError("");
+    try {
+      localStream.current = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false,
+      });
+    } catch (e) {
+      setError(e && e.name === "NotAllowedError"
+        ? "Microphone permission was refused. Allow it in your browser's address bar to join the call."
+        : "No microphone available.");
+      return;
+    }
+    setOn(true);
+    const r = await post({ type: "join" });
+    (r.peers || []).forEach((p) => {
+      setPeers((ps) => (ps.some((x) => x.seat === p.seat) ? ps : [...ps, p]));
+      if (p.seat > me.seat) callPeer(p.seat);   // lower seat offers
+    });
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/signals?code=${me.code}&token=${me.token}`, { cache: "no-store" });
+        const d = await res.json();
+        for (const m of d.mail || []) handle(m);
+      } catch (_) {}
+    }, 900);
+  }
+
+  function stop() {
+    post({ type: "leave" });
+    clearInterval(pollRef.current);
+    conns.current.forEach((pc) => pc.close()); conns.current.clear();
+    audios.current.forEach((el) => el.remove()); audios.current.clear();
+    if (localStream.current) localStream.current.getTracks().forEach((t) => t.stop());
+    localStream.current = null;
+    setPeers([]); setOn(false); setMuted(false);
+  }
+
+  function toggleMute() {
+    if (!localStream.current) return;
+    const next = !muted;
+    localStream.current.getAudioTracks().forEach((t) => { t.enabled = !next; });
+    setMuted(next);
+  }
+
+  useEffect(() => () => { if (on) stop(); }, []);          // clean up on unmount
+  useEffect(() => { if (!active && on) stop(); }, [active]);
+
+  return { on, muted, peers, error, start, stop, toggleMute };
+}
+
+function TablePanel({ me, chat, onSend }) {
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState("chat");
+  const [draft, setDraft] = useState("");
+  const [seenCount, setSeenCount] = useState(0);
+  const endRef = useRef(null);
+  const voice = useVoice(me, true);
+
+  const unread = Math.max(0, chat.length - seenCount);
+  useEffect(() => { if (open) setSeenCount(chat.length); }, [open, chat.length]);
+  useEffect(() => {
+    const box = endRef.current && endRef.current.parentElement;
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [chat.length, open, tab]);
+
+  const send = () => {
+    const t = draft.trim();
+    if (!t) return;
+    onSend(t);
+    setDraft("");
+  };
+
+  const btn = {
+    background: "none", border: "none", cursor: "pointer", fontSize: 11,
+    padding: "5px 9px", borderRadius: 5,
+  };
+
+  return (
+    <Floating>
+      <div style={{ position: "fixed", right: 10, bottom: 10, zIndex: 9997, width: open ? 300 : "auto" }}>
+        {!open && (
+          <button onClick={() => setOpen(true)}
+            style={{ ...btn, backgroundColor: "#14161a", border: "1px solid #2c5f4f", color: "#8fd3b6",
+              padding: "8px 12px", fontWeight: 700, boxShadow: "0 6px 18px rgba(0,0,0,0.5)" }}>
+            Table {unread > 0 && (
+              <span style={{ marginLeft: 6, backgroundColor: "#c0392b", color: "#fff", borderRadius: 8,
+                padding: "1px 6px", fontSize: 10 }}>{unread}</span>
+            )}
+            {voice.on && <span style={{ marginLeft: 6 }}>{"\uD83C\uDFA4"}</span>}
+          </button>
+        )}
+
+        {open && (
+          <div style={{ backgroundColor: "#14161a", border: "1px solid #262a33", borderRadius: 10,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.55)", overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, padding: 6,
+              borderBottom: "1px solid #262a33" }}>
+              {["chat", "voice"].map((k) => (
+                <button key={k} onClick={() => setTab(k)}
+                  style={{ ...btn, flex: 1, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
+                    backgroundColor: tab === k ? "#2c5f4f" : "#1c1f26",
+                    color: tab === k ? "#d3fcec" : "#8b93a3" }}>
+                  {k}{k === "voice" && voice.on ? " \u25CF" : ""}
+                </button>
+              ))}
+              <button onClick={() => setOpen(false)} style={{ ...btn, color: "#6b7280" }}>&#10005;</button>
+            </div>
+
+            {tab === "chat" && (
+              <div>
+                <div style={{ height: 210, overflowY: "auto", padding: "8px 10px" }}>
+                  {!chat.length && (
+                    <div style={{ fontSize: 11, color: "#6b7280", fontStyle: "italic" }}>
+                      No messages yet. Say hello to the table.
+                    </div>
+                  )}
+                  {chat.map((m) => (
+                    <div key={m.id} style={{ marginBottom: 7 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700,
+                        color: m.seat === me.seat ? "#8fd3b6" : "#9aa3b2" }}>
+                        {m.seat === me.seat ? "You" : m.name}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#d5d9e0", lineHeight: 1.35, wordBreak: "break-word" }}>
+                        {m.text}
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={endRef} />
+                </div>
+                <div style={{ display: "flex", gap: 6, padding: 8, borderTop: "1px solid #262a33" }}>
+                  <input value={draft} maxLength={400}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") send(); }}
+                    placeholder="Message the table"
+                    style={{ flex: 1, backgroundColor: "#1c1f26", border: "1px solid #262a33",
+                      borderRadius: 5, color: "#e5e7eb", fontSize: 12, padding: "6px 8px", outline: "none" }} />
+                  <button onClick={send} disabled={!draft.trim()}
+                    style={{ ...btn, backgroundColor: "#2c5f4f", color: "#d3fcec", fontWeight: 700,
+                      opacity: draft.trim() ? 1 : 0.4 }}>Send</button>
+                </div>
+              </div>
+            )}
+
+            {tab === "voice" && (
+              <div style={{ padding: 10 }}>
+                {!voice.on ? (
+                  <>
+                    <div style={{ fontSize: 11, color: "#9aa3b2", lineHeight: 1.45, marginBottom: 9 }}>
+                      Talk to the other players while you play. Your browser will ask for
+                      microphone permission. Audio goes directly between players, not through the server.
+                    </div>
+                    <button onClick={voice.start}
+                      style={{ ...btn, width: "100%", backgroundColor: "#2c5f4f", color: "#d3fcec",
+                        fontWeight: 700, padding: "8px 0" }}>
+                      {"\uD83C\uDFA4"} Join voice call
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>
+                      ON THE CALL
+                    </div>
+                    <div style={{ marginBottom: 9 }}>
+                      <div style={{ fontSize: 12, color: "#8fd3b6" }}>
+                        You {voice.muted && <span style={{ color: "#fca5a5" }}>(muted)</span>}
+                      </div>
+                      {voice.peers.map((p) => (
+                        <div key={p.seat} style={{ fontSize: 12, color: p.failed ? "#fca5a5" : "#d5d9e0" }}>
+                          {p.name}{p.failed ? " \u2014 could not connect" : ""}
+                        </div>
+                      ))}
+                      {!voice.peers.length && (
+                        <div style={{ fontSize: 11, color: "#6b7280", fontStyle: "italic", marginTop: 3 }}>
+                          Waiting for someone else to join\u2026
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={voice.toggleMute}
+                        style={{ ...btn, flex: 1, backgroundColor: "#1c1f26", border: "1px solid #262a33",
+                          color: voice.muted ? "#fca5a5" : "#8fd3b6", fontWeight: 700 }}>
+                        {voice.muted ? "Unmute" : "Mute"}
+                      </button>
+                      <button onClick={voice.stop}
+                        style={{ ...btn, flex: 1, backgroundColor: "#3a1f1f", border: "1px solid #7a3f3f",
+                          color: "#fca5a5", fontWeight: 700 }}>Leave call</button>
+                    </div>
+                  </>
+                )}
+                {voice.error && (
+                  <div style={{ marginTop: 8, fontSize: 11, color: "#fca5a5", lineHeight: 1.4 }}>
+                    {voice.error}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Floating>
+  );
+}
+
 export default function OnlineApp() {
   const [me, setMe] = useState(null);
   const [lobby, setLobby] = useState(null);
@@ -200,6 +513,7 @@ export default function OnlineApp() {
   const [toast, setToast] = useState("");
   const [checking, setChecking] = useState(true);
   const [serverEngine, setServerEngine] = useState(null);
+  const [chat, setChat] = useState([]);
   const [muted, setMuted] = useState(() => { try { return localStorage.getItem("entrepreneurs_muted") === "1"; } catch (_) { return false; } });
   const meRef = useRef(null);
   const wasMyTurn = useRef(false);
@@ -223,7 +537,7 @@ export default function OnlineApp() {
     const saved = store.get();
     if (!saved || !saved.code || !saved.token) { setChecking(false); return; }
     api("/api/resume", { code: saved.code, token: saved.token }).then((r) => {
-      if (r.body && r.body.ok) setMe({ ...saved, seat: r.body.seat, host: r.body.host, name: r.body.name });
+      if (r.body && r.body.ok) setMe({ ...saved, seat: r.body.seat, host: r.body.host, name: r.body.name, spectator: !!saved.spectator });
       else store.clear();
       setChecking(false);
     }).catch(() => setChecking(false));
@@ -255,6 +569,7 @@ export default function OnlineApp() {
     const apply = (msg) => {
       if (!msg) return;
       if (msg.engine) setServerEngine(msg.engine);
+      if (msg.chat) setChat(msg.chat);
       if (typeof msg.v !== "number" || msg.v <= seen.v) return;
       seen.v = msg.v;
       if (msg.type === "lobby") { setLobby(msg); setState(null); wasMyTurn.current = false; }
@@ -302,10 +617,29 @@ export default function OnlineApp() {
     </div>
   );
   if (!me) return <Lobby onEnter={enter} />;
-  if (!state) return <WaitingRoom me={me} lobby={lobby} onLeave={() => leave(true)} />;
+
+  const tablePanel = (
+    <TablePanel me={me} chat={chat}
+      onSend={(text) => api("/api/chat", { code: me.code, token: me.token, text })} />
+  );
+  if (!state) return (
+    <>
+      {tablePanel}
+      <WaitingRoom me={me} lobby={lobby} onLeave={() => leave(true)} />
+    </>
+  );
 
   return (
     <>
+      {tablePanel}
+      {me.spectator && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 9996,
+          backgroundColor: "#1c2733", borderBottom: "1px solid #3a4152",
+          color: "#8fd3b6", fontSize: 12, padding: "5px 10px", textAlign: "center" }}>
+          You are <strong>watching</strong> this game. You can chat and join the voice call,
+          but you cannot take actions.
+        </div>
+      )}
       {serverEngine && serverEngine !== getEngineVersion() && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 9998,
           backgroundColor: "#3a2415", borderBottom: "1px solid #7a6a3f",
@@ -346,7 +680,7 @@ export default function OnlineApp() {
         }}>{toast}</div>
       )}
       <Game online={{
-        state, seat: me.seat, logs, host: !!me.host,
+        state, seat: me.seat, logs, host: !!me.host, spectator: !!me.spectator,
         onKick: async (seat) => {
           const r = await api("/api/kick", { code: me.code, token: me.token, seat });
           if (r.body && r.body.error) { setToast(r.body.error); setTimeout(() => setToast(""), 2600); }

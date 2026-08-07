@@ -55,12 +55,19 @@ function newRoom(hostName, bots) {
   const room = {
     code: c, bots: Math.max(0, Math.min(3, bots | 0)),
     members: [{ token: token(), name: hostName || "Host", seat: 0, host: true }],
-    state: null, rng: null, clients: new Set(), logs: [], version: 0,
+    spectators: [],
+    state: null, rng: null, clients: new Set(), logs: [], version: 0, chat: [],
   };
   rooms.set(c, room);
   return room;
 }
 
+/* Spectators are full members of the room for chat, voice and watching, but hold no
+   seat and are refused every game action. Seats 100+ keep them clear of player ids. */
+const SPECTATOR_SEAT_BASE = 100;
+function anyMember(room, tok) {
+  return room.members.find((m) => m.token === tok) || (room.spectators || []).find((m) => m.token === tok);
+}
 function log(room) {
   return (msg, pid) => { room.logs.push({ msg, pid }); if (room.logs.length > 400) room.logs.shift(); };
 }
@@ -68,8 +75,8 @@ function log(room) {
 function payloadFor(room) {
   const v = room.version || 0;
   return room.state
-    ? `{"type":"state","v":${v},"engine":"${E.ENGINE_VERSION}","state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
-    : `{"type":"lobby","v":${v},"engine":"${E.ENGINE_VERSION}","members":${JSON.stringify(room.members.map((m) => ({ name: m.name, seat: m.seat, host: m.host })))},"bots":${room.bots},"code":"${room.code}"}`;
+    ? `{"type":"state","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))},"state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
+    : `{"type":"lobby","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"members":${JSON.stringify(room.members.map((m) => ({ name: m.name, seat: m.seat, host: m.host })))},"bots":${room.bots},"code":"${room.code}","watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))}}`;
 }
 function broadcast(room) {
   room.version = (room.version || 0) + 1;
@@ -304,8 +311,21 @@ const server = http.createServer(async (req, res) => {
     const b = await body(req);
     const room = rooms.get((b.code || "").toUpperCase());
     if (!room) return json(res, { error: "No such room." }, 404);
-    if (room.state) return json(res, { error: "That game already started." }, 409);
-    if (room.members.length >= 4) return json(res, { error: "Room is full (4 players)." }, 409);
+    const full = room.members.length >= 4;
+    if (room.state || full) {
+      // the seat is gone, but they can still pull up a chair and watch
+      const sp = {
+        token: token(),
+        name: b.name || `Watcher ${(room.spectators || []).length + 1}`,
+        seat: SPECTATOR_SEAT_BASE + (room.spectators || []).length,
+        spectator: true, host: false,
+      };
+      room.spectators = room.spectators || [];
+      room.spectators.push(sp);
+      broadcast(room);
+      return json(res, { code: room.code, token: sp.token, seat: sp.seat, spectator: true,
+        reason: room.state ? "started" : "full" });
+    }
     const m = { token: token(), name: b.name || `Player ${room.members.length + 1}`, seat: room.members.length, host: false };
     room.members.push(m);
     broadcast(room);
@@ -316,7 +336,7 @@ const server = http.createServer(async (req, res) => {
     const b = await body(req);
     const room = rooms.get((b.code || "").toUpperCase());
     if (!room) return json(res, { error: "That room no longer exists." }, 404);
-    const me = room.members.find((m) => m.token === b.token);
+    const me = anyMember(room, b.token);
     if (!me) return json(res, { error: "Unknown player." }, 403);
     return json(res, { ok: true, seat: me.seat, name: me.name, host: !!me.host, started: !!room.state });
   }
@@ -336,6 +356,65 @@ const server = http.createServer(async (req, res) => {
       else { room.members[0].host = true; broadcast(room); }
     }
     return json(res, { ok: true });
+  }
+
+  if (p === "/api/chat" && req.method === "POST") {
+    const b = await body(req);
+    const room = rooms.get((b.code || "").toUpperCase());
+    if (!room) return json(res, { error: "No such room." }, 404);
+    const me = anyMember(room, b.token);
+    if (!me) return json(res, { error: "Unknown player." }, 403);
+    const raw = typeof b.text === "string" ? b.text.trim() : "";
+    if (!raw) return json(res, { ok: true });
+    room.chat.push({
+      id: crypto.randomBytes(6).toString("hex"),
+      seat: me.seat, name: me.name,
+      text: raw.slice(0, 400),          // keep messages short; the panel is small
+      t: Date.now(),
+    });
+    if (room.chat.length > 200) room.chat.shift();
+    broadcast(room);
+    return json(res, { ok: true });
+  }
+
+  /* ---- voice: the server only relays WebRTC handshakes, never audio ----
+     Audio flows peer to peer. Each member has a small inbox that the browser drains
+     while a call is running. */
+  if (p === "/api/signal" && req.method === "POST") {
+    const b = await body(req);
+    const room = rooms.get((b.code || "").toUpperCase());
+    if (!room) return json(res, { error: "No such room." }, 404);
+    const me = anyMember(room, b.token);
+    if (!me) return json(res, { error: "Unknown player." }, 403);
+    if (b.type === "join" || b.type === "leave") {
+      me.voice = b.type === "join";
+      // tell everyone else who is on the call now
+      [...room.members, ...(room.spectators || [])].forEach((m) => {
+        if (m === me) return;
+        m.inbox = m.inbox || [];
+        m.inbox.push({ kind: "presence", from: me.seat, name: me.name, on: me.voice });
+      });
+      return json(res, { ok: true, peers: [...room.members, ...(room.spectators || [])].filter((m) => m.voice && m !== me).map((m) => ({ seat: m.seat, name: m.name })) });
+    }
+    const target = [...room.members, ...(room.spectators || [])].find((m) => m.seat === (b.to | 0));
+    if (!target) return json(res, { error: "No such player." }, 404);
+    target.inbox = target.inbox || [];
+    target.inbox.push({ kind: b.kind, from: me.seat, name: me.name, payload: b.payload });
+    if (target.inbox.length > 60) target.inbox.shift();
+    return json(res, { ok: true });
+  }
+
+  if (p === "/api/signals") {
+    const room = rooms.get((url.searchParams.get("code") || "").toUpperCase());
+    if (!room) return json(res, { error: "No such room." }, 404);
+    const me = anyMember(room, url.searchParams.get("token"));
+    if (!me) return json(res, { error: "Unknown player." }, 403);
+    const mail = me.inbox || [];
+    me.inbox = [];
+    return json(res, {
+      mail,
+      peers: [...room.members, ...(room.spectators || [])].filter((m) => m.voice && m !== me).map((m) => ({ seat: m.seat, name: m.name })),
+    });
   }
 
   if (p === "/api/rematch" && req.method === "POST") {
@@ -399,7 +478,11 @@ const server = http.createServer(async (req, res) => {
     const room = rooms.get((b.code || "").toUpperCase());
     if (!room || !room.state) return json(res, { error: "No active game." }, 404);
     const me = room.members.find((m) => m.token === b.token);
-    if (!me) return json(res, { error: "Unknown player." }, 403);
+    if (!me) {
+      const sp = (room.spectators || []).find((m) => m.token === b.token);
+      if (sp) return json(res, { error: "You are watching this game, not playing it." }, 403);
+      return json(res, { error: "Unknown player." }, 403);
+    }
     const r = applyAction(room, me.seat, b.action, b.data);
     if (r.error) return json(res, r, 400);
     broadcast(room);
@@ -428,7 +511,7 @@ const server = http.createServer(async (req, res) => {
   if (p === "/api/state") {
     const room = rooms.get((url.searchParams.get("code") || "").toUpperCase());
     if (!room) return json(res, { error: "No such room." }, 404);
-    const me = room.members.find((m) => m.token === url.searchParams.get("token"));
+    const me = anyMember(room, url.searchParams.get("token"));
     if (!me) return json(res, { error: "Unknown player." }, 403);
     const since = parseInt(url.searchParams.get("since") || "-1", 10);
     if ((room.version || 0) <= since) {
@@ -442,7 +525,7 @@ const server = http.createServer(async (req, res) => {
   if (p === "/api/stream") {
     const room = rooms.get((url.searchParams.get("code") || "").toUpperCase());
     if (!room) { res.writeHead(404); return res.end(); }
-    const me = room.members.find((m) => m.token === url.searchParams.get("token"));
+    const me = anyMember(room, url.searchParams.get("token"));
     if (!me) { res.writeHead(403); return res.end(); }
     res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive", "X-Accel-Buffering": "no" });
     res.write(`data: {"type":"hello","seat":${me.seat}}\n\n`);

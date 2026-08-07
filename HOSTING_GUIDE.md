@@ -162,6 +162,38 @@ saying so, naming both versions. On Render, drag the changed files into your rep
 and commit; it redeploys in a couple of minutes and your link stays the same. Restarting
 wipes any room in progress, so update between matches.
 
+## Watching a game (spectators)
+
+Anyone who types the room code of a game that has **already started** — or of a full
+table — joins as a **watcher** instead of a player. There is no separate link and no
+limit on how many can watch.
+
+A watcher sees the whole board, standings, log and everything else live, and can use
+chat and the voice call. They cannot take any action: the controls are not shown, and
+the server refuses game actions from them even if someone tries to force one.
+
+A banner across the top reminds them they are watching, and the waiting room lists
+everyone currently watching.
+
+## Chat and voice
+
+Every room has a **Table** button in the bottom-right corner.
+
+- **Chat** works everywhere, on any device, with no setup.
+- **Voice** is a real call between the players. Click *Join voice call*; the browser asks
+  for microphone permission the first time. **Audio travels directly between players and
+  never passes through the server**, so hosting cost stays the same.
+
+Two honest limitations:
+
+1. Voice needs **HTTPS**. Your Render link is already https, so it works there. It will
+   not work over a plain `http://192.168.x.x` LAN address — browsers block microphone
+   access on insecure origins (localhost is the one exception).
+2. Roughly one connection in ten fails on strict company or mobile-carrier networks. The
+   call uses free public STUN servers, which cover most homes but cannot punch through
+   every firewall; the fix is a paid TURN relay. A player who can't connect is shown
+   "could not connect" and can keep using chat.
+
 ## When something goes wrong
 
 | Problem | Fix |
@@ -171,13 +203,15 @@ wipes any room in progress, so update between matches.
 | Friends on my wi-fi can't load the page | Allow Node through the firewall (see Option A) |
 | The localtunnel link doesn't load | Close the tunnel terminal, run `npx localtunnel --port 8080` again for a fresh link; or try the cloudflared alternative |
 | "No such room" when joining | Code typed wrong (it's 6 characters, 0-9 and A-F), or the server restarted since the room was made — create a new room |
-| "That game already started" | Games can't be joined mid-way by new players. A player who was already in just reopens the same link on the same device to resume |
+| "That game already started" | No longer an error — they join as a watcher instead. A player who was already in just reopens the same link on the same device to resume |
 | A player left / closed their browser and the game is stuck on them | The host sees **"Replace &lt;name&gt; with a bot"** on the waiting screen (and on the draft screen). A bot takes over their seat and play continues. They cannot rejoin afterwards |
 | Someone needs removing before the game starts | Host clicks **remove** next to their name in the waiting room |
 | I closed my tab and want back into my game | Just reopen the link on the **same device and browser** — you are put straight back in. (This only fails if the host already replaced you with a bot) |
 | A player is stuck on the waiting screen after the host pressed Start | Fixed in the current build. If it still happens, check the small pill at the top right of their screen: **live** or **syncing** are both fine; **offline** means their browser can't reach the server at all — have them reopen the link |
 | A yellow "older game rules" bar appears | Your `EntrepreneursGame.jsx` on the server is out of date — upload the current one and restart |
 | A rule I asked for doesn't seem to apply online | Same cause: the rules live in `EntrepreneursGame.jsx`, which the server loads at boot. Check the boot log for the `Rules engine ...` line |
+| Voice button does nothing / no permission prompt | The page must be on **https** (your Render link) or `localhost`. Microphone access is blocked on plain http addresses |
+| One player can't be heard | Their firewall may be blocking peer connections; their name shows "could not connect". Chat still works |
 | Someone clicked **Create room** when they meant to join | On their waiting-room screen click **"Cancel this room and go back"** — that returns them to the lobby so they can enter your code. (Closing the browser tab completely and reopening the link also works.) |
 | Render link takes ages the first time | Free tier waking up — normal, ~30s, then fast |
 | Everything is weird / stuck | Host: Ctrl+C the server, `node server.js` again, everyone reopens, make a new room |
