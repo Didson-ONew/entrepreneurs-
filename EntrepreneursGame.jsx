@@ -861,7 +861,7 @@ function doDraw(state, p, industry, log) {
 /* Bumped automatically at build time from a hash of the rules code. The server reads
    this file at boot, so if a deployment updates the client but not this file the two
    will disagree and the UI says so instead of silently playing by old rules. */
-const ENGINE_VERSION = "f184ae9a";
+const ENGINE_VERSION = "3b438a5d";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -2008,7 +2008,7 @@ function Chip({ children, color, style }) {
 
 function PriceTicker({ pm }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div data-tut="prices" className="flex flex-wrap gap-2">
       {INDUSTRIES.map((ind) => (
         <div key={ind} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md" style={{ backgroundColor: "#1c1f26" }}>
           <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: IND_COLOR[ind] }} />
@@ -2321,7 +2321,7 @@ function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot
   ));
 
   return (
-    <div className="board-shell inline-block rounded-lg p-2" style={{ backgroundColor: "#0b0c0f", border: "1px solid #262a33" }}>
+    <div data-tut="board" className="board-shell inline-block rounded-lg p-2" style={{ backgroundColor: "#0b0c0f", border: "1px solid #262a33" }}>
       <div style={{ position: "relative", width: BOARD_PX, height: BOARD_PX, overflow: "hidden", borderRadius: 2 }}>
         {layers}
       </div>
@@ -2581,7 +2581,7 @@ function TrackBoard({ state, human }) {
     ["rd", "R&D", ["RESEARCH", "UPGRADE"]],
   ];
   return (
-    <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+    <div data-tut="tracks" className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
       <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">Planning &amp; Action Tracks <Help text="Place two workers, then tracks resolve first-in, last-out: whoever placed LAST acts FIRST. Committing early earns +1 extra action for every player who joins after you, but they all act before you do." /></div>
       {tracks.map(([key, label, actions]) => (
         <div key={key} className="flex items-center gap-2">
@@ -2924,138 +2924,267 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
   );
 }
 
-/* ---------------- First-time tutorial ----------------
-   A short, skippable walkthrough shown the first time someone plays. It teaches the
-   loop rather than the rulebook: what you are trying to do, how a quarter runs, and
-   the two things that surprise new players (FILO resolution and the supply chain).
-   Reopenable any time from the "?" in the header. */
+/* ---------------- Animated diagrams ----------------
+   Small inline SVGs. They loop with CSS so the idea is shown, not just described:
+   a supply-chain loop that lights up in sequence, price markers sliding in opposite
+   directions, and workers resolving right-to-left. */
+
+const TUT_CSS = `
+@keyframes tutFlow { 0%,100% { opacity:.25 } 40% { opacity:1 } }
+@keyframes tutSlideL { 0%,100% { transform:translateX(0) } 50% { transform:translateX(-26px) } }
+@keyframes tutSlideR { 0%,100% { transform:translateX(0) } 50% { transform:translateX(26px) } }
+@keyframes tutPop { 0%,100% { transform:scale(1); opacity:.35 } 50% { transform:scale(1.18); opacity:1 } }
+@keyframes tutPulse { 0%,100% { box-shadow:0 0 0 3px rgba(143,211,182,.9), 0 0 0 9999px rgba(6,8,11,.78) }
+                      50%     { box-shadow:0 0 0 7px rgba(143,211,182,.45), 0 0 0 9999px rgba(6,8,11,.78) } }
+.tut-spot { position:fixed; border-radius:8px; pointer-events:none; z-index:10000;
+            animation:tutPulse 1.8s ease-in-out infinite; transition:all .35s ease; }
+`;
+
+function ArtChain() {                       // the six industries feeding each other
+  const ring = ["UT", "HO", "MA", "HC", "RE", "TE"];
+  const R = 42, cx = 100, cy = 52;
+  return (
+    <svg viewBox="0 0 200 104" style={{ width: "100%", height: 104 }}>
+      {ring.map((_, i) => {
+        const a1 = (i / 6) * 2 * Math.PI - Math.PI / 2;
+        const a2 = ((i + 1) / 6) * 2 * Math.PI - Math.PI / 2;
+        return <line key={i} x1={cx + R * Math.cos(a1)} y1={cy + R * Math.sin(a1) * 0.62}
+          x2={cx + R * Math.cos(a2)} y2={cy + R * Math.sin(a2) * 0.62}
+          stroke="#2c5f4f" strokeWidth="1.5"
+          style={{ animation: `tutFlow 3s linear ${i * 0.5}s infinite` }} />;
+      })}
+      {ring.map((ind, i) => {
+        const a = (i / 6) * 2 * Math.PI - Math.PI / 2;
+        const x = cx + R * Math.cos(a), y = cy + R * Math.sin(a) * 0.62;
+        return (
+          <g key={ind} style={{ animation: `tutFlow 3s linear ${i * 0.5}s infinite` }}>
+            <circle cx={x} cy={y} r="12" fill={IND_COLOR[ind]} />
+            <text x={x} y={y + 3.5} textAnchor="middle" fontSize="9" fontWeight="700" fill="#14161a">{ind}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function ArtPrices() {                      // build your own -> down; pay a supplier -> up
+  return (
+    <svg viewBox="0 0 200 92" style={{ width: "100%", height: 92 }}>
+      <text x="6" y="16" fontSize="8" fill="#8b93a3">you build Retail</text>
+      <line x1="6" y1="26" x2="194" y2="26" stroke="#262a33" strokeWidth="1" />
+      <g style={{ animation: "tutSlideL 3s ease-in-out infinite" }}>
+        <rect x="96" y="19" width="14" height="14" rx="2" fill={IND_COLOR.RE} />
+        <text x="103" y="30" textAnchor="middle" fontSize="8" fontWeight="700" fill="#14161a">RE</text>
+      </g>
+      <text x="6" y="46" fontSize="7" fill="#fca5a5">price falls &mdash; more supply</text>
+
+      <text x="6" y="66" fontSize="8" fill="#8b93a3">its supplier is paid</text>
+      <line x1="6" y1="76" x2="194" y2="76" stroke="#262a33" strokeWidth="1" />
+      <g style={{ animation: "tutSlideR 3s ease-in-out infinite" }}>
+        <rect x="96" y="69" width="14" height="14" rx="2" fill={IND_COLOR.TE} />
+        <text x="103" y="80" textAnchor="middle" fontSize="8" fontWeight="700" fill="#14161a">TE</text>
+      </g>
+      <text x="112" y="92" fontSize="7" fill="#8fd3b6">price rises &mdash; more demand</text>
+    </svg>
+  );
+}
+
+function ArtFilo() {                        // placed left to right, resolved right to left
+  return (
+    <svg viewBox="0 0 200 84" style={{ width: "100%", height: 84 }}>
+      <text x="6" y="12" fontSize="7.5" fill="#8b93a3">placed left to right</text>
+      {[0, 1, 2, 3].map((i) => (
+        <g key={i}>
+          <rect x={14 + i * 44} y={22} width="34" height="24" rx="3"
+            fill="#1c1f26" stroke="#3a4152" />
+          <text x={31 + i * 44} y={38} textAnchor="middle" fontSize="9" fill="#8b93a3">{i + 1}</text>
+        </g>
+      ))}
+      {[3, 2, 1, 0].map((i, k) => (
+        <circle key={i} cx={31 + i * 44} cy={58} r="4" fill="#8fd3b6"
+          style={{ animation: `tutPop 2.4s ease-in-out ${k * 0.5}s infinite` }} />
+      ))}
+      <text x="6" y="80" fontSize="7.5" fill="#8fd3b6">resolved right to left &mdash; last in acts first</text>
+    </svg>
+  );
+}
+
+function ArtScoring() {
+  const bars = [["5 EP", "new industry", "#8fd3b6", 78], ["1 EP", "per level, yearly", "#67e8f9", 46],
+                ["10 EP", "most land", "#f5d76e", 62], ["1 EP", "per $10 left", "#a97bd6", 30]];
+  return (
+    <svg viewBox="0 0 200 96" style={{ width: "100%", height: 96 }}>
+      {bars.map(([amt, label, col, w], i) => (
+        <g key={i} style={{ animation: `tutFlow 3.2s linear ${i * 0.4}s infinite` }}>
+          <rect x="52" y={8 + i * 22} width={w} height="12" rx="2" fill={col} opacity="0.85" />
+          <text x="48" y={18 + i * 22} textAnchor="end" fontSize="8" fontWeight="700" fill="#e5e7eb">{amt}</text>
+          <text x={58 + w} y={18 + i * 22} fontSize="7" fill="#8b93a3">{label}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+/* ---------------- Tutorial ----------------
+   Each step may name a `target`, a data-tut region on screen. When that region exists
+   the rest of the interface dims and the region is ringed, so the explanation is
+   attached to the thing it describes rather than floating free. */
 const TUTORIAL = [
-  {
-    title: "You are building a city's economy",
-    body: "Every player is a founder. You buy land, build companies on it, and sell what they produce to the districts around them. The winner is whoever scores the most Entrepreneurial Points (EP) by the end of Year 3.",
-    points: [
-      "3 years, 4 quarters each \u2014 12 rounds in total",
-      "Points come from company levels, entering new industries, and owning land",
-      "Money is not points, but $10 converts to 1 EP at the very end",
-    ],
-  },
-  {
-    title: "Six industries that feed each other",
+  { title: "You are building a city's economy", target: "board", art: null,
+    body: "Every player is a founder. You buy land, build companies on it, and sell what they produce to the districts around them. Most Entrepreneurial Points at the end of Year 3 wins.",
+    points: ["3 years of 4 quarters \u2014 12 rounds in total",
+             "The board is 16 districts, each with 4 plots",
+             "Coloured squares in a district are its demand: what it will buy"] },
+
+  { title: "Six industries that feed each other", target: "pots", art: ArtChain,
     body: "Every company pays OPEX each quarter to companies in other industries \u2014 its suppliers, printed on its Blueprint. Those payments are the heart of the game.",
-    points: [
-      "UT \u2192 HO \u2192 MA \u2192 HC \u2192 RE \u2192 TE \u2192 back to UT",
-      "Your OPEX lands in your suppliers' industry pots, and is shared out to whoever owns companies there",
-      "So building in an industry nobody serves can be very profitable",
-    ],
-  },
-  {
-    title: "Prices move as the city is built",
-    body: "Build a company and you push your own industry's price DOWN \u2014 more supply. Every supplier you now pay gets pushed UP \u2014 more demand. Watch the price strip at the top.",
-    points: [
-      "A crowded industry can fall to $1, where selling barely beats recycling",
-      "A neglected industry can climb past $8 per unit",
-      "Reading this market is the main skill in the game",
-    ],
-  },
-  {
-    title: "A quarter, step by step",
-    body: "Each of the 12 quarters runs through the same five phases. You only make decisions in the first two.",
-    points: [
-      "PLANNING \u2014 place your workers on the action tracks",
-      "ACTION \u2014 tracks resolve and you take your actions",
-      "PRODUCTION \u2014 OPEX and rent are paid automatically",
-      "REVENUE \u2014 you deliver production to demand icons for cash",
-      "CLOSING \u2014 a Logistic Hub is placed; years end with scoring",
-    ],
-  },
-  {
-    title: "Placing workers: last in, first out",
-    body: "This is the rule that catches everyone. Workers are placed left to right, but each track resolves RIGHT TO LEFT.",
-    points: [
-      "Placing early earns +1 extra action for every player who joins after you",
-      "But all of them act before you do, and may take what you wanted",
-      "Placing last means acting first, with only one action",
-    ],
-  },
-  {
-    title: "Selling what you produce",
-    body: "During Revenue you deliver production to demand icons in districts your company can reach. Each icon pays the current market price for that industry.",
-    points: [
-      "A company reaches the district it sits in, plus anything its ability grants",
-      "Logistic Hubs link districts together \u2014 but Utilities and Retail can never use them",
-      "Anything you cannot sell recycles for just $1 per unit",
-    ],
-  },
-  {
-    title: "Winning",
+    points: ["UT \u2192 HO \u2192 MA \u2192 HC \u2192 RE \u2192 TE \u2192 back to UT",
+             "Your OPEX lands in your suppliers' industry pots",
+             "Each pot is shared out to whoever owns companies there",
+             "So an industry nobody serves quietly piles up money"] },
+
+  { title: "Prices move as the city is built", target: "prices", art: ArtPrices,
+    body: "Build a company and you push your own industry's price DOWN \u2014 more supply. Every supplier you now pay gets pushed UP \u2014 more demand. Two steps move the price by $1.",
+    points: ["A crowded industry can fall to $1, barely above recycling",
+             "A neglected one can climb past $8 per unit",
+             "Reading this strip is the main skill in the game"] },
+
+  { title: "Placing workers: last in, first out", target: "tracks", art: ArtFilo,
+    body: "Workers are placed left to right, but each track resolves RIGHT TO LEFT. This is the rule that catches everyone.",
+    points: ["Placing early earns +1 extra action per player who joins after you",
+             "But they all act before you, and may take what you wanted",
+             "Placing last means acting first, with only one action"] },
+
+  { title: "A quarter, step by step", target: "tracks", art: null,
+    body: "Each of the 12 quarters runs the same five phases. You only make decisions in the first two.",
+    points: ["PLANNING \u2014 place your workers",
+             "ACTION \u2014 tracks resolve and you act",
+             "PRODUCTION \u2014 OPEX and rent are paid automatically",
+             "REVENUE \u2014 deliver production to demand icons for cash",
+             "CLOSING \u2014 a Logistic Hub is placed; years end with scoring"] },
+
+  { title: "Selling what you produce", target: "board", art: null,
+    body: "In Revenue you deliver to demand icons your company can reach. Each icon pays the current market price for that industry.",
+    points: ["A company reaches its own district, plus whatever its ability grants",
+             "Logistic Hubs link districts \u2014 but Utilities and Retail can never use them",
+             "Anything you cannot sell recycles for just $1 a unit"] },
+
+  { title: "Your ledger", target: "ledger", art: null,
+    body: "Everything you own lives here: cash, running costs, your ten discs, your hand and your companies.",
+    points: ["Ten discs total \u2014 one per plot, one per company, one per loan",
+             "Run out and you cannot buy, build or borrow",
+             "The industry strip fills in as you enter each industry"] },
+
+  { title: "Winning", target: "standings", art: ArtScoring,
     body: "Score steadily rather than chasing one big move. Breadth pays early, size pays late.",
-    points: [
-      "5 EP the first time you build in each of the six industries \u2014 paid immediately",
-      "1 EP per company level at each year end, placed on the card",
-      "10 EP for the most plots owned, 10 EP for presence in the most districts",
-      "Going public and forming a Megacorp is worth 8\u201325 EP, but consumes companies",
-    ],
-  },
+    points: ["5 EP the first time you build in each industry \u2014 paid immediately",
+             "1 EP per company level at each year end",
+             "10 EP for most plots, 10 EP for most districts",
+             "A Megacorp is worth 8\u201325 EP but consumes companies"] },
 ];
 
 function Tutorial({ onClose }) {
   const [i, setI] = useState(0);
+  const [rect, setRect] = useState(null);
   const step = TUTORIAL[i];
   const last = i === TUTORIAL.length - 1;
+
+  // find the region this step is about, if it is on screen
+  useEffect(() => {
+    const find = () => {
+      if (!step.target) return setRect(null);
+      const el = document.querySelector(`[data-tut="${step.target}"]`);
+      if (!el) return setRect(null);
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return setRect(null);
+      // scroll it into view if it is off screen, then measure again
+      if (r.top < 0 || r.bottom > window.innerHeight) {
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+        setTimeout(() => { const r2 = el.getBoundingClientRect(); setRect({ t: r2.top, l: r2.left, w: r2.width, h: r2.height }); }, 320);
+        return;
+      }
+      setRect({ t: r.top, l: r.left, w: r.width, h: r.height });
+    };
+    find();
+    window.addEventListener("resize", find);
+    return () => window.removeEventListener("resize", find);
+  }, [i]);
+
+  // place the card clear of the highlighted region
+  const card = (() => {
+    const W = 380, PAD = 16;
+    if (!rect) return { position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: "min(92vw,560px)" };
+    const below = rect.t + rect.h + PAD;
+    const room = window.innerHeight - below;
+    const left = Math.min(Math.max(PAD, rect.l), window.innerWidth - W - PAD);
+    if (room > 300) return { position: "fixed", left, top: below, width: W };
+    if (rect.t > 320) return { position: "fixed", left, top: Math.max(PAD, rect.t - 320), width: W };
+    return { position: "fixed", left: Math.min(window.innerWidth - W - PAD, rect.l + rect.w + PAD), top: PAD, width: W };
+  })();
+
+  const Art = step.art;
   return (
     <Floating>
-      <div style={{
-        position: "fixed", inset: 0, zIndex: 10000, backgroundColor: "rgba(6,8,11,0.82)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-      }} onClick={onClose}>
-        <div onClick={(e) => e.stopPropagation()} style={{
-          width: "100%", maxWidth: 560, backgroundColor: "#14161a",
-          border: "1px solid #2c5f4f", borderRadius: 12, padding: 22,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
-        }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#8fd3b6" }}>
-              HOW TO PLAY &nbsp;{i + 1}/{TUTORIAL.length}
-            </span>
-            <button onClick={onClose} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 11, cursor: "pointer" }}>
-              skip
-            </button>
+      <style>{TUT_CSS}</style>
+      {/* dim everything, or cut a hole around the region being explained */}
+      {rect ? (
+        <div className="tut-spot" style={{ top: rect.t - 4, left: rect.l - 4, width: rect.w + 8, height: rect.h + 8 }} />
+      ) : (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, backgroundColor: "rgba(6,8,11,.78)" }} />
+      )}
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 10001 }} />
+
+      <div onClick={(e) => e.stopPropagation()} style={{
+        ...card, zIndex: 10002, backgroundColor: "#14161a", border: "1px solid #2c5f4f",
+        borderRadius: 12, padding: 18, boxShadow: "0 20px 60px rgba(0,0,0,.7)", maxHeight: "88vh", overflowY: "auto",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#8fd3b6" }}>
+            HOW TO PLAY &nbsp;{i + 1}/{TUTORIAL.length}
+          </span>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 11, cursor: "pointer" }}>skip</button>
+        </div>
+
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#fff", margin: "6px 0 8px" }}>{step.title}</h2>
+
+        {Art && (
+          <div style={{ backgroundColor: "#0f1115", border: "1px solid #262a33", borderRadius: 8, padding: 6, marginBottom: 10 }}>
+            <Art />
           </div>
+        )}
 
-          <h2 style={{ fontSize: 19, fontWeight: 700, color: "#ffffff", margin: "6px 0 8px" }}>{step.title}</h2>
-          <p style={{ fontSize: 13, lineHeight: 1.5, color: "#c3c9d4", margin: 0 }}>{step.body}</p>
+        <p style={{ fontSize: 12.5, lineHeight: 1.5, color: "#c3c9d4", margin: 0 }}>{step.body}</p>
 
-          <ul style={{ margin: "12px 0 0", padding: 0, listStyle: "none" }}>
-            {step.points.map((p, k) => (
-              <li key={k} style={{ display: "flex", gap: 8, fontSize: 12, lineHeight: 1.45, color: "#9aa3b2", marginBottom: 5 }}>
-                <span style={{ color: "#2c5f4f", fontWeight: 700 }}>&#9679;</span>
-                <span>{p}</span>
-              </li>
-            ))}
-          </ul>
+        <ul style={{ margin: "10px 0 0", padding: 0, listStyle: "none" }}>
+          {step.points.map((pt, k) => (
+            <li key={k} style={{ display: "flex", gap: 8, fontSize: 11.5, lineHeight: 1.45, color: "#9aa3b2", marginBottom: 4 }}>
+              <span style={{ color: "#2c5f4f", fontWeight: 700 }}>&#9679;</span><span>{pt}</span>
+            </li>
+          ))}
+        </ul>
 
-          <div style={{ display: "flex", gap: 4, margin: "18px 0 12px" }}>
-            {TUTORIAL.map((_, k) => (
-              <span key={k} onClick={() => setI(k)} style={{
-                flex: 1, height: 3, borderRadius: 2, cursor: "pointer",
-                backgroundColor: k <= i ? "#2c5f4f" : "#262a33",
-              }} />
-            ))}
+        {rect && (
+          <div style={{ fontSize: 10, color: "#8fd3b6", marginTop: 9 }}>
+            The highlighted area on screen is what this step is about.
           </div>
+        )}
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => setI((v) => Math.max(0, v - 1))} disabled={i === 0}
-              style={{
-                padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                backgroundColor: "#1c1f26", color: "#8b93a3", border: "1px solid #262a33",
-                opacity: i === 0 ? 0.35 : 1,
-              }}>Back</button>
-            <button onClick={() => (last ? onClose() : setI((v) => v + 1))}
-              style={{
-                flex: 1, padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                backgroundColor: "#2c5f4f", color: "#d3fcec", border: "none",
-              }}>{last ? "Start playing" : "Next"}</button>
-          </div>
+        <div style={{ display: "flex", gap: 4, margin: "14px 0 10px" }}>
+          {TUTORIAL.map((_, k) => (
+            <span key={k} onClick={() => setI(k)} style={{
+              flex: 1, height: 3, borderRadius: 2, cursor: "pointer",
+              backgroundColor: k <= i ? "#2c5f4f" : "#262a33",
+            }} />
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => setI((v) => Math.max(0, v - 1))} disabled={i === 0}
+            style={{ padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+              backgroundColor: "#1c1f26", color: "#8b93a3", border: "1px solid #262a33", opacity: i === 0 ? 0.35 : 1 }}>Back</button>
+          <button onClick={() => (last ? onClose() : setI((v) => v + 1))}
+            style={{ flex: 1, padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
+              backgroundColor: "#2c5f4f", color: "#d3fcec", border: "none" }}>{last ? "Start playing" : "Next"}</button>
         </div>
       </div>
     </Floating>
@@ -3564,7 +3693,7 @@ export default function EntrepreneursGame({ online }) {
 
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">Your player board <Help text="Your ten discs are your whole footprint: one per plot you own, one per active company, and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up." /></span>
+                <span data-tut="ledger" className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">Your player board <Help text="Your ten discs are your whole footprint: one per plot you own, one per active company, and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up." /></span>
                 <span className="text-[9px] font-mono text-gray-600">{human.name}</span>
               </div>
 
@@ -3684,7 +3813,7 @@ export default function EntrepreneursGame({ online }) {
 
           <div className="side-col space-y-3">
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text="Score = 1 EP per active company level, plus 5 EP the first year you field each industry (once per game). Plus endgame bonuses for most plots and most districts, $10 = 1 EP, and -5 EP per unpaid loan disc. Hover a player for the full breakdown." /></div>
+              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text="Score = 1 EP per active company level, plus 5 EP the first year you field each industry (once per game). Plus endgame bonuses for most plots and most districts, $10 = 1 EP, and -5 EP per unpaid loan disc. Hover a player for the full breakdown." /></div>
               <div className="space-y-2">
                 {[...state.players].sort((a, b) => epTotal(b) - epTotal(a)).map((p) => {
                   const onCards = p.businesses.reduce((s2, b) => s2 + (b.epOnCard || 0), 0);
@@ -3772,7 +3901,7 @@ export default function EntrepreneursGame({ online }) {
                 ))}
               </div>
               <div style={{ display: indTab === "pots" ? "block" : "none" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Pots <Help text="When a company pays OPEX, that money (minus rent) lands in its suppliers' pots. Each quarter every pot is shared among the active businesses of that industry, weighted by level. Supplying industries nobody builds is very lucrative." /></div>
+              <div data-tut="pots" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Pots <Help text="When a company pays OPEX, that money (minus rent) lands in its suppliers' pots. Each quarter every pot is shared among the active businesses of that industry, weighted by level. Supplying industries nobody builds is very lucrative." /></div>
               <div className="text-[9px] text-gray-500 mb-1.5">Supplier OPEX collects here, then splits among that industry's active businesses by level.</div>
               <div className="grid grid-cols-2 gap-1.5">
                 {INDUSTRIES.map((ind) => {
@@ -4022,6 +4151,46 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
         <p className="text-[11px] text-gray-500 mb-4">
           Each industry deck is ordered level 1 on top, level 3 at the bottom, and its top card is always public.
         </p>
+
+        {/* Personas are dealt before the draft and are public, so everyone can weigh
+            their own specialism \u2014 and everyone else's \u2014 while choosing Blueprints. */}
+        {human.persona && PERSONAS[human.persona] && (
+          <div className="rounded-md p-3 mb-3" style={{
+            backgroundColor: "#1c1f26",
+            border: `1px solid ${IND_COLOR[PERSONAS[human.persona].ind]}`,
+          }}>
+            <div className="flex items-center gap-2 mb-1">
+              <Chip color={IND_COLOR[PERSONAS[human.persona].ind]}>{PERSONAS[human.persona].ind}</Chip>
+              <span className="text-sm font-bold text-white">You are the {PERSONAS[human.persona].name}</span>
+            </div>
+            <div className="text-[11px] text-gray-300 leading-snug">{PERSONAS[human.persona].blurb}</div>
+            <div className="text-[10px] mt-1.5" style={{ color: IND_COLOR[PERSONAS[human.persona].ind] }}>
+              Worth weighing as you draft &mdash; but the 5 EP for entering each industry still rewards breadth.
+            </div>
+          </div>
+        )}
+
+        {state.players.some((p) => p.persona && p.id !== human.id) && (
+          <div className="mb-4">
+            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+              Others at the table
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {state.players.filter((p) => p.persona && p.id !== human.id).map((p) => (
+                <div key={p.id} className="rounded px-2 py-1" title={PERSONAS[p.persona].blurb}
+                  style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[PERSONAS[p.persona].ind]}55` }}>
+                  <span className="text-[10px] text-gray-400">{p.name}: </span>
+                  <span className="text-[10px] font-bold" style={{ color: IND_COLOR[PERSONAS[p.persona].ind] }}>
+                    {PERSONAS[p.persona].name}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="text-[10px] text-gray-600 mt-1.5">
+              Expect them to lean into those industries &mdash; and the prices to move accordingly.
+            </div>
+          </div>
+        )}
 
         {/* The same signal the bots read: every card taken so far. Drafting into a deck
             the table is raiding means that industry's price will be low when you build. */}
