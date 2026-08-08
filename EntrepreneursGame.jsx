@@ -308,7 +308,7 @@ function refreshY3(pool) {
 function slotOpen(pool, tileKey, rowIdx, levelIdx, quarter) {
   const t = pool.tiles[tileKey];
   if (!t) return false;
-  if (rowIdx >= 2 && quarter <= 4) return false;   // rows 3-4 open at the END of Y1, i.e. from Q5
+  if (rowIdx >= 2 && quarter <= 4) return false;   // rows 3-4 open from Q5
   return !t.filled[rowIdx][levelIdx];
 }
 function slotIndustry(pool, tileKey, rowIdx) { return pool.tiles[tileKey]?.rows[rowIdx]; }
@@ -360,11 +360,46 @@ function reachableDistricts(state, biz, chosenExtra) {
     board.lhEdges.forEach(([a, b]) => { out.add(`${board.cellOf[a].r},${board.cellOf[a].c}`); out.add(`${board.cellOf[b].r},${board.cellOf[b].c}`); });
   }
   if (bizInd(biz) === "UT") {
-    allDistrictKeys(board).forEach((d) => { if ([...home].some((h) => tileGridDist(h, d) < biz.level)) out.add(d); });
+    /* A level-N Utility reads demand across an N x N block of districts that also
+       encompasses its whole footprint. The old test (distance < level from ANY home
+       district) actually described a (2N-1) x (2N-1) block, so a level-3 Utility could
+       see the entire city instead of nine districts. */
+    const N = biz.level;
+    const rs = [...home].map((h) => +h.split(",")[0]);
+    const cs = [...home].map((h) => +h.split(",")[1]);
+    const minR = Math.min(...rs), maxR = Math.max(...rs);
+    const minC = Math.min(...cs), maxC = Math.max(...cs);
+    // every N x N block that still encompasses the whole footprint
+    const blocks = [];
+    for (let r0 = maxR - N + 1; r0 <= minR; r0++) {
+      for (let c0 = maxC - N + 1; c0 <= minC; c0++) {
+        const cells = [];
+        for (let r = r0; r < r0 + N; r++) for (let c = c0; c < c0 + N; c++) cells.push(`${r},${c}`);
+        blocks.push(cells.filter((d) => allDistrictKeys(board).includes(d)));
+      }
+    }
+    // the owner picks one block, so take the one offering the most open demand
+    const score = (cells) => cells.reduce((acc, d) => {
+      const t = state.demand && state.demand.tiles ? state.demand.tiles[d] : null;
+      if (!t) return acc;
+      let k = 0;
+      t.rows.forEach((rowInd, ri) => {
+        if (rowInd !== "UT") return;
+        if (ri >= 2 && state.quarter <= 4) return;
+        for (let l = 0; l < Math.min(biz.level, 4); l++) if (!t.filled[ri][l]) k++;
+      });
+      return acc + k;
+    }, 0);
+    let best = blocks[0] || [];
+    blocks.forEach((b2) => { if (score(b2) > score(best)) best = b2; });
+    best.forEach((d) => out.add(d));
   }
   if (bizInd(biz) === "RE") {
+    // the Supply Chain Expert reaches one district further this quarter
+    const owner = ownerOf(state, biz);
+    const bonus = (owner && state.reExtraDistrict && state.reExtraDistrict[owner.id]) ? 1 : 0;
     const explicit = chosenExtra || (state.reChoices && state.reChoices[biz.id]);
-    const extra = explicit || bestExtraDistrictsForRE(state, biz, biz.level, home);
+    const extra = explicit || bestExtraDistrictsForRE(state, biz, biz.level + bonus, home);
     extra.forEach((d) => out.add(d));
   }
   return out;
@@ -389,7 +424,7 @@ function exchangeRate(state, biz) {
 /* Hospitality sells one unit per demand icon like everyone else, but additionally moves
    one extra unit for every business or Logistic Hub within `level` plots of its footprint.
    Those extra units are sold straight at the industry price - they need no demand icon. */
-function hoBonusUnits(state, biz) {
+function hoBonusUnits(state, biz, owner) {
   if (bizInd(biz) !== "HO") return 0;
   const board = state.board;
   const foot = new Set(biz.footprint);
@@ -414,16 +449,23 @@ function hoBonusUnits(state, biz) {
   }
   return countedBiz.size + hubs;
 }
+function ownerOf(state, biz) {
+  return state.players.find((pl) => pl.businesses.includes(biz)) || null;
+}
 function eligibleSlotsFor(state, biz) {
+  const __owner = ownerOf(state, biz);
   const reach = reachableDistricts(state, biz);
   const ind = bizInd(biz), lvl = biz.level;
   const out = [];
+  // Preventive Doctor: a clinic of any size may serve any column of a Healthcare row
+  const hcAnyColumn = ind === "HC" && hasPersona(__owner, "preventive");
   reach.forEach((tileKey) => {
     const t = state.demand.tiles[tileKey];
     if (!t) return;
     t.rows.forEach((rowInd, rowIdx) => {
       if (rowInd !== ind) return;
-      for (let levelIdx = 0; levelIdx < Math.min(lvl, 4); levelIdx++) {
+      const cap = hcAnyColumn ? 4 : Math.min(lvl, 4);
+      for (let levelIdx = 0; levelIdx < cap; levelIdx++) {
         if (slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter)) out.push({ tileKey, rowIdx, levelIdx, cross: false });
       }
     });
@@ -450,23 +492,40 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
     if (bizInd(biz) !== "MA" || slotInd === bizInd(biz)) return 0;
     if (!footprintDistricts(state.board, biz.footprint).has(tileKey)) return 0;
   } else if (slotInd !== bizInd(biz)) return 0;
-  if (levelIdx >= biz.level) return 0;
+  const __ow = ownerOf(state, biz);
+  const ignoresLevel = bizInd(biz) === "HC" && hasPersona(__ow, "preventive");
+  if (levelIdx >= biz.level && !ignoresLevel) return 0;
   state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
   return cross ? 1 : exchangeRate(state, biz);
+}
+/* What one unit of this company's output is actually worth to this owner, including
+   any persona effect. `slotInd` is the row being sold into, which only differs from the
+   company's own industry when Manufacturing cross-sells. */
+function unitPrice(state, p, biz, slotInd) {
+  const own = price(state.pm, bizInd(biz));
+  if (slotInd && slotInd !== bizInd(biz)) {
+    // Product Manager is paid the lower of the two prices when cross-selling
+    return hasPersona(p, "product_mgr") ? price(state.pm, slotInd) : own;
+  }
+  if (bizInd(biz) === "UT" && hasPersona(p, "gov_rel")) return own + 1;
+  return own;
 }
 function autoDeliver(state, p, biz) {
   let remaining = bizProd(biz);
   // Hospitality moves extra units straight to neighbours, no demand icon required
-  const hoBonus = Math.min(remaining, hoBonusUnits(state, biz));
-  if (hoBonus > 0) { p.cash += hoBonus * price(state.pm, bizInd(biz)); remaining -= hoBonus; }
+  const hoBonus = Math.min(remaining, hoBonusUnits(state, biz, p));
+  if (hoBonus > 0) { p.cash += hoBonus * unitPrice(state, p, biz); remaining -= hoBonus; }
   let crossRemaining = bizInd(biz) === "MA" ? biz.level : 0;
-  let sold = 0;
+  let sold = 0, crossPaid = 0;
   const slots = eligibleSlotsFor(state, biz);
   for (const s of slots) {
     if (s.cross) {
       if (crossRemaining <= 0) continue;
       const got = deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, true);
-      if (got > 0) { sold += got; crossRemaining -= got; }
+      if (got > 0) {
+        crossRemaining -= got;
+        crossPaid += got * unitPrice(state, p, biz, slotIndustry(state.demand, s.tileKey, s.rowIdx));
+      }
     } else {
       if (remaining <= 0) continue;
       const got = deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, false);
@@ -474,7 +533,7 @@ function autoDeliver(state, p, biz) {
     }
   }
   const leftover = Math.max(0, remaining);
-  p.cash += sold * price(state.pm, bizInd(biz)) + leftover * 1;
+  p.cash += sold * unitPrice(state, p, biz) + crossPaid + leftover * 1;
 }
 
 function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
@@ -505,6 +564,27 @@ const BP_SELL_PRICE = { 1: 4, 2: 8, 3: 12 };
 /* Forced liquidation is punishing by design: a Blueprint fetches half what the same
    card would earn through a voluntary SELL (4/8/12 -> 2/4/6). */
 const BP_SOLVENCY_PRICE = { 1: 2, 2: 4, 3: 6 };
+/* ============================== PERSONAS ==============================
+   Optional asymmetric powers, one per industry. Off unless a game is created with
+   personas enabled, so the base game is unchanged. Each is a tilt, not a cage: the
+   5 EP-per-industry bonus still pushes everyone toward breadth. */
+const PERSONAS = {
+  tech_savvy:  { ind: "TE", name: "Tech-Savvy",
+    blurb: "Your Technology companies upgrade vertically, stacking on one plot instead of needing a free neighbour." },
+  preventive:  { ind: "HC", name: "Preventive Doctor",
+    blurb: "Your Healthcare companies ignore the level restriction: a level-1 clinic may serve any column of a Healthcare row." },
+  product_mgr: { ind: "MA", name: "Product Manager",
+    blurb: "When your Manufacturing cross-sells into another industry's row, it is paid that industry's price rather than its own." },
+  customer_or: { ind: "HO", name: "Customer Oriented",
+    blurb: "Your Hospitality companies upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them." },
+  supply_chain:{ ind: "RE", name: "Supply Chain Expert",
+    blurb: "At the start of Revenue, raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter." },
+  gov_rel:     { ind: "UT", name: "Government Relationship",
+    blurb: "Your Utilities production sells for $1 above the current price, or $2 in a district where you own no plots." },
+};
+const PERSONA_KEYS = Object.keys(PERSONAS);
+const hasPersona = (p, key) => !!p && p.persona === key;
+
 const ARCHETYPES = ["balanced", "rush_cheap", "upgrade_focus", "tech_heavy", "vest_rebuild"];
 const ARCHETYPE_LABEL = { balanced: "Balanced", rush_cheap: "Rush-Cheap", upgrade_focus: "Upgrade-Focus", tech_heavy: "Tech-Heavy", vest_rebuild: "Vest & Rebuild" };
 
@@ -539,7 +619,7 @@ function humansNeedingRepay(state) {
   });
 }
 function newPlayer(id, name, isHuman, cash, hand, archetype) {
-  return { id, name, isHuman, cash, hand, archetype, businesses: [], discsInBank: 0, epBank: 0, epLog: [], industriesScored: [] };
+  return { id, name, isHuman, cash, hand, archetype, persona: null, businesses: [], discsInBank: 0, epBank: 0, epLog: [], industriesScored: [] };
 }
 const activeBiz = (p) => p.businesses.filter((b) => !b.distressed && !b.isHQ);
 const canLaunchMore = (p) => activeBiz(p).length < 5;
@@ -551,6 +631,12 @@ function safeToSpend(p, spend, addedOpex = 0, buffer = 0.4) {
    nothing, while a company built now still scores at every remaining year end. */
 function expansionBuffer(state) {
   return state.quarter >= 9 ? 0.15 : state.quarter >= 5 ? 0.28 : 0.4;
+}
+/* $10 of cash is worth 1 EP at the end; a company is worth its level every year end plus
+   5 EP if it opens a new industry. Sitting on money is close to the worst thing a bot
+   can do, so the safety buffer relaxes hard once the game is nearly over. */
+function endgameSpendMode(state, p) {
+  return state.quarter >= 9 && p.cash > 60;
 }
 /* Scoring rewards breadth (5 EP per distinct active industry) and endgame bonuses
    reward land and district spread. Bots were hoarding cash and finishing with ~1.6
@@ -651,6 +737,28 @@ function launchScore(state, p, bp, archetype) {
   s *= Math.pow(px / BASE_PRICE[bp.ind], 1.1);
   if (px <= 1) s *= 0.3;                        // selling at $1 is barely above recycling
 
+  // --- money already sitting in the pot ---
+  // An industry nobody serves keeps accumulating its suppliers' OPEX with no one to
+  // collect it. Building there pays out immediately and repeats every quarter, which
+  // is why an unserved Healthcare or Technology is often the best buy on the board.
+  const pot = (state.pots && state.pots[bp.ind]) || 0;
+  if (pot > 0) {
+    const levelsThere = state.players.reduce((acc, pl) =>
+      acc + activeBiz(pl).filter((b) => bizInd(b) === bp.ind).reduce((a, b) => a + b.level, 0), 0);
+    const myShare = pot * (bp.lvl / (levelsThere + bp.lvl));
+    s += myShare / Math.max(1, totalOutlay) * 0.9;
+  }
+
+  // --- what the rest of the table is drawing ---
+  // Deck depth is public information. A deck nobody has touched means no competitor is
+  // preparing to enter, so the price there will hold; a picked-over deck means supply
+  // is coming and the price will fall before the company pays for itself.
+  const deckLeft = (state.decks && state.decks[bp.ind]) ? state.decks[bp.ind].length : 5;
+  s *= 0.92 + 0.025 * deckLeft;                 // 10 left -> x1.17, 2 left -> x0.97
+
+  // a player with a persona leans toward the industry it empowers, the way a human would
+  if (p.persona && PERSONAS[p.persona] && PERSONAS[p.persona].ind === bp.ind) s *= 1.5;
+
   // breadth is worth 5 EP/year, but must not drown the market signal
   const have = new Set(activeBiz(p).map(bizInd));
   if (!have.has(bp.ind)) s += 0.9;
@@ -702,11 +810,19 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
 }
 /* Returns null if the upgrade is legal, otherwise a short reason. Used to disable
    the button up front instead of burning the action and logging a failure. */
+/* Personas can flip how their own industry grows. Defined once so the rule itself and
+   the button that predicts it can never disagree. */
+function upgradeScaling(p, b) {
+  const ind = bizInd(b);
+  if (ind === "TE" && hasPersona(p, "tech_savvy")) return "V";    // stacks instead of spreading
+  if (ind === "HO" && hasPersona(p, "customer_or")) return "H";   // spreads instead of stacking
+  return SCALING[ind];
+}
 function upgradeBlockedReason(state, p, b) {
   if (b.isHQ) return "is a Megacorp HQ";
   if (b.upgraded) return "already upgraded";
   if (p.cash < bizSetup(b)) return `needs $${bizSetup(b)}, you have $${Math.round(p.cash)}`;
-  if (SCALING[bizInd(b)] === "H") {
+  if (upgradeScaling(p, b) === "H") {
     const opts = adjacentOwnedFreePlots(state.board, b.footprint);
     if (!opts.length) return "no owned, empty plot adjacent to it";
   }
@@ -722,7 +838,7 @@ function adjacentOwnedFreePlots(board, footprint) {
 function doUpgrade(state, p, b, rng, log, manualPlot) {
   if (b.upgraded) return false;
   if (p.cash < bizSetup(b)) return false;   // affordability only - safeToSpend is a bot heuristic
-  if (SCALING[bizInd(b)] === "H") {
+  if (upgradeScaling(p, b) === "H") {
     const newPlot = manualPlot || adjacentFreePlot(state.board, b.footprint, rng);
     if (!newPlot || !(newPlot in state.board.owner) || newPlot in state.board.occupiedBy) return false;
     p.cash -= bizSetup(b);
@@ -745,7 +861,7 @@ function doDraw(state, p, industry, log) {
 /* Bumped automatically at build time from a hash of the rules code. The server reads
    this file at boot, so if a deployment updates the client but not this file the two
    will disagree and the UI says so instead of silently playing by old rules. */
-const ENGINE_VERSION = "834bb97d";
+const ENGINE_VERSION = "f184ae9a";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -873,6 +989,24 @@ function runProduction(state, log) {
 /* Revenue - B2B. Each industry pot is shared among the active businesses of that
    industry, weighted by company level. An industry with no active business keeps
    its pot for a later quarter. */
+/* Supply Chain Expert: at the start of Revenue, push one industry you do not operate up
+   one step. It costs you nothing directly but helps a rival's market, and in exchange
+   your Retail reaches one more district this quarter. */
+function applySupplyChainBump(state, log) {
+  for (const p of state.players) {
+    if (!hasPersona(p, "supply_chain")) continue;
+    if (!activeBiz(p).some((b) => bizInd(b) === "RE")) continue;
+    const mine = new Set(activeBiz(p).map(bizInd));
+    const options = INDUSTRIES.filter((i) => !mine.has(i));
+    if (!options.length) continue;
+    // help whichever outside industry is cheapest to lift; bots take the top one
+    const pick = options.sort((a, b) => price(state.pm, a) - price(state.pm, b))[0];
+    state.pm.demand[pick] += 1;   // one step of extra demand for that industry
+    state.reExtraDistrict = state.reExtraDistrict || {};
+    state.reExtraDistrict[p.id] = true;
+    if (log) log(`${p.name} works the supply chain: ${pick} demand rises, and Retail reaches one extra district this quarter.`, p.id);
+  }
+}
 function runB2B(state, log) {
   if (!state.pots) return;
   runMegacorpSyphon(state, log);
@@ -1137,6 +1271,35 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   claimIndustryBonus(state, p, bp.ind, log);
   return true;
 }
+/* A distressed company can also simply be bought out of the bank as it stands, for half
+   its own setup cost, keeping its Blueprint and level. Renovating with a card from hand
+   is the alternative when you want to change what the structure is. */
+function reclaimCost(biz) {
+  return Math.floor(bizSetup(biz) / 2);
+}
+function canReclaim(state, p, biz) {
+  if (!biz || !biz.distressed) return false;
+  if (p.cash < reclaimCost(biz)) return false;
+  if (!canLaunchMore(p)) return false;
+  if (!p.businesses.includes(biz) && discsFree(state, p) <= 0) return false;
+  return true;
+}
+function doReclaim(state, p, biz, log) {
+  if (!canReclaim(state, p, biz)) return false;
+  const cost = reclaimCost(biz);
+  const prev = state.players.find((pl) => pl.businesses.includes(biz));
+  if (prev) prev.businesses = prev.businesses.filter((b) => b !== biz);
+  p.cash -= cost;
+  biz.distressed = false;
+  biz.scored = false;          // it scores again for its new owner
+  biz.epOnCard = 0;
+  biz.quarterBuilt = state.quarter;
+  p.businesses.push(biz);
+  const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
+  log(`${p.name} buys the distressed ${biz.bp.name} (${bizInd(biz)} L${biz.level}) back from the bank${from} for $${cost} (cash: $${Math.round(p.cash)}).`, p.id);
+  claimIndustryBonus(state, p, bizInd(biz), log);
+  return true;
+}
 function doSellPlot(state, p, plotKeyStr, log, solvency = false) {
   if (state.board.owner[plotKeyStr] !== p.id) return false;
   const fullVal = plotValue(state, plotKeyStr);
@@ -1219,17 +1382,15 @@ const TRACK_HELP = {
    start of its own quarter, never by pulling a meeple it has already placed. */
 function megacorpWorthIt(state, p, match) {
   if (!match) return false;
-  // Merging destroys the companies: each was worth ~1 EP/level per year-end plus 5 EP
-  // for its industry if it was the only one. Only merge when the tile clearly beats
-  // what those companies would have kept earning.
+  // What merging actually costs is the level EP those companies would still have scored
+  // at the year ends that remain. Industry bonuses are banked when the company is BUILT
+  // and are never taken back, so they are not at risk here \u2014 an older version of this
+  // test wrongly counted them and refused almost every worthwhile merger.
   const ep = match.tile[2];
-  const yearsLeft = Math.max(0, 3 - Math.ceil(state.quarter / 4) + 1);
+  const yearEndsLeft = [4, 8, 12].filter((q) => q >= state.quarter).length;
   const lostLevels = match.have.reduce((s, b) => s + b.level, 0);
-  const have = activeBiz(p);
-  const indsAfter = new Set(have.filter((b) => !match.have.includes(b)).map(bizInd));
-  const indsBefore = new Set(have.map(bizInd));
-  const lostInds = indsBefore.size - indsAfter.size;
-  const forgone = lostLevels * yearsLeft + lostInds * 5 * yearsLeft;
+  // one company survives as the HQ, and its plots keep counting toward the land awards
+  const forgone = Math.max(0, lostLevels - Math.max(...match.have.map((b) => b.level))) * yearEndsLeft;
   return ep >= forgone;
 }
 
@@ -1246,6 +1407,28 @@ function goPublicBlockedReason(state, p) {
   const n = activeBiz(p).length;
   if (!n) return "you have no active companies to merge";
   return "none of the available Megacorp tiles match your companies";
+}
+/* Would an M&A action actually accomplish something this quarter? Bots were choosing
+   the track with an empty hand, at the company cap, or with no land to build on, and
+   burning roughly a third of all their actions on nothing. */
+function maWouldAchieveSomething(state, p) {
+  if (findDistressedTargets(state).some((db) => p.hand.some((bp) => renovationEligible(db, bp)))) return true;
+  const canBuild = canLaunchMore(p) && discsFree(state, p) > 0
+    && p.hand.some((bp) => p.cash >= bp.setup);
+  if (canBuild) {
+    const ownedFree = Object.entries(state.board.owner)
+      .filter(([k, v]) => v === p.id && !(k in state.board.occupiedBy)).length;
+    const need = Math.min(...p.hand.filter((bp) => p.cash >= bp.setup)
+      .map((bp) => (SCALING[bp.ind] === "H" ? bp.lvl : 1)));
+    if (ownedFree >= need) return true;
+  }
+  // buying land is still worth an action: it feeds future builds and the two land awards
+  const unowned = Object.keys(state.board.graph).some((k) => !(k in state.board.owner));
+  return unowned && discsFree(state, p) > 0 && p.cash >= 6;
+}
+function rdWouldAchieveSomething(state, p) {
+  if (p.hand.length < 5 && INDUSTRIES.some((i) => state.decks[i] && state.decks[i].length)) return true;
+  return activeBiz(p).some((b) => !upgradeBlockedReason(state, p, b));
 }
 function boardMeetingDesire(state, p) {
   const bmOpen = state.tracks.board_meeting.some((s, i) => s === null && (i === 0 || state.ipoTileClaimed));
@@ -1291,7 +1474,14 @@ function botChoosePlanningTrack(state, p) {
   else if (p.archetype === "rush_cheap") order = ["ma", "rd", "raise_capital"];
   else if (p.archetype === "tech_heavy") order = ["ma", "rd", "raise_capital"];
   else order = committedOpex(p) > p.cash * 0.7 ? ["raise_capital", "ma", "rd"] : ["ma", "rd", "raise_capital"];
-  for (const t of order) if (openTrack(t)) return t;
+  // Skip a track that cannot achieve anything for this player right now: an empty hand
+  // makes M&A pointless, a full company slate and a full hand make R&D pointless.
+  const useful = (t) =>
+    t === "ma" ? maWouldAchieveSomething(state, p)
+    : t === "rd" ? rdWouldAchieveSomething(state, p)
+    : true;
+  for (const t of order) if (openTrack(t) && useful(t)) return t;
+  for (const t of order) if (openTrack(t)) return t;      // nothing is useful: take what is open
   if (boardMeetingOpen) return "board_meeting";
   return order.find((t) => openTrack(t)) || "raise_capital";
 }
@@ -1335,6 +1525,42 @@ function botResolveOneAction(state, p, track, rng, log) {
     const MAX_VOLUNTARY_DISCS = lateGame ? 1 : 3;
     const genuineNeed = committedOpex(p) > p.cash * 0.8 || p.cash < 15;
     // a company that cannot produce is pure OPEX drain - sell it before anything else
+    // late game with money doing nothing: land is 10 EP for the most plots and 10 more
+    // for the most districts, so buying beats holding
+    if (endgameSpendMode(state, p) && discsFree(state, p) > 0) {
+      const unowned = Object.keys(state.board.graph).filter((k) => !(k in state.board.owner));
+      if (unowned.length) {
+        const districtsMine = new Set(Object.entries(state.board.owner)
+          .filter(([, v]) => v === p.id)
+          .map(([k]) => `${state.board.cellOf[k].r},${state.board.cellOf[k].c}`));
+        const ranked = unowned.map((k) => {
+          const c = state.board.cellOf[k];
+          const fresh = districtsMine.has(`${c.r},${c.c}`) ? 0 : 1;   // new district = extra award progress
+          return { k, cost: plotValue(state, k), score: fresh * 4 - plotValue(state, k) * 0.5 };
+        }).sort((a, b) => b.score - a.score);
+        const pick = ranked.find((r) => p.cash - r.cost > committedOpex(p) * 0.6);
+        if (pick && doBuyPlot(state, p, pick.k, log)) return;
+      }
+    }
+    // A company whose price has fallen to the floor earns about what recycling earns,
+    // while still costing full OPEX every quarter. Holding it is worse than selling it
+    // and freeing the slot, the disc and the cash for something the table is short of.
+    const collapsed = activeBiz(p).find((b) => {
+      if (price(state.pm, bizInd(b)) > 1) return false;
+      const net = bizProd(b) * 1 - bizOpex(b) - 3 * b.level;   // $1/unit is recycling money
+      return net < 0;
+    });
+    // ...but only when there is something better to put in its place: the company still
+    // scores its level at every year end, so dumping it for nothing is a loss.
+    const replacement = collapsed && p.hand.find((bp) =>
+      bp.ind !== bizInd(collapsed)
+      && price(state.pm, bp.ind) >= BASE_PRICE[bp.ind]
+      && p.cash + bizSetup(collapsed) / 2 >= bp.setup);
+    if (collapsed && replacement && state.quarter <= 9) {
+      const got = sellCompany(p, collapsed, false);
+      log(`${p.name} sells ${collapsed.bp.name}: ${bizInd(collapsed)} has collapsed to $1 and it was losing money (+$${got}).`, p.id);
+      return;
+    }
     const dead = activeBiz(p).find((b) => !businessCanProduce(state, b));
     if (dead) { sellCompany(p, dead, false); log(`${p.name} sells ${dead.bp.name} \u2014 it sits on land nobody owns and cannot produce.`, p.id); return; }
     if (genuineNeed && p.discsInBank >= 3 && activeBiz(p).length) {
@@ -1366,6 +1592,18 @@ function botResolveOneAction(state, p, track, rng, log) {
     const distressed = findDistressedTargets(state);
     const renoOpt = distressed.map((db) => ({ db, bp: p.hand.find((bp) => renovationEligible(db, bp)) })).find((o) => o.bp);
     if (renoOpt && p.cash >= Math.floor(renoOpt.bp.setup / 2) && doRenovate(state, p, renoOpt.db, renoOpt.bp, log)) return;
+    // buying a distressed company as it stands is often the cheapest company on the
+    // board: half setup, already built, and it may open a new industry worth 5 EP
+    const reclaimOpt = distressed
+      .filter((db) => canReclaim(state, p, db))
+      .map((db) => {
+        const px = price(state.pm, bizInd(db));
+        const value = bizProd(db) * px - bizOpex(db) - 3 * db.level;
+        const fresh = missingIndustries(p).has(bizInd(db)) ? 5 : 0;
+        return { db, score: value + fresh - reclaimCost(db) * 0.25 };
+      })
+      .sort((a, b) => b.score - a.score)[0];
+    if (reclaimOpt && reclaimOpt.score > 0 && doReclaim(state, p, reclaimOpt.db, log)) return;
     if (canLaunchMore(p) && discsFree(state, p) > 0) {
       // 5 EP per distinct industry makes breadth worth far more than a marginally
       // better card in an industry already covered
@@ -1495,6 +1733,8 @@ function advanceResolution(state, rng, log) {
 }
 function proceedToProduction(state, log, rng) {
   state.phase = "production";
+  state.reExtraDistrict = {};              // the Retail bonus lasts one quarter only
+  applySupplyChainBump(state, log);
   runProduction(state, log);
   runBotRevenue(state);
   state.deliveryRemaining = {};
@@ -1611,7 +1851,40 @@ const STARTING = { 4: [[25, 1], [25, 2], [20, 2], [20, 3]], 3: [[25, 1], [25, 2]
 /* humanNames: optional array of display names for human seats. Single player passes
    nothing and gets one human ("You") plus bots; the online server passes one name per
    connected player. */
-function initGame(numBots, seedNum, humanNames) {
+/* What a Blueprint will really be worth once the whole table has drafted.
+   Every card drafted is a company that will probably get built, and building it pushes
+   its own industry's price DOWN while pushing each of its suppliers' prices UP (two
+   steps move the price by $1). So a deck everyone is raiding is worth less than its
+   printed price suggests, and the industries that feed it are worth more. Because the
+   supplier chain closes a loop, this ripples outwards on its own: if the table piles
+   into Retail, Retail's suppliers gain, and their suppliers gain in turn. */
+function draftedPressure(drafted) {
+  const bumps = Object.fromEntries(INDUSTRIES.map((i) => [i, 0]));
+  for (const bp of drafted) {
+    bumps[bp.ind] -= 1;                                   // more supply of its own good
+    bp.deps.forEach((d) => { bumps[d.ind] += 1; });        // more demand for its suppliers
+  }
+  return bumps;
+}
+function expectedDraftPrice(ind, bumps) {
+  return Math.max(1, BASE_PRICE[ind] + Math.round(bumps[ind] / 2));   // 2 steps = $1
+}
+function draftScoreNaive(bp) {
+  return (bp.prod * BASE_PRICE[bp.ind] - bp.opex) / Math.max(1, bp.setup);
+}
+function draftScore(bp, drafted) {
+  const bumps = draftedPressure(drafted);
+  const px = expectedDraftPrice(bp.ind, bumps);
+  const rent = 3 * bp.lvl;                                 // paid, then returned on own land
+  const net = bp.prod * px - bp.opex;
+  let s = net / Math.max(1, bp.setup + (SCALING[bp.ind] === "H" ? (bp.lvl - 1) * 3 : 0));
+  // a deck the table is already raiding will be crowded on the board too
+  const sameInd = drafted.filter((d) => d.ind === bp.ind).length;
+  s *= 1 / (1 + 0.5 * sameInd);
+  return s;
+}
+
+function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas) {
   const rng = mulberry32(seedNum);
   const nHumans = humanNames && humanNames.length ? humanNames.length : 1;
   const nPlayers = nHumans + numBots;
@@ -1649,6 +1922,7 @@ function initGame(numBots, seedNum, humanNames) {
   // Starting BPs are drafted in REVERSE seat order, so the last player picks first.
   // Bots draft immediately; the human's picks are made on the setup screen.
   const draftOrder = [...seats].reverse();
+  const draftedSoFar = [];      // every card taken so far, by anyone, this draft
   // Each human drafts their own starting hand, in reverse seat order (last picks first).
   const draftCounts = {};
   players.filter((p) => p.isHuman).forEach((p) => { draftCounts[p.id] = starting[seatOf[p.id]][1]; });
@@ -1661,21 +1935,31 @@ function initGame(numBots, seedNum, humanNames) {
     for (let k = 0; k < n; k++) {
       const avail = INDUSTRIES.filter((ind) => decks[ind].length > 0);
       if (!avail.length) break;
-      // bots take the best-looking top card by simple value-per-cost
+      // read the draft so far and take the card that will still be worth something
+      // once everyone has built what they are drafting
       let best = avail[0], bestScore = -Infinity;
       for (const ind of avail) {
-        const top = decks[ind][0];
-        const sc = (top.prod * BASE_PRICE[ind] - top.opex) / Math.max(1, top.setup);
+        const sc = (marketAwareSeats && !marketAwareSeats.includes(pid))
+          ? draftScoreNaive(decks[ind][0])
+          : draftScore(decks[ind][0], draftedSoFar);
         if (sc > bestScore) { bestScore = sc; best = ind; }
       }
-      p.hand.push(decks[best].shift());
+      const card = decks[best].shift();
+      p.hand.push(card);
+      draftedSoFar.push(card);
     }
+  }
+  // personas are optional; six exist and only nPlayers are dealt, so two or more sit out
+  if (usePersonas) {
+    const deal = shuffle(PERSONA_KEYS, rng);
+    players.forEach((pl, i) => { pl.persona = deal[i % deal.length]; });
   }
   const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers + 1);
   return {
     board, demand, pm, players, decks, quarter: 1, solvencyEvents: 0, rngSeed: seedNum, rngCalls: 0,
     turnOrder: seats,                      // randomised seating
     seats, humanDraftCount, draftCounts, draftQueue,
+    draftTaken: draftedSoFar.map((c) => c.ind),
     awaitingPlayerId: draftQueue.length ? draftQueue[0] : null,
     phase: draftQueue.length ? "drafting" : "planning",
     tracks: makeTracks(),
@@ -2485,9 +2769,16 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                     Was {db.bp.ind} L{db.level} — {locs.join("+")} ({db.footprint.length} plot{db.footprint.length > 1 ? "s" : ""}){nearLH ? " \u00b7 near a Logistic Hub" : ""}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
+                    {/* take it over exactly as it stands, keeping its Blueprint and level */}
+                    <button disabled={!canReclaim(state, human, db)}
+                      onClick={() => { if (NET) return NET.send("act", { type: "reclaim", bizId: db.id }); doReclaim(state, human, db, log); finish(); }}
+                      className="text-[10px] px-2 py-1 rounded disabled:opacity-30"
+                      style={{ backgroundColor: "#1c2733", border: `1px solid ${IND_COLOR[db.bp.ind]}`, color: "#e5e7eb" }}>
+                      Buy as-is: {db.bp.name} <span style={{ color: "#8fd3b6" }}>${reclaimCost(db)}</span>
+                    </button>
                     {bps.map((bp, i) => (
                       <button key={i} onClick={() => { if (NET) return NET.send("act", { type: "renovate", bizId: db.id, index: human.hand.indexOf(bp) }); doRenovate(state, human, db, bp, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#e5e7eb" }}>
-                        {bp.name} <span style={{ color: "#a5d6f3" }}>${Math.floor(bp.setup / 2)}</span>
+                        Renovate into {bp.name} <span style={{ color: "#a5d6f3" }}>${Math.floor(bp.setup / 2)}</span>
                       </button>
                     ))}
                   </div>
@@ -2791,6 +3082,7 @@ export default function EntrepreneursGame({ online }) {
   const [waitSecs, setWaitSecs] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [indTab, setIndTab] = useState("pots");
+  const [personas, setPersonas] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [tutorial, setTutorial] = useState(false);
   useEffect(() => {
@@ -2856,7 +3148,7 @@ export default function EntrepreneursGame({ online }) {
 
   function startGame() {
     const seedNum = Math.floor(Math.random() * 1e9);
-    const s = initGame(numBots, seedNum, [playerName.trim() || "You"]);
+    const s = initGame(numBots, seedNum, [playerName.trim() || "You"], undefined, personas);
     rngRef.current = mulberry32(seedNum + 777);
     setLogs([]);
     const seat = s.turnOrder.indexOf(0) + 1;
@@ -2929,7 +3221,9 @@ export default function EntrepreneursGame({ online }) {
   if (!online && screen === "setup") return (
     <>
       {tutorial && <Tutorial onClose={closeTutorial} />}
-      <SetupScreen numBots={numBots} setNumBots={setNumBots} onStart={startGame} playerName={playerName} setPlayerName={setPlayerName} onTutorial={() => setTutorial(true)} />
+      <SetupScreen numBots={numBots} setNumBots={setNumBots} onStart={startGame}
+        playerName={playerName} setPlayerName={setPlayerName} onTutorial={() => setTutorial(true)}
+        personas={personas} setPersonas={setPersonas} />
     </>
   );
   if (screen === "gameover" && !reviewing) return <GameOverScreen state={state} elapsed={elapsed} onRestart={() => setScreen("setup")} onReview={() => setReviewing(true)} />;
@@ -3274,6 +3568,19 @@ export default function EntrepreneursGame({ online }) {
                 <span className="text-[9px] font-mono text-gray-600">{human.name}</span>
               </div>
 
+              {human.persona && PERSONAS[human.persona] && (
+                <div className="rounded-md p-2 mb-2" style={{
+                  backgroundColor: "#1c1f26",
+                  border: `1px solid ${IND_COLOR[PERSONAS[human.persona].ind]}`,
+                }}>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <Chip color={IND_COLOR[PERSONAS[human.persona].ind]}>{PERSONAS[human.persona].ind}</Chip>
+                    <span className="text-xs font-bold text-gray-100">{PERSONAS[human.persona].name}</span>
+                  </div>
+                  <div className="text-[10px] text-gray-400 leading-snug">{PERSONAS[human.persona].blurb}</div>
+                </div>
+              )}
+
               {/* Each industry pays 5 EP once per game, the first year-end a company of
                   that type is active. Filled = already banked, outline = still available. */}
               <div className="flex items-center gap-1 mb-2">
@@ -3397,6 +3704,12 @@ export default function EntrepreneursGame({ online }) {
                         <span>${Math.round(p.cash)} &middot; {activeBiz(p).length}biz &middot; {p.hand.length}BP &middot; {p.discsInBank}disc</span>
                         <span>{p.epBank.toFixed(0)} banked{onCards > 0 ? ` + ${onCards} on cards` : ""}</span>
                       </div>
+                      {p.persona && PERSONAS[p.persona] && (
+                        <div className="text-[9px] mt-0.5" style={{ color: IND_COLOR[PERSONAS[p.persona].ind] }}
+                          title={PERSONAS[p.persona].blurb}>
+                          {PERSONAS[p.persona].name}
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 text-[9px] font-mono mt-0.5">
                         <span title="Plots owned - most at game end scores The Real-Estate Mogul"
                           style={{ color: landLead.plots.has(p.id) ? "#f5d76e" : "#6b7280" }}>
@@ -3560,7 +3873,7 @@ export default function EntrepreneursGame({ online }) {
   );
 }
 
-function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, onTutorial }) {
+function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, onTutorial, personas, setPersonas }) {
   return (
     <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
       <div className="max-w-md w-full rounded-xl p-6" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
@@ -3577,6 +3890,23 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
           <input value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="You" maxLength={16}
             className="w-full rounded-md px-3 py-2 text-sm"
             style={{ backgroundColor: "#1c1f26", border: "1px solid #262a33", color: "#e5e7eb", outline: "none" }} />
+        </div>
+        <div className="mb-5">
+          <button onClick={() => setPersonas(!personas)}
+            className="w-full rounded-md px-3 py-2 text-left"
+            style={{ backgroundColor: "#1c1f26", border: `1px solid ${personas ? "#2c5f4f" : "#262a33"}` }}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold" style={{ color: personas ? "#8fd3b6" : "#8b93a3" }}>
+                Personas {personas ? "ON" : "OFF"}
+              </span>
+              <span className="text-[10px]" style={{ color: personas ? "#8fd3b6" : "#6b7280" }}>
+                {personas ? "\u2713" : ""}
+              </span>
+            </div>
+            <div className="text-[10px] text-gray-500 mt-0.5">
+              Deal each player a random specialist power, one per industry.
+            </div>
+          </button>
         </div>
         <div className="mb-6">
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Opponents</div>
@@ -3675,6 +4005,8 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
     if (NET) return NET.send("draft", { ind });
     const card = state.decks[ind].shift();
     human.hand.push(card);
+    state.draftTaken = state.draftTaken || [];
+    state.draftTaken.push(card.ind);
     log(`You draft ${card.name} (${card.ind} L${card.lvl}).`, human.id);
     force((v) => v + 1);
   }
@@ -3691,6 +4023,35 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
           Each industry deck is ordered level 1 on top, level 3 at the bottom, and its top card is always public.
         </p>
 
+        {/* The same signal the bots read: every card taken so far. Drafting into a deck
+            the table is raiding means that industry's price will be low when you build. */}
+        {state.draftTaken && state.draftTaken.length > 0 && (
+          <div className="mb-4">
+            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+              Taken so far &mdash; and what it does to prices
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {INDUSTRIES.map((ind) => {
+                const taken = state.draftTaken.filter((x) => x === ind).length;
+                const bumps = draftedPressure(state.draftTaken.map((x) => BP_DATA.find((b) => b.ind === x && b.lvl === 1)).filter(Boolean));
+                const px = expectedDraftPrice(ind, bumps);
+                const up = px > BASE_PRICE[ind], down = px < BASE_PRICE[ind];
+                return (
+                  <div key={ind} className="rounded px-1.5 py-1" style={{
+                    backgroundColor: "#1c1f26",
+                    border: `1px solid ${taken ? IND_COLOR[ind] : "#262a33"}`,
+                  }}>
+                    <span className="text-[10px] font-bold" style={{ color: IND_COLOR[ind] }}>{ind}</span>
+                    <span className="text-[10px] font-mono text-gray-400"> &times;{taken}</span>
+                    <span className="text-[10px] font-mono ml-1" style={{
+                      color: up ? "#8fd3b6" : down ? "#fca5a5" : "#6b7280",
+                    }}>${px}{up ? " \u2191" : down ? " \u2193" : ""}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-3 gap-2 mb-5">
           {INDUSTRIES.map((ind) => {
             const deck = state.decks[ind] || [];

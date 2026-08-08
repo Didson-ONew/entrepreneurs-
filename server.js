@@ -19,7 +19,7 @@ function loadEngine() {
   const src = fs.readFileSync(path.join(ROOT, "EntrepreneursGame.jsx"), "utf8");
   const cut = src.indexOf("/* ============================== REACT UI ============================== */");
   // strip every ESM import: this file is evaluated as a plain script, not a module
-  const logic = src.slice(0, cut).replace(/^\s*import\s.*$/gm, "");
+  const logic = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
   const box = {};
   const sandbox = { console, Math, Set, Object, Array, JSON, box };
   vm.createContext(sandbox);
@@ -30,7 +30,7 @@ function loadEngine() {
       humanDeliver, doRepayLoan, doLoan, doBuyPlot, doSellPlot, doSellBP, doSellCompany,
       doLaunch, doRenovate, doDraw, doUpgrade, claimMegacorp, doReposition, byId, activeBiz,
       eligibleSlotsFor, findDistressedTargets, renovationEligible, plotValue, discsFree,
-      canLaunchMore, isCrossDistrictEdge, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal, canGoPublic,
+      canLaunchMore, isCrossDistrictEdge, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal, canGoPublic, doReclaim, canReclaim,
       botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, ENGINE_VERSION,
       bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER };
   `, sandbox);
@@ -56,7 +56,7 @@ function newRoom(hostName, bots) {
     code: c, bots: Math.max(0, Math.min(3, bots | 0)),
     members: [{ token: token(), name: hostName || "Host", seat: 0, host: true }],
     spectators: [],
-    state: null, rng: null, clients: new Set(), logs: [], version: 0, chat: [],
+    state: null, rng: null, clients: new Set(), logs: [], version: 0, chat: [], personas: false,
   };
   rooms.set(c, room);
   return room;
@@ -76,7 +76,7 @@ function payloadFor(room) {
   const v = room.version || 0;
   return room.state
     ? `{"type":"state","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))},"state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
-    : `{"type":"lobby","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"members":${JSON.stringify(room.members.map((m) => ({ name: m.name, seat: m.seat, host: m.host })))},"bots":${room.bots},"code":"${room.code}","watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))}}`;
+    : `{"type":"lobby","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"members":${JSON.stringify(room.members.map((m) => ({ name: m.name, seat: m.seat, host: m.host })))},"bots":${room.bots},"personas":${room.personas ? "true" : "false"},"code":"${room.code}","watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))}}`;
 }
 function broadcast(room) {
   room.version = (room.version || 0) + 1;
@@ -189,6 +189,8 @@ function applyAction(room, seat, action, data) {
       if (p.hand.length >= (st.draftCounts[seat] || 0)) return { error: "Hand already full." };
       const card = deck.shift();
       p.hand.push(card);
+      st.draftTaken = st.draftTaken || [];
+      st.draftTaken.push(card.ind);
       lg(`${p.name} drafts ${card.name}.`, seat);
       if (p.hand.length >= (st.draftCounts[seat] || 0)) {
         st.draftQueue = st.draftQueue.filter((x) => x !== seat);
@@ -218,6 +220,10 @@ function applyAction(room, seat, action, data) {
       else if (t === "sellBP") { const bp = p.hand[d.index]; ok = !!bp && (E.doSellBP(st, p, bp, lg), true); }
       else if (t === "sellCompany") { const b = p.businesses.find((x) => x.id === d.bizId); ok = !!b && (E.doSellCompany(p, b, lg), true); }
       else if (t === "launch") { const bp = p.hand[d.index]; ok = !!bp && E.doLaunch(st, p, bp, rng, lg, d.footprint); }
+      else if (t === "reclaim") {
+        const target = E.findDistressedTargets(st).find((x) => x.id === d.bizId);
+        ok = !!target && E.doReclaim(st, p, target, lg);
+      }
       else if (t === "renovate") {
         const target = E.findDistressedTargets(st).find((x) => x.id === d.bizId);
         const bp = p.hand[d.index];
@@ -456,6 +462,19 @@ const server = http.createServer(async (req, res) => {
     return json(res, { ok: true, replaced: true });
   }
 
+  if (p === "/api/options" && req.method === "POST") {
+    const b = await body(req);
+    const room = rooms.get((b.code || "").toUpperCase());
+    if (!room) return json(res, { error: "No such room." }, 404);
+    const me = room.members.find((m) => m.token === b.token);
+    if (!me || !me.host) return json(res, { error: "Only the host can change the setup." }, 403);
+    if (room.state) return json(res, { error: "The game has already started." }, 409);
+    if (typeof b.personas === "boolean") room.personas = b.personas;
+    if (typeof b.bots === "number") room.bots = Math.max(0, Math.min(3, b.bots | 0));
+    broadcast(room);
+    return json(res, { ok: true });
+  }
+
   if (p === "/api/start" && req.method === "POST") {
     const b = await body(req);
     const room = rooms.get((b.code || "").toUpperCase());
@@ -465,7 +484,7 @@ const server = http.createServer(async (req, res) => {
     if (room.state) return json(res, { error: "Already started." }, 409);
     if (room.members.length + room.bots < 2) return json(res, { error: "Need at least 2 players (add a bot or another human)." }, 400);
     const seed = Math.floor(Math.random() * 1e9);
-    room.state = E.initGame(room.bots, seed, room.members.map((m) => m.name));
+    room.state = E.initGame(room.bots, seed, room.members.map((m) => m.name), undefined, room.personas);
     room.rng = E.mulberry32(seed + 777);
     room.logs = [{ msg: `Game started: ${room.members.length} human${room.members.length > 1 ? "s" : ""}, ${room.bots} bot${room.bots === 1 ? "" : "s"}.`, pid: null }];
     pump(room);

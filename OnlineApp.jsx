@@ -129,6 +129,30 @@ function WaitingRoom({ me, lobby, onLeave }) {
           ))}
         </div>
 
+        {me.host && (
+          <button onClick={async () => {
+              const r = await api("/api/options", { code: me.code, token: me.token, personas: !(lobby && lobby.personas) });
+              if (r.body && r.body.error) setErr(r.body.error);
+            }}
+            className="w-full rounded-md px-3 py-2 text-left mb-3"
+            style={{ backgroundColor: "#1c1f26", border: `1px solid ${lobby && lobby.personas ? "#2c5f4f" : "#262a33"}` }}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold" style={{ color: lobby && lobby.personas ? "#8fd3b6" : "#8b93a3" }}>
+                Personas {lobby && lobby.personas ? "ON" : "OFF"}
+              </span>
+              <span className="text-[10px]" style={{ color: "#8fd3b6" }}>{lobby && lobby.personas ? "\u2713" : ""}</span>
+            </div>
+            <div className="text-[10px] text-gray-500 mt-0.5">
+              Each player is dealt a random specialist power, one per industry.
+            </div>
+          </button>
+        )}
+        {!me.host && lobby && lobby.personas && (
+          <div className="rounded-md px-3 py-2 mb-3 text-[11px]"
+            style={{ backgroundColor: "#1c1f26", border: "1px solid #2c5f4f", color: "#8fd3b6" }}>
+            Personas are ON &mdash; you will be dealt a random specialist power when the game starts.
+          </div>
+        )}
         {me.host ? (
           <>
             <button onClick={start} disabled={total < 2} style={{ ...btn("#2c5f4f", "#d3fcec"), opacity: total < 2 ? 0.35 : 1 }}>

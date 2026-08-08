@@ -3,7 +3,7 @@ const src=fs.readFileSync('EntrepreneursGame.jsx','utf8');
 const cut=src.indexOf('/* ============================== REACT UI ============================== */');
 const vm=require('vm');const box={};const sb={console,Math,Set,Object,Array,JSON,box};
 vm.createContext(sb);
-vm.runInContext(src.slice(0,cut).replace(/^\s*import\s.*$/gm,'')+`box.exports={
+vm.runInContext(src.slice(0,cut).replace(/^\s*(import|export)\s.*$/gm,'')+`box.exports={
   BP_DATA,INDUSTRIES,BASE_PRICE,SCALING,MEGACORP_TILES,buildBoard,mulberry32};`,sb);
 const E=sb.box.exports;
 const F=[],O=[];const chk=(c,l,d)=>{(c?O:F).push(l+(d?` — ${d}`:''));};

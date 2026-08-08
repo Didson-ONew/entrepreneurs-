@@ -5,7 +5,7 @@ const src=fs.readFileSync("EntrepreneursGame.jsx","utf8");
 const cut=src.indexOf("/* ============================== REACT UI ============================== */");
 const vm=require("vm");const box={};const sb={console,Math,Set,Object,Array,JSON,box};
 vm.createContext(sb);
-vm.runInContext(src.slice(0,cut).replace(/^\s*import\s.*$/gm,"")+`box.exports={
+vm.runInContext(src.slice(0,cut).replace(/^\s*(import|export)\s.*$/gm,"")+`box.exports={
   initGame,mulberry32,startPlanning,runClosingRest,newPlayer,buildBoard,makeDemandPool,
   makePriceMatrix,doBuyPlot,doLaunch,sellCompany,getBizTooltipInfo,BP_DATA,epTotal,
   workersPerPlayer,activeBiz,bizInd};`,sb);
