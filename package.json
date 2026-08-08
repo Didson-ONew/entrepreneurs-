@@ -1,0 +1,17 @@
+{
+  "name": "entrepreneurs",
+  "private": true,
+  "description": "Entrepreneurs - the board game, single-player and online.",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node make_rulebook.mjs && node build.mjs",
+    "rulebook": "node make_rulebook.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
+  },
+  "dependencies": {
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  }
+}

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import SiteChrome from "./Rulebook.jsx";
 
 /* ============================== DATA ============================== */
 
@@ -504,7 +505,7 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
 function unitPrice(state, p, biz, slotInd) {
   const own = price(state.pm, bizInd(biz));
   if (slotInd && slotInd !== bizInd(biz)) {
-    // Product Manager is paid the lower of the two prices when cross-selling
+    // Product Manager is paid the price of the row being sold into, not its own
     return hasPersona(p, "product_mgr") ? price(state.pm, slotInd) : own;
   }
   if (bizInd(biz) === "UT" && hasPersona(p, "gov_rel")) return own + 1;
@@ -580,7 +581,7 @@ const PERSONAS = {
   supply_chain:{ ind: "RE", name: "Supply Chain Expert",
     blurb: "At the start of Revenue, raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter." },
   gov_rel:     { ind: "UT", name: "Government Relationship",
-    blurb: "Your Utilities production sells for $1 above the current price, or $2 in a district where you own no plots." },
+    blurb: "Your Utilities production sells for $1 above the current price." },
 };
 const PERSONA_KEYS = Object.keys(PERSONAS);
 const hasPersona = (p, key) => !!p && p.persona === key;
@@ -3044,7 +3045,7 @@ const TUTORIAL = [
              "So an industry nobody serves quietly piles up money"] },
 
   { title: "Prices move as the city is built", target: "prices", art: ArtPrices,
-    body: "Build a company and you push your own industry's price DOWN \u2014 more supply. Every supplier you now pay gets pushed UP \u2014 more demand. Two steps move the price by $1.",
+    body: "Build a company and you push your own industry's price DOWN \u2014 more supply. Every supplier you now pay gets pushed UP \u2014 more demand. Demand bites faster: +$1 per company built, while it takes two companies to knock $1 off their own industry.",
     points: ["A crowded industry can fall to $1, barely above recycling",
              "A neglected one can climb past $8 per unit",
              "Reading this strip is the main skill in the game"] },
@@ -3191,7 +3192,19 @@ function Tutorial({ onClose }) {
   );
 }
 
+/* The rulebook and the live counters sit outside the game so they are reachable
+   from every screen. Online they are mounted by OnlineApp instead, which wraps
+   this component - mounting them here too would show them twice. */
 export default function EntrepreneursGame({ online }) {
+  return (
+    <>
+      {!online && <SiteChrome />}
+      <GameScreens online={online} />
+    </>
+  );
+}
+
+function GameScreens({ online }) {
   const [screen, setScreen] = useState(online ? "play" : "setup");
   const [numBots, setNumBots] = useState(3);
   const [playerName, setPlayerName] = useState(() => { try { return localStorage.getItem("entrepreneurs_name") || ""; } catch (_) { return ""; } });
@@ -3966,7 +3979,7 @@ export default function EntrepreneursGame({ online }) {
                 keeps a single, full-width block instead of two stubby ones. */}
             <div className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
 
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ (keeps its building and your disc, siphons $5 from each neighbour's industry pot); the rest go distressed. In IPO Mode the first claim ends the game." /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ (keeps its building, siphons $5 from each neighbour's industry pot, and stops being an active company); the rest go distressed." /></div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
                 {state.megacorpPool.map(([name, combo, ep], i) => (
                   <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>

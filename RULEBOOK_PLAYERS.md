@@ -1,0 +1,377 @@
+# Entrepreneurs - How to play
+
+*3rd edition. Everything you need to play, and nothing you don't.*
+
+1. [The game in one minute](#overview)
+2. [Setup](#setup)
+3. [Your ten discs](#discs)
+4. [A quarter, step by step](#quarter)
+5. [Planning: placing workers](#planning)
+6. [The actions](#actions)
+7. [Land and buildings](#land)
+8. [Prices, supply and demand](#prices)
+9. [Production: paying the bills](#production)
+10. [Revenue: selling what you produce](#revenue)
+11. [Closing and the year end](#closing)
+12. [Going public and Megacorps](#megacorp)
+13. [Winning](#scoring)
+14. [Personas (optional)](#personas)
+15. [Playing online](#online)
+16. [Quick reference](#quickref)
+
+---
+
+<a id="overview"></a>
+
+## The game in one minute
+
+You are a founder building a city's economy. You buy land, build companies on it, and sell what they produce to the districts around them. The player with the most Entrepreneurial Points (EP) at the end of Year 3 wins.
+
+- 2 to 4 players. Empty seats can be filled with bots.
+- 3 years of 4 quarters - 12 rounds in total.
+- The board is 16 districts of 4 plots each.
+- The coloured squares inside a district are its demand: what it will buy.
+
+### The one idea underneath everything
+
+Every company pays OPEX each quarter, and that money does not vanish - it goes to the industries printed on its Blueprint as suppliers. So the industry nobody is building is quietly collecting everyone else's money, and its price is climbing while the crowded industries sink toward $1. Reading that pressure is the game.
+
+---
+
+<a id="setup"></a>
+
+## Setup
+
+The board is built fresh every game: the four central districts are one each of Financial Centre, Industrial Area, Civic Centre and Landmark, shuffled between the four middle cells, and twelve of the sixteen suburb districts are drawn at random for the ring around them. No two games have the same map.
+
+### Seats, capital and starting hand
+
+Seating is randomised - you are not automatically first. Your starting money and number of Blueprints follow the seat you drew, not the player you are: later seats get less money but more cards.
+
+| Players | Seat 1 | Seat 2 | Seat 3 | Seat 4 |
+| --- | --- | --- | --- | --- |
+| 4 | $25 / 1 card | $25 / 2 cards | $20 / 2 cards | $20 / 3 cards |
+| 3 | $25 / 1 card | $25 / 2 cards | $20 / 3 cards | - |
+| 2 | $20 / 2 cards | $20 / 2 cards | - | - |
+
+### The draft
+
+Starting Blueprints are drafted in reverse seat order - the LAST seat picks first. On your pick you take the face-up top card of any industry deck. Watch what the others are taking: every card drafted is a company that will probably get built, which pushes that industry's price down and its suppliers' prices up before you have even started.
+
+### The rest
+
+- Ten discs each. Nothing else marks what you own.
+- Megacorp tiles: sixteen exist, and only (number of players + 1) are shuffled into the game.
+- Personas are optional and off by default. If they are on, everyone is dealt one.
+
+---
+
+<a id="discs"></a>
+
+## Your ten discs
+
+Your discs are your entire footprint in the world. You have ten, and every one of them is committed somewhere:
+
+- one disc on each plot of land you own,
+- one disc on each active company you run,
+- one disc in the bank for each loan you have not repaid.
+
+If you have no free disc you cannot buy land, launch a company, take over a distressed structure, or take a loan - no matter how much cash you are holding. You free a disc by selling a plot, selling a company, or repaying a loan.
+
+Separately, you may never run more than five active companies at once.
+
+---
+
+<a id="quarter"></a>
+
+## A quarter, step by step
+
+All twelve quarters run the same five phases. You only make decisions in the first two - the rest resolves around you.
+
+| Phase | What happens |
+| --- | --- |
+| 1. Planning | Everyone places their workers on the action tracks. |
+| 2. Action | The tracks resolve and each worker takes its actions. |
+| 3. Production | Every active company pays OPEX; rent and supplier pots are paid out of it. |
+| 4. Revenue | You deliver production to demand icons for cash, then the industry pots are shared out. |
+| 5. Closing | A new Logistic Hub opens. At the end of each year, companies score. |
+
+---
+
+<a id="planning"></a>
+
+## Planning: placing workers
+
+You have two workers (three each in a two-player game). Players place one worker at a time in turn order, going round until everyone has placed all of theirs.
+
+### The four tracks
+
+| Track | Slots | What it does |
+| --- | --- | --- |
+| Raise Capital | 4 | Turn assets into cash - LOAN or SELL. |
+| M&A | 4 | Grow your footprint - LAUNCH or BUY. |
+| R&D | 4 | Improve what you have - RESEARCH or UPGRADE. |
+| Board Meeting | 2 | GO PUBLIC or REPOSITION. Takes all your workers. |
+
+The second Board Meeting seat is sealed under the IPO tile until somebody claims it by going public.
+
+### Last in, first out - the rule that catches everyone
+
+Workers fill a track from left to right, but the track resolves from RIGHT TO LEFT. Whoever placed LAST on a track acts FIRST on it.
+
+Committing early is paid for in actions: your worker takes one action, plus one extra for every worker that lands after it in the same track. A worker alone in a track that then fills up completely takes four actions - but the other three players will all have acted before it, and may have taken exactly what it was waiting for.
+
+The tracks themselves resolve in a fixed order: Raise Capital, then M&A, then R&D, then Board Meeting.
+
+### Board Meeting
+
+Going to the Board Meeting costs ALL of your workers for the quarter and buys a single action. It is a real sacrifice, and it is meant to be.
+
+---
+
+<a id="actions"></a>
+
+## The actions
+
+### Raise Capital
+
+- LOAN - take $20 from the bank and pledge one disc. You may buy the disc back at a year end; if you never do, it costs you 5 EP at the end of the game.
+- SELL - a Blueprint from your hand ($4 / $8 / $12 by level), a company (half its setup cost, or the full cost if it has been upgraded - the building goes to the bank as a Distressed Asset), or a plot of land at its current value.
+
+### M&A
+
+- LAUNCH - build a Blueprint from your hand onto plots you own and that are empty, paying its setup cost. The first time you ever build in an industry you bank 5 EP immediately.
+- BUY - take any unowned plot at its current value, or take over a Distressed Asset. You may buy a distressed structure as it stands for half its own setup cost, keeping its Blueprint and level, or renovate it with a card from your hand for half that card's setup cost.
+
+Renovating needs a card of the same level as the distressed structure, and above level 1 the card must scale the same way (horizontal into horizontal, vertical into vertical).
+
+### R&D
+
+- RESEARCH - draw the face-up top card of any industry deck. Hand limit is five cards.
+- UPGRADE - pay a company's setup cost again. Its production and its OPEX both double and its level goes up by one.
+
+A horizontal company (Utilities, Manufacturing, Technology) grows sideways: upgrading needs an adjacent plot that you own and that is empty. A vertical company (Retail, Hospitality, Healthcare) stacks on the plot it already occupies. Each company may be upgraded once.
+
+### Board Meeting
+
+- GO PUBLIC - the first player to ever do this takes the IPO tile: 5 EP, and the second Board Meeting seat opens for everyone. After that, going public merges companies into a Megacorp.
+- REPOSITION - move to first in turn order, and place both of your workers together at the start of next quarter's planning.
+
+---
+
+<a id="land"></a>
+
+## Land and buildings
+
+### What a plot costs
+
+A plot's value is its printed road price plus $1 for every occupied plot next to it, plus $1 if it touches a Logistic Hub. Road prices run from 1 at the outer edge to 6 in the dead centre of the city. You pay that to buy, and you receive it when you sell - so land near the action genuinely appreciates as the city fills in.
+
+### Footprints
+
+A vertical company always occupies exactly one plot, whatever its level. A horizontal company occupies one plot per level, and those plots must form a connected cluster of land you own. A level-3 horizontal Blueprint therefore needs three connected empty plots you already own before you can build it at all.
+
+### Selling the ground out from under a building
+
+A company can only produce while you own every plot it stands on. Selling one of those plots does not destroy the building, but it stops producing until the land is bought back.
+
+---
+
+<a id="prices"></a>
+
+## Prices, supply and demand
+
+Every industry has one market price that everybody sells at. It starts at its base price and moves as the city is built.
+
+| Industry | Base price | Scaling |
+| --- | --- | --- |
+| Utilities (UT) | $2 | Horizontal |
+| Retail (RE) | $2 | Vertical |
+| Hospitality (HO) | $3 | Vertical |
+| Manufacturing (MA) | $3 | Horizontal |
+| Healthcare (HC) | $4 | Vertical |
+| Technology (TE) | $4 | Horizontal |
+
+### How the price moves
+
+Launching a company puts one supply mark on its own industry, and one demand mark on every supplier industry printed on its Blueprint.
+
+Price = base price + demand marks - (supply marks / 2, rounded down), and never below $1.
+
+In plain terms: each company built raises each of its suppliers' prices by $1 straight away, while it takes two companies in an industry to knock $1 off that industry's own price. Demand bites faster than supply.
+
+A crowded industry can sink to $1, barely above the $1 you get for recycling unsold goods. A neglected one that half the table depends on can climb past $8 a unit.
+
+### The supply chain
+
+Read the Blueprint: the dependencies printed on it are the industries it pays. Nothing is symmetric, and every industry is somebody's supplier - which is why an industry that nobody builds still fills up with money.
+
+---
+
+<a id="production"></a>
+
+## Production: paying the bills
+
+Every active company pays its OPEX, automatically, whether or not it sells anything afterwards. That money is immediately split:
+
+- Rent - $3 per level of the company - goes to whoever owns the plots it stands on, divided evenly between them. On your own land it comes straight back to you.
+- Everything left over flows into the industry pots of that company's suppliers, divided in proportion to the dependency values on the Blueprint.
+
+### If you cannot pay
+
+Before OPEX is charged, any player whose cash will not cover their whole bill gets a window to sell whatever they choose at normal prices. If the bill still cannot be met when a company's OPEX comes due, that company enters SOLVENCY and the sale is forced at half rates: Blueprints fetch $2 / $4 / $6, plots fetch half their value, companies fetch half what a voluntary sale would pay. The company that triggered it goes to the bank as a Distressed Asset.
+
+---
+
+<a id="revenue"></a>
+
+## Revenue: selling what you produce
+
+Each company produces a number of units printed on its Blueprint, doubled if it has been upgraded. You deliver those units to demand icons your company can reach, and each icon pays the current market price for your industry.
+
+### Which icons you may use
+
+Every district shows a 4x4 grid of demand. Each row is an industry; the four columns are levels 1 to 4. You may deliver to an icon if the row's industry is yours and the column is no higher than your company's level - so a bigger company reaches deeper into the same district.
+
+- Rows 3 and 4 of every district stay closed until Quarter 5.
+- At the end of Quarter 8 the entire demand grid is wiped clean and every icon reopens for Year 3.
+- Each icon can be sold to once, by whoever gets there first.
+- Anything you cannot sell is recycled for $1 a unit.
+
+### How far a company reaches
+
+A company can always sell into the district or districts its own plots sit in. Beyond that:
+
+- Logistic Hubs link districts. If any plot of your footprint touches a hub, your company can reach every district touched by any hub on the board.
+- Utilities and Retail can never use hubs at all.
+- Healthcare is on the hub network natively - it reaches every hub district without needing to touch one.
+
+### Industry abilities
+
+| Industry | Ability |
+| --- | --- |
+| Utilities | Reads demand across a block of districts as wide as its level, positioned anywhere that still covers its own footprint. Never uses hubs. |
+| Retail | Sells into one extra district of your choice per level. Never uses hubs. |
+| Hospitality | Sells one extra unit at market price for every business or hub within its level in plots - no demand icon needed. |
+| Manufacturing | May cross-sell up to its level in units into OTHER industries' rows in its own district. |
+| Healthcare | Reaches every district on the hub network without touching a hub. |
+| Technology | Delivers two units to every icon it reaches instead of one. |
+
+### B2B: the pots pay out
+
+Once everyone has delivered, each industry pot is shared among all the active companies in that industry, weighted by level. An industry with no active company keeps its pot and it carries over to a later quarter - which is exactly why an unbuilt industry becomes so lucrative.
+
+Megacorp headquarters take their cut first: see below.
+
+---
+
+<a id="closing"></a>
+
+## Closing and the year end
+
+Every quarter ends with a new Logistic Hub opening on a border between two districts. The first player in turn order chooses where it goes.
+
+### At the end of Quarter 4, 8 and 12
+
+- Every active company scores EP equal to its level, placed on its card.
+- You may buy back loan discs: $30 at the end of Year 1, $35 at Year 2, $40 at Year 3.
+
+EP sitting on a company's card are yours - they show in the standings immediately. They are banked permanently when the company is upgraded, sold, merged into a Megacorp, or at the end of the game. You never lose EP you have already scored.
+
+---
+
+<a id="megacorp"></a>
+
+## Going public and Megacorps
+
+The first player to take GO PUBLIC claims the IPO tile: 5 EP, and the second Board Meeting seat opens up for the rest of the game.
+
+After that, GO PUBLIC merges companies. Each Megacorp tile names an exact combination of company levels and pays between 8 and 25 EP. You must own precisely that combination of active companies.
+
+### What a merger does
+
+- You choose one of the merged companies to become the Megacorp HQ. It keeps its building and returns its Blueprint to its industry deck.
+- All the others go to the bank as Distressed Assets - anyone may take them over later.
+- The HQ stops being an active company: it produces nothing, pays no OPEX, and no longer counts against your five-company limit.
+- Every B2B, the HQ siphons $5 out of the industry pot of each active business neighbouring it, before the pots are shared out.
+
+Only (number of players + 1) tiles are in play, so the good combinations are contested.
+
+---
+
+<a id="scoring"></a>
+
+## Winning
+
+Score steadily rather than chasing one big move. Breadth pays early, size pays late.
+
+| Source | EP |
+| --- | --- |
+| Entering an industry for the first time | +5 each, once per industry per game, banked immediately |
+| Each active company, at each year end | +1 per level |
+| Megacorp tile | +8 to +25 as printed |
+| IPO tile (first player to go public) | +5 |
+| The Real-Estate Mogul - most plots owned | +10, second place +5 |
+| The Omnipresent - most districts you are present in | +10, second place +5 |
+| Cash on hand at the end | +1 per full $10 |
+| Each loan disc still in the bank | -5 |
+
+For The Omnipresent, a district counts if you own a plot in it or one of your active companies stands in it. Tied players split the combined value of the places they cover.
+
+Most EP after Quarter 12 wins.
+
+---
+
+<a id="personas"></a>
+
+## Personas (optional)
+
+Personas are asymmetric powers, one tied to each industry. They are off unless the host turns them on, and only as many as there are players are dealt, so some always sit out.
+
+| Persona | Power |
+| --- | --- |
+| Tech-Savvy (TE) | Your Technology companies upgrade vertically, stacking on one plot instead of needing a free neighbour. |
+| Preventive Doctor (HC) | Your Healthcare companies ignore the level restriction: a level-1 clinic may serve any column of a Healthcare row. |
+| Product Manager (MA) | When your Manufacturing cross-sells into another industry's row, it is paid that industry's price instead of its own. |
+| Customer Oriented (HO) | Your Hospitality companies upgrade horizontally, spreading across plots so more businesses and hubs sit next to them. |
+| Supply Chain Expert (RE) | At the start of Revenue, raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. |
+| Government Relationship (UT) | Your Utilities production sells for $1 above the current price. |
+
+---
+
+<a id="online"></a>
+
+## Playing online
+
+Create a room and share the six-character code. Anyone who enters it joins your table.
+
+- 2 to 4 human seats. Bots fill any seat you do not want to wait for.
+- If the table is full or the game has already started, latecomers join as watchers: they see the whole board and can chat and talk, but cannot act.
+- Text chat and voice chat are built in. Voice runs peer to peer - the server only introduces you.
+- Refreshing or losing your connection does not lose your seat. Come back to the same address and you are put straight back in.
+- If someone leaves for good, the host can hand their seat to a bot so the table is not held up.
+
+The server is authoritative: it runs the same rules engine and rejects anything that is not your move, so nobody can act out of turn.
+
+---
+
+<a id="quickref"></a>
+
+## Quick reference
+
+|  |  |
+| --- | --- |
+| Game length | 12 quarters (3 years of 4) |
+| Workers | 2 each, or 3 each in a two-player game |
+| Discs | 10, covering plots owned + active companies + unpaid loans |
+| Active company limit | 5 |
+| Hand limit | 5 Blueprints |
+| Loan | +$20 and one disc; buy back for $30 / $35 / $40 at year ends; -5 EP if unpaid |
+| Sell a Blueprint | $4 / $8 / $12 by level (half in a forced sale) |
+| Sell a company | half its setup cost, or the full cost if upgraded (half again in a forced sale) |
+| Plot value | road price (1-6) + $1 per occupied neighbour + $1 if it touches a hub |
+| Upgrade | pay the setup cost again; production and OPEX double; level +1 |
+| Rent | $3 per company level, to the owners of the plots it stands on |
+| Unsold production | $1 per unit |
+| Demand rows 3-4 | closed until Quarter 5 |
+| Demand grid | wiped clean at the end of Quarter 8 |
