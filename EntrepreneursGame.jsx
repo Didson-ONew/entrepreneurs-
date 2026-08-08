@@ -508,16 +508,27 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
   state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
   return cross ? 1 : exchangeRate(state, biz);
 }
+function ownsPlotIn(state, p, tileKey) {
+  return Object.entries(state.board.owner).some(([plot, id]) => {
+    if (id !== p.id) return false;
+    const c = state.board.cellOf[plot];
+    return c && `${c.r},${c.c}` === tileKey;
+  });
+}
 /* What one unit of this company's output is actually worth to this owner, including
    any persona effect. `slotInd` is the row being sold into, which only differs from the
-   company's own industry when Manufacturing cross-sells. */
-function unitPrice(state, p, biz, slotInd) {
+   company's own industry when Manufacturing cross-sells; `tileKey` is the district it
+   is being sold into, which only matters to the Government Relationship persona. */
+function unitPrice(state, p, biz, slotInd, tileKey) {
   const own = price(state.pm, bizInd(biz));
   if (slotInd && slotInd !== bizInd(biz)) {
     // Product Manager is paid the price of the row being sold into, not its own
     return hasPersona(p, "product_mgr") ? price(state.pm, slotInd) : own;
   }
-  if (bizInd(biz) === "UT" && hasPersona(p, "gov_rel")) return own + 1;
+  // Government Relationship: +$1 normally, +$2 in a district where it owns no land
+  if (bizInd(biz) === "UT" && hasPersona(p, "gov_rel")) {
+    return own + (tileKey && !ownsPlotIn(state, p, tileKey) ? 2 : 1);
+  }
   return own;
 }
 function autoDeliver(state, p, biz) {
@@ -539,11 +550,15 @@ function autoDeliver(state, p, biz) {
     } else {
       if (remaining <= 0) continue;
       const got = deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, false);
-      if (got > 0) { sold += Math.min(got, remaining); remaining -= Math.min(got, remaining); }
+      if (got > 0) {
+        const n = Math.min(got, remaining);
+        sold += n * unitPrice(state, p, biz, null, s.tileKey);   // district matters to Gov Relationship
+        remaining -= n;
+      }
     }
   }
   const leftover = Math.max(0, remaining);
-  p.cash += sold * unitPrice(state, p, biz) + crossPaid + leftover * 1;
+  p.cash += sold + crossPaid + leftover * 1;
 }
 
 function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
@@ -552,10 +567,15 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
   if (!biz) return false;
   const got = deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross);
   if (got <= 0) return false;
-  human.cash += got * price(state.pm, bizInd(biz));
+  /* Pay through unitPrice, the same as the bots. This used to charge the plain market
+     price, so a human holding Product Manager or Government Relationship never actually
+     collected what their persona promised - only the bots did. */
+  const slotInd = cross ? slotIndustry(state.demand, tileKey, rowIdx) : null;
+  const paid = got * unitPrice(state, human, biz, slotInd, tileKey);
+  human.cash += paid;
   if (cross) state.crossSellRemaining[bizId] = Math.max(0, (state.crossSellRemaining[bizId] || 0) - got);
   else state.deliveryRemaining[bizId] = Math.max(0, (state.deliveryRemaining[bizId] || 0) - got);
-  log(`${human.name} delivers ${got} ${bizInd(biz)}${cross ? " (cross-sell)" : ""} to ${state.board.tiles[tileKey]} for $${got * price(state.pm, bizInd(biz))}.`, human.id);
+  log(`${human.name} delivers ${got} ${bizInd(biz)}${cross ? " (cross-sell)" : ""} to ${state.board.tiles[tileKey]} for $${paid}.`, human.id);
   return true;
 }
 
@@ -565,7 +585,13 @@ function makePriceMatrix() {
   INDUSTRIES.forEach((i) => { demand[i] = 0; offer[i] = 0; });
   return { demand, offer };
 }
-function price(pm, ind) { return Math.max(1, BASE_PRICE[ind] + pm.demand[ind] - Math.floor(pm.offer[ind] / 2)); }
+/* Offer and demand move the price symmetrically: two steps in either direction are
+   worth $1, and nothing ever sells below $1. Demand used to pay out a whole dollar per
+   step while supply took two to claw one back, which made every supplier industry
+   climb about twice as fast as the rulebook says it should. */
+function price(pm, ind) {
+  return Math.max(1, BASE_PRICE[ind] + Math.floor(pm.demand[ind] / 2) - Math.floor(pm.offer[ind] / 2));
+}
 function onLaunch(pm, ind, depInds) { pm.offer[ind] += 1; depInds.forEach((d) => (pm.demand[d] += 1)); }
 
 /* ============================== GAME ENGINE ============================== */
@@ -590,7 +616,7 @@ const PERSONAS = {
   supply_chain:{ ind: "RE", name: "Supply Chain Expert",
     blurb: "At the start of Revenue, raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter." },
   gov_rel:     { ind: "UT", name: "Government Relationship",
-    blurb: "Your Utilities production sells for $1 above the current price." },
+    blurb: "Your Utilities production sells for $1 above the current price, or $2 in a district where you own no plots." },
 };
 const PERSONA_KEYS = Object.keys(PERSONAS);
 const hasPersona = (p, key) => !!p && p.persona === key;
@@ -632,7 +658,14 @@ function newPlayer(id, name, isHuman, cash, hand, archetype) {
   return { id, name, isHuman, cash, hand, archetype, persona: null, businesses: [], discsInBank: 0, epBank: 0, epLog: [], industriesScored: [] };
 }
 const activeBiz = (p) => p.businesses.filter((b) => !b.distressed && !b.isHQ);
-const canLaunchMore = (p) => activeBiz(p).length < 5;
+/* A Megacorp headquarters stops trading - no Blueprint, so no production, no OPEX and
+   no share of any pot - but it is still a building of yours standing on the board. It
+   keeps its disc and it locks one of your five company slots, so every Megacorp you
+   form permanently narrows how wide you can operate. */
+const megacorpHQs = (p) => p.businesses.filter((b) => b.isHQ);
+const companySlotsUsed = (p) => activeBiz(p).length + megacorpHQs(p).length;
+const COMPANY_SLOTS = 5;
+const canLaunchMore = (p) => companySlotsUsed(p) < COMPANY_SLOTS;
 const committedOpex = (p) => activeBiz(p).reduce((s, b) => s + bizOpex(b), 0);
 function safeToSpend(p, spend, addedOpex = 0, buffer = 0.4) {
   return p.cash - spend >= (committedOpex(p) + addedOpex) * buffer;
@@ -872,7 +905,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "1e988ce7";
+const ENGINE_VERSION = "0f0f2a38";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -880,7 +913,7 @@ function plotsOwned(state, p) {
   return Object.values(state.board.owner).filter((v) => v === p.id).length;
 }
 function discsUsed(state, p) {
-  return plotsOwned(state, p) + activeBiz(p).length + p.discsInBank;
+  return plotsOwned(state, p) + companySlotsUsed(p) + p.discsInBank;
 }
 function discsFree(state, p) { return DISCS_PER_PLAYER - discsUsed(state, p); }
 
@@ -997,9 +1030,9 @@ function runProduction(state, log) {
     }
   }
 }
-/* Revenue - B2B. Each industry pot is shared among the active businesses of that
-   industry, weighted by company level. An industry with no active business keeps
-   its pot for a later quarter. */
+/* Revenue - B2B. Each industry pot is split evenly among the active businesses of that
+   industry - one equal share each, whatever their level - and whatever will not divide
+   cleanly rides forward. An industry with no active business keeps its whole pot. */
 /* Supply Chain Expert: at the start of Revenue, push one industry you do not operate up
    one step. It costs you nothing directly but helps a rival's market, and in exchange
    your Retail reaches one more district this quarter. */
@@ -1027,10 +1060,14 @@ function runB2B(state, log) {
     const recipients = [];
     state.players.forEach((p) => activeBiz(p).forEach((b) => { if (bizInd(b) === ind) recipients.push({ p, b }); }));
     if (!recipients.length) continue;                    // nobody to pay: carries over
-    const totalLevels = recipients.reduce((s2, r) => s2 + r.b.level, 0) || 1;
-    recipients.forEach((r) => { r.p.cash += pot * (r.b.level / totalLevels); });
-    if (log) log(`${ind} pot of $${pot.toFixed(0)} shared among ${recipients.length} ${ind} business${recipients.length === 1 ? "" : "es"}.`, null);
-    state.pots[ind] = 0;
+    /* One equal share each, whatever size the companies are, and whatever will not
+       divide cleanly rides forward in the pot. A big company draws no more from the
+       pot than a small one - it is the industry that is being paid, not the building. */
+    const share = Math.floor(pot / recipients.length);
+    if (share < 1) continue;                             // too small to split: it rides forward
+    recipients.forEach((r) => { r.p.cash += share; });
+    state.pots[ind] = pot - share * recipients.length;
+    if (log) log(`${ind} pot pays $${share} to each of ${recipients.length} ${ind} business${recipients.length === 1 ? "" : "es"}${state.pots[ind] >= 1 ? `; $${Math.floor(state.pots[ind])} carries over` : ""}.`, null);
   }
 }
 function potRecipients(state, ind) {
@@ -1145,6 +1182,12 @@ function districtCount(state, p) {
   activeBiz(p).forEach((b) => b.footprint.forEach((plot) => districts.add(`${state.board.cellOf[plot].r},${state.board.cellOf[plot].c}`)));
   return districts.size;
 }
+/* Final standings. EP first; a tie is broken by money, and then by having fewer loan
+   discs still sitting in the bank. Ranking used to be EP alone, so a tied game picked
+   its winner by whatever order the players happened to be sitting in. */
+function finalRank(a, b) {
+  return epTotal(b) - epTotal(a) || b.cash - a.cash || a.discsInBank - b.discsInBank;
+}
 function finalizeGame(state) {
   awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", null);
   awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", null);
@@ -1181,15 +1224,12 @@ function bestMegacorpMatch(bizList, pool) {
   }
   return best;
 }
+/* Going public always means merging companies for a Megacorp tile, from the very first
+   time it is done. The IPO tile is not a separate action you can take: it is the prize
+   for being first, and forming the first Megacorp of the game is what wins it and opens
+   the second Board Meeting seat. */
 function claimMegacorp(state, p, log, hqChoice) {
   const match = bestMegacorpMatch(activeBiz(p), state.megacorpPool);
-  if (!state.ipoTileClaimed) {
-    addEP(p, 5, "IPO tile", state.quarter);
-    state.ipoTileClaimed = true;
-    state.tracks.board_meeting[1] = state.tracks.board_meeting[1] === undefined ? null : state.tracks.board_meeting[1];
-    log(`${p.name} claims the IPO tile (+5 EP, EP total: ${p.epBank.toFixed(0)}) \u2014 Board Meeting's extra slots are now open.`, p.id);
-    return true;
-  }
   if (!match) { log(`${p.name} has no company combo matching an available Megacorp tile.`, p.id); return false; }
   const [name, combo, ep] = match.tile;
   // One of the merged companies becomes the Megacorp HQ: it keeps its building and the
@@ -1210,6 +1250,12 @@ function claimMegacorp(state, p, log, hqChoice) {
   addEP(p, ep, `Megacorp: ${name}`, state.quarter);
   state.megacorpPool = state.megacorpPool.filter((t) => t !== match.tile);
   log(`${p.name} forms Megacorp "${name}" (+${ep} EP, EP total: ${p.epBank.toFixed(0)}) \u2014 ${hq.bp.name} becomes its HQ, ${match.have.length - 1} other compan${match.have.length - 1 === 1 ? "y goes" : "ies go"} distressed.`, p.id);
+  // first Megacorp of the game also takes the IPO tile, which opens Board Meeting's second seat
+  if (!state.ipoTileClaimed) {
+    state.ipoTileClaimed = true;
+    addEP(p, 5, "IPO tile", state.quarter);
+    log(`${p.name} was first to go public and takes the IPO tile (+5 EP) \u2014 Board Meeting's second seat is now open.`, p.id);
+  }
   return true;
 }
 
@@ -1226,16 +1272,22 @@ function runMegacorpSyphon(state, log) {
           if (id !== undefined && id !== hq.id) neighbourIds.add(id);
         });
       });
-      let taken = 0;
+      /* $5 out of the pot of every INDUSTRY the headquarters touches - not $5 per
+         neighbouring building. Two neighbours in the same industry are still one pot,
+         and it can only be tapped once. */
+      const industries = new Set();
       neighbourIds.forEach((id) => {
         for (const q of state.players) {
           const b = q.businesses.find((x) => x.id === id);
           if (!b || b.distressed || b.isHQ) continue;
-          const ind = bizInd(b);
-          const take = Math.min(5, state.pots[ind] || 0);
-          state.pots[ind] -= take;
-          taken += take;
+          industries.add(bizInd(b));
         }
+      });
+      let taken = 0;
+      industries.forEach((ind) => {
+        const take = Math.min(5, state.pots[ind] || 0);
+        state.pots[ind] -= take;
+        taken += take;
       });
       if (taken > 0) {
         p.cash += taken;
@@ -1262,7 +1314,7 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   // renovating brings a structure back online, so it counts against the active-company cap
   if (!p.businesses.includes(distressedBiz) && !canLaunchMore(p)) return false;
   if (!p.businesses.includes(distressedBiz) && discsFree(state, p) <= 0) return false;
-  if (p.businesses.includes(distressedBiz) && activeBiz(p).length >= 5) return false;
+  if (p.businesses.includes(distressedBiz) && companySlotsUsed(p) >= COMPANY_SLOTS) return false;
   // A distressed structure still sits in its previous owner's ledger. Detach it there
   // first, otherwise the same business object ends up listed under both players.
   const prev = state.players.find((pl) => pl.businesses.includes(distressedBiz));
@@ -1385,7 +1437,7 @@ const TRACK_HELP = {
   raise_capital: "Turn assets into cash. LOAN takes $20 from the bank for one of your discs (buy it back later or lose 5 EP). SELL turns a plot, an unbuilt Blueprint, or a whole company into money at market value.",
   ma: "Grow your footprint. BUY takes an unowned plot, or renovates a distressed company for half its Blueprint's setup cost. LAUNCH builds a Blueprint from your hand onto plots you own \u2014 and pays you 5 EP the first time you enter each industry.",
   rd: "Improve what you have. RESEARCH draws the face-up top card of any industry deck. UPGRADE pays a company's setup cost again to double its production and OPEX, and raise its level by one.",
-  board_meeting: "The power track. Both your workers go here together. GO PUBLIC claims the IPO tile the first time, then merges companies into a Megacorp for big EP. REPOSITION moves you to first in turn order.",
+  board_meeting: "The power track. Both your workers go here together. GO PUBLIC merges companies into a Megacorp tile for big EP \u2014 you need the exact combination one of the tiles asks for. Whoever does it first also takes the IPO tile (+5 EP), which opens this track's second seat. REPOSITION moves you to first in turn order.",
 };
 
 /* How much does this bot want the Board Meeting track this quarter?
@@ -1405,11 +1457,10 @@ function megacorpWorthIt(state, p, match) {
   return ep >= forgone;
 }
 
-/* Going public is only a legal choice when it can actually do something: claim the IPO
+/* Going public is only a legal choice when it can actually do something: form a
    tile the first time, or afterwards merge a real set of companies into a Megacorp.
    Otherwise the player is restricted to Reposition. */
 function canGoPublic(state, p) {
-  if (!state.ipoTileClaimed) return true;
   return !!bestMegacorpMatch(activeBiz(p), state.megacorpPool);
 }
 function goPublicBlockedReason(state, p) {
@@ -1447,14 +1498,11 @@ function boardMeetingDesire(state, p) {
   const meeplesLeft = (state.planningQueue || []).filter((id) => id === p.id).length;
   if (meeplesLeft < 2) return 0;                       // don't waste an already-placed meeple
 
-  if (state.ipoTileClaimed) {
-    // a Megacorp is the single biggest EP swing on the board - always worth both meeples
-    const m = bestMegacorpMatch(activeBiz(p), state.megacorpPool);
-    if (m && megacorpWorthIt(state, p, m)) return 100;
-  } else {
-    // the IPO tile is 5 EP for free and unlocks the two extra Board Meeting slots
-    return activeBiz(p).length >= 1 ? 75 : 35;
-  }
+  /* A Megacorp is the single biggest EP swing on the board, so it is always worth both
+     meeples. There is no separate IPO action to want any more - the tile comes free with
+     whoever merges first, which is only a reason to hurry, not a reason to sit here. */
+  const m = bestMegacorpMatch(activeBiz(p), state.megacorpPool);
+  if (m && (megacorpWorthIt(state, p, m) || !state.ipoTileClaimed)) return 100;
   // otherwise, is it worth seizing the front of the turn order?
   // sitting late means everyone else picks their track (and their FILO bonus) before you.
   // This costs two meeples for one action, so only the back of the order bothers.
@@ -1674,8 +1722,9 @@ function botResolveOneAction(state, p, track, rng, log) {
     }
   } else if (track === "board_meeting") {
     const match = bestMegacorpMatch(activeBiz(p), state.megacorpPool);
-    if (!state.ipoTileClaimed) claimMegacorp(state, p, log);
-    else if (canGoPublic(state, p) && match && megacorpWorthIt(state, p, match)) claimMegacorp(state, p, log);
+    // merging first also wins the IPO tile's 5 EP, which is worth reaching for
+    const worth = match && (megacorpWorthIt(state, p, match) || !state.ipoTileClaimed);
+    if (worth) claimMegacorp(state, p, log);
     else doReposition(state, p, log);
   }
 }
@@ -1769,7 +1818,7 @@ function startDeliveryFor(state, playerId, log) {
       let prod = bizProd(b);
       const bonus = Math.min(prod, hoBonusUnits(state, b));
       if (bonus > 0) {
-        human.cash += bonus * price(state.pm, bizInd(b));
+        human.cash += bonus * unitPrice(state, human, b);   // via unitPrice so personas apply here too
         prod -= bonus;
         state.hoBonusPaid[b.id] = bonus;
         log(`${b.bp.name} moves ${bonus} unit${bonus === 1 ? "" : "s"} to neighbouring businesses/hubs for $${bonus * price(state.pm, bizInd(b))}.`, human.id);
@@ -2884,8 +2933,8 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
             <button disabled={!!blocked}
               onClick={() => { if (state.ipoTileClaimed && megacorpMatch) return setMode("hq"); if (NET) return NET.send("act", { type: "megacorp" }); claimMegacorp(state, human, log); finish(); }}
               className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
-              {!state.ipoTileClaimed ? "Go Public \u2014 take the IPO tile (+5 EP)"
-                : megacorpMatch ? `Go Public \u2014 form "${megacorpMatch.tile[0]}" (+${megacorpMatch.tile[2]} EP)`
+              {megacorpMatch
+                ? `Go Public \u2014 form "${megacorpMatch.tile[0]}" (+${megacorpMatch.tile[2]} EP${!state.ipoTileClaimed ? " +5 IPO" : ""})`
                 : "Go Public"}
             </button>
             <button onClick={() => { if (NET) return NET.send("act", { type: "reposition" }); doReposition(state, human, log); finish(); }} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Reposition (become 1st)</button>
@@ -3051,11 +3100,11 @@ const TUTORIAL = [
     body: "Every company pays OPEX each quarter to companies in other industries \u2014 its suppliers, printed on its Blueprint. Those payments are the heart of the game.",
     points: ["UT \u2192 HO \u2192 MA \u2192 HC \u2192 RE \u2192 TE \u2192 back to UT",
              "Your OPEX lands in your suppliers' industry pots",
-             "Each pot is shared out to whoever owns companies there",
+             "Each pot is split evenly among that industry's companies",
              "So an industry nobody serves quietly piles up money"] },
 
   { title: "Prices move as the city is built", target: "prices", art: ArtPrices,
-    body: "Build a company and you push your own industry's price DOWN \u2014 more supply. Every supplier you now pay gets pushed UP \u2014 more demand. Demand bites faster: +$1 per company built, while it takes two companies to knock $1 off their own industry.",
+    body: "Build a company and you push your own industry's price DOWN \u2014 more supply. Every supplier you now pay gets pushed UP \u2014 more demand. Two steps in either direction move the price by $1.",
     points: ["A crowded industry can fall to $1, barely above recycling",
              "A neglected one can climb past $8 per unit",
              "Reading this strip is the main skill in the game"] },
@@ -3091,7 +3140,7 @@ const TUTORIAL = [
     points: ["5 EP the first time you build in each industry \u2014 paid immediately",
              "1 EP per company level at each year end",
              "10 EP for most plots, 10 EP for most districts",
-             "A Megacorp is worth 8\u201325 EP but consumes companies"] },
+             "A Megacorp is worth 8\u201325 EP, but eats companies and locks a slot"] },
 ];
 
 function Tutorial({ onClose }) {
@@ -3559,7 +3608,7 @@ function GameScreens({ online }) {
                 </div>
                 {!state.ipoTileClaimed && (
                   <div className="text-[10px] text-gray-500 mt-1.5">
-                    Board Meeting seats two players, but the second seat is under the IPO tile until someone goes public.
+                    Board Meeting seats two players, but the second seat is under the IPO tile until the first Megacorp is formed.
                   </div>
                 )}
               </div>
@@ -3718,7 +3767,7 @@ function GameScreens({ online }) {
 
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
               <div className="flex items-center justify-between mb-2">
-                <span data-tut="ledger" className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">Your player board <Help text="Your ten discs are your whole footprint: one per plot you own, one per active company, and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up." /></span>
+                <span data-tut="ledger" className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">Your player board <Help text="Your ten discs are your whole footprint: one per plot you own, one per company (a Megacorp HQ still holds its own), and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up." /></span>
                 <span className="text-[9px] font-mono text-gray-600">{human.name}</span>
               </div>
 
@@ -3838,7 +3887,7 @@ function GameScreens({ online }) {
 
           <div className="side-col space-y-3">
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text="Score = 1 EP per active company level, plus 5 EP the first year you field each industry (once per game). Plus endgame bonuses for most plots and most districts, $10 = 1 EP, and -5 EP per unpaid loan disc. Hover a player for the full breakdown." /></div>
+              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text="Score = 1 EP per active company level at each year end, plus 5 EP the moment you first build in each industry (once per game). Plus endgame bonuses for most plots and most districts, $10 = 1 EP, and -5 EP per unpaid loan disc. A tie is settled by money, then by fewer loan discs. Hover a player for the full breakdown." /></div>
               <div className="space-y-2">
                 {[...state.players].sort((a, b) => epTotal(b) - epTotal(a)).map((p) => {
                   const onCards = p.businesses.reduce((s2, b) => s2 + (b.epOnCard || 0), 0);
@@ -3926,7 +3975,7 @@ function GameScreens({ online }) {
                 ))}
               </div>
               <div style={{ display: indTab === "pots" ? "block" : "none" }}>
-              <div data-tut="pots" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Pots <Help text="When a company pays OPEX, that money (minus rent) lands in its suppliers' pots. Each quarter every pot is shared among the active businesses of that industry, weighted by level. Supplying industries nobody builds is very lucrative." /></div>
+              <div data-tut="pots" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Pots <Help text="When a company pays OPEX, that money (minus rent) lands in its suppliers' pots. Each quarter every pot is split evenly among the active businesses of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative." /></div>
               <div className="text-[9px] text-gray-500 mb-1.5">Supplier OPEX collects here, then splits among that industry's active businesses by level.</div>
               <div className="grid grid-cols-2 gap-1.5">
                 {INDUSTRIES.map((ind) => {
@@ -3991,7 +4040,7 @@ function GameScreens({ online }) {
                 keeps a single, full-width block instead of two stubby ones. */}
             <div className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
 
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ (keeps its building, siphons $5 from each neighbour's industry pot, and stops being an active company); the rest go distressed." /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc, stops trading, and siphons $5 from the pot of every industry it touches. The rest go distressed. Each Megacorp permanently locks one of your five company slots." /></div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
                 {state.megacorpPool.map(([name, combo, ep], i) => (
                   <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>
@@ -4007,7 +4056,7 @@ function GameScreens({ online }) {
                   </div>
                 ))}
               </div>
-              <div className="text-[9px] text-gray-600 mt-1">{state.ipoTileClaimed ? "IPO tile claimed \u2014 all Board Meeting slots open." : "IPO tile not yet claimed."}</div>
+              <div className="text-[9px] text-gray-600 mt-1">{state.ipoTileClaimed ? "IPO tile taken \u2014 both Board Meeting seats are open." : "IPO tile: +5 EP to whoever forms the first Megacorp."}</div>
               <div style={{ height: 1, backgroundColor: "#262a33", margin: "10px 0" }} />
 
               <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Log</div>
@@ -4390,7 +4439,7 @@ function MatchTracker({ state, elapsed }) {
   );
 }
 function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
-  const ranked = [...state.players].sort((a, b) => b.epBank - a.epBank);
+  const ranked = [...state.players].sort(finalRank);
   const mm = String(Math.floor((elapsed || 0) / 60)).padStart(2, "0");
   const ss = String((elapsed || 0) % 60).padStart(2, "0");
   const hh = Math.floor((elapsed || 0) / 3600);
