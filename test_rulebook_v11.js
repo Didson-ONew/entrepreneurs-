@@ -1,8 +1,8 @@
-/* Pins the engine to Rulebook v10 on every point where the two had drifted apart.
+/* Pins the engine to Rulebook v11 on every point where the two had drifted apart.
    Each check names the clause it is enforcing, so a future rules change that breaks
    one of these tells you which sentence it just contradicted.
 
-   Run: node test_rulebook_v10.js
+   Run: node test_rulebook_v11.js
 */
 const fs = require("fs");
 const path = require("path");
@@ -19,6 +19,7 @@ function loadEngine() {
     box.exports = { initGame, mulberry32, makePriceMatrix, price, onLaunch, runB2B,
       runMegacorpSyphon, claimMegacorp, canGoPublic, bestMegacorpMatch, activeBiz,
       companySlotsUsed, canLaunchMore, discsUsed, discsFree, finalRank, unitPrice,
+      renovationEligible, bizInd,
       byId, BP_DATA, MEGACORP_TILES, STARTING, INDUSTRIES, BASE_PRICE, SCALING,
       LOAN_REPAY_RATE, BP_SELL_PRICE, DISCS_PER_PLAYER, COMPANY_SLOTS };
   `, sandbox);
@@ -181,11 +182,32 @@ section("Personas - Government Relationship");
   st.board.owner[mine] = a.id;
   const biz = { id: 600, bp: utBp, footprint: [mine], level: 1, upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt: 1 };
   a.businesses.push(biz);
-  const mineTile = (() => { const c = st.board.cellOf[mine]; return `${c.r},${c.c}`; })();
-  const theirTile = (() => { const c = st.board.cellOf[theirs]; return `${c.r},${c.c}`; })();
   const base = E.price(st.pm, "UT");
-  check("+$1 in a district where it owns land", E.unitPrice(st, a, biz, null, mineTile) === base + 1);
-  check("+$2 in a district where it owns none", E.unitPrice(st, a, biz, null, theirTile) === base + 2);
+  check("+$1 above the current price, everywhere", E.unitPrice(st, a, biz) === base + 1);
+  check("no extra in a district where it owns no land", E.unitPrice(st, a, biz, null) === base + 1);
+}
+
+/* ------------------------------------------------------------- renovation */
+section("Renovation - level always, scaling type from level 2 up");
+{
+  const shell = (ind, level) => ({ level, bp: E.BP_DATA.find((x) => x.ind === ind && x.lvl === level) });
+  const card = (ind, lvl) => E.BP_DATA.find((x) => x.ind === ind && x.lvl === lvl);
+  // UT/MA/TE are horizontal, RE/HO/HC vertical
+  check("a level-1 horizontal shell takes a level-1 vertical card",
+    E.renovationEligible(shell("UT", 1), card("RE", 1)) === true);
+  check("a level-1 vertical shell takes a level-1 horizontal card",
+    E.renovationEligible(shell("HC", 1), card("TE", 1)) === true);
+  check("a level-2 horizontal shell REFUSES a level-2 vertical card",
+    E.renovationEligible(shell("UT", 2), card("RE", 2)) === false);
+  check("a level-2 vertical shell REFUSES a level-2 horizontal card",
+    E.renovationEligible(shell("HC", 2), card("MA", 2)) === false);
+  check("a level-3 horizontal shell REFUSES a level-3 vertical card",
+    E.renovationEligible(shell("MA", 3), card("HO", 3)) === false);
+  check("a level-2 horizontal shell accepts another horizontal level-2 card",
+    E.renovationEligible(shell("UT", 2), card("TE", 2)) === true);
+  check("a level-3 vertical shell accepts another vertical level-3 card",
+    E.renovationEligible(shell("HC", 3), card("HO", 3)) === true);
+  check("levels must always match", E.renovationEligible(shell("UT", 2), card("TE", 3)) === false);
 }
 
 /* ------------------------------------------------------------------ ties */
@@ -211,5 +233,5 @@ check("16 Megacorp tiles, 8 to 25 EP",
   E.MEGACORP_TILES.length === 16 && Math.min(...E.MEGACORP_TILES.map((t) => t[2])) === 8
   && Math.max(...E.MEGACORP_TILES.map((t) => t[2])) === 25);
 
-console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed - the engine matches Rulebook v10\n");
+console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed - the engine matches Rulebook v11\n");
 process.exit(fails ? 1 : 0);

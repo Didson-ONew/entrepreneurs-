@@ -508,27 +508,16 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
   state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
   return cross ? 1 : exchangeRate(state, biz);
 }
-function ownsPlotIn(state, p, tileKey) {
-  return Object.entries(state.board.owner).some(([plot, id]) => {
-    if (id !== p.id) return false;
-    const c = state.board.cellOf[plot];
-    return c && `${c.r},${c.c}` === tileKey;
-  });
-}
 /* What one unit of this company's output is actually worth to this owner, including
    any persona effect. `slotInd` is the row being sold into, which only differs from the
-   company's own industry when Manufacturing cross-sells; `tileKey` is the district it
-   is being sold into, which only matters to the Government Relationship persona. */
-function unitPrice(state, p, biz, slotInd, tileKey) {
+   company's own industry when Manufacturing cross-sells. */
+function unitPrice(state, p, biz, slotInd) {
   const own = price(state.pm, bizInd(biz));
   if (slotInd && slotInd !== bizInd(biz)) {
     // Product Manager is paid the price of the row being sold into, not its own
     return hasPersona(p, "product_mgr") ? price(state.pm, slotInd) : own;
   }
-  // Government Relationship: +$1 normally, +$2 in a district where it owns no land
-  if (bizInd(biz) === "UT" && hasPersona(p, "gov_rel")) {
-    return own + (tileKey && !ownsPlotIn(state, p, tileKey) ? 2 : 1);
-  }
+  if (bizInd(biz) === "UT" && hasPersona(p, "gov_rel")) return own + 1;
   return own;
 }
 function autoDeliver(state, p, biz) {
@@ -552,7 +541,7 @@ function autoDeliver(state, p, biz) {
       const got = deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, false);
       if (got > 0) {
         const n = Math.min(got, remaining);
-        sold += n * unitPrice(state, p, biz, null, s.tileKey);   // district matters to Gov Relationship
+        sold += n * unitPrice(state, p, biz);
         remaining -= n;
       }
     }
@@ -571,7 +560,7 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
      price, so a human holding Product Manager or Government Relationship never actually
      collected what their persona promised - only the bots did. */
   const slotInd = cross ? slotIndustry(state.demand, tileKey, rowIdx) : null;
-  const paid = got * unitPrice(state, human, biz, slotInd, tileKey);
+  const paid = got * unitPrice(state, human, biz, slotInd);
   human.cash += paid;
   if (cross) state.crossSellRemaining[bizId] = Math.max(0, (state.crossSellRemaining[bizId] || 0) - got);
   else state.deliveryRemaining[bizId] = Math.max(0, (state.deliveryRemaining[bizId] || 0) - got);
@@ -616,7 +605,7 @@ const PERSONAS = {
   supply_chain:{ ind: "RE", name: "Supply Chain Expert",
     blurb: "At the start of Revenue, raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter." },
   gov_rel:     { ind: "UT", name: "Government Relationship",
-    blurb: "Your Utilities production sells for $1 above the current price, or $2 in a district where you own no plots." },
+    blurb: "Your Utilities production sells for $1 above the current price." },
 };
 const PERSONA_KEYS = Object.keys(PERSONAS);
 const hasPersona = (p, key) => !!p && p.persona === key;
@@ -905,7 +894,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "0f0f2a38";
+const ENGINE_VERSION = "b7db88d2";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1298,9 +1287,14 @@ function runMegacorpSyphon(state, log) {
 }
 
 /* ---------------- Renovation & plot market ---------------- */
+/* A renovation has to fit the structure that is already standing there, so the card
+   must match its level, and from level 2 up its scaling type as well: a distressed
+   horizontal shell occupies several plots and a vertical one occupies a single stacked
+   plot, and neither can be rebuilt as the other. At level 1 both occupy exactly one
+   plot, so a level-1 shell is open to any level-1 Blueprint. */
 function renovationEligible(distressedBiz, bp) {
   if (distressedBiz.level !== bp.lvl) return false;
-  if (distressedBiz.level === 1) return true;
+  if (distressedBiz.level === 1) return true;            // one plot either way: anything fits
   return SCALING[bizInd(distressedBiz)] === SCALING[bp.ind];
 }
 function findDistressedTargets(state) {
@@ -2818,7 +2812,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
       )}
       {entry.track === "ma" && mode === "buy" && (
         <div className="space-y-2">
-          <div className="text-[10px] text-gray-400">Renovate a distressed structure (pay half the BP&rsquo;s setup) &mdash; location matters, since renovating changes industry:</div>
+          <div className="text-[10px] text-gray-400">Renovate a distressed structure (pay half the BP&rsquo;s setup) &mdash; location matters, since renovating changes industry. The card must match the shell&rsquo;s level, and from level 2 up its scaling type too; a level-1 shell takes any level-1 card:</div>
           <div className="flex flex-col gap-1.5">
             {renoOptions.length ? renoOptions.map(({ db, bps }) => {
               const locs = [...new Set(db.footprint.map((pk) => state.board.tiles[`${state.board.cellOf[pk].r},${state.board.cellOf[pk].c}`]))];

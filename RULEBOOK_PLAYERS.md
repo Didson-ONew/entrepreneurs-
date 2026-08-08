@@ -1,6 +1,6 @@
 # Entrepreneurs - How to play
 
-*3rd edition. Everything you need to play, and nothing you don't.*
+*Rulebook v11. Everything you need to play, and nothing you don't.*
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
@@ -145,7 +145,7 @@ Going to the Board Meeting costs ALL of your workers for the quarter and buys a 
 
 You may build on plots owned by another player. They collect the rent every quarter, but the company is yours.
 
-Renovating needs a card of the same level as the distressed structure, and above level 1 the card must scale the same way (horizontal into horizontal, vertical into vertical).
+A renovation has to fit the shell that is already standing. The card must match the distressed structure's level, and from level 2 upwards its scaling type as well: a level-2 or level-3 horizontal structure spreads across several plots and cannot be rebuilt as a vertical one, nor the other way round. At level 1 both kinds occupy a single plot, so a level-1 shell is open to any level-1 Blueprint.
 
 ### R&D
 
@@ -366,7 +366,7 @@ Personas are asymmetric powers, one tied to each industry. They are off unless t
 | Product Manager (MA) | When your Manufacturing cross-sells into another industry's row, it is paid that industry's price instead of its own. |
 | Customer Oriented (HO) | Your Hospitality companies upgrade horizontally, spreading across plots so more businesses and hubs sit next to them. |
 | Supply Chain Expert (RE) | At the start of Revenue, raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. |
-| Government Relationship (UT) | Your Utilities production sells for $1 above the current price, or $2 in a district where you own no plots. |
+| Government Relationship (UT) | Your Utilities production sells for $1 above the current price. |
 
 ---
 
@@ -405,6 +405,7 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Rent | $3 per company level, to the owners of the plots it stands on |
 | Unsold production | $1 per unit |
 | Industry pot | split evenly among that industry's active companies; the remainder rides forward |
+| Renovation | card must match the shell's level; from level 2 up, its scaling type too |
 | Final tie | most money, then fewest loan discs in the bank |
 | Demand rows 3-4 | closed until Quarter 5 |
 | Demand grid | wiped clean at the end of Quarter 8 |
