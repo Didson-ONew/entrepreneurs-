@@ -2769,7 +2769,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
       )}
       {entry.track === "ma" && mode === "buy" && (
         <div className="space-y-2">
-          <div className="text-[10px] text-gray-400">Renovate a distressed structure (pay half the BP's setup) \u2014 location matters, since renovating changes industry:</div>
+          <div className="text-[10px] text-gray-400">Renovate a distressed structure (pay half the BP&rsquo;s setup) &mdash; location matters, since renovating changes industry:</div>
           <div className="flex flex-col gap-1.5">
             {renoOptions.length ? renoOptions.map(({ db, bps }) => {
               const locs = [...new Set(db.footprint.map((pk) => state.board.tiles[`${state.board.cellOf[pk].r},${state.board.cellOf[pk].c}`]))];
@@ -3655,11 +3655,11 @@ function GameScreens({ online }) {
             {isHumanPlacingLH && pickMode && pickMode.kind === "lh" && (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#0f2530", border: "1px solid #22D3EE" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#67e8f9" }}>
-                  You're 1st in turn order \u2014 place this quarter's Logistic Hub ({pickMode.selected.length}/2 plots picked)
+                  You&rsquo;re 1st in turn order &mdash; place this quarter&rsquo;s Logistic Hub ({pickMode.selected.length}/2 plots picked)
                 </div>
                 <div className="text-[10px] text-gray-400 mb-2">Click two adjacent plots on the board to place the hub between them.</div>
                 {pickMode.selected.length === 1 && computeEligiblePlots(state.board, pickMode).size === 0 && (
-                  <div className="text-[10px] text-red-400 mb-2">That plot's neighbors all already have a hub \u2014 reset and pick a different starting plot.</div>
+                  <div className="text-[10px] text-red-400 mb-2">That plot&rsquo;s neighbours all already have a hub &mdash; reset and pick a different starting plot.</div>
                 )}
                 <div className="flex gap-2">
                   <button onClick={handleConfirmLH} disabled={pickMode.selected.length < 2}

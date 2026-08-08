@@ -499,7 +499,7 @@ function TablePanel({ me, chat, onSend }) {
                       ))}
                       {!voice.peers.length && (
                         <div style={{ fontSize: 11, color: "#6b7280", fontStyle: "italic", marginTop: 3 }}>
-                          Waiting for someone else to join\u2026
+                          Waiting for someone else to join&hellip;
                         </div>
                       )}
                     </div>

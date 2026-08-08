@@ -67,7 +67,7 @@ async function tryAct(p) { /* returns branch label or null */
     return null;
   }
   // hub placement
-  if (/Placing Logistic Hub/.test(t)) {
+  if (/place this quarter.s Logistic Hub/.test(t)) {
     const ok = await p.evaluate(() => {
       const d = Array.from(document.querySelectorAll("div")).filter((x) => getComputedStyle(x).backgroundColor === "rgb(13, 40, 24)");
       if (!d.length) return false; d[0].click(); return true;
@@ -165,7 +165,9 @@ const T0 = Date.now();
   const ctxA = await browser.newContext({ viewport: { width: 1400, height: 950 } });
   const ctxB = await browser.newContext({ viewport: { width: 1400, height: 950 } });
   const A = await ctxA.newPage(), B = await ctxB.newPage();
-  await A.addInitScript(() => { try { localStorage.setItem('entrepreneurs_tutorial_seen','1'); } catch(e) {} });
+  // BOTH pages: a page without this flag opens the first-run tutorial, whose full-screen
+  // click-catcher swallows every click and hangs the run on that player's first turn.
+  for (const p of [A, B]) await p.addInitScript(() => { try { localStorage.setItem('entrepreneurs_tutorial_seen','1'); } catch(e) {} });
   const errs = [];
   A.on("pageerror", (e) => errs.push("A: " + e.message));
   B.on("pageerror", (e) => errs.push("B: " + e.message));
@@ -220,8 +222,13 @@ const T0 = Date.now();
     try { b = await tryAct(B); } catch (e) { console.log("B err:", e.message.slice(0, 80)); }
     if (a) hist["A:" + a] = (hist["A:" + a] || 0) + 1;
     if (b) hist["B:" + b] = (hist["B:" + b] || 0) + 1;
-    const qm = ta.match(/\bQ(\d)\b[\s\S]{0,80}?(Planning|Action|Production|Revenue|Closing)/);
-    const qNow = qm ? +qm[1] : 0;
+    /* Ask the server how far the game has got. The header always draws all four
+       Q1..Q4 pills and numbers them within the year, so scraping it for a quarter
+       reads "Q1" from the first pill forever and this loop cries stall at a game
+       that is running perfectly well. */
+    const qNow = steps % 5 === 0
+      ? await fetch(`http://127.0.0.1:8080/api/debug?code=${code}`).then((r) => r.json()).then((d) => d.quarter || 0).catch(() => lastQ)
+      : lastQ;
     if (qNow > lastQ) { lastQ = qNow; lastQStep = steps; console.log(`  Q${qNow} at step ${steps}`); }
     if (steps - lastQStep > 150) {
       console.log(`\n!! CHURN: quarter stuck at ${lastQ} for 150 steps`);
@@ -251,7 +258,8 @@ const T0 = Date.now();
   }
 
   const finalA = await txt(A), finalB = await txt(B);
-  const q = (finalA.match(/\bQ(\d)\b[\s\S]{0,80}?(Planning|Action|Production|Revenue|Closing)/) || [])[1];
+  const q = await fetch(`http://127.0.0.1:8080/api/debug?code=${code}`)
+    .then((r) => r.json()).then((d) => d.quarter).catch(() => null);   // see the note above
   console.log(`\nactions taken: ${acted} | quarter reached: ${q || "end"}`);
   console.log("A reached Game Over:", /Game Over/.test(finalA));
   console.log("B reached Game Over:", /Game Over/.test(finalB));

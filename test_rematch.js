@@ -13,7 +13,7 @@ async function act(p){
     const go=p.getByText(/Start Year 1/);
     if(await go.count()&&await go.first().isEnabled().catch(()=>false)){await go.first().click({timeout:1500}).catch(()=>{});return true;}
   }
-  if(/Placing Logistic Hub/.test(t)){
+  if(/place this quarter.s Logistic Hub/.test(t)){
     const ok=await p.evaluate(()=>{const d=Array.from(document.querySelectorAll("div")).filter(x=>getComputedStyle(x).backgroundColor==="rgb(13, 40, 24)");if(!d.length)return false;d[0].click();return true;});
     await sleep(100);
     const cf=p.getByText("Confirm placement");
@@ -35,7 +35,9 @@ async function act(p){
   const cA=await br.newContext({viewport:{width:1500,height:950}});
   const cB=await br.newContext({viewport:{width:1500,height:950}});
   const A=await cA.newPage(), B=await cB.newPage();
-  await A.addInitScript(() => { try { localStorage.setItem('entrepreneurs_tutorial_seen','1'); } catch(e) {} });
+  // BOTH pages: a page without this flag opens the first-run tutorial, whose full-screen
+  // click-catcher swallows every click and hangs the run on that player's first turn.
+  for (const p of [A, B]) await p.addInitScript(() => { try { localStorage.setItem('entrepreneurs_tutorial_seen','1'); } catch(e) {} });
   const errs=[];A.on("pageerror",e=>errs.push("A:"+e.message));B.on("pageerror",e=>errs.push("B:"+e.message));
   await A.goto(URL); await waitText(A,/ENTREPRENEURS/);
   await A.fill('input[placeholder="Your name"]',"Ana");
