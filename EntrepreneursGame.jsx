@@ -453,19 +453,30 @@ function hoBonusUnits(state, biz, owner) {
 function ownerOf(state, biz) {
   return state.players.find((pl) => pl.businesses.includes(biz)) || null;
 }
+/* How deep into a demand row a company may sell. Normally that is its level, but a
+   Preventive Doctor's clinics serve any column whatever their size.
+
+   Everything that decides what may be delivered reads this one function: the bots'
+   auto-delivery, the engine's own check, and the demand grid the human clicks. It
+   was three separate copies of the rule before, and the grid's copy did not know
+   about the persona - so the ability worked for bots and did nothing at all for the
+   player holding it. */
+function deliveryColumnCap(state, biz, owner) {
+  const p = owner || ownerOf(state, biz);
+  if (bizInd(biz) === "HC" && hasPersona(p, "preventive")) return 4;
+  return Math.min(biz.level, 4);
+}
 function eligibleSlotsFor(state, biz) {
   const __owner = ownerOf(state, biz);
   const reach = reachableDistricts(state, biz);
   const ind = bizInd(biz), lvl = biz.level;
+  const cap = deliveryColumnCap(state, biz, __owner);
   const out = [];
-  // Preventive Doctor: a clinic of any size may serve any column of a Healthcare row
-  const hcAnyColumn = ind === "HC" && hasPersona(__owner, "preventive");
   reach.forEach((tileKey) => {
     const t = state.demand.tiles[tileKey];
     if (!t) return;
     t.rows.forEach((rowInd, rowIdx) => {
       if (rowInd !== ind) return;
-      const cap = hcAnyColumn ? 4 : Math.min(lvl, 4);
       for (let levelIdx = 0; levelIdx < cap; levelIdx++) {
         if (slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter)) out.push({ tileKey, rowIdx, levelIdx, cross: false });
       }
@@ -493,9 +504,7 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
     if (bizInd(biz) !== "MA" || slotInd === bizInd(biz)) return 0;
     if (!footprintDistricts(state.board, biz.footprint).has(tileKey)) return 0;
   } else if (slotInd !== bizInd(biz)) return 0;
-  const __ow = ownerOf(state, biz);
-  const ignoresLevel = bizInd(biz) === "HC" && hasPersona(__ow, "preventive");
-  if (levelIdx >= biz.level && !ignoresLevel) return 0;
+  if (levelIdx >= deliveryColumnCap(state, biz)) return 0;
   state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
   return cross ? 1 : exchangeRate(state, biz);
 }
@@ -859,10 +868,11 @@ function doDraw(state, p, industry, log) {
   log(`${p.name} draws from the ${industry} deck.`, p.id);
   return true;
 }
-/* Bumped automatically at build time from a hash of the rules code. The server reads
-   this file at boot, so if a deployment updates the client but not this file the two
-   will disagree and the UI says so instead of silently playing by old rules. */
-const ENGINE_VERSION = "3b438a5d";
+/* Stamped by build.mjs from a hash of the rules code above - do not edit by hand. The
+   server reads this file at boot, so if a deployment updates the client but not this
+   file the two will disagree and the UI says so instead of silently playing by old
+   rules. Change any rule, run the build, and this moves on its own. */
+const ENGINE_VERSION = "1e988ce7";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -2042,7 +2052,7 @@ function DemandCenter({ tname, demand, quarter, tileKey, deliverInfo, onDeliver 
             {locked && <span style={{ fontSize: 8, lineHeight: 1, marginRight: 1 }}>{"\uD83D\uDD12"}</span>}
             {[0, 1, 2, 3].map((levelIdx) => {
               const filled = !!t.filled[rowIdx][levelIdx];
-              const isNormalEligible = !locked && !filled && deliverInfo && deliverInfo.ind === ind && levelIdx < deliverInfo.level && deliverInfo.reach.has(tileKey);
+              const isNormalEligible = !locked && !filled && deliverInfo && deliverInfo.ind === ind && levelIdx < deliverInfo.cap && deliverInfo.reach.has(tileKey);
               const isCrossEligible = !locked && !filled && deliverInfo && deliverInfo.crossActive && ind !== deliverInfo.ind && levelIdx < deliverInfo.level && deliverInfo.crossHome.has(tileKey);
               const isEligible = isNormalEligible || isCrossEligible;
               let bg = filled ? "#00000055" : IND_COLOR[ind] + "aa";
@@ -3413,6 +3423,8 @@ function GameScreens({ online }) {
   const needsREChoice = deliveringBiz && bizInd(deliveringBiz) === "RE" && !state.reChoices[deliveringBiz.id];
   const deliverInfo = deliveringBiz && !needsREChoice ? {
     ind: bizInd(deliveringBiz), level: deliveringBiz.level, reach: reachableDistricts(state, deliveringBiz),
+    // how deep into a row this company may sell - see deliveryColumnCap
+    cap: deliveryColumnCap(state, deliveringBiz, human),
     crossActive: bizInd(deliveringBiz) === "MA" && (state.crossSellRemaining[deliveringBiz.id] || 0) > 0,
     crossHome: bizInd(deliveringBiz) === "MA" ? footprintDistricts(state.board, deliveringBiz.footprint) : new Set(),
   } : null;

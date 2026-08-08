@@ -158,7 +158,14 @@ RULEBOOK.md            full rules + designer's notes  ← generated
 RULEBOOK_PLAYERS.md    the player-facing rules        ← generated
 test_online.js         two-client end-to-end test — run the server, then this
 test_2humans.js        engine-level test: full game with two humans
+test_preventive.js     regression test: the Preventive Doctor rule (engine only)
+test_preventive_ui.js  the same persona through the real page - needs the server
 ```
+
+`build.mjs` also stamps `ENGINE_VERSION` from a hash of the rules code, so changing
+a rule always moves it. The server prints the version it loaded at boot and the
+client compares it with its own — if you deploy new pages without restarting the
+server, the page says so instead of quietly playing by the old rules.
 
 ## Building
 
