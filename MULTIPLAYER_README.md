@@ -110,6 +110,7 @@ All endpoints are JSON over POST except the event stream.
 | `POST /api/start` `{code, token}` | host starts the game |
 | `GET /api/stream?code=&token=` | SSE: pushes `{type:"state", state, logs}` on every change |
 | `POST /api/action` `{code, token, action, data}` | submit a move |
+| `GET /api/presence?id=` | heartbeat → `{online, matches, waiting, seated}` for the live counters |
 
 Actions: `draft`, `plan`, `act`, `deliver`, `skipDelivery`, `liquidate`,
 `liquidateDone`, `placeLH`, `repay`, `repayDone`.
@@ -145,9 +146,41 @@ single-player build already has a "Waiting on other players…" state to build o
 ```
 server.js              the server (no dependencies)
 EntrepreneursGame.jsx  engine + single-player UI (single source of truth)
+OnlineApp.jsx          the online client: lobby, waiting room, table panel
+Rulebook.jsx           the in-game rulebook and the live online/match counters
+rulebook.data.mjs      the rules text — the single source of truth for both books
+make_rulebook.mjs      writes RULEBOOK.md and RULEBOOK_PLAYERS.md from that data
+build.mjs              bundles the two shipped pages
 app.css                stylesheet
-Entrepreneurs.html     the working single-player game, unchanged
+Entrepreneurs.html     built single-player page  ← generated, do not hand-edit
+online.html            built online client       ← generated, do not hand-edit
+RULEBOOK.md            full rules + designer's notes  ← generated
+RULEBOOK_PLAYERS.md    the player-facing rules        ← generated
 test_online.js         two-client end-to-end test — run the server, then this
 test_2humans.js        engine-level test: full game with two humans
-online.html            placeholder for the browser client
 ```
+
+## Building
+
+The two `.html` files are single self-contained pages with the stylesheet and the
+whole React bundle inlined, so they work over HTTP or straight off the disk. They
+are **generated** — edit the `.jsx` sources and rebuild:
+
+```bash
+npm install     # esbuild + react, one time
+npm run build   # regenerates both rulebooks and both pages
+```
+
+The server itself still has zero runtime dependencies; the build tools are only
+needed if you change the client.
+
+## The rulebook
+
+`rulebook.data.mjs` holds the rules as data, once. Three things read it:
+
+- **the game** — `Rulebook.jsx` renders it as an in-game rulebook, reachable from
+  every screen, and deliberately skips every `note` block;
+- **`RULEBOOK.md`** — the complete edition, designer's notes included;
+- **`RULEBOOK_PLAYERS.md`** — exactly what players see in the game.
+
+So a rule cannot be right in the book and wrong in the game: there is one copy.

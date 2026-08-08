@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Game, { setNet, getEngineVersion, Floating } from "./EntrepreneursGame.jsx";
+import SiteChrome from "./Rulebook.jsx";
 
 const api = async (path, body) => {
   const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -528,7 +529,19 @@ function TablePanel({ me, chat, onSend }) {
   );
 }
 
+/* The rulebook and the live counters are mounted here, outside the app, so they
+   are on screen on every one of its screens - joining, waiting, drafting, playing
+   and the results - instead of only inside the game. */
 export default function OnlineApp() {
+  return (
+    <>
+      <SiteChrome />
+      <OnlineTable />
+    </>
+  );
+}
+
+function OnlineTable() {
   const [me, setMe] = useState(null);
   const [lobby, setLobby] = useState(null);
   const [state, setState] = useState(null);

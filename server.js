@@ -62,6 +62,31 @@ function newRoom(hostName, bots) {
   return room;
 }
 
+/* ---------- presence ----------
+   Every page pings /api/presence on a timer, from every screen including the join
+   page, so the counters can report the whole site rather than only the people who
+   have already sat down at a table. A client that stops pinging ages out. */
+const presence = new Map();          // client id -> last time we heard from it
+const PRESENCE_TTL = 30000;
+const PRESENCE_MAX = 10000;          // ids are client-supplied; do not grow without bound
+function countOnline() {
+  const cutoff = Date.now() - PRESENCE_TTL;
+  for (const [id, seen] of presence) if (seen < cutoff) presence.delete(id);
+  return presence.size;
+}
+/* A room is a match once it has a game state and that game is not over; before
+   that it is a lobby still looking for people. */
+function countRooms() {
+  let matches = 0, waiting = 0, seated = 0;
+  for (const room of rooms.values()) {
+    if (!room.state) { waiting++; continue; }
+    if (room.state.phase === "gameover") continue;
+    matches++;
+    seated += room.members.length;
+  }
+  return { matches, waiting, seated };
+}
+
 /* Spectators are full members of the room for chat, voice and watching, but hold no
    seat and are refused every game action. Seats 100+ keep them clear of player ids. */
 const SPECTATOR_SEAT_BASE = 100;
@@ -306,6 +331,15 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const p = url.pathname;
+
+  /* How busy the site is. Open to anyone: it is shown on every screen, including
+     the join page, where the visitor has no room and no token yet. */
+  if (p === "/api/presence") {
+    const id = url.searchParams.get("id");
+    if (id && (presence.has(id) || presence.size < PRESENCE_MAX)) presence.set(id, Date.now());
+    const { matches, waiting, seated } = countRooms();
+    return json(res, { online: countOnline(), matches, waiting, seated });
+  }
 
   if (p === "/api/create" && req.method === "POST") {
     const b = await body(req);
