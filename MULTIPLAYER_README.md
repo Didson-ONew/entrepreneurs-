@@ -156,9 +156,18 @@ Entrepreneurs.html     built single-player page  ← generated, do not hand-edit
 online.html            built online client       ← generated, do not hand-edit
 RULEBOOK.md            full rules + designer's notes  ← generated
 RULEBOOK_PLAYERS.md    the player-facing rules        ← generated
+Entrepreneurs_Rulebook_v11.docx   the printed rulebook — the authority over all of the above
 test_online.js         two-client end-to-end test — run the server, then this
 test_2humans.js        engine-level test: full game with two humans
+test_rulebook_v11.js   conformance: pins the engine to every clause of Rulebook v11
+test_preventive.js     regression test: the Preventive Doctor rule (engine only)
+test_preventive_ui.js  the same persona through the real page - needs the server
 ```
+
+`build.mjs` also stamps `ENGINE_VERSION` from a hash of the rules code, so changing
+a rule always moves it. The server prints the version it loaded at boot and the
+client compares it with its own — if you deploy new pages without restarting the
+server, the page says so instead of quietly playing by the old rules.
 
 ## Building
 
@@ -184,3 +193,9 @@ needed if you change the client.
 - **`RULEBOOK_PLAYERS.md`** — exactly what players see in the game.
 
 So a rule cannot be right in the book and wrong in the game: there is one copy.
+
+The printed **Rulebook v11** (`Entrepreneurs_Rulebook_v11.docx`) is the authority above
+both. `test_rulebook_v11.js` pins
+the engine to it clause by clause - starting capital, the card tables, the price
+curve, how the pots divide, what going public does, the tiebreak - so a change that
+contradicts the printed rules fails a test that names the sentence it broke.

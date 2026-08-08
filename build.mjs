@@ -12,6 +12,30 @@
    ========================================================================== */
 import { build } from "esbuild";
 import { readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+
+const ENGINE_MARK = "/* ============================== REACT UI ============================== */";
+
+/* The server loads the engine section out of EntrepreneursGame.jsx at boot, so a
+   deployment that ships new pages but an old copy of that file would quietly play by
+   the old rules. The client compares its ENGINE_VERSION with the server's and says so
+   when they differ - which only works if that constant actually tracks the code. Its
+   comment always claimed it was "bumped automatically at build time"; now it is. */
+function stampEngineVersion() {
+  const file = "EntrepreneursGame.jsx";
+  const src = readFileSync(file, "utf8");
+  const pattern = /const ENGINE_VERSION = "[^"]*";/;
+  const engine = src.slice(0, src.indexOf(ENGINE_MARK)).replace(pattern, "");
+  const hash = createHash("sha256").update(engine).digest("hex").slice(0, 8);
+  const next = src.replace(pattern, `const ENGINE_VERSION = "${hash}";`);
+  if (next !== src) {
+    writeFileSync(file, next);
+    console.log(`engine version    ${hash} (rules changed - restart any running server)`);
+  } else {
+    console.log(`engine version    ${hash} (unchanged)`);
+  }
+}
+stampEngineVersion();
 
 const css = readFileSync("app.css", "utf8");
 

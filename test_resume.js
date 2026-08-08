@@ -18,7 +18,9 @@ async function waitText(p, re, ms = 8000) {
   const ctxA = await browser.newContext({ viewport: { width: 1500, height: 950 } });
   const ctxB = await browser.newContext({ viewport: { width: 1500, height: 950 } });
   const A = await ctxA.newPage(), B = await ctxB.newPage();
-  await A.addInitScript(() => { try { localStorage.setItem('entrepreneurs_tutorial_seen','1'); } catch(e) {} });
+  // BOTH pages: a page without this flag opens the first-run tutorial, whose full-screen
+  // click-catcher swallows every click and hangs the run on that player's first turn.
+  for (const p of [A, B]) await p.addInitScript(() => { try { localStorage.setItem('entrepreneurs_tutorial_seen','1'); } catch(e) {} });
   const errsA = [], errsB = [];
   A.on("pageerror", (e) => errsA.push(e.message));
   B.on("pageerror", (e) => errsB.push(e.message));

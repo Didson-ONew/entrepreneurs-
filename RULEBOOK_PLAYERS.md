@@ -1,6 +1,6 @@
 # Entrepreneurs - How to play
 
-*3rd edition. Everything you need to play, and nothing you don't.*
+*Rulebook v11. Everything you need to play, and nothing you don't.*
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
@@ -78,7 +78,7 @@ Your discs are your entire footprint in the world. You have ten, and every one o
 
 If you have no free disc you cannot buy land, launch a company, take over a distressed structure, or take a loan - no matter how much cash you are holding. You free a disc by selling a plot, selling a company, or repaying a loan.
 
-Separately, you may never run more than five active companies at once.
+Separately, you have five company slots. Every active company fills one, and so does every Megacorp headquarters you have formed - a headquarters no longer trades, but it still stands on the board and still holds its disc.
 
 ---
 
@@ -140,10 +140,12 @@ Going to the Board Meeting costs ALL of your workers for the quarter and buys a 
 
 ### M&A
 
-- LAUNCH - build a Blueprint from your hand onto plots you own and that are empty, paying its setup cost. The first time you ever build in an industry you bank 5 EP immediately.
+- LAUNCH - build a Blueprint from your hand onto empty plots, paying its setup cost. The first time you ever build in an industry you bank 5 EP immediately.
 - BUY - take any unowned plot at its current value, or take over a Distressed Asset. You may buy a distressed structure as it stands for half its own setup cost, keeping its Blueprint and level, or renovate it with a card from your hand for half that card's setup cost.
 
-Renovating needs a card of the same level as the distressed structure, and above level 1 the card must scale the same way (horizontal into horizontal, vertical into vertical).
+You may build on plots owned by another player. They collect the rent every quarter, but the company is yours.
+
+A renovation has to fit the shell that is already standing. The card must match the distressed structure's level, and from level 2 upwards its scaling type as well: a level-2 or level-3 horizontal structure spreads across several plots and cannot be rebuilt as a vertical one, nor the other way round. At level 1 both kinds occupy a single plot, so a level-1 shell is open to any level-1 Blueprint.
 
 ### R&D
 
@@ -154,8 +156,10 @@ A horizontal company (Utilities, Manufacturing, Technology) grows sideways: upgr
 
 ### Board Meeting
 
-- GO PUBLIC - the first player to ever do this takes the IPO tile: 5 EP, and the second Board Meeting seat opens for everyone. After that, going public merges companies into a Megacorp.
+- GO PUBLIC - merge companies to claim a Megacorp tile. You may only take this action if you actually hold the exact combination one of the available tiles asks for.
 - REPOSITION - move to first in turn order, and place both of your workers together at the start of next quarter's planning.
+
+The IPO tile is not an action you can take. It is the prize for being first: whoever forms the first Megacorp of the game also takes it, worth 5 EP, and that is what opens the second Board Meeting seat for the rest of the game. Until then only one player can sit here each quarter, and a player who cannot form a Megacorp has only Reposition available.
 
 ---
 
@@ -169,7 +173,7 @@ A plot's value is its printed road price plus $1 for every occupied plot next to
 
 ### Footprints
 
-A vertical company always occupies exactly one plot, whatever its level. A horizontal company occupies one plot per level, and those plots must form a connected cluster of land you own. A level-3 horizontal Blueprint therefore needs three connected empty plots you already own before you can build it at all.
+A vertical company always occupies exactly one plot, whatever its level. A horizontal company occupies one plot per level, and those plots must form a connected cluster of owned, empty land - it need not be your own, though its owner will collect the rent. A level-3 horizontal Blueprint therefore needs three connected empty plots before you can build it at all.
 
 ### Selling the ground out from under a building
 
@@ -196,15 +200,37 @@ Every industry has one market price that everybody sells at. It starts at its ba
 
 Launching a company puts one supply mark on its own industry, and one demand mark on every supplier industry printed on its Blueprint.
 
-Price = base price + demand marks - (supply marks / 2, rounded down), and never below $1.
-
-In plain terms: each company built raises each of its suppliers' prices by $1 straight away, while it takes two companies in an industry to knock $1 off that industry's own price. Demand bites faster than supply.
+Two steps in either direction move the price by $1, and no price ever falls below $1.
 
 A crowded industry can sink to $1, barely above the $1 you get for recycling unsold goods. A neglected one that half the table depends on can climb past $8 a unit.
 
-### The supply chain
+### What each company costs and produces
 
-Read the Blueprint: the dependencies printed on it are the industries it pays. Nothing is symmetric, and every industry is somebody's supplier - which is why an industry that nobody builds still fills up with money.
+Setup / OPEX / Production, by level.
+
+| Industry | Level 1 | Level 2 | Level 3 |
+| --- | --- | --- | --- |
+| Utilities (UT) | 15 / 4 / 4 | 20 / 7 / 8 | 30 / 10 / 16 |
+| Retail (RE) | 10 / 5 / 4 | 15 / 9 / 8 | 25 / 14 / 16 |
+| Hospitality (HO) | 10 / 6 / 3 | 15 / 10 / 6 | 25 / 16 / 12 |
+| Manufacturing (MA) | 20 / 4 / 3 | 35 / 7 / 6 | 60 / 10 / 12 |
+| Healthcare (HC) | 20 / 5 / 2 | 35 / 9 / 4 | 60 / 14 / 8 |
+| Technology (TE) | 15 / 6 / 2 | 25 / 10 / 4 | 40 / 16 / 8 |
+
+### Who pays whom
+
+Every company pays OPEX to companies in other industries - its suppliers, printed on its Blueprint. The chain closes a loop, so no industry is ever a dead end. Level 1 cards have one supplier, level 2 have two, and level 3 have all three.
+
+| Industry | Supplier 1 | Supplier 2 | Supplier 3 |
+| --- | --- | --- | --- |
+| Utilities | HO | TE | HC |
+| Retail | TE | HO | MA |
+| Hospitality | MA | HC | RE |
+| Manufacturing | HC | RE | UT |
+| Healthcare | RE | UT | TE |
+| Technology | UT | MA | HO |
+
+The three are not equally common: across the ten Blueprints of an industry, the first supplier appears most often and the third least. Read the Blueprint in front of you rather than the table.
 
 ---
 
@@ -259,9 +285,13 @@ A company can always sell into the district or districts its own plots sit in. B
 
 ### B2B: the pots pay out
 
-Once everyone has delivered, each industry pot is shared among all the active companies in that industry, weighted by level. An industry with no active company keeps its pot and it carries over to a later quarter - which is exactly why an unbuilt industry becomes so lucrative.
+Megacorp headquarters take their cut first: each siphons $5 from the pot of every industry it touches.
 
-Megacorp headquarters take their cut first: see below.
+Each remaining pot is then split evenly among the active companies of that industry - one equal share each, whatever size those companies are. It is the industry being paid, not the building.
+
+Whatever will not divide cleanly stays in the pot and rides forward. A pot of $10 shared between three Healthcare companies pays $3 to each and carries $1 into next quarter.
+
+A pot with no company of that type to pay carries over in full, growing quarter by quarter. An industry nobody serves is often the most profitable thing on the board.
 
 ---
 
@@ -284,16 +314,17 @@ EP sitting on a company's card are yours - they show in the standings immediatel
 
 ## Going public and Megacorps
 
-The first player to take GO PUBLIC claims the IPO tile: 5 EP, and the second Board Meeting seat opens up for the rest of the game.
+Going public always means merging companies to claim a Megacorp tile, from the very first time it is done. Each tile names an exact combination of company levels and pays between 8 and 25 EP, and you must hold precisely that combination of active companies.
 
-After that, GO PUBLIC merges companies. Each Megacorp tile names an exact combination of company levels and pays between 8 and 25 EP. You must own precisely that combination of active companies.
+Whoever forms the first Megacorp of the game also takes the IPO tile: 5 EP, and the second Board Meeting seat opens for the rest of the game.
 
 ### What a merger does
 
 - You choose one of the merged companies to become the Megacorp HQ. It keeps its building and returns its Blueprint to its industry deck.
 - All the others go to the bank as Distressed Assets - anyone may take them over later.
-- The HQ stops being an active company: it produces nothing, pays no OPEX, and no longer counts against your five-company limit.
-- Every B2B, the HQ siphons $5 out of the industry pot of each active business neighbouring it, before the pots are shared out.
+- The HQ stops trading: with no Blueprint it produces nothing, pays no OPEX and draws no share of any pot.
+- It keeps its disc, and it permanently locks one of your five company slots. Every Megacorp you form narrows how wide you can operate.
+- Every B2B, the HQ siphons $5 from the pot of every industry it touches, before the pots are shared out.
 
 Only (number of players + 1) tiles are in play, so the good combinations are contested.
 
@@ -318,7 +349,7 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 
 For The Omnipresent, a district counts if you own a plot in it or one of your active companies stands in it. Tied players split the combined value of the places they cover.
 
-Most EP after Quarter 12 wins.
+Most EP after Quarter 12 wins. If the final scores tie, the player with more money wins; if they are still tied, the player with fewer loan discs left in the bank.
 
 ---
 
@@ -364,7 +395,7 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Game length | 12 quarters (3 years of 4) |
 | Workers | 2 each, or 3 each in a two-player game |
 | Discs | 10, covering plots owned + active companies + unpaid loans |
-| Active company limit | 5 |
+| Company slots | 5, counting Megacorp headquarters |
 | Hand limit | 5 Blueprints |
 | Loan | +$20 and one disc; buy back for $30 / $35 / $40 at year ends; -5 EP if unpaid |
 | Sell a Blueprint | $4 / $8 / $12 by level (half in a forced sale) |
@@ -373,5 +404,8 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Upgrade | pay the setup cost again; production and OPEX double; level +1 |
 | Rent | $3 per company level, to the owners of the plots it stands on |
 | Unsold production | $1 per unit |
+| Industry pot | split evenly among that industry's active companies; the remainder rides forward |
+| Renovation | card must match the shell's level; from level 2 up, its scaling type too |
+| Final tie | most money, then fewest loan discs in the bank |
 | Demand rows 3-4 | closed until Quarter 5 |
 | Demand grid | wiped clean at the end of Quarter 8 |
