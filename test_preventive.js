@@ -1,4 +1,4 @@
-/* The Preventive Doctor persona: a Healthcare company of any level may serve any
+/* The Public Health Director persona: a Healthcare company of any level may serve any
    column of a Healthcare row, instead of only columns up to its own level.
 
    This checks the ability end to end for a HUMAN player, which is where it was

@@ -454,7 +454,7 @@ function ownerOf(state, biz) {
   return state.players.find((pl) => pl.businesses.includes(biz)) || null;
 }
 /* How deep into a demand row a company may sell. Normally that is its level, but a
-   Preventive Doctor's clinics serve any column whatever their size.
+   Public Health Director's clinics serve any column whatever their size.
 
    Everything that decides what may be delivered reads this one function: the bots'
    auto-delivery, the engine's own check, and the demand grid the human clicks. It
@@ -514,7 +514,7 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
 function unitPrice(state, p, biz, slotInd) {
   const own = price(state.pm, bizInd(biz));
   if (slotInd && slotInd !== bizInd(biz)) {
-    // Product Manager is paid the price of the row being sold into, not its own
+    // White-Label Supplier is paid the price of the row being sold into, not its own
     return hasPersona(p, "product_mgr") ? price(state.pm, slotInd) : own;
   }
   if (bizInd(biz) === "UT" && hasPersona(p, "gov_rel")) return own + 1;
@@ -557,7 +557,7 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
   const got = deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross);
   if (got <= 0) return false;
   /* Pay through unitPrice, the same as the bots. This used to charge the plain market
-     price, so a human holding Product Manager or Government Relationship never actually
+     price, so a human holding White-Label Supplier or Concession Holder never actually
      collected what their persona promised - only the bots did. */
   const slotInd = cross ? slotIndustry(state.demand, tileKey, rowIdx) : null;
   const paid = got * unitPrice(state, human, biz, slotInd);
@@ -594,17 +594,17 @@ const BP_SOLVENCY_PRICE = { 1: 2, 2: 4, 3: 6 };
    personas enabled, so the base game is unchanged. Each is a tilt, not a cage: the
    5 EP-per-industry bonus still pushes everyone toward breadth. */
 const PERSONAS = {
-  tech_savvy:  { ind: "TE", name: "Tech-Savvy",
+  tech_savvy:  { ind: "TE", name: "Systems Architect",
     blurb: "Your Technology companies upgrade vertically, stacking on one plot instead of needing a free neighbour." },
-  preventive:  { ind: "HC", name: "Preventive Doctor",
+  preventive:  { ind: "HC", name: "Public Health Director",
     blurb: "Your Healthcare companies ignore the level restriction: a level-1 clinic may serve any column of a Healthcare row." },
-  product_mgr: { ind: "MA", name: "Product Manager",
+  product_mgr: { ind: "MA", name: "White-Label Supplier",
     blurb: "When your Manufacturing cross-sells into another industry's row, it is paid that industry's price rather than its own." },
-  customer_or: { ind: "HO", name: "Customer Oriented",
+  customer_or: { ind: "HO", name: "Resort Developer",
     blurb: "Your Hospitality companies upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them." },
   supply_chain:{ ind: "RE", name: "Supply Chain Expert",
     blurb: "At the start of Revenue, raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter." },
-  gov_rel:     { ind: "UT", name: "Government Relationship",
+  gov_rel:     { ind: "UT", name: "Concession Holder",
     blurb: "Your Utilities production sells for $1 above the current price." },
 };
 const PERSONA_KEYS = Object.keys(PERSONAS);
@@ -894,7 +894,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "b7db88d2";
+const ENGINE_VERSION = "c8e3a521";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1195,8 +1195,8 @@ const MEGACORP_TILES = [
   ["Regional Consolidated", { 2: 2, 3: 1 }, 13], ["Crosstown Alliance", { 1: 2, 2: 2 }, 13],
   ["Metro Trust", { 2: 1, 3: 2 }, 14], ["Crossroads Deal", { 1: 1, 2: 3 }, 14],
   ["Skyline Consolidated", { 3: 3 }, 15], ["Apex Group", { 2: 2, 3: 2 }, 16],
-  ["Titan Industries", { 3: 2, 4: 1 }, 17], ["Empire Holdings", { 3: 3, 4: 1 }, 19],
-  ["Colossus Group", { 3: 2, 4: 2 }, 22], ["Omnicorp", { 3: 1, 4: 3 }, 25],
+  ["Titan Industries", { 3: 2, 4: 1 }, 17], ["Colossus Group", { 3: 4 }, 19],
+  ["Empire Holdings", { 2: 1, 3: 2, 4: 1 }, 20], ["Omnicorp", { 3: 3, 4: 1 }, 22],
 ];
 function tryMatchMegacorp(bizList, combo) {
   const needed = { ...combo };
@@ -3134,7 +3134,7 @@ const TUTORIAL = [
     points: ["5 EP the first time you build in each industry \u2014 paid immediately",
              "1 EP per company level at each year end",
              "10 EP for most plots, 10 EP for most districts",
-             "A Megacorp is worth 8\u201325 EP, but eats companies and locks a slot"] },
+             "A Megacorp is worth 8\u201322 EP, but eats companies and locks a slot"] },
 ];
 
 function Tutorial({ onClose }) {

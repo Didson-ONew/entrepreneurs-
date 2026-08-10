@@ -49,7 +49,7 @@ async function waitText(p,re,ms=12000){const t0=Date.now();while(Date.now()-t0<m
     await sleep(300);
   }
   await sleep(800);
-  const NAMES=["Tech-Savvy","Preventive Doctor","Product Manager","Customer Oriented","Supply Chain Expert","Government Relationship"];
+  const NAMES=["Systems Architect","Public Health Director","White-Label Supplier","Resort Developer","Supply Chain Expert","Concession Holder"];
   const ta=await txt(A), tb=await txt(B);
   const mineA=NAMES.filter(n=>ta.includes(n)), mineB=NAMES.filter(n=>tb.includes(n));
   console.log("\\nAna sees personas   :", JSON.stringify(mineA));

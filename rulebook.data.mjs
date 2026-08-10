@@ -20,7 +20,7 @@
      { note }   designer's note - PLAYERS NEVER SEE THIS
    ========================================================================== */
 
-export const EDITION = "Rulebook v11";
+export const EDITION = "Rulebook v12";
 
 export const RULEBOOK = [
 
@@ -311,7 +311,7 @@ export const RULEBOOK = [
   id: "megacorp",
   title: "Going public and Megacorps",
   blocks: [
-    { p: "Going public always means merging companies to claim a Megacorp tile, from the very first time it is done. Each tile names an exact combination of company levels and pays between 8 and 25 EP, and you must hold precisely that combination of active companies." },
+    { p: "Going public always means merging companies to claim a Megacorp tile, from the very first time it is done. Each tile names an exact combination of company levels and pays between 8 and 22 EP, and you must hold precisely that combination of active companies." },
     { p: "Whoever forms the first Megacorp of the game also takes the IPO tile: 5 EP, and the second Board Meeting seat opens for the rest of the game." },
     { h: "What a merger does" },
     { ul: [
@@ -322,6 +322,29 @@ export const RULEBOOK = [
       "Every B2B, the HQ siphons $5 from the pot of every industry it touches, before the pots are shared out.",
     ] },
     { p: "Only (number of players + 1) tiles are in play, so the good combinations are contested." },
+    { h: "The tiles" },
+    { table: {
+      head: ["Megacorp", "Requires", "Companies", "Value"],
+      rows: [
+        ["Local Syndicate", "3 x L1", "3", "8 EP"],
+        ["Founders\u2019 Pact", "2 x L1 + 1 x L2", "3", "9 EP"],
+        ["Continental Holdings", "4 x L1", "4", "10 EP"],
+        ["Twin Ventures", "1 x L1 + 2 x L2", "3", "10 EP"],
+        ["Silent Merger", "3 x L2", "3", "11 EP"],
+        ["Neighborhood Holdings", "3 x L1 + 1 x L2", "4", "12 EP"],
+        ["Regional Consolidated", "2 x L2 + 1 x L3", "3", "13 EP"],
+        ["Crosstown Alliance", "2 x L1 + 2 x L2", "4", "13 EP"],
+        ["Metro Trust", "1 x L2 + 2 x L3", "3", "14 EP"],
+        ["Crossroads Deal", "1 x L1 + 3 x L2", "4", "14 EP"],
+        ["Skyline Consolidated", "3 x L3", "3", "15 EP"],
+        ["Apex Group", "2 x L2 + 2 x L3", "4", "16 EP"],
+        ["Titan Industries", "2 x L3 + 1 x L4", "3", "17 EP"],
+        ["Colossus Group", "4 x L3", "4", "19 EP"],
+        ["Empire Holdings", "1 x L2 + 2 x L3 + 1 x L4", "4", "20 EP"],
+        ["Omnicorp", "3 x L3 + 1 x L4", "4", "22 EP"],
+      ],
+    } },
+    { p: "A level-4 company is one that has been upgraded from level 3, so the richest tiles need companies you have already paid to grow." },
     { note: "A merger is meant to be a real decision, not a free bonus: you are trading the EP those companies would still have scored at every remaining year end, plus their production, for a lump sum now and a parasite on your neighbours. It is strongest in Year 3 and usually a mistake in Year 1." },
   ],
 },
@@ -337,7 +360,7 @@ export const RULEBOOK = [
       rows: [
         ["Entering an industry for the first time", "+5 each, once per industry per game, banked immediately"],
         ["Each active company, at each year end", "+1 per level"],
-        ["Megacorp tile", "+8 to +25 as printed"],
+        ["Megacorp tile", "+8 to +22 as printed"],
         ["IPO tile (first player to go public)", "+5"],
         ["The Real-Estate Mogul - most plots owned", "+10, second place +5"],
         ["The Omnipresent - most districts you are present in", "+10, second place +5"],
@@ -360,12 +383,12 @@ export const RULEBOOK = [
     { table: {
       head: ["Persona", "Power"],
       rows: [
-        ["Tech-Savvy (TE)", "Your Technology companies upgrade vertically, stacking on one plot instead of needing a free neighbour."],
-        ["Preventive Doctor (HC)", "Your Healthcare companies ignore the level restriction: a level-1 clinic may serve any column of a Healthcare row."],
-        ["Product Manager (MA)", "When your Manufacturing cross-sells into another industry's row, it is paid that industry's price instead of its own."],
-        ["Customer Oriented (HO)", "Your Hospitality companies upgrade horizontally, spreading across plots so more businesses and hubs sit next to them."],
+        ["Systems Architect (TE)", "Your Technology companies upgrade vertically, stacking on one plot instead of needing a free neighbour."],
+        ["Public Health Director (HC)", "Your Healthcare companies ignore the level restriction: a level-1 clinic may serve any column of a Healthcare row."],
+        ["White-Label Supplier (MA)", "When your Manufacturing cross-sells into another industry's row, it is paid that industry's price instead of its own."],
+        ["Resort Developer (HO)", "Your Hospitality companies upgrade horizontally, spreading across plots so more businesses and hubs sit next to them."],
         ["Supply Chain Expert (RE)", "At the start of Revenue, raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter."],
-        ["Government Relationship (UT)", "Your Utilities production sells for $1 above the current price."],
+        ["Concession Holder (UT)", "Your Utilities production sells for $1 above the current price."],
       ],
     } },
     { note: "Each persona is a tilt, not a cage. They all deliberately point at doing more of one industry, and the 5 EP breadth bonus deliberately points the other way, so a persona changes your best line without collapsing it to one." },
