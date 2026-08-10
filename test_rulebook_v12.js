@@ -1,8 +1,8 @@
-/* Pins the engine to Rulebook v11 on every point where the two had drifted apart.
+/* Pins the engine to Rulebook v12 on every point where the two had drifted apart.
    Each check names the clause it is enforcing, so a future rules change that breaks
    one of these tells you which sentence it just contradicted.
 
-   Run: node test_rulebook_v11.js
+   Run: node test_rulebook_v12.js
 */
 const fs = require("fs");
 const path = require("path");
@@ -21,7 +21,7 @@ function loadEngine() {
       companySlotsUsed, canLaunchMore, discsUsed, discsFree, finalRank, unitPrice,
       renovationEligible, bizInd,
       byId, BP_DATA, MEGACORP_TILES, STARTING, INDUSTRIES, BASE_PRICE, SCALING,
-      LOAN_REPAY_RATE, BP_SELL_PRICE, DISCS_PER_PLAYER, COMPANY_SLOTS };
+      LOAN_REPAY_RATE, BP_SELL_PRICE, DISCS_PER_PLAYER, COMPANY_SLOTS, PERSONAS };
   `, sandbox);
   return box.exports;
 }
@@ -168,7 +168,7 @@ section("Megacorp - $5 from every industry it touches, not every neighbour");
 }
 
 /* ------------------------------------------------------------- persona: UT */
-section("Personas - Government Relationship");
+section("Personas - Concession Holder");
 {
   const st = E.initGame(1, 17, ["A"], undefined, false);
   const a = st.players[0];
@@ -229,9 +229,63 @@ check("5 company slots", E.COMPANY_SLOTS === 5);
 check("loan buy-back $30 / $35 / $40 at year ends",
   E.LOAN_REPAY_RATE[4] === 30 && E.LOAN_REPAY_RATE[8] === 35 && E.LOAN_REPAY_RATE[12] === 40);
 check("Blueprint sale $4 / $8 / $12", E.BP_SELL_PRICE[1] === 4 && E.BP_SELL_PRICE[2] === 8 && E.BP_SELL_PRICE[3] === 12);
-check("16 Megacorp tiles, 8 to 25 EP",
+check("16 Megacorp tiles, 8 to 22 EP",
   E.MEGACORP_TILES.length === 16 && Math.min(...E.MEGACORP_TILES.map((t) => t[2])) === 8
-  && Math.max(...E.MEGACORP_TILES.map((t) => t[2])) === 25);
+  && Math.max(...E.MEGACORP_TILES.map((t) => t[2])) === 22);
 
-console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed - the engine matches Rulebook v11\n");
+/* ------------------------------------------------------------ the tiles */
+section("Megacorp tiles - the printed table, tile by tile");
+{
+  // name, {level: count}, EP, and how many companies that combination consumes
+  const PRINTED = [
+    ["Local Syndicate", { 1: 3 }, 8, 3],
+    ["Founders\u2019 Pact", { 1: 2, 2: 1 }, 9, 3],
+    ["Continental Holdings", { 1: 4 }, 10, 4],
+    ["Twin Ventures", { 1: 1, 2: 2 }, 10, 3],
+    ["Silent Merger", { 2: 3 }, 11, 3],
+    ["Neighborhood Holdings", { 1: 3, 2: 1 }, 12, 4],
+    ["Regional Consolidated", { 2: 2, 3: 1 }, 13, 3],
+    ["Crosstown Alliance", { 1: 2, 2: 2 }, 13, 4],
+    ["Metro Trust", { 2: 1, 3: 2 }, 14, 3],
+    ["Crossroads Deal", { 1: 1, 2: 3 }, 14, 4],
+    ["Skyline Consolidated", { 3: 3 }, 15, 3],
+    ["Apex Group", { 2: 2, 3: 2 }, 16, 4],
+    ["Titan Industries", { 3: 2, 4: 1 }, 17, 3],
+    ["Colossus Group", { 3: 4 }, 19, 4],
+    ["Empire Holdings", { 2: 1, 3: 2, 4: 1 }, 20, 4],
+    ["Omnicorp", { 3: 3, 4: 1 }, 22, 4],
+  ];
+  check("the same 16 tiles, in the same order", E.MEGACORP_TILES.length === PRINTED.length);
+  PRINTED.forEach(([name, combo, ep, n], i) => {
+    const t = E.MEGACORP_TILES[i] || [];
+    const same = t[0] === name && JSON.stringify(t[1]) === JSON.stringify(combo) && t[2] === ep;
+    const consumes = Object.values(combo).reduce((a, b) => a + b, 0);
+    check(`${name}: ${ep} EP, ${n} companies`, same && consumes === n,
+      same ? "" : `engine has ${t[0]} ${JSON.stringify(t[1])} ${t[2]} EP`);
+  });
+  const eps = E.MEGACORP_TILES.map((t) => t[2]);
+  check("values never step backwards down the table",
+    eps.every((v, i) => i === 0 || v >= eps[i - 1]));
+}
+
+/* --------------------------------------------------------- persona names */
+section("Persona names");
+{
+  const WANT = {
+    tech_savvy: ["TE", "Systems Architect"],
+    preventive: ["HC", "Public Health Director"],
+    product_mgr: ["MA", "White-Label Supplier"],
+    customer_or: ["HO", "Resort Developer"],
+    supply_chain: ["RE", "Supply Chain Expert"],
+    gov_rel: ["UT", "Concession Holder"],
+  };
+  check("six personas, one per industry", Object.keys(E.PERSONAS).length === 6
+    && new Set(Object.values(E.PERSONAS).map((p) => p.ind)).size === 6);
+  for (const [key, [ind, name]] of Object.entries(WANT)) {
+    const p = E.PERSONAS[key];
+    check(`${ind}: ${name}`, !!p && p.ind === ind && p.name === name, p ? p.name : "missing");
+  }
+}
+
+console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed - the engine matches Rulebook v12\n");
 process.exit(fails ? 1 : 0);

@@ -1,4 +1,4 @@
-/* The Preventive Doctor persona, end to end through the real interface.
+/* The Public Health Director persona, end to end through the real interface.
 
    test_preventive.js proves the rule itself. This proves the part that was actually
    broken: that the demand grid a human clicks offers those extra columns. It drives a
@@ -20,7 +20,7 @@ const getState = async (code, token) =>
 
 const HOME = (st, biz) => new Set(biz.footprint.map((pk) => { const c = st.board.cellOf[pk]; return `${c.r},${c.c}`; }));
 
-/* Start rooms until the human seat is dealt the Preventive Doctor. Personas are
+/* Start rooms until the human seat is dealt the Public Health Director. Personas are
    dealt at random from six, so this is a handful of tries. */
 async function roomWithPreventive(maxTries = 40) {
   for (let i = 0; i < maxTries; i++) {
@@ -121,8 +121,8 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
   const check = (label, cond) => { console.log(`${cond ? "  ok  " : " FAIL "} ${label}`); if (!cond) failures++; };
 
   const room = await roomWithPreventive();
-  if (!room) { console.log("could not deal the Preventive Doctor in 40 rooms - giving up"); process.exit(1); }
-  console.log(`room ${room.code}: seat 0 is the Preventive Doctor (after ${room.tries} deal${room.tries === 1 ? "" : "s"})`);
+  if (!room) { console.log("could not deal the Public Health Director in 40 rooms - giving up"); process.exit(1); }
+  console.log(`room ${room.code}: seat 0 is the Public Health Director (after ${room.tries} deal${room.tries === 1 ? "" : "s"})`);
 
   const out = await driveToHcDelivery(room.code, room.token);
   if (!out.reached) { console.log(`could not reach a Healthcare delivery: ${out.why}`); process.exit(1); }
