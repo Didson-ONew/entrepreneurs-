@@ -111,6 +111,7 @@ All endpoints are JSON over POST except the event stream.
 | `GET /api/stream?code=&token=` | SSE: pushes `{type:"state", state, logs}` on every change |
 | `POST /api/action` `{code, token, action, data}` | submit a move |
 | `GET /api/presence?id=` | heartbeat → `{online, matches, waiting, seated}` for the live counters |
+| `GET /api/stats` | the hall of fame and match statistics, drawn from `matches.jsonl` |
 
 Actions: `draft`, `plan`, `act`, `deliver`, `skipDelivery`, `liquidate`,
 `liquidateDone`, `placeLH`, `repay`, `repayDone`.
@@ -148,6 +149,8 @@ server.js              the server (no dependencies)
 EntrepreneursGame.jsx  engine + single-player UI (single source of truth)
 OnlineApp.jsx          the online client: lobby, waiting room, table panel
 Rulebook.jsx           the in-game rulebook and the live online/match counters
+Records.jsx            the hall of fame, statistics and recent games panel
+matchlog.js            records finished games and computes the statistics
 rulebook.data.mjs      the rules text — the single source of truth for both books
 make_rulebook.mjs      writes RULEBOOK.md and RULEBOOK_PLAYERS.md from that data
 build.mjs              bundles the two shipped pages
@@ -162,6 +165,8 @@ test_2humans.js        engine-level test: full game with two humans
 test_rulebook_v12.js   conformance: pins the engine to every clause of Rulebook v12
 test_preventive.js     regression test: the Public Health Director rule (engine only)
 test_preventive_ui.js  the same persona through the real page - needs the server
+test_matchlog.js       the match record, the hall of fame and the statistics
+test_records_ui.js     plays real games and reads the records back off the page
 ```
 
 `build.mjs` also stamps `ENGINE_VERSION` from a hash of the rules code, so changing
@@ -182,6 +187,26 @@ npm run build   # regenerates both rulebooks and both pages
 
 The server itself still has zero runtime dependencies; the build tools are only
 needed if you change the client.
+
+## Records
+
+Every game the server finishes is appended to `matches.jsonl`, one JSON object per
+line: who played, what they scored, where their EP came from, and which rules build
+ran it. `GET /api/stats` turns that into a hall of fame ranked by total EP, plus
+statistics, and the **Records** button shows it on every screen.
+
+A few things worth knowing:
+
+- **Only games the server runs are recorded.** A single-player page keeps its game
+  in the browser; letting a browser post its own score would make the hall of fame a
+  text box rather than a record.
+- **Players are the name they type.** There are no accounts, so two people sharing a
+  name share a row. Names are matched case-insensitively with whitespace collapsed.
+- **Bots never enter the hall of fame**, and a seat handed to a bot part-way through
+  earns its player nothing for that game.
+- **`matches.jsonl` is your data, not source** — it is gitignored. Back it up if you
+  care about it, and see HOSTING_GUIDE.md before hosting somewhere with a disk that
+  does not survive a restart. `MATCHES_FILE=/some/path` moves it.
 
 ## The rulebook
 
