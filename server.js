@@ -10,6 +10,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const vm = require("vm");
+const matchlog = require("./matchlog.js");
 
 const PORT = process.env.PORT || 8080;
 const ROOT = __dirname;
@@ -32,7 +33,8 @@ function loadEngine() {
       eligibleSlotsFor, findDistressedTargets, renovationEligible, plotValue, discsFree,
       canLaunchMore, isCrossDistrictEdge, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal, canGoPublic, doReclaim, canReclaim,
       botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, ENGINE_VERSION,
-      bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER };
+      bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER,
+      PERSONAS, MEGACORP_TILES };
   `, sandbox);
   return box.exports;
 }
@@ -46,6 +48,11 @@ function encodeState(st) {
 }
 
 /* ---------- rooms ---------- */
+/* Every match ever recorded, read once at boot and appended to as games end.
+   Summarising is pure, so the answer is cached until the next match lands. */
+const MATCHES = matchlog.load();
+let STATS_CACHE = null;
+
 const rooms = new Map();
 const code = () => crypto.randomBytes(3).toString("hex").toUpperCase();
 const token = () => crypto.randomBytes(16).toString("hex");
@@ -57,6 +64,7 @@ function newRoom(hostName, bots) {
     members: [{ token: token(), name: hostName || "Host", seat: 0, host: true }],
     spectators: [],
     state: null, rng: null, clients: new Set(), logs: [], version: 0, chat: [], personas: false,
+    startedAt: null, recorded: false,
   };
   rooms.set(c, room);
   return room;
@@ -103,7 +111,25 @@ function payloadFor(room) {
     ? `{"type":"state","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))},"state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
     : `{"type":"lobby","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"members":${JSON.stringify(room.members.map((m) => ({ name: m.name, seat: m.seat, host: m.host })))},"bots":${room.bots},"personas":${room.personas ? "true" : "false"},"code":"${room.code}","watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))}}`;
 }
+/* Every finished game is written down exactly once. This hangs off broadcast
+   because broadcast is the one thing that runs on every state change, whichever
+   path got there - a human's last delivery, a bot resolving, a takeover. */
+function recordIfFinished(room) {
+  if (!room.state || room.state.phase !== "gameover" || room.recorded) return;
+  room.recorded = true;
+  try {
+    const rec = matchlog.buildRecord(E, room);
+    if (matchlog.append(rec)) {
+      MATCHES.push(rec);
+      STATS_CACHE = null;
+      console.log(`match ${rec.id} recorded: ${rec.players.map((p) => `${p.name} ${p.ep}EP`).join(", ")}`);
+    }
+  } catch (e) {
+    console.error(`could not build the match record: ${e.message}`);
+  }
+}
 function broadcast(room) {
+  recordIfFinished(room);
   room.version = (room.version || 0) + 1;
   const payload = payloadFor(room);
   for (const res of room.clients) {
@@ -341,6 +367,15 @@ const server = http.createServer(async (req, res) => {
     return json(res, { online: countOnline(), matches, waiting, seated });
   }
 
+  /* Statistics and the hall of fame, drawn from every match the server has run.
+     Open like /api/presence: it is shown on every screen and holds nothing private
+     beyond the display names players chose for themselves. */
+  if (p === "/api/stats") {
+    if (!STATS_CACHE) STATS_CACHE = matchlog.summarise(MATCHES, E.PERSONAS);
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    return res.end(JSON.stringify(STATS_CACHE));
+  }
+
   if (p === "/api/create" && req.method === "POST") {
     const b = await body(req);
     const room = newRoom(b.name, b.bots);
@@ -468,6 +503,8 @@ const server = http.createServer(async (req, res) => {
     room.state = null;
     room.rng = null;
     room.logs = [];
+    room.recorded = false;
+    room.startedAt = null;
     room.members.forEach((m) => { m.replaced = false; });
     broadcast(room);
     return json(res, { ok: true });
@@ -520,6 +557,8 @@ const server = http.createServer(async (req, res) => {
     const seed = Math.floor(Math.random() * 1e9);
     room.state = E.initGame(room.bots, seed, room.members.map((m) => m.name), undefined, room.personas);
     room.rng = E.mulberry32(seed + 777);
+    room.startedAt = Date.now();
+    room.recorded = false;
     room.logs = [{ msg: `Game started: ${room.members.length} human${room.members.length > 1 ? "s" : ""}, ${room.bots} bot${room.bots === 1 ? "" : "s"}.`, pid: null }];
     pump(room);
     broadcast(room);

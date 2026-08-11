@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { RULEBOOK, EDITION } from "./rulebook.data.mjs";
+import Records from "./Records.jsx";
 
 /* ============================================================================
    Site chrome: the rulebook and the live table counters.
@@ -271,22 +272,31 @@ export function LiveCounts({ counts }) {
 
 /* Mounted once per app, at the root, so it survives every screen change. */
 export default function SiteChrome() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(null);        // "rules" | "records" | null
   const counts = useLiveCounts();
+
+  const pill = (bg, edge, fg) => ({
+    display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700,
+    color: fg, backgroundColor: bg, border: `1px solid ${edge}`,
+    borderRadius: 999, padding: "4px 11px", cursor: "pointer", whiteSpace: "nowrap",
+  });
 
   return (
     <>
       <div style={{ position: "fixed", left: 8, bottom: 8, zIndex: 9994,
         display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", maxWidth: "calc(100vw - 16px)" }}>
-        <button onClick={() => setOpen(true)} title="Read the rules (Esc closes)"
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700,
-            color: INK.accent, backgroundColor: INK.accentBg, border: "1px solid #2c5f4f",
-            borderRadius: 999, padding: "4px 11px", cursor: "pointer", whiteSpace: "nowrap" }}>
+        <button onClick={() => setOpen("rules")} title="Read the rules (Esc closes)"
+          style={pill(INK.accentBg, "#2c5f4f", INK.accent)}>
           <span aria-hidden="true">&#9776;</span> Rulebook
+        </button>
+        <button onClick={() => setOpen("records")} title="Hall of fame and match statistics (Esc closes)"
+          style={pill("#231f14", "#7a6a3f", "#f5d76e")}>
+          <span aria-hidden="true">&#9733;</span> Records
         </button>
         <LiveCounts counts={counts} />
       </div>
-      {open && <Rulebook onClose={() => setOpen(false)} />}
+      {open === "rules" && <Rulebook onClose={() => setOpen(null)} />}
+      {open === "records" && <Records onClose={() => setOpen(null)} />}
     </>
   );
 }

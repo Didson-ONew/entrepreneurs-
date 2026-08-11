@@ -2,3 +2,6 @@ node_modules/
 
 # screenshots test_browsers.js drops in the working directory
 shot_online_*.png
+
+# the match history a running server writes: real data, not source
+matches.jsonl

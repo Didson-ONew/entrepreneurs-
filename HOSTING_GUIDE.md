@@ -49,6 +49,25 @@ Closing it ends the server (nobody can play). To stop it on purpose: press Ctrl+
 
 ---
 
+## A note on the hall of fame
+
+The server writes every finished game to a file called `matches.jsonl`, next to
+`server.js`. That file **is** the hall of fame and the statistics — nothing else
+remembers them.
+
+- Running on your own computer (Options A and B below): it just works, and it
+  survives closing the terminal. Copy the file if you ever move the folder.
+- Hosting it somewhere free (Option C): most free tiers give you a **temporary**
+  disk that is wiped on every restart or redeploy, which would quietly reset the
+  hall of fame every few days. If you want the records to last, attach a persistent
+  disk and point the server at it:
+  `MATCHES_FILE=/data/matches.jsonl node server.js`
+
+Nothing else in the game needs saving — a game in progress lives in memory and ends
+when the server stops either way.
+
+---
+
 ## Option A — Friends in the same house (same wi-fi)
 
 Your friends connect straight to your computer. Nothing leaves your network.
