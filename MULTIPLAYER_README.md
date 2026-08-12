@@ -113,6 +113,16 @@ All endpoints are JSON over POST except the event stream.
 | `GET /api/presence?id=` | heartbeat → `{online, matches, waiting, seated}` for the live counters |
 | `GET /api/stats` | the hall of fame and match statistics, drawn from `matches.jsonl` |
 | `GET /api/variants` | the optional-rule catalogue the lobby renders its toggles from |
+| `GET /api/whoami` | who this browser is, from its cookie → `{id, name, returning}` |
+| `POST /api/whoami` `{name}` | remember a name for next time |
+| `GET /api/nickname?name=` | is that name already someone's? → `{name, taken, mine, registered, yours}` |
+| `GET /api/account` | who is signed in on this browser, if anyone |
+| `POST /api/register` `{name, email, password}` | reserve a name; signs you in |
+| `POST /api/login` `{name, password}` | sign in |
+| `POST /api/logout` | sign out |
+| `POST /api/password` `{current, password}` | change it while signed in |
+| `POST /api/forgot` `{who}` | send a reset link (name or email) |
+| `GET/POST /api/reset` `{token, password}` | check a reset link, then use it |
 
 Actions: `draft`, `plan`, `act`, `deliver`, `skipDelivery`, `liquidate`,
 `liquidateDone`, `placeLH`, `repay`, `repayDone`.
@@ -171,6 +181,13 @@ test_records_ui.js     plays real games and reads the records back off the page
 test_variants.js       every optional rule, and that they are all off by default
 test_variants_ui.js    the lobby toggles, host to guest to finished game
 audit_strategy.js      are the bots competing for the points actually on the table?
+test_identity.js       the name-remembering cookie, and that it grants nothing
+test_nickname.js       the "someone already plays as that" warning
+accounts.js            registration, passwords, signed sessions, reset tokens
+mailer.js              hands the reset link to whatever the host can send mail with
+test_accounts.js       the login system, and what it refuses
+test_scoring_once.js   a company scores once per build or upgrade, not once a year
+testkit.js             shared: drives one seat through a whole game over HTTP
 ```
 
 `build.mjs` also stamps `ENGINE_VERSION` from a hash of the rules code, so changing
@@ -221,13 +238,94 @@ A few things worth knowing:
 - **Only games the server runs are recorded.** A single-player page keeps its game
   in the browser; letting a browser post its own score would make the hall of fame a
   text box rather than a record.
-- **Players are the name they type.** There are no accounts, so two people sharing a
-  name share a row. Names are matched case-insensitively with whitespace collapsed.
+- **Players are the name they type.** Two people sharing a name share a row, unless
+  one of them has registered it (see **Accounts** below, which is exactly what that
+  is for). Names are matched case-insensitively with whitespace collapsed.
+  The lobby warns about this *before* it happens: as you type, it asks
+  `GET /api/nickname` whether anyone else has finished a game under that name, and says
+  so. It is advice, not a lock — someone who cleared their cookies must still be able to
+  type their own name — so the buttons keep working either way. Each record stores the
+  `pid` of the browser that played the seat, which is the only thing that tells a
+  returning player apart from a stranger; nothing is scored on it.
 - **Bots never enter the hall of fame**, and a seat handed to a bot part-way through
   earns its player nothing for that game.
 - **`matches.jsonl` is your data, not source** — it is gitignored. Back it up if you
   care about it, and see HOSTING_GUIDE.md before hosting somewhere with a disk that
   does not survive a restart. `MATCHES_FILE=/some/path` moves it.
+
+## Remembering who you are
+
+Typing your name every visit is a small annoyance, so the server sets one cookie,
+`ent_player`, holding an id it generated and the last name you played under. Coming
+back, the lobby fills the field in and says "Welcome back, X"; typing over it wins,
+and playing under the new name is what updates the cookie.
+
+It is deliberately thin:
+
+- **HttpOnly, SameSite=Lax, a year long**, `Secure` when the request arrived over
+  https. Page scripts cannot read it, so nothing on the page can leak it.
+- **It is not signed, so it grants nothing.** Room membership and host rights still
+  ride on the per-room token the server mints for each seat — copying somebody's
+  cookie gets you their name in a text box and nothing else. `test_identity.js` tries
+  exactly that and checks it fails.
+- **A corrupt or forged cookie reads as a first visit** rather than an error: the id
+  must look like an id, the name is trimmed, whitespace-collapsed and cut to 24
+  characters, or it is thrown away.
+- **The records do not use it.** The hall of fame is still keyed on the name you
+  typed, so nothing about who gets credit for a game has changed.
+
+The single-player page asks the same endpoint, so the two entry points agree; opened
+straight off the disk there is no server to ask and its own `localStorage` is the
+whole story.
+
+## Accounts
+
+Registering is **optional and exists for exactly one reason**: the hall of fame is
+kept by name, so without it anyone can type your name and add to your record. An
+account reserves a name — once `Dids` is registered, only whoever holds its password
+can play as `Dids`. Everything else works as it always did: guests still create and
+join rooms under any unregistered name, and nothing about the game changes.
+
+- **Passwords** are hashed with `crypto.scrypt` (N=16384, r=8, p=1, 16-byte random
+  salt, compared with `timingSafeEqual`). The parameters are stored per user, so
+  raising them later does not lock anyone out.
+- **Sessions** are a signed cookie, `ent_session` — HMAC-SHA256 over `{user, expiry}`
+  with a secret kept in `accounts.json`. Nothing is stored server-side, so a restart
+  does not sign everybody out, and a forged one simply fails to verify. This is the
+  one cookie here that *is* an authority; `ent_player` beside it still grants nothing.
+- **Reset links** are random tokens; only their SHA-256 is stored, they last an hour,
+  and using one burns it. So a leaked `accounts.json` is not a set of password resets.
+- **Guessing is slowed, not blocked.** Wrong passwords from one address add a growing
+  delay (up to 5s each) rather than a lockout. Counting per *account* would let anyone
+  lock you out of your own name, and a hard block would take out a whole household
+  behind one router because one person fumbled their password.
+- **`accounts.json` is a secret** — password hashes, email addresses and the session
+  signing key. It is gitignored and written `0600`. If it cannot be parsed the server
+  refuses to start rather than overwrite it, because overwriting it deletes everyone.
+  `ACCOUNTS_FILE=/some/path` moves it.
+- **`TRUST_PROXY=1`** if something in front of the server sets `X-Forwarded-For`.
+  Without it that header is ignored, since otherwise anyone could forge it and walk
+  past the rate limit.
+
+### Sending the reset email
+
+This is the one part a game server cannot do by itself — it needs a mail account, and
+which one depends on where you host. So the server does not implement SMTP; it hands
+the message to whatever you already have:
+
+| | |
+|---|---|
+| `MAIL_WEBHOOK_URL` | POSTs `{from, to, subject, text}` as JSON. Any transactional mail API that takes JSON, or a small relay of your own. `MAIL_WEBHOOK_AUTH` becomes the `Authorization` header. |
+| `MAIL_COMMAND` | a command fed the message on stdin, e.g. `sendmail -t`. |
+| neither | the link is **printed in the server's own terminal**. |
+
+That last one is not a failure — it is the right answer when you are running the
+server on your own machine for friends, which is how most tables play. You read the
+link out of the terminal and pass it on. Set `PUBLIC_URL` if the address players use
+is not the one the server sees.
+
+Neither mail backend can be exercised from this sandbox against a real provider —
+`test_accounts.js` proves them against a local listener and a local command instead.
 
 ## The rulebook
 

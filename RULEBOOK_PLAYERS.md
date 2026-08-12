@@ -304,10 +304,12 @@ Every quarter ends with a new Logistic Hub opening on a border between two distr
 
 ### At the end of Quarter 4, 8 and 12
 
-- Every active company scores EP equal to its level, placed on its card.
+- Every active company that has not scored yet takes EP equal to its level, placed on its card.
 - You may buy back loan discs: $30 at the end of Year 1, $35 at Year 2, $40 at Year 3.
 
-EP sitting on a company's card are yours - they show in the standings immediately. They are banked permanently when the company is upgraded, sold, merged into a Megacorp, or at the end of the game. You never lose EP you have already scored.
+A company scores once, at the first year end after it is built - not again every year. Upgrading it is what makes it score again: the EP already on the card vest into your bank, and the company scores afresh at its new level at the next year end.
+
+EP sitting on a company's card are yours - they show in the standings immediately. They vest - move permanently into your bank - when the company is upgraded, sold, merged into a Megacorp, or at the end of the game. You never lose EP you have already scored.
 
 ---
 
@@ -363,7 +365,7 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Source | EP |
 | --- | --- |
 | Entering an industry for the first time | +5 each, once per industry per game, banked immediately |
-| Each active company, at each year end | +1 per level |
+| Each company, once, at the first year end after it is built or upgraded | +1 per level |
 | Megacorp tile | +8 to +22 as printed |
 | IPO tile (first player to go public) | +5 |
 | The Real-Estate Mogul - most plots owned | +10, second place +5 |
@@ -406,7 +408,7 @@ The host may switch any of these on before a game starts. They are all off by de
 | Hubs on plots | A Logistic Hub is built on an empty plot instead of on the road. A company joins the network by standing orthogonally beside it - up to four plots, since diagonals do not count - and the network reaches the district each hub stands in. The plot is filled: nothing can be built there afterwards. |
 | Hubs open to all | Utilities and Retail may use Logistic Hubs like every other industry, instead of never. |
 | Companies score triple | An active company is worth 3 EP per level instead of 1. Building becomes far stronger against land and cash. |
-| Score on completion | A company puts its EP on its own card the moment it is built or upgraded, rather than waiting for the year end. It still vests as normal, and the year end leaves it alone. |
+| Score on completion | A company puts its EP on its own card the moment it is built, rather than waiting for the year end. Upgrading it vests those EP into your bank at once and puts the new, higher level on the card straight away. It is still one score per build or upgrade - the year end finds it already scored and leaves it alone. |
 | Land awards every year | The Real-Estate Mogul and The Omnipresent are awarded at the end of every year, not only at the end of the game. Holding the most land in Year 1 is then worth something even if you lose it later. |
 
 Whichever are on is shown in the waiting room before the game starts, and recorded with the finished game, so a variant table is never mistaken for a standard one in the records.
