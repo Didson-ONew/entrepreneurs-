@@ -112,6 +112,7 @@ All endpoints are JSON over POST except the event stream.
 | `POST /api/action` `{code, token, action, data}` | submit a move |
 | `GET /api/presence?id=` | heartbeat → `{online, matches, waiting, seated}` for the live counters |
 | `GET /api/stats` | the hall of fame and match statistics, drawn from `matches.jsonl` |
+| `GET /api/variants` | the optional-rule catalogue the lobby renders its toggles from |
 
 Actions: `draft`, `plan`, `act`, `deliver`, `skipDelivery`, `liquidate`,
 `liquidateDone`, `placeLH`, `repay`, `repayDone`.
@@ -167,6 +168,8 @@ test_preventive.js     regression test: the Public Health Director rule (engine 
 test_preventive_ui.js  the same persona through the real page - needs the server
 test_matchlog.js       the match record, the hall of fame and the statistics
 test_records_ui.js     plays real games and reads the records back off the page
+test_variants.js       every optional rule, and that they are all off by default
+test_variants_ui.js    the lobby toggles, host to guest to finished game
 ```
 
 `build.mjs` also stamps `ENGINE_VERSION` from a hash of the rules code, so changing
@@ -187,6 +190,23 @@ npm run build   # regenerates both rulebooks and both pages
 
 The server itself still has zero runtime dependencies; the build tools are only
 needed if you change the client.
+
+## Rule variants
+
+Six optional rule changes, listed in `VARIANTS` in `EntrepreneursGame.jsx` and served
+to the lobby by `GET /api/variants` so the switches can never drift from the engine.
+All are **off by default** — a table that touches nothing plays the printed rulebook.
+The host sets them in the waiting room (`POST /api/options {variants}`); guests see
+what was chosen but cannot change it. Single-player has the same switches on its
+setup screen.
+
+They live on `state.variants`, and the board carries `lhOnPlots` as well because the
+hub helpers take a board rather than a state. `normaliseVariants` reads only the keys
+the engine knows, so nothing off the wire can invent one; `/api/options` merges, so
+naming one variant does not switch the others off.
+
+Whichever were on is recorded with the finished game, so a variant table is never
+mistaken for a standard one in the records.
 
 ## Records
 

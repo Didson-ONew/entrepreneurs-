@@ -219,7 +219,8 @@ function Recent({ data }) {
             <span style={{ fontSize: 10.5, color: INK.dim }}>
               {ago(m.at)} &middot; {m.humans} human{m.humans === 1 ? "" : "s"}
               {m.bots ? `, ${m.bots} bot${m.bots === 1 ? "" : "s"}` : ""}
-              {m.personas ? " · personas" : ""}
+              {m.personas ? " \u00b7 personas" : ""}
+              {(m.variants || []).length ? ` \u00b7 ${m.variants.length} variant${m.variants.length === 1 ? "" : "s"}` : ""}
               {m.durationMs ? ` \u00b7 ${duration(m.durationMs)}` : ""}
             </span>
             <span style={{ fontSize: 9.5, color: "#4b5563", fontFamily: "ui-monospace, monospace" }}>{m.engine}</span>

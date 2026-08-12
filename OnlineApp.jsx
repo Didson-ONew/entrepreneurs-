@@ -87,8 +87,44 @@ function Lobby({ onEnter }) {
   );
 }
 
+/* One switch, used for personas and for every variant, so they all read the same
+   way and a guest sees the host's choices without being able to change them. */
+function OptionToggle({ on, name, blurb, onToggle, readOnly }) {
+  const edge = on ? "#2c5f4f" : "#262a33";
+  const body = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-bold" style={{ color: on ? "#8fd3b6" : "#8b93a3" }}>{name}</span>
+        <span className="text-[10px] shrink-0" style={{ color: on ? "#8fd3b6" : "#4b5563" }}>{on ? "ON \u2713" : "OFF"}</span>
+      </div>
+      <div className="text-[10px] text-gray-500 mt-0.5" style={{ lineHeight: 1.4 }}>{blurb}</div>
+    </>
+  );
+  if (readOnly) {
+    return <div className="w-full rounded-md px-3 py-2 text-left mb-1.5"
+      style={{ backgroundColor: "#1c1f26", border: `1px solid ${edge}` }}>{body}</div>;
+  }
+  return (
+    <button onClick={onToggle} className="w-full rounded-md px-3 py-2 text-left mb-1.5"
+      style={{ backgroundColor: "#1c1f26", border: `1px solid ${edge}`, cursor: "pointer" }}>{body}</button>
+  );
+}
+
 function WaitingRoom({ me, lobby, onLeave }) {
   const [err, setErr] = useState("");
+  const [catalogue, setCatalogue] = useState([]);
+  const [showVariants, setShowVariants] = useState(false);
+  useEffect(() => {
+    fetch("/api/variants", { cache: "no-store" }).then((r) => r.json())
+      .then((j) => setCatalogue(j.variants || [])).catch(() => setCatalogue([]));
+  }, []);
+  const variants = (lobby && lobby.variants) || {};
+  const variantsOn = catalogue.filter((v) => variants[v.key]);
+  const setVariant = async (key, value) => {
+    const r = await api("/api/options", { code: me.code, token: me.token,
+      variants: { ...variants, [key]: value } });
+    if (r.body && r.body.error) setErr(r.body.error);
+  };
   const kick = async (seat) => {
     const r = await api("/api/kick", { code: me.code, token: me.token, seat });
     if (r.body && r.body.error) setErr(r.body.error);
@@ -130,30 +166,42 @@ function WaitingRoom({ me, lobby, onLeave }) {
           ))}
         </div>
 
-        {me.host && (
-          <button onClick={async () => {
-              const r = await api("/api/options", { code: me.code, token: me.token, personas: !(lobby && lobby.personas) });
-              if (r.body && r.body.error) setErr(r.body.error);
-            }}
-            className="w-full rounded-md px-3 py-2 text-left mb-3"
-            style={{ backgroundColor: "#1c1f26", border: `1px solid ${lobby && lobby.personas ? "#2c5f4f" : "#262a33"}` }}>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold" style={{ color: lobby && lobby.personas ? "#8fd3b6" : "#8b93a3" }}>
-                Personas {lobby && lobby.personas ? "ON" : "OFF"}
-              </span>
-              <span className="text-[10px]" style={{ color: "#8fd3b6" }}>{lobby && lobby.personas ? "\u2713" : ""}</span>
-            </div>
-            <div className="text-[10px] text-gray-500 mt-0.5">
-              Each player is dealt a random specialist power, one per industry.
-            </div>
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Table rules</div>
+        <OptionToggle on={!!(lobby && lobby.personas)} name="Personas"
+          blurb="Each player is dealt a random specialist power, one per industry."
+          readOnly={!me.host}
+          onToggle={async () => {
+            const r = await api("/api/options", { code: me.code, token: me.token, personas: !(lobby && lobby.personas) });
+            if (r.body && r.body.error) setErr(r.body.error);
+          }} />
+
+        {/* The variants are folded away by default: most tables want the printed
+            rules, and a wall of switches over the Start button suggests otherwise. */}
+        {me.host && !!catalogue.length && (
+          <button onClick={() => setShowVariants((v) => !v)}
+            className="w-full text-left text-[11px] mb-1.5 px-1"
+            style={{ background: "none", border: "none", color: "#8b93a3", cursor: "pointer" }}>
+            {showVariants ? "\u25be" : "\u25b8"} Rule variants
+            {variantsOn.length ? <span style={{ color: "#8fd3b6" }}> &mdash; {variantsOn.length} on</span>
+              : <span style={{ color: "#4b5563" }}> &mdash; standard rules</span>}
           </button>
         )}
-        {!me.host && lobby && lobby.personas && (
-          <div className="rounded-md px-3 py-2 mb-3 text-[11px]"
+        {me.host && showVariants && catalogue.map((v) => (
+          <OptionToggle key={v.key} on={!!variants[v.key]} name={v.name} blurb={v.blurb}
+            onToggle={() => setVariant(v.key, !variants[v.key])} />
+        ))}
+        {!me.host && !!variantsOn.length && (
+          <div className="rounded-md px-3 py-2 mb-1.5 text-[11px]"
             style={{ backgroundColor: "#1c1f26", border: "1px solid #2c5f4f", color: "#8fd3b6" }}>
-            Personas are ON &mdash; you will be dealt a random specialist power when the game starts.
+            <div className="font-bold mb-1">The host changed the rules:</div>
+            {variantsOn.map((v) => (
+              <div key={v.key} className="text-[10px]" style={{ color: "#c3c9d4", lineHeight: 1.45 }}>
+                &bull; <strong>{v.name}</strong> &mdash; {v.blurb}
+              </div>
+            ))}
           </div>
         )}
+        <div className="mb-3" />
         {me.host ? (
           <>
             <button onClick={start} disabled={total < 2} style={{ ...btn("#2c5f4f", "#d3fcec"), opacity: total < 2 ? 0.35 : 1 }}>

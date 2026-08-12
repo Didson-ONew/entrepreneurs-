@@ -34,7 +34,7 @@ function loadEngine() {
       canLaunchMore, isCrossDistrictEdge, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal, canGoPublic, doReclaim, canReclaim,
       botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, ENGINE_VERSION,
       bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER,
-      PERSONAS, MEGACORP_TILES };
+      PERSONAS, MEGACORP_TILES, VARIANTS, VARIANT_KEYS, normaliseVariants };
   `, sandbox);
   return box.exports;
 }
@@ -64,7 +64,7 @@ function newRoom(hostName, bots) {
     members: [{ token: token(), name: hostName || "Host", seat: 0, host: true }],
     spectators: [],
     state: null, rng: null, clients: new Set(), logs: [], version: 0, chat: [], personas: false,
-    startedAt: null, recorded: false,
+    variants: E.normaliseVariants(null), startedAt: null, recorded: false,
   };
   rooms.set(c, room);
   return room;
@@ -109,7 +109,7 @@ function payloadFor(room) {
   const v = room.version || 0;
   return room.state
     ? `{"type":"state","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))},"state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
-    : `{"type":"lobby","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"members":${JSON.stringify(room.members.map((m) => ({ name: m.name, seat: m.seat, host: m.host })))},"bots":${room.bots},"personas":${room.personas ? "true" : "false"},"code":"${room.code}","watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))}}`;
+    : `{"type":"lobby","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"members":${JSON.stringify(room.members.map((m) => ({ name: m.name, seat: m.seat, host: m.host })))},"bots":${room.bots},"personas":${room.personas ? "true" : "false"},"variants":${JSON.stringify(room.variants)},"code":"${room.code}","watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))}}`;
 }
 /* Every finished game is written down exactly once. This hangs off broadcast
    because broadcast is the one thing that runs on every state change, whichever
@@ -370,6 +370,13 @@ const server = http.createServer(async (req, res) => {
   /* Statistics and the hall of fame, drawn from every match the server has run.
      Open like /api/presence: it is shown on every screen and holds nothing private
      beyond the display names players chose for themselves. */
+  /* The variant catalogue, so the lobby renders whatever the engine actually has
+     rather than a copy of the list that can fall out of step with it. */
+  if (p === "/api/variants") {
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    return res.end(JSON.stringify({ variants: E.VARIANTS }));
+  }
+
   if (p === "/api/stats") {
     if (!STATS_CACHE) STATS_CACHE = matchlog.summarise(MATCHES, E.PERSONAS);
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
@@ -541,6 +548,12 @@ const server = http.createServer(async (req, res) => {
     if (!me || !me.host) return json(res, { error: "Only the host can change the setup." }, 403);
     if (room.state) return json(res, { error: "The game has already started." }, 409);
     if (typeof b.personas === "boolean") room.personas = b.personas;
+    /* Merge rather than replace: a caller that names one variant should not
+       silently switch the others off, and normalise still drops anything the
+       engine does not recognise. */
+    if (b.variants && typeof b.variants === "object") {
+      room.variants = E.normaliseVariants({ ...room.variants, ...b.variants });
+    }
     if (typeof b.bots === "number") room.bots = Math.max(0, Math.min(3, b.bots | 0));
     broadcast(room);
     return json(res, { ok: true });
@@ -555,7 +568,7 @@ const server = http.createServer(async (req, res) => {
     if (room.state) return json(res, { error: "Already started." }, 409);
     if (room.members.length + room.bots < 2) return json(res, { error: "Need at least 2 players (add a bot or another human)." }, 400);
     const seed = Math.floor(Math.random() * 1e9);
-    room.state = E.initGame(room.bots, seed, room.members.map((m) => m.name), undefined, room.personas);
+    room.state = E.initGame(room.bots, seed, room.members.map((m) => m.name), undefined, room.personas, room.variants);
     room.rng = E.mulberry32(seed + 777);
     room.startedAt = Date.now();
     room.recorded = false;
