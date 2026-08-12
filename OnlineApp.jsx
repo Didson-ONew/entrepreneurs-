@@ -17,6 +17,147 @@ const btn = (bg, fg) => ({
   backgroundColor: bg, color: fg, border: "none", cursor: "pointer",
 });
 
+/* ---------------------------------------------------------------- accounts
+   Registering is optional. It exists so that a name can be yours: the hall of fame
+   is kept by name, so without this anyone can type your name and add to your record.
+   Guests play exactly as they always have, under any name nobody has registered. */
+const link = { background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit" };
+
+function AccountPanel({ account, setAccount, onName }) {
+  const [pane, setPane] = useState(null);        // null | signin | register | forgot | reset
+  const [form, setForm] = useState({});
+  const [err, setErr] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [resetToken, setResetToken] = useState("");
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const open = (which) => { setPane(which); setErr(""); setNote(""); setForm({}); };
+
+  /* Arriving from a reset email. The link is checked before the form is offered, so
+     an expired one says so now rather than after they have typed a new password. */
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("reset");
+    if (!t) return;
+    fetch(`/api/reset?token=${encodeURIComponent(t)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((r) => {
+        setResetToken(t);
+        if (r.valid) { setPane("reset"); setNote(`Choose a new password for ${r.name}.`); }
+        else { setPane("forgot"); setErr("That reset link has expired or has already been used."); }
+      })
+      .catch(() => {});
+  }, []);
+
+  const send = async (path, payload, after) => {
+    setBusy(true); setErr(""); setNote("");
+    try {
+      const r = await api(path, payload);
+      if (r.body.error) setErr(r.body.error);
+      else after(r.body);
+    } catch (_) { setErr("Could not reach the server."); }
+    setBusy(false);
+  };
+
+  const done = (b) => {
+    setAccount(b.user);
+    if (b.user) onName(b.user.name);
+    setPane(null); setForm({});
+    // take the used token out of the address bar so a refresh is not a dead link
+    if (window.history.replaceState) window.history.replaceState({}, "", window.location.pathname);
+  };
+
+  if (account) {
+    return (
+      <div className="rounded-lg px-3 py-2 mb-3 flex items-center justify-between"
+        style={{ backgroundColor: "#101318", border: "1px solid #2c5f4f" }}>
+        <div className="text-[11px]" style={{ color: "#8fd3b6" }}>
+          Signed in as <b>{account.name}</b>
+          <div className="text-[10px]" style={{ color: "#6b7280" }}>Only you can play under this name.</div>
+        </div>
+        <button style={{ ...link, color: "#9ca3af", fontSize: 11 }}
+          onClick={() => send("/api/logout", {}, () => setAccount(null))} disabled={busy}>Sign out</button>
+      </div>
+    );
+  }
+
+  const fieldset = (
+    <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#101318" }}>
+      {pane === "signin" && (<>
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Sign in</div>
+        <input style={field} placeholder="Your name" value={form.name || ""} onChange={set("name")} maxLength={24} />
+        <input style={field} type="password" placeholder="Password" value={form.password || ""} onChange={set("password")} />
+        <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
+          onClick={() => send("/api/login", { name: form.name, password: form.password }, done)}>Sign in</button>
+        <div className="flex justify-between mt-2 text-[10px]">
+          <button style={{ ...link, color: "#8fd3b6" }} onClick={() => open("register")}>Create an account</button>
+          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("forgot")}>Forgot password</button>
+        </div>
+      </>)}
+
+      {pane === "register" && (<>
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Create an account</div>
+        <div className="text-[10px] text-gray-500 mb-2">
+          This reserves your name, so nobody else can play as you and change your record.
+        </div>
+        <input style={field} placeholder="Your name" value={form.name || ""} onChange={set("name")} maxLength={24} />
+        <input style={field} type="email" placeholder="Email (only used to reset your password)"
+          value={form.email || ""} onChange={set("email")} />
+        <input style={field} type="password" placeholder="Password (8 characters or more)"
+          value={form.password || ""} onChange={set("password")} />
+        <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
+          onClick={() => send("/api/register", { name: form.name, email: form.email, password: form.password }, done)}>
+          Create account
+        </button>
+        <div className="mt-2 text-[10px]">
+          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("signin")}>I already have one</button>
+        </div>
+      </>)}
+
+      {pane === "forgot" && (<>
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Forgot your password</div>
+        <div className="text-[10px] text-gray-500 mb-2">Your name or your email address &mdash; either will do.</div>
+        <input style={field} placeholder="Name or email" value={form.who || ""} onChange={set("who")} />
+        <button disabled={busy} style={btn("#20232c", "#e5e7eb")}
+          onClick={() => send("/api/forgot", { who: form.who }, (b) => { setNote(b.sent); setForm({}); })}>
+          Send a reset link
+        </button>
+        <div className="mt-2 text-[10px]">
+          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("signin")}>Back to sign in</button>
+        </div>
+      </>)}
+
+      {pane === "reset" && (<>
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Choose a new password</div>
+        <input style={field} type="password" placeholder="New password (8 characters or more)"
+          value={form.password || ""} onChange={set("password")} />
+        <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
+          onClick={() => send("/api/reset", { token: resetToken, password: form.password }, done)}>
+          Set password and sign in
+        </button>
+      </>)}
+
+      {err && <div className="text-[10px] mt-2" style={{ color: "#fca5a5" }}>{err}</div>}
+      {note && <div className="text-[10px] mt-2" style={{ color: "#8fd3b6" }}>{note}</div>}
+      {pane !== "reset" && (
+        <div className="mt-2 text-[10px]">
+          <button style={{ ...link, color: "#6b7280" }} onClick={() => setPane(null)}>Not now &mdash; play as a guest</button>
+        </div>
+      )}
+    </div>
+  );
+
+  if (pane) return fieldset;
+  return (
+    <div className="text-[10px] mb-3" style={{ color: "#6b7280" }}>
+      Playing as a guest.{" "}
+      <button style={{ ...link, color: "#8fd3b6" }} onClick={() => open("signin")}>Sign in</button>
+      {" or "}
+      <button style={{ ...link, color: "#8fd3b6" }} onClick={() => open("register")}>reserve your name</button>.
+    </div>
+  );
+}
+
 function Lobby({ onEnter }) {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -25,6 +166,17 @@ function Lobby({ onEnter }) {
   const [busy, setBusy] = useState(false);
   const [returning, setReturning] = useState(false);
   const [nick, setNick] = useState(null);
+  const [account, setAccount] = useState(null);
+
+  /* Are we signed in? Asked once, and again after anything that changes it. */
+  useEffect(() => {
+    let stop = false;
+    fetch("/api/account", { cache: "no-store", credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((r) => { if (!stop && r && r.user) { setAccount(r.user); setName(r.user.name); } })
+      .catch(() => {});
+    return () => { stop = true; };
+  }, []);
 
   /* The server keeps the last name this browser used in a cookie, so a regular
      player never retypes it. It is a convenience, not a login: the field stays
@@ -86,23 +238,38 @@ function Lobby({ onEnter }) {
         <h1 className="text-2xl font-bold text-white tracking-tight mb-1">ENTREPRENEURS</h1>
         <p className="text-sm text-gray-400 mb-5">Play online with friends &mdash; 2 to 4 players.</p>
 
-        <input style={field} placeholder="Your name" value={name} maxLength={16}
+        <AccountPanel account={account} setAccount={(u) => { setAccount(u); if (!u) setNick(null); }}
+          onName={(n) => { setName(n); setReturning(false); }} />
+
+        {/* Signed in, the name is your account's and not a free-text field: changing it
+            here would only mean being refused at Create room. Sign out to play as a guest. */}
+        <input style={{ ...field, ...(account ? { color: "#8fd3b6", cursor: "not-allowed" } : null) }}
+          placeholder="Your name" value={name} maxLength={16} readOnly={!!account}
           onChange={(e) => { setName(e.target.value); setReturning(false); }} />
-        {returning && !!name && !(nick && nick.taken) && (
+        {returning && !!name && !account && !(nick && (nick.taken || nick.registered)) && (
           <div className="text-[10px] -mt-2 mb-3" style={{ color: "#8fd3b6" }}>
             Welcome back, {name}. <span style={{ color: "#6b7280" }}>Not you? Just type over it.</span>
           </div>
         )}
-        {nick && nick.taken && (
+        {/* A registered name is not a warning, it is a locked door - say so plainly
+            rather than letting them press Create room and be refused. */}
+        {nick && nick.registered && !nick.yours && (
+          <div className="text-[10px] -mt-2 mb-3" style={{ color: "#fca5a5" }}>
+            <b>{nick.name}</b> is a registered player, so only they can play under it.{" "}
+            <span style={{ color: "#6b7280" }}>Sign in if that is you, or pick another name.</span>
+          </div>
+        )}
+        {nick && nick.taken && !nick.registered && (
           <div className="text-[10px] -mt-2 mb-3" style={{ color: "#e0b060" }}>
             Someone else already plays as <b>{nick.name}</b>. Records are kept by name, so
             your scores would add together in one hall-of-fame row.
             <span style={{ color: "#6b7280" }}> Add something to tell yourselves apart &mdash; or carry on, if it really is you.</span>
           </div>
         )}
-        {nick && !nick.taken && nick.mine && !returning && (
+        {nick && !nick.taken && !nick.registered && nick.mine && !returning && (
           <div className="text-[10px] -mt-2 mb-3" style={{ color: "#8fd3b6" }}>
-            Your records are under this name.
+            Your records are under this name.{" "}
+            <span style={{ color: "#6b7280" }}>Reserve it above and nobody else can use it.</span>
           </div>
         )}
 

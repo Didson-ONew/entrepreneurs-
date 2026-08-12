@@ -68,6 +68,55 @@ when the server stops either way.
 
 ---
 
+## Reserving your name (optional)
+
+The hall of fame remembers players by the name they type. That is fine among friends,
+but it does mean anybody could type your name and have their score added to yours. If
+that matters to your group, players can **reserve a name**: click *reserve your name*
+in the lobby, pick a password and give an email address. From then on, only that
+person can play under that name — everyone else gets told to pick another.
+
+Nobody has to do this. Guests play exactly as before under any name that is not
+reserved.
+
+Two things to know if you host it:
+
+**1. Accounts live in a file called `accounts.json`**, next to `server.js`. Treat it
+like a password list, because that is what it is (scrambled, but still). Never put it
+in a shared folder or a public repository. On free hosting with a temporary disk, put
+it on the same persistent disk as the records:
+
+```bash
+MATCHES_FILE=/data/matches.jsonl ACCOUNTS_FILE=/data/accounts.json node server.js
+```
+
+**2. "Forgot my password" needs a way to send email**, and a game server has no mail
+account of its own. So by default the reset link is **printed in the server's own
+terminal window** — the same window showing `Entrepreneurs server on ...`. If a friend
+forgets their password, they click *Forgot password*, and you copy the link out of
+that window and send it to them however you normally talk. For a server on your own
+computer that is genuinely the simplest thing that works.
+
+If you host it somewhere permanent and want real emails, set one of these before
+starting the server and it will use it instead:
+
+- `MAIL_COMMAND="sendmail -t"` — if your host has a mail command.
+- `MAIL_WEBHOOK_URL="https://..."` — any mail service that accepts a JSON POST of
+  `{from, to, subject, text}`; add `MAIL_WEBHOOK_AUTH="Bearer your-key"` if it needs
+  a key. Also set `PUBLIC_URL` to the address your friends actually use, so the link
+  in the email points at the right place.
+
+The server prints which of these it is using when it starts, so you know before
+somebody needs it.
+
+**A word on passwords.** Anyone who can see traffic between a player and the server
+can read a password sent over a plain `http://` link. Options B and C below both give
+you `https://` and are fine. On Option A (same wi-fi, plain `http://`), tell people to
+use a password they do not use anywhere else — or skip accounts entirely, which is
+perfectly reasonable when everyone is in the same room.
+
+---
+
 ## Option A — Friends in the same house (same wi-fi)
 
 Your friends connect straight to your computer. Nothing leaves your network.

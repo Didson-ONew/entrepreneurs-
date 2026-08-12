@@ -11,6 +11,8 @@ const path = require("path");
 const crypto = require("crypto");
 const vm = require("vm");
 const matchlog = require("./matchlog.js");
+const accounts = require("./accounts.js");
+const mailer = require("./mailer.js");
 
 const PORT = process.env.PORT || 8080;
 const ROOT = __dirname;
@@ -408,6 +410,90 @@ function rememberName(req, name) {
   return { id: me.id, name: nm, header: { "Set-Cookie": identityCookie(req, me.id, nm) } };
 }
 
+/* ---------- accounts ----------
+   The cookie above remembers a name; this one proves it is yours. They are separate
+   on purpose: the first is a convenience that grants nothing, the second is signed
+   and is the only thing here that is an authority. Nobody has to have an account -
+   guests play exactly as before - but a name that HAS been registered can only be
+   played by whoever holds its password. That is the whole point of the feature. */
+const ACCOUNTS = accounts.load();
+const SESSION_COOKIE = "ent_session";
+const MAIL = mailer.config();
+
+let accountsDirty = false;
+const saveAccounts = () => { try { accounts.save(ACCOUNTS); accountsDirty = false; } catch (e) { accountsDirty = true; console.error("could not save accounts:", e.message); } };
+
+const httpsBehind = (req) => String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim() === "https";
+function sessionCookie(req, value, maxAgeSeconds) {
+  return [`${SESSION_COOKIE}=${value}`, "Path=/", `Max-Age=${maxAgeSeconds}`, "SameSite=Lax", "HttpOnly"]
+    .concat(httpsBehind(req) ? ["Secure"] : []).join("; ");
+}
+const signInHeader = (req, user) => ({
+  "Set-Cookie": sessionCookie(req, accounts.signSession(ACCOUNTS, user.id), accounts.SESSION_DAYS * 24 * 60 * 60),
+});
+const signOutHeader = (req) => ({ "Set-Cookie": sessionCookie(req, "", 0) });
+
+/* Who is signed in on this request, or null. */
+function accountOf(req) {
+  const raw = readCookies(req)[SESSION_COOKIE];
+  const id = accounts.readSession(ACCOUNTS, raw);
+  return id ? accounts.byId(ACCOUNTS, id) : null;
+}
+
+/* May this request play under this name? A name nobody registered is free, as it
+   always was. A registered one needs its owner signed in. */
+function nameAllowed(req, name) {
+  const owner = accounts.byName(ACCOUNTS, name);
+  if (!owner) return { ok: true };
+  const me = accountOf(req);
+  if (me && me.id === owner.id) return { ok: true, user: me };
+  return { ok: false, error: `${owner.name} is a registered player. Sign in as ${owner.name}, or play under another name.` };
+}
+
+/* Which browsers have finished games under a name, so registering can tell a
+   long-standing player apart from someone claiming a name that is not theirs. */
+const holdersOf = (name) => matchlog.nameHolders(MATCHES).get(matchlog.nameKey(name)) || new Set();
+
+/* Where a request came from. X-Forwarded-For is only believed when the host says it
+   is behind a proxy that sets it - otherwise anyone could put any address in that
+   header and walk straight past the rate limit below. */
+const TRUST_PROXY = process.env.TRUST_PROXY === "1" || process.env.TRUST_PROXY === "true";
+const whoFrom = (req) => (TRUST_PROXY && String(req.headers["x-forwarded-for"] || "").split(",")[0].trim())
+  || (req.socket && req.socket.remoteAddress) || "unknown";
+
+/* Guessing a password should stop being worth the time long before it succeeds.
+
+   Two deliberate choices. It counts per source address, NOT per account: counting
+   per account would let anyone lock a player out of their own name by guessing at
+   it wrongly a few times, which turns the defence into the attack. And it slows
+   attempts down rather than refusing them, because a household behind one router
+   shares an address - a hard lockout would take the whole table out because one
+   person fumbled their password. Slowing to a few seconds an attempt makes online
+   guessing hopeless while never locking anybody out.
+
+   Kept in memory - a restart forgiving an attacker is a fair trade for not writing
+   a file on every failed sign-in. */
+const attempts = new Map();
+const ATTEMPT_WINDOW = 15 * 60 * 1000;
+const ATTEMPT_FREE = 8;              // attempts before it starts slowing down
+const ATTEMPT_STEP = 750;            // ms added per attempt beyond that
+const ATTEMPT_CAP = 5000;            // ...up to this
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+function attemptDelay(key) {
+  const a = attempts.get(key);
+  if (!a || Date.now() - a.first > ATTEMPT_WINDOW) return 0;
+  const over = a.count - ATTEMPT_FREE;
+  return over <= 0 ? 0 : Math.min(ATTEMPT_CAP, over * ATTEMPT_STEP);
+}
+function noteAttempt(key, failed) {
+  const now = Date.now();
+  if (!failed) return attempts.delete(key);
+  const a = attempts.get(key);
+  if (!a || now - a.first > ATTEMPT_WINDOW) attempts.set(key, { first: now, count: 1 });
+  else a.count += 1;
+  if (attempts.size > 5000) attempts.clear();     // never let this grow unbounded
+}
+
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 
 const server = http.createServer(async (req, res) => {
@@ -439,6 +525,97 @@ const server = http.createServer(async (req, res) => {
     return json(res, { id: me.id, name: me.name }, 200, me.header);
   }
 
+  /* ---------------------------------------------------------------- accounts */
+
+  /* Everything the sign-in box needs to draw itself: who you are, if anyone. */
+  if (p === "/api/account" && req.method === "GET") {
+    const me = accountOf(req);
+    return json(res, { user: accounts.publicUser(me), minPassword: accounts.MIN_PASSWORD });
+  }
+
+  if (p === "/api/register" && req.method === "POST") {
+    const b = await body(req);
+    const who = identityOf(req);
+    const r = await accounts.register(ACCOUNTS, {
+      name: b.name, email: b.email, password: b.password,
+      pid: who.id, heldBy: holdersOf(b.name),
+    });
+    if (r.error) return json(res, { error: r.error }, 400);
+    saveAccounts();
+    console.log(`account registered: ${r.user.name}`);
+    // registering signs you in, and teaches the convenience cookie the same name
+    return json(res, { user: accounts.publicUser(r.user) }, 200, {
+      "Set-Cookie": [signInHeader(req, r.user)["Set-Cookie"], identityCookie(req, who.id, r.user.name)],
+    });
+  }
+
+  if (p === "/api/login" && req.method === "POST") {
+    const b = await body(req);
+    const gate = whoFrom(req);
+    const wait = attemptDelay(gate);
+    if (wait) await pause(wait);
+    const r = await accounts.login(ACCOUNTS, { name: b.name, password: b.password });
+    noteAttempt(gate, !!r.error);
+    if (r.error) return json(res, { error: r.error }, 401);
+    saveAccounts();
+    const who = identityOf(req);
+    return json(res, { user: accounts.publicUser(r.user) }, 200, {
+      "Set-Cookie": [signInHeader(req, r.user)["Set-Cookie"], identityCookie(req, who.id, r.user.name)],
+    });
+  }
+
+  if (p === "/api/logout" && req.method === "POST") {
+    return json(res, { ok: true }, 200, signOutHeader(req));
+  }
+
+  if (p === "/api/password" && req.method === "POST") {
+    const me = accountOf(req);
+    if (!me) return json(res, { error: "Sign in first." }, 401);
+    const b = await body(req);
+    const r = await accounts.changePassword(ACCOUNTS, me, b.current, b.password);
+    if (r.error) return json(res, { error: r.error }, 400);
+    saveAccounts();
+    // a changed password re-signs you in, so an old session elsewhere is not extended
+    return json(res, { ok: true }, 200, signInHeader(req, me));
+  }
+
+  /* Forgotten password. The answer is the same whether or not the account exists:
+     anything else turns this form into a way to ask "does Dids have an account?".
+     Whether the mail actually went out is the host's business, and is logged there. */
+  if (p === "/api/forgot" && req.method === "POST") {
+    const b = await body(req);
+    const started = accounts.startReset(ACCOUNTS, b.who);
+    if (started) {
+      saveAccounts();
+      const base = (process.env.PUBLIC_URL || `http://${req.headers.host}`).replace(/\/+$/, "");
+      const link = `${base}/?reset=${started.token}`;
+      const out = await mailer.send(mailer.resetMessage({
+        to: started.user.email, name: started.user.name, link, minutes: accounts.RESET_MINUTES,
+      }), MAIL);
+      if (!out.ok) console.error(`reset mail for ${started.user.name} failed (${out.via}): ${out.error}`);
+    }
+    return json(res, { ok: true, sent: "If there is an account for that, a reset link is on its way." });
+  }
+
+  /* Is this link still good? Asked when the page opens with ?reset=..., so it can
+     show the new-password form rather than a form that will fail on submit. */
+  if (p === "/api/reset" && req.method === "GET") {
+    const u = accounts.resetOwner(ACCOUNTS, url.searchParams.get("token"));
+    return json(res, { valid: !!u, name: u ? u.name : null });
+  }
+
+  if (p === "/api/reset" && req.method === "POST") {
+    const b = await body(req);
+    const r = await accounts.finishReset(ACCOUNTS, b.token, b.password);
+    if (r.error) return json(res, { error: r.error }, 400);
+    saveAccounts();
+    const who = identityOf(req);
+    console.log(`password reset: ${r.user.name}`);
+    return json(res, { user: accounts.publicUser(r.user) }, 200, {
+      "Set-Cookie": [signInHeader(req, r.user)["Set-Cookie"], identityCookie(req, who.id, r.user.name)],
+    });
+  }
+
   /* Is this name already somebody's in the records? The hall of fame is keyed on the
      name typed, so two people answering to "Dan" would pool their scores into one row.
      The lobby asks this while the name is still being typed, and warns before the
@@ -447,8 +624,15 @@ const server = http.createServer(async (req, res) => {
   if (p === "/api/nickname") {
     const me = identityOf(req);
     const wanted = url.searchParams.get("name") || "";
-    return json(res, matchlog.nickStatus(MATCHES, wanted, me.id), 200,
-      { "Set-Cookie": identityCookie(req, me.id, me.name) });
+    const status = matchlog.nickStatus(MATCHES, wanted, me.id);
+    /* A registered name is a stronger statement than "somebody has played as this":
+       it is not a warning, it is a locked door, and the lobby says so instead. */
+    const owner = accounts.byName(ACCOUNTS, wanted);
+    const signedIn = accountOf(req);
+    status.registered = !!owner;
+    status.yours = !!(owner && signedIn && signedIn.id === owner.id);
+    if (owner) status.name = owner.name;          // show it spelled the way its owner spells it
+    return json(res, status, 200, { "Set-Cookie": identityCookie(req, me.id, me.name) });
   }
 
   /* The variant catalogue, so the lobby renders whatever the engine actually has
@@ -466,6 +650,8 @@ const server = http.createServer(async (req, res) => {
 
   if (p === "/api/create" && req.method === "POST") {
     const b = await body(req);
+    const allowed = nameAllowed(req, b.name);
+    if (!allowed.ok) return json(res, { error: allowed.error }, 403);
     const me = rememberName(req, b.name);
     const room = newRoom(b.name, b.bots, me.id);
     return json(res, { code: room.code, token: room.members[0].token, seat: 0 }, 200, me.header);
@@ -475,6 +661,8 @@ const server = http.createServer(async (req, res) => {
     const b = await body(req);
     const room = rooms.get((b.code || "").toUpperCase());
     if (!room) return json(res, { error: "No such room." }, 404);
+    const allowedJoin = nameAllowed(req, b.name);
+    if (!allowedJoin.ok) return json(res, { error: allowedJoin.error }, 403);
     const full = room.members.length >= 4;
     if (room.state || full) {
       // the seat is gone, but they can still pull up a chair and watch
@@ -738,4 +926,5 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`Entrepreneurs server on http://localhost:${PORT}`);
   console.log(`Rules engine ${E.ENGINE_VERSION} (loaded from EntrepreneursGame.jsx)`);
+  console.log(`Accounts: ${ACCOUNTS.users.length} registered - ${mailer.describe(MAIL)}`);
 });
