@@ -851,6 +851,19 @@ function worstRoiBusiness(p, pm, quarter, minAge = 1) {
    so the same card can be worth several times more depending on the market. A flat
    breadth bonus used to swamp this entirely, which had bots piling into whatever was
    cheapest regardless of what it sold for. */
+/* What the optional rules are worth to a bot's arithmetic. Without these the bots
+   value a company at 1 EP per level and the land awards at one payout, whatever the
+   host actually switched on - so under "companies score triple" they were undervaluing
+   every building by two thirds, and under "land awards every year" they were ignoring
+   two thirds of the land on offer. */
+const landPayouts = (state) => {
+  if (!hasVariant(state, "yearlyLandAwards")) return 1;
+  return [4, 8, 12].filter((q) => q >= state.quarter).length || 1;
+};
+/* One plot is worth this much EP in expectation: the two awards are 10 and 5, paid
+   `landPayouts` times, spread over the plots it takes to lead them. */
+const landEPWeight = (state) => landPayouts(state) * 1.5;
+
 function launchScore(state, p, bp, archetype) {
   const pm = state.pm;
   const px = price(pm, bp.ind);
@@ -916,6 +929,13 @@ function launchScore(state, p, bp, archetype) {
   // breadth is worth 5 EP/year, but must not drown the market signal
   const have = new Set(activeBiz(p).map(bizInd));
   if (!have.has(bp.ind)) s += 0.9;
+
+  /* The EP the building itself will score. Normally a level is 1 EP and this barely
+     registers against the cash return; under "companies score triple" it is the single
+     biggest term on the card and the bot should be chasing buildings, not margins. */
+  const yearEndsLeft = Math.max(1, [4, 8, 12].filter((q) => q >= state.quarter).length);
+  const scoreValue = bp.lvl * levelEP(state) * (hasVariant(state, "immediateScoring") ? 1 : yearEndsLeft / 3);
+  s += scoreValue / Math.max(1, totalOutlay) * 1.4;
 
   if (archetype === "rush_cheap") s += (30 - bp.setup) / 30;
   else if (archetype === "tech_heavy" && bp.ind === "TE") s += 0.5;
@@ -1018,7 +1038,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "afcfd9cf";
+const ENGINE_VERSION = "a6f7fc83";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1292,7 +1312,9 @@ function awardRanked(state, scoreFn, label, log) {
     const tiedCount = j - i + 1;
     const pot = values.slice(i, Math.min(j + 1, values.length)).reduce((a, b) => a + b, 0);
     const share = pot / tiedCount;
-    for (let k = i; k <= j; k++) { addEP(scores[k].p, share, label, 12); if (log) log(`${scores[k].p.name} earns ${label} (+${share.toFixed(1)} EP).`, scores[k].p.id); }
+    // stamp the quarter it was actually awarded in - under the yearly-land variant this
+    // runs at Q4 and Q8 too, and hardcoding 12 made the scoring log claim otherwise
+    for (let k = i; k <= j; k++) { addEP(scores[k].p, share, label, state.quarter); if (log) log(`${scores[k].p.name} earns ${label} (+${share.toFixed(1)} EP).`, scores[k].p.id); }
     i = j + 1;
   }
 }
@@ -1587,7 +1609,7 @@ function megacorpWorthIt(state, p, match) {
   const yearEndsLeft = [4, 8, 12].filter((q) => q >= state.quarter).length;
   const lostLevels = match.have.reduce((s, b) => s + b.level, 0);
   // one company survives as the HQ, and its plots keep counting toward the land awards
-  const forgone = Math.max(0, lostLevels - Math.max(...match.have.map((b) => b.level))) * yearEndsLeft;
+  const forgone = Math.max(0, lostLevels - Math.max(...match.have.map((b) => b.level))) * yearEndsLeft * levelEP(state);
   return ep >= forgone;
 }
 
@@ -1803,19 +1825,44 @@ function botResolveOneAction(state, p, track, rng, log) {
       const bp = pickLaunchCandidate(p, p.archetype, state.pm, missingIndustries(p), undefined, state);
       if (bp && doLaunch(state, p, bp, rng, log)) return;
     }
-    // no valid owned footprint to build on (or nothing worth building) -> buy a plot instead,
-    // preferring cheap ones adjacent to what's already owned -- but only if plot count is
-    // actually the binding constraint; if enough owned+free plots already exist for the
-    // largest footprint in hand, the real blocker is cash, and buying more won't help
+    /* Nothing was worth building. Buy land instead - for two different reasons, and the
+       bot has to tell them apart.
+
+       The first is to unblock a build, and that depends on plots THIS PLAYER can build
+       on. It used to count every free plot on the board whoever owned it, so a rival
+       sitting on empty land convinced the bot its own land was fine and it bought
+       nothing. (Building on a rival's plot is legal, but it pays them the rent every
+       quarter, so it is a fallback rather than a plan.)
+
+       The second is that land is points. The two awards are 10 EP and 5 EP each, and
+       under the yearly variant they are paid three times - up to 90 EP across a game,
+       which no amount of company income matches. That is worth buying for its own sake
+       once the discs are not needed for companies. */
     const maxNeeded = p.hand.length ? Math.max(...p.hand.map((bp) => (SCALING[bp.ind] === "H" ? bp.lvl : 1))) : 0;
-    const freeOwnedAnywhere = Object.keys(state.board.graph).filter((k) => k in state.board.owner && !(k in state.board.occupiedBy)).length;
+    const freeOwnedByMe = Object.entries(state.board.owner)
+      .filter(([k, v]) => v === p.id && !(k in state.board.occupiedBy)).length;
     const unowned = Object.keys(state.board.graph).filter((k) => !(k in state.board.owner));
     // Always keep discs in hand for future companies: each active company is worth
-    // 1 EP/level plus 5 EP for a new industry, far more than a spare plot.
+    // its level in EP plus 5 EP for a new industry, usually more than a spare plot.
+    /* Only hold discs back for a company that could actually be built. Reserving two
+       against an empty hand, or against cards there is no money for, is how bots ended
+       games sitting on both spare discs and spare cash - the one combination that
+       converts to nothing at all. */
     const companySlotsLeft = Math.max(0, 5 - activeBiz(p).length);
-    const reserveForCompanies = Math.min(companySlotsLeft, 2);
+    const buildableNow = p.hand.filter((bp) => p.cash >= bp.setup).length;
+    const reserveForCompanies = Math.min(companySlotsLeft, buildableNow, 2);
     const mayBuyLand = discsFree(state, p) > reserveForCompanies;
-    if (unowned.length && freeOwnedAnywhere < maxNeeded && mayBuyLand) {
+
+    /* Is land worth chasing for the awards? Only once there is spare capacity and the
+       payout is close enough to be worth the disc. Weighted by how many times the
+       awards will still be paid, so the yearly variant makes this urgent from Q1 and
+       the standard game keeps it a late-game move. */
+    const landIsPoints = discsFree(state, p) > reserveForCompanies
+      && p.cash > committedOpex(p) * 1.5 + 10
+      // either the awards pay often enough to chase all game, or it is late and the
+      // money is otherwise going to convert at a flat $10 per EP
+      && (landEPWeight(state) >= 3 || endgameSpendMode(state, p));
+    if (unowned.length && mayBuyLand && (freeOwnedByMe < maxNeeded || landIsPoints)) {
       const ownedByMe = Object.entries(state.board.owner).filter(([k, v]) => v === p.id).map(([k]) => k);
       const adjacentCandidates = new Set();
       ownedByMe.forEach((owned) => { [...state.board.graph[owned]].forEach((n) => { if (unowned.includes(n)) adjacentCandidates.add(n); }); });
@@ -1823,13 +1870,25 @@ function botResolveOneAction(state, p, track, rng, log) {
       // bots ended up unable to sell ~80% of what they produced. Weigh reachable demand
       // for the industries actually in hand against the price instead.
       const wantInds = p.hand.length ? [...new Set(p.hand.map((bp) => bp.ind))] : INDUSTRIES;
-      const pool = adjacentCandidates.size ? [...adjacentCandidates] : unowned;
+      // when land is being bought for points rather than for a build, look at the whole
+      // board: a plot in a district we are not in yet also feeds The Omnipresent
+      const pool = adjacentCandidates.size && !landIsPoints ? [...adjacentCandidates]
+        : [...new Set([...adjacentCandidates, ...unowned])];
+      const myDistricts = new Set(ownedByMe.map((k) => {
+        const c = state.board.cellOf[k];
+        return `${c.r},${c.c}`;
+      }));
       const ranked = pool.map((k) => {
         const cost = plotValue(state, k);
         const demand = Math.max(...wantInds.map((ind) => plotDemandScore(state, ind, k)));
-        return { k, cost, score: demand * 3 - cost };
+        const c = state.board.cellOf[k];
+        const newDistrict = myDistricts.has(`${c.r},${c.c}`) ? 0 : 1;
+        return { k, cost, score: demand * 3 + (landIsPoints ? landEPWeight(state) * (1 + newDistrict) : 0) - cost };
       }).sort((a, b) => b.score - a.score);
-      const pick = ranked.find((r) => p.cash >= r.cost);
+      /* Buying to unblock a build takes the best affordable plot even if the score is
+         negative - a plot that lets a company exist beats no company. Buying for points
+         is optional, so it has to actually be worth the disc. */
+      const pick = ranked.find((r) => p.cash >= r.cost && (freeOwnedByMe < maxNeeded || r.score > 0));
       if (pick && doBuyPlot(state, p, pick.k, log)) return;
     }
     log(`${p.name} finds nothing worth building right now.`, p.id);

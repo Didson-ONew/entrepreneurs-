@@ -19,7 +19,8 @@ function loadEngine() {
     box.exports = { initGame, mulberry32, VARIANTS, VARIANT_KEYS, normaliseVariants, hasVariant,
       doPlaceLH, placeNewLH, doLaunch, doUpgrade, reachableDistricts, plotHasLH, plotIsLH,
       lhDistricts, lhCount, plotFree, orthOf, runClosingRest, finalizeGame, activeBiz, epTotal,
-      byId, BP_DATA, INDUSTRIES, awardRanked, plotCount, districtCount, levelEP, SCALING };
+      byId, BP_DATA, INDUSTRIES, awardRanked, plotCount, districtCount, levelEP, SCALING,
+      landEPWeight, landPayouts, megacorpWorthIt, bestMegacorpMatch, launchScore };
   `, sandbox);
   return box.exports;
 }
@@ -212,6 +213,58 @@ section("6. Land awards every year");
   E.finalizeGame(st);
   check("quarter 12 awards them once, in final scoring",
     afterClose === 0 && me.epBank >= 20, `close ${afterClose}, final ${me.epBank}`);
+}
+
+/* -------------------------------------------------- what the bots can see */
+section("The bots read the variants too");
+{
+  check("a company level is worth 1 EP normally, 3 under the variant",
+    E.levelEP(game(undefined)) === 1 && E.levelEP(game({ tripleLevelScoring: true })) === 3);
+
+  const plain = game(undefined), yearly = game({ yearlyLandAwards: true });
+  check("land pays once normally, three times under the yearly variant",
+    E.landPayouts(plain) === 1 && E.landPayouts(yearly) === 3);
+  check("so a plot is worth three times as much to a bot's arithmetic",
+    E.landEPWeight(yearly) === E.landEPWeight(plain) * 3);
+  yearly.quarter = 9;
+  check("and that value falls as the remaining years run out",
+    E.landPayouts(yearly) === 1, `Q9 -> ${E.landPayouts(yearly)} payout(s)`);
+
+  // the same card, scored by the same bot, under two different scoring rules
+  const scoreOf = (v) => {
+    const st = game(v, 21);
+    const me = E.byId(st, 0);
+    const bp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 1);
+    Object.keys(st.board.graph).slice(0, 3).forEach((p) => { st.board.owner[p] = me.id; });
+    me.cash = 200;
+    return E.launchScore(st, me, bp, "balanced");
+  };
+  check("a building is worth more to a bot when buildings score triple",
+    scoreOf({ tripleLevelScoring: true }) > scoreOf(undefined),
+    `${scoreOf(undefined).toFixed(3)} -> ${scoreOf({ tripleLevelScoring: true }).toFixed(3)}`);
+}
+
+/* -------------------------------------------------- the award log's quarter */
+section("Land awards are logged in the quarter they were given");
+{
+  const st = game({ yearlyLandAwards: true });
+  const me = E.byId(st, 0);
+  Object.keys(st.board.graph).slice(0, 6).forEach((p) => { st.board.owner[p] = me.id; });
+  st.quarter = 4;
+  E.runClosingRest(st, () => {});
+  const y1 = (me.epLog || []).filter((e) => e.label === "The Real-Estate Mogul");
+  check("the Year 1 award is stamped Q4, not Q12", y1.length === 1 && y1[0].quarter === 4,
+    y1.length ? `stamped Q${y1[0].quarter}` : "not awarded");
+  st.quarter = 8;
+  E.runClosingRest(st, () => {});
+  const y2 = (me.epLog || []).filter((e) => e.label === "The Real-Estate Mogul");
+  check("the Year 2 award is stamped Q8", y2.length === 2 && y2[1].quarter === 8,
+    y2.length > 1 ? `stamped Q${y2[1].quarter}` : "not awarded");
+  st.quarter = 12;
+  E.finalizeGame(st);
+  const y3 = (me.epLog || []).filter((e) => e.label === "The Real-Estate Mogul");
+  check("and final scoring is stamped Q12", y3.length === 3 && y3[2].quarter === 12,
+    y3.length > 2 ? `stamped Q${y3[2].quarter}` : "not awarded");
 }
 
 /* --------------------------------------------------------------- all at once */
