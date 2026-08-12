@@ -16,8 +16,9 @@
 12. [Going public and Megacorps](#megacorp)
 13. [Winning](#scoring)
 14. [Personas (optional)](#personas)
-15. [Playing online](#online)
-16. [Quick reference](#quickref)
+15. [Rule variants (optional)](#variants)
+16. [Playing online](#online)
+17. [Quick reference](#quickref)
 
 ---
 
@@ -414,6 +415,27 @@ Personas are asymmetric powers, one tied to each industry. They are off unless t
 | Concession Holder (UT) | Your Utilities production sells for $1 above the current price. |
 
 > **Designer's note.** Each persona is a tilt, not a cage. They all deliberately point at doing more of one industry, and the 5 EP breadth bonus deliberately points the other way, so a persona changes your best line without collapsing it to one.
+
+---
+
+<a id="variants"></a>
+
+## Rule variants (optional)
+
+The host may switch any of these on before a game starts. They are all off by default, and a table that leaves them alone plays exactly the rules in this book. They can be combined freely.
+
+| Variant | What changes |
+| --- | --- |
+| Fully shuffled decks | Each industry deck is shuffled whole, so a level 2 or 3 can be the public top card from the very first draft. Normally the decks run level 1 down to level 3. |
+| Hubs on plots | A Logistic Hub is built on an empty plot instead of on the road. A company joins the network by standing orthogonally beside it - up to four plots, since diagonals do not count - and the network reaches the district each hub stands in. The plot is filled: nothing can be built there afterwards. |
+| Hubs open to all | Utilities and Retail may use Logistic Hubs like every other industry, instead of never. |
+| Companies score triple | An active company is worth 3 EP per level instead of 1. Building becomes far stronger against land and cash. |
+| Score on completion | A company puts its EP on its own card the moment it is built or upgraded, rather than waiting for the year end. It still vests as normal, and the year end leaves it alone. |
+| Land awards every year | The Real-Estate Mogul and The Omnipresent are awarded at the end of every year, not only at the end of the game. Holding the most land in Year 1 is then worth something even if you lose it later. |
+
+Whichever are on is shown in the waiting room before the game starts, and recorded with the finished game, so a variant table is never mistaken for a standard one in the records.
+
+> **Designer's note.** These exist to be tried, not to be balanced against each other. Companies score triple and Score on completion both push hard toward building and away from the land and cash awards, and Hubs on plots is a genuine constriction: a quarter of plots have no orthogonal neighbour at all, so a badly placed hub connects nobody. That is the variant working as asked, not a bug - but it is why the hub picker tells you how many plots a spot would connect before you commit to it.
 
 ---
 

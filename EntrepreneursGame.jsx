@@ -135,9 +135,29 @@ function buildBoard(rng) {
       });
     });
   });
+  /* A second, stricter adjacency: plots that share an edge on the city grid, at
+     most four of them. `graph` is deliberately looser - it counts diagonals inside
+     a district - and everything built on it stays as it is. This one exists for
+     hubs placed on plots, which reach straight lines only. */
+  const orth = {};
+  const atXY = {};
+  Object.keys(cellOf).forEach((k) => {
+    const c = cellOf[k];
+    const [x, y] = COORDS[c.pos];
+    atXY[`${(c.c - 1) * 3 + x},${(c.r - 1) * 3 + y}`] = k;
+  });
+  Object.keys(cellOf).forEach((k) => {
+    const c = cellOf[k];
+    const [x, y] = COORDS[c.pos];
+    const gx = (c.c - 1) * 3 + x, gy = (c.r - 1) * 3 + y;
+    orth[k] = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+      .map(([dx, dy]) => atXY[`${gx + dx},${gy + dy}`])
+      .filter(Boolean);
+  });
+
   const centerPlots = Object.keys(cellOf).filter((k) => CENTER_CELLS.some(([cr, cc]) => cr === cellOf[k].r && cc === cellOf[k].c));
   const distFromCenter = bfsDistances(graph, centerPlots);
-  const board = { tiles, graph, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhEdges: [] };
+  const board = { tiles, graph, orth, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhEdges: [], lhPlots: [], lhOnPlots: false };
   board.priceLattice = computePriceLattice(board);
   return board;
 }
@@ -152,7 +172,33 @@ function bfsDistances(graph, startNodes) {
   return dist;
 }
 function edgeKey(a, b) { return a < b ? `${a}|${b}` : `${b}|${a}`; }
-function plotHasLH(board, plot) { return board.lhEdges.some((e) => e[0] === plot || e[1] === plot); }
+/* ---------- Logistic Hubs ----------
+   Two shapes, chosen at setup. Normally a hub sits on the road between two plots in
+   different districts, and both of those districts join the network. Under the
+   "hubs on plots" variant it stands on a plot instead: you join the network by
+   being orthogonally beside one, and the network reaches the district each hub
+   stands in. Everything downstream asks these three questions rather than reading
+   lhEdges directly, so neither shape has to know about the other. */
+const orthOf = (board, plot) => (board.orth && board.orth[plot]) || [];
+/* Is this plot itself a hub? Only ever true under the variant - on the road, a hub
+   occupies no plot at all. */
+const plotIsLH = (board, plot) => !!board.lhOnPlots && (board.lhPlots || []).includes(plot);
+/* Does a company standing on this plot touch the network? */
+function plotHasLH(board, plot) {
+  if (board.lhOnPlots) return orthOf(board, plot).some((n) => (board.lhPlots || []).includes(n));
+  return board.lhEdges.some((e) => e[0] === plot || e[1] === plot);
+}
+/* Every district the network reaches. */
+function lhDistricts(board) {
+  const out = new Set();
+  const add = (plot) => { const c = board.cellOf[plot]; if (c) out.add(`${c.r},${c.c}`); };
+  if (board.lhOnPlots) (board.lhPlots || []).forEach(add);
+  else board.lhEdges.forEach(([a, b]) => { add(a); add(b); });
+  return out;
+}
+const lhCount = (board) => (board.lhOnPlots ? (board.lhPlots || []).length : board.lhEdges.length);
+/* A hub standing on a plot fills it: nothing can be built there afterwards. */
+const plotFree = (board, plot) => !(plot in board.occupiedBy) && !plotIsLH(board, plot);
 const LOCAL5 = { NW: [0, 0], N: [0, 2], NE: [0, 4], W: [2, 0], E: [2, 4], SW: [4, 0], S: [4, 2], SE: [4, 4] };
 function isCCDistrict0(dr, dc) { return CENTER_CELLS.some(([cr, cc]) => cr - 1 === dr && cc - 1 === dc); }
 
@@ -212,7 +258,48 @@ function isCrossDistrictEdge(board, a, b) {
   const ca = board.cellOf[a], cb = board.cellOf[b];
   return ca.r !== cb.r || ca.c !== cb.c;
 }
+/* Where a hub may go, in whichever shape this game is using. Under the variant
+   that is any plot with nothing standing on it; otherwise it is any road between
+   two districts that has no hub yet. */
+function lhPlotOptions(state) {
+  return Object.keys(state.board.graph).filter((p) => plotFree(state.board, p));
+}
+function lhEdgeOptions(state) {
+  const out = [], seen = new Set();
+  for (const a of Object.keys(state.board.graph)) {
+    for (const b of state.board.graph[a]) {
+      const ek = edgeKey(a, b);
+      if (seen.has(ek)) continue;
+      seen.add(ek);
+      if (!isCrossDistrictEdge(state.board, a, b)) continue;   // a road hub straddles two districts
+      if (state.board.lhEdges.some((e) => edgeKey(e[0], e[1]) === ek)) continue;
+      out.push([a, b]);
+    }
+  }
+  return out;
+}
+function logNewLH(state, districts, log) {
+  const names = districts.map((d) => state.board.tiles[d]).filter(Boolean);
+  const grows = districts.some((d) => DEMAND_ROWS[districtFamily(state.board.tiles[d])].includes("HC"));
+  log(`A new Logistic Hub opens near ${names.join("/")}${grows ? " \u2014 Healthcare demand grows." : "."}`, null);
+}
+const districtOf = (board, plot) => { const c = board.cellOf[plot]; return c ? `${c.r},${c.c}` : null; };
+
 function placeNewLH(state, rng, log) {
+  if (state.board.lhOnPlots) {
+    const spots = lhPlotOptions(state);
+    if (!spots.length) return;
+    /* A quarter of plots have no orthogonal neighbour at all - the district centre
+       is not a plot, and each tile carries only four of the eight ring positions -
+       so a hub dropped there would connect nobody. Prefer somewhere it can do some
+       good, and fall back to anywhere if the board is that full. */
+    const useful = spots.filter((p) => orthOf(state.board, p).length > 0);
+    const pool = useful.length ? useful : spots;
+    const plot = pool[Math.floor(rng() * pool.length)];
+    state.board.lhPlots.push(plot);
+    logNewLH(state, [districtOf(state.board, plot)], log);
+    return;
+  }
   const allEdges = [];
   const seen = new Set();
   for (const a of Object.keys(state.board.graph)) {
@@ -228,15 +315,9 @@ function placeNewLH(state, rng, log) {
   if (!allEdges.length) return;
   const [a, b] = allEdges[Math.floor(rng() * allEdges.length)];
   state.board.lhEdges.push([a, b]);
-  const famA = districtFamily(state.board.cellOf[a].tname), famB = districtFamily(state.board.cellOf[b].tname);
-  const touchesHC = DEMAND_ROWS[famA].includes("HC") || DEMAND_ROWS[famB].includes("HC");
-  if (touchesHC) {
-    log(`A new Logistic Hub opens near ${state.board.cellOf[a].tname}/${state.board.cellOf[b].tname} \u2014 Healthcare demand grows.`, null);
-  } else {
-    log(`A new Logistic Hub opens near ${state.board.cellOf[a].tname}/${state.board.cellOf[b].tname}.`, null);
-  }
+  logNewLH(state, [districtOf(state.board, a), districtOf(state.board, b)], log);
 }
-function freeNeighbors(board, plot) { return [...board.graph[plot]].filter((n) => !(n in board.occupiedBy)); }
+function freeNeighbors(board, plot) { return [...board.graph[plot]].filter((n) => plotFree(board, n)); }
 function ownedFreeNeighbors(board, plot) { return freeNeighbors(board, plot).filter((n) => n in board.owner); }
 /* Rank candidate plots by how much demand a business of `ind` could actually reach
    from there: open icons in the home district, plus hub access if the industry can
@@ -255,12 +336,12 @@ function plotDemandScore(state, ind, plotKeyStr) {
       for (let l = 0; l < 4; l++) if (openable && !t.filled[rowIdx][l]) score += 1;
     });
   }
-  const canLH = ind !== "UT" && ind !== "RE";
+  const canLH = hasVariant(state, "lhOpenToAll") || (ind !== "UT" && ind !== "RE");
   if (canLH && plotHasLH(board, plotKeyStr)) score += 6;      // opens the whole hub network
   return score;
 }
 function findFootprint(board, nPlots, rng, state, ind) {
-  let pool = Object.keys(board.graph).filter((p) => !(p in board.occupiedBy) && p in board.owner);
+  let pool = Object.keys(board.graph).filter((p) => plotFree(board, p) && p in board.owner);
   if (state && ind) {
     // prefer plots where this industry can actually sell
     pool = pool.map((pk) => [pk, plotDemandScore(state, ind, pk)])
@@ -354,11 +435,12 @@ function reachableDistricts(state, biz, chosenExtra) {
   const out = new Set(home);
   // Utilities and Retail can never use Logistic Hubs; Healthcare uses the network natively,
   // everyone else needs a footprint plot actually touching a hub.
-  const canUseLH = bizInd(biz) !== "UT" && bizInd(biz) !== "RE";
+  // Utilities and Retail are locked out of the network unless the host opened it
+  const canUseLH = hasVariant(state, "lhOpenToAll") || (bizInd(biz) !== "UT" && bizInd(biz) !== "RE");
   const touchesAnyLH = biz.footprint.some((plot) => plotHasLH(board, plot));
   if (canUseLH && (bizInd(biz) === "HC" || touchesAnyLH)) {
-    // full shared LH network: every district touched by ANY placed LH becomes reachable
-    board.lhEdges.forEach(([a, b]) => { out.add(`${board.cellOf[a].r},${board.cellOf[a].c}`); out.add(`${board.cellOf[b].r},${board.cellOf[b].c}`); });
+    // one shared network: every district any hub reaches becomes reachable
+    lhDistricts(board).forEach((d) => out.add(d));
   }
   if (bizInd(biz) === "UT") {
     /* A level-N Utility reads demand across an N x N block of districts that also
@@ -412,8 +494,7 @@ function adjacencyBonusCount(state, biz) {
     board.graph[plot].forEach((n) => {
       if (biz.footprint.includes(n)) return;
       const occupied = n in board.occupiedBy;
-      const hasLH = board.lhEdges.some((e) => e[0] === n || e[1] === n);
-      if (occupied || hasLH) seen.add(n);
+      if (occupied || plotIsLH(board, n) || plotHasLH(board, n)) seen.add(n);
     });
   });
   return seen.size;
@@ -442,7 +523,7 @@ function hoBonusUnits(state, biz, owner) {
         next.push(n);
         const id = board.occupiedBy[n];
         if (id !== undefined && !foot.has(n)) countedBiz.add(id);
-        if (board.lhEdges.some((e) => e[0] === n || e[1] === n)) hubs++;
+        if (plotIsLH(board, n) || plotHasLH(board, n)) hubs++;
       }
     }
     frontier = next;
@@ -607,6 +688,37 @@ const PERSONAS = {
   gov_rel:     { ind: "UT", name: "Concession Holder",
     blurb: "Your Utilities production sells for $1 above the current price." },
 };
+/* ============================== VARIANTS ==============================
+   Optional rule changes the host turns on before a game starts. Every one is off
+   by default, so a table that touches nothing plays the printed rulebook exactly.
+   The catalogue is data because three things read it: the lobby, the single-player
+   setup screen, and the rulebook. */
+const VARIANTS = [
+  { key: "shuffledDecks", name: "Fully shuffled decks",
+    blurb: "Each industry deck is shuffled whole, so a level 3 can sit on top from the first draft. Normally the decks run level 1 down to level 3." },
+  { key: "lhOnPlots", name: "Hubs on plots",
+    blurb: "Logistic Hubs are built on an empty plot instead of on the road. A company joins the network by standing orthogonally beside one, and the network reaches the district each hub stands in." },
+  { key: "lhOpenToAll", name: "Hubs open to all",
+    blurb: "Utilities and Retail may use Logistic Hubs like everyone else, instead of never." },
+  { key: "tripleLevelScoring", name: "Companies score triple",
+    blurb: "An active company is worth 3 EP per level instead of 1, making building far stronger against land and cash." },
+  { key: "immediateScoring", name: "Score on completion",
+    blurb: "A company puts its EP on its card the moment it is built or upgraded, rather than waiting for the year end. It still vests as normal." },
+  { key: "yearlyLandAwards", name: "Land awards every year",
+    blurb: "The Real-Estate Mogul and The Omnipresent are awarded at the end of every year, not only at the end of the game." },
+];
+const VARIANT_KEYS = VARIANTS.map((v) => v.key);
+/* Anything off the wire is untrusted, so read only the keys we know and coerce
+   each to a boolean. A state built before a variant existed simply has it off. */
+function normaliseVariants(v) {
+  const out = {};
+  VARIANT_KEYS.forEach((k) => { out[k] = !!(v && v[k]); });
+  return out;
+}
+const hasVariant = (state, key) => !!(state && state.variants && state.variants[key]);
+/* Company EP per level: the one number the triple-scoring variant moves. */
+const levelEP = (state) => (hasVariant(state, "tripleLevelScoring") ? 3 : 1);
+
 const PERSONA_KEYS = Object.keys(PERSONAS);
 const hasPersona = (p, key) => !!p && p.persona === key;
 
@@ -700,6 +812,16 @@ function addEP(p, amount, label, quarter) {
    tokens still sitting on scored BP cards (those vest at the Grand Finale). */
 function epTotal(p) {
   return p.epBank + p.businesses.reduce((s, b) => s + (b.epOnCard || 0), 0);
+}
+/* Under "score on completion" a company puts its EP on its own card the moment it
+   is finished, instead of waiting for the year end to notice it. The card is the
+   same card either way, so it still vests when the company is upgraded, sold,
+   merged or the game ends - and the year end, finding it already scored, leaves
+   it alone. */
+function scoreCompanyIfImmediate(state, biz) {
+  if (!hasVariant(state, "immediateScoring") || !biz || biz.isHQ || biz.distressed) return;
+  biz.epOnCard = biz.level * levelEP(state);
+  biz.scored = true;
 }
 function vest(p, b, quarter) {
   if (b.epOnCard > 0) { addEP(p, b.epOnCard, `Vested: ${b.bp.name}`, quarter); b.epOnCard = 0; }
@@ -827,7 +949,7 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   const nPlots = SCALING[bp.ind] === "H" ? bp.lvl : 1;
   const footprint = manualFootprint || findFootprint(state.board, nPlots, rng, state, bp.ind);
   if (!footprint || footprint.length !== nPlots) return false;
-  if (!footprint.every((plot) => plot in state.board.owner && !(plot in state.board.occupiedBy))) return false;
+  if (!footprint.every((plot) => plot in state.board.owner && plotFree(state.board, plot))) return false;
   if (p.cash < bp.setup) return false;
   if (discsFree(state, p) <= 0) return false;   // no disc left to mark the new company
   p.cash -= bp.setup;
@@ -835,6 +957,7 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   footprint.forEach((plot) => (state.board.occupiedBy[plot] = biz.id));
   p.businesses.push(biz);
   p.hand = p.hand.filter((x) => x !== bp);
+  scoreCompanyIfImmediate(state, biz);
   onLaunch(state.pm, bp.ind, bp.deps.map((d) => d.ind));
   log(`${p.name} launches ${bp.name} (${bp.ind} L${bp.lvl}) for $${bp.setup} (cash: $${Math.round(p.cash)}).`, p.id);
   claimIndustryBonus(state, p, bp.ind, log);
@@ -863,7 +986,7 @@ function upgradeBlockedReason(state, p, b) {
 function adjacentOwnedFreePlots(board, footprint) {
   const out = new Set();
   footprint.forEach((pk) => (board.graph[pk] || []).forEach((n) => {
-    if (!footprint.includes(n) && n in board.owner && !(n in board.occupiedBy)) out.add(n);
+    if (!footprint.includes(n) && n in board.owner && plotFree(board, n)) out.add(n);
   }));
   return [...out];
 }
@@ -872,7 +995,7 @@ function doUpgrade(state, p, b, rng, log, manualPlot) {
   if (p.cash < bizSetup(b)) return false;   // affordability only - safeToSpend is a bot heuristic
   if (upgradeScaling(p, b) === "H") {
     const newPlot = manualPlot || adjacentFreePlot(state.board, b.footprint, rng);
-    if (!newPlot || !(newPlot in state.board.owner) || newPlot in state.board.occupiedBy) return false;
+    if (!newPlot || !(newPlot in state.board.owner) || !plotFree(state.board, newPlot)) return false;
     p.cash -= bizSetup(b);
     b.footprint.push(newPlot);
     state.board.occupiedBy[newPlot] = b.id;
@@ -881,6 +1004,7 @@ function doUpgrade(state, p, b, rng, log, manualPlot) {
   }
   b.upgraded = true; b.level += 1;
   vest(p, b, state.quarter); b.scored = false;
+  scoreCompanyIfImmediate(state, b);
   log(`${p.name} upgrades ${b.bp.name} to level ${b.level} for $${bizSetup(b)} (cash: $${Math.round(p.cash)}).`, p.id);
   return true;
 }
@@ -894,7 +1018,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "c8e3a521";
+const ENGINE_VERSION = "afcfd9cf";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1074,15 +1198,21 @@ function runBotRevenue(state) {
 function humanDeliveryQueue(state, human) {
   return activeBiz(human).filter((b) => businessCanProduce(state, b) && (bizProd(b) > 0 || (bizInd(b) === "MA" && b.level > 0)));
 }
+/* `b` is the second plot of the road the hub straddles, and is unused when hubs
+   stand on plots - there the whole placement is the single plot `a`. */
 function doPlaceLH(state, a, b, log) {
+  if (state.board.lhOnPlots) {
+    if (!state.board.graph[a] || !plotFree(state.board, a)) return false;
+    state.board.lhPlots.push(a);
+    logNewLH(state, [districtOf(state.board, a)], log);
+    return true;
+  }
   const ek = edgeKey(a, b);
   if (state.board.lhEdges.some((e) => edgeKey(e[0], e[1]) === ek)) return false;
   if (!state.board.graph[a] || !state.board.graph[a].has(b)) return false;
   if (!isCrossDistrictEdge(state.board, a, b)) return false;
   state.board.lhEdges.push([a, b]);
-  const famA = districtFamily(state.board.cellOf[a].tname), famB = districtFamily(state.board.cellOf[b].tname);
-  const touchesHC = DEMAND_ROWS[famA].includes("HC") || DEMAND_ROWS[famB].includes("HC");
-  log(`A new Logistic Hub opens near ${state.board.cellOf[a].tname}/${state.board.cellOf[b].tname}${touchesHC ? " \u2014 Healthcare demand grows." : "."}`, null);
+  logNewLH(state, [districtOf(state.board, a), districtOf(state.board, b)], log);
   return true;
 }
 function runClosing(state, log, rng) {
@@ -1129,13 +1259,21 @@ function runClosingRest(state, log) {
   const { players, quarter } = state;
   if ([4, 8, 12].includes(quarter)) {
     for (const p of players) {
-      for (const b of activeBiz(p)) if (!b.scored) { b.epOnCard = b.level; b.scored = true; }
+      for (const b of activeBiz(p)) if (!b.scored) { b.epOnCard = b.level * levelEP(state); b.scored = true; }
       // Each industry pays its 5 EP once per game, the first year a company of that
       // type is active. Entering a new industry is what scores, not holding one.
       // (industry bonuses are awarded on construction, see claimIndustryBonus)
       // NOTE: previously a player at the 5-company cap sold its worst company here
       // every year end. That threw away 1 EP/level plus possibly 5 EP for the industry,
       // for no gain - being full is the goal, not a problem. Removed.
+    }
+    /* The two land awards normally wait for the end of the game. Under the yearly
+       variant they are handed out at every year end as well, so holding the most
+       land in Year 1 is worth something even if you lose it later. Quarter 12 is
+       left to finalizeGame, which awards them once as part of final scoring. */
+    if (hasVariant(state, "yearlyLandAwards") && quarter !== 12) {
+      awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", log);
+      awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", log);
     }
     log(`\u2014\u2014\u2014 Year-end scoring complete (Q${quarter}) \u2014\u2014\u2014`, null);
     if (quarter === 12) for (const p of players) for (const b of p.businesses) vest(p, b, quarter);
@@ -1321,6 +1459,7 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   distressedBiz.scored = false;
   distressedBiz.epOnCard = 0;
   distressedBiz.quarterBuilt = state.quarter;
+  scoreCompanyIfImmediate(state, distressedBiz);
   p.hand = p.hand.filter((x) => x !== bp);
   p.businesses.push(distressedBiz);
   const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
@@ -1351,6 +1490,7 @@ function doReclaim(state, p, biz, log) {
   biz.scored = false;          // it scores again for its new owner
   biz.epOnCard = 0;
   biz.quarterBuilt = state.quarter;
+  scoreCompanyIfImmediate(state, biz);
   p.businesses.push(biz);
   const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
   log(`${p.name} buys the distressed ${biz.bp.name} (${bizInd(biz)} L${biz.level}) back from the bank${from} for $${cost} (cash: $${Math.round(p.cash)}).`, p.id);
@@ -1938,11 +2078,13 @@ function draftScore(bp, drafted) {
   return s;
 }
 
-function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas) {
+function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, variants) {
   const rng = mulberry32(seedNum);
+  const V = normaliseVariants(variants);
   const nHumans = humanNames && humanNames.length ? humanNames.length : 1;
   const nPlayers = nHumans + numBots;
   const board = buildBoard(rng);
+  board.lhOnPlots = V.lhOnPlots;      // the board itself has to know, so helpers can read it
   const demand = makeDemandPool(board, rng);
   const pm = makePriceMatrix();
 
@@ -1951,6 +2093,11 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas) {
   BP_DATA.forEach((bp) => bpByInd[bp.ind].push(bp));
   const decks = {};
   INDUSTRIES.forEach((ind) => {
+    if (V.shuffledDecks) {
+      // one shuffle over the whole deck: a level 3 can be the public card from Q1
+      decks[ind] = shuffle(bpByInd[ind], rng);
+      return;
+    }
     const byLevel = { 1: [], 2: [], 3: [] };
     bpByInd[ind].forEach((bp) => byLevel[bp.lvl].push(bp));
     decks[ind] = [...shuffle(byLevel[1], rng), ...shuffle(byLevel[2], rng), ...shuffle(byLevel[3], rng)];
@@ -2010,7 +2157,7 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas) {
   }
   const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers + 1);
   return {
-    board, demand, pm, players, decks, quarter: 1, solvencyEvents: 0, rngSeed: seedNum, rngCalls: 0,
+    board, demand, pm, players, decks, variants: V, quarter: 1, solvencyEvents: 0, rngSeed: seedNum, rngCalls: 0,
     turnOrder: seats,                      // randomised seating
     seats, humanDraftCount, draftCounts, draftQueue,
     draftTaken: draftedSoFar.map((c) => c.ind),
@@ -2127,6 +2274,11 @@ function computeEligiblePlots(board, selectMode, ctx) {
     return new Set(Object.keys(board.graph).filter((k) => !(k in board.owner) && canPay(k)));
   }
   if (selectMode.kind === "lh") {
+    // hubs on plots: pick one empty plot and that is the whole placement
+    if (board.lhOnPlots) {
+      if (selectMode.selected.length >= 1) return new Set();
+      return new Set(Object.keys(board.graph).filter((k) => plotFree(board, k)));
+    }
     if (selectMode.selected.length >= 2) return new Set();
     const hasLH = (x, y) => board.lhEdges.some((e) => edgeKey(e[0], e[1]) === edgeKey(x, y));
     if (!selectMode.selected.length) {
@@ -2394,7 +2546,7 @@ function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot
         )}
         <div className="flex items-center gap-1 ml-2">
           <span className="w-2.5 h-2.5 rounded-full" style={{ border: "2px solid #22D3EE" }} />
-          <span className="text-[9px] text-gray-400">Logistic Hub ({board.lhEdges.length})</span>
+          <span className="text-[9px] text-gray-400">Logistic Hub ({lhCount(board)})</span>
         </div>
       </div>
     </div>
@@ -2421,13 +2573,14 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
     : "1px solid rgba(0,0,0,0.5)";
   const isVertical = foundBiz && SCALING[bizInd(foundBiz)] === "V";
   const hasLH = plotHasLH(board, plotKeyStr);
+  const isHub = plotIsLH(board, plotKeyStr);      // a hub standing on this plot
   return (
     <div
       onClick={() => { if (eligible && onChoose) onChoose(plotKeyStr); else onSelect(plotKeyStr); }}
       onMouseEnter={(e) => { if (foundBiz && onHoverBiz) { const b = e.currentTarget.getBoundingClientRect(); onHoverBiz(foundBiz, b.right, b.top); } }}
       onMouseLeave={() => { if (foundBiz && onHoverBiz) onHoverBiz(null); }}
       className="cursor-pointer"
-      title={hasLH ? "Adjacent to a Logistic Hub" : undefined}
+      title={isHub ? "Logistic Hub" : hasLH ? "Adjacent to a Logistic Hub" : undefined}
       style={{
         position: "absolute", left: rect.x, top: rect.y, width: rect.w, height: rect.h,
         backgroundColor: fill, border, borderRadius: 4, zIndex: 3,
@@ -2447,6 +2600,14 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
         <span key={i} style={{ position: "absolute", inset: 5 + i * 3.5,
           border: `1px solid ${IND_COLOR[bizInd(foundBiz)]}`, opacity: 0.95, pointerEvents: "none" }} />
       ))}
+      {isHub && (
+        <span title="Logistic Hub" style={{
+          position: "absolute", inset: 2, borderRadius: "50%", backgroundColor: "#22D3EE",
+          border: "1.5px solid #0e5f6f", pointerEvents: "none",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 9, fontWeight: 800, color: "#062b33",
+        }}>H</span>
+      )}
       {foundBiz && foundBiz.isHQ && (
         <span title={`Megacorp HQ: ${foundBiz.megacorpName}`} style={{
           position: "absolute", inset: 3, borderRadius: 2, backgroundColor: "#f5d76e",
@@ -3278,6 +3439,7 @@ function GameScreens({ online }) {
   const [elapsed, setElapsed] = useState(0);
   const [indTab, setIndTab] = useState("pots");
   const [personas, setPersonas] = useState(false);
+  const [variants, setVariants] = useState(() => normaliseVariants(null));
   const [reviewing, setReviewing] = useState(false);
   const [tutorial, setTutorial] = useState(false);
   useEffect(() => {
@@ -3343,7 +3505,7 @@ function GameScreens({ online }) {
 
   function startGame() {
     const seedNum = Math.floor(Math.random() * 1e9);
-    const s = initGame(numBots, seedNum, [playerName.trim() || "You"], undefined, personas);
+    const s = initGame(numBots, seedNum, [playerName.trim() || "You"], undefined, personas, variants);
     rngRef.current = mulberry32(seedNum + 777);
     setLogs([]);
     const seat = s.turnOrder.indexOf(0) + 1;
@@ -3418,7 +3580,7 @@ function GameScreens({ online }) {
       {tutorial && <Tutorial onClose={closeTutorial} />}
       <SetupScreen numBots={numBots} setNumBots={setNumBots} onStart={startGame}
         playerName={playerName} setPlayerName={setPlayerName} onTutorial={() => setTutorial(true)}
-        personas={personas} setPersonas={setPersonas} />
+        personas={personas} setPersonas={setPersonas} variants={variants} setVariants={setVariants} />
     </>
   );
   if (screen === "gameover" && !reviewing) return <GameOverScreen state={state} elapsed={elapsed} onRestart={() => setScreen("setup")} onReview={() => setReviewing(true)} />;
@@ -3498,9 +3660,10 @@ function GameScreens({ online }) {
   }
 
   function handleConfirmLH() {
-    if (!state || !pickMode || pickMode.kind !== "lh" || pickMode.selected.length < 2) return;
-    if (NET) { NET.send("placeLH", { a: pickMode.selected[0], b: pickMode.selected[1] }); setPickMode(null); return; }
-    doPlaceLH(state, pickMode.selected[0], pickMode.selected[1], log);
+    const need = state && state.board.lhOnPlots ? 1 : 2;
+    if (!state || !pickMode || pickMode.kind !== "lh" || pickMode.selected.length < need) return;
+    if (NET) { NET.send("placeLH", { a: pickMode.selected[0], b: pickMode.selected[1] || null }); setPickMode(null); return; }
+    doPlaceLH(state, pickMode.selected[0], pickMode.selected[1] || null, log);
     setPickMode(null);
     finishQuarterAfterLH(state, log, rngRef.current);
     setState({ ...state });
@@ -3698,14 +3861,26 @@ function GameScreens({ online }) {
             {isHumanPlacingLH && pickMode && pickMode.kind === "lh" && (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#0f2530", border: "1px solid #22D3EE" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#67e8f9" }}>
-                  You&rsquo;re 1st in turn order &mdash; place this quarter&rsquo;s Logistic Hub ({pickMode.selected.length}/2 plots picked)
+                  You&rsquo;re 1st in turn order &mdash; place this quarter&rsquo;s Logistic Hub
+                  ({pickMode.selected.length}/{state.board.lhOnPlots ? 1 : 2} plot{state.board.lhOnPlots ? "" : "s"} picked)
                 </div>
-                <div className="text-[10px] text-gray-400 mb-2">Click two adjacent plots on the board to place the hub between them.</div>
-                {pickMode.selected.length === 1 && computeEligiblePlots(state.board, pickMode).size === 0 && (
+                {state.board.lhOnPlots ? (
+                  <div className="text-[10px] text-gray-400 mb-2">
+                    Click one empty plot. Companies orthogonally beside it join the hub network, and the network
+                    reaches this district for everyone already on it.
+                    {pickMode.selected.length === 1 && (() => {
+                      const n = orthOf(state.board, pickMode.selected[0]).length;
+                      return <span style={{ color: n ? "#8fd3b6" : "#fca5a5" }}> That plot connects {n} neighbouring plot{n === 1 ? "" : "s"}.</span>;
+                    })()}
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-gray-400 mb-2">Click two adjacent plots on the board to place the hub between them.</div>
+                )}
+                {!state.board.lhOnPlots && pickMode.selected.length === 1 && computeEligiblePlots(state.board, pickMode).size === 0 && (
                   <div className="text-[10px] text-red-400 mb-2">That plot&rsquo;s neighbours all already have a hub &mdash; reset and pick a different starting plot.</div>
                 )}
                 <div className="flex gap-2">
-                  <button onClick={handleConfirmLH} disabled={pickMode.selected.length < 2}
+                  <button onClick={handleConfirmLH} disabled={pickMode.selected.length < (state.board.lhOnPlots ? 1 : 2)}
                     className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#0e5f6f", color: "#d3fcec" }}>Confirm placement</button>
                   {pickMode.selected.length > 0 && (
                     <button onClick={() => setPickMode({ kind: "lh", selected: [] })} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Reset selection</button>
@@ -3990,7 +4165,9 @@ function GameScreens({ online }) {
               </div>
               </div>
               <div style={{ display: indTab === "decks" ? "block" : "none" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Decks <Help text="Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from." /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Decks <Help text={hasVariant(state, "shuffledDecks")
+                ? "Six separate decks, each shuffled whole, so any level can be on top. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."
+                : "Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."} /></div>
               <div className="grid grid-cols-2 gap-1.5">
                 {INDUSTRIES.map((ind) => {
                   const deck = state.decks[ind];
@@ -4070,7 +4247,9 @@ function GameScreens({ online }) {
   );
 }
 
-function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, onTutorial, personas, setPersonas }) {
+function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, onTutorial, personas, setPersonas, variants, setVariants }) {
+  const [showVariants, setShowVariants] = useState(false);
+  const variantsOn = VARIANTS.filter((v) => variants[v.key]);
   return (
     <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
       <div className="max-w-md w-full rounded-xl p-6" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
@@ -4104,6 +4283,29 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
               Deal each player a random specialist power, one per industry.
             </div>
           </button>
+
+          {/* The same variants the online host can set. Folded away by default, so
+              the standard game stays one click from the front door. */}
+          <button onClick={() => setShowVariants((v) => !v)}
+            className="w-full text-left text-[11px] mt-2 px-1"
+            style={{ background: "none", border: "none", color: "#8b93a3", cursor: "pointer" }}>
+            {showVariants ? "\u25be" : "\u25b8"} Rule variants
+            {variantsOn.length ? <span style={{ color: "#8fd3b6" }}> &mdash; {variantsOn.length} on</span>
+              : <span style={{ color: "#4b5563" }}> &mdash; standard rules</span>}
+          </button>
+          {showVariants && VARIANTS.map((v) => (
+            <button key={v.key} onClick={() => setVariants({ ...variants, [v.key]: !variants[v.key] })}
+              className="w-full rounded-md px-3 py-2 text-left mt-1.5"
+              style={{ backgroundColor: "#1c1f26", border: `1px solid ${variants[v.key] ? "#2c5f4f" : "#262a33"}` }}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold" style={{ color: variants[v.key] ? "#8fd3b6" : "#8b93a3" }}>{v.name}</span>
+                <span className="text-[10px] shrink-0" style={{ color: variants[v.key] ? "#8fd3b6" : "#4b5563" }}>
+                  {variants[v.key] ? "ON \u2713" : "OFF"}
+                </span>
+              </div>
+              <div className="text-[10px] text-gray-500 mt-0.5" style={{ lineHeight: 1.4 }}>{v.blurb}</div>
+            </button>
+          ))}
         </div>
         <div className="mb-6">
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Opponents</div>
@@ -4217,7 +4419,9 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
           Later seats start with less cash but draft earlier &mdash; pick {need} card{need === 1 ? "" : "s"}.
         </p>
         <p className="text-[11px] text-gray-500 mb-4">
-          Each industry deck is ordered level 1 on top, level 3 at the bottom, and its top card is always public.
+          {hasVariant(state, "shuffledDecks")
+            ? "Each industry deck is shuffled whole this game, so any level can be on top. Its top card is always public."
+            : "Each industry deck is ordered level 1 on top, level 3 at the bottom, and its top card is always public."}
         </p>
 
         {/* Personas are dealt before the draft and are public, so everyone can weigh

@@ -96,6 +96,8 @@ function buildRecord(E, room) {
     quarters: st.quarter,
     durationMs: room.startedAt ? Date.now() - room.startedAt : null,
     personas: !!room.personas,
+    // which optional rules were on, so a variant game is never mistaken for a standard one
+    variants: Object.entries((st.variants) || {}).filter(([, on]) => on).map(([k]) => k),
     humans: players.filter((p) => p.human).length,
     bots: players.filter((p) => !p.human).length,
     winner: winner ? { name: winner.name, ep: winner.ep, human: winner.human } : null,
@@ -220,7 +222,7 @@ function summarise(matches, PERSONAS = {}) {
     .sort((a, b) => Math.abs(b.perPlayer) - Math.abs(a.perPlayer));
 
   const recent = [...finished].sort((a, b) => b.at - a.at).slice(0, 12).map((m) => ({
-    id: m.id, at: m.at, humans: m.humans, bots: m.bots, personas: m.personas,
+    id: m.id, at: m.at, humans: m.humans, bots: m.bots, personas: m.personas, variants: m.variants || [],
     durationMs: m.durationMs, engine: m.engine,
     players: [...m.players].sort((a, b) => a.rank - b.rank)
       .map((p) => ({ name: p.name, ep: p.ep, human: p.human, rank: p.rank, persona: p.persona })),
