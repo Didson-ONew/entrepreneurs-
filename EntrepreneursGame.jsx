@@ -3482,6 +3482,18 @@ function GameScreens({ online }) {
   const [numBots, setNumBots] = useState(3);
   const [playerName, setPlayerName] = useState(() => { try { return localStorage.getItem("entrepreneurs_name") || ""; } catch (_) { return ""; } });
   useEffect(() => { try { localStorage.setItem("entrepreneurs_name", playerName); } catch (_) {} }, [playerName]);
+  /* When this page is served by the game server, the same name the online lobby
+     remembers fills in here too, so the two entry points agree. Opened straight off
+     the disk there is no server to ask and localStorage above is the whole story. */
+  useEffect(() => {
+    if (online) return;
+    let stop = false;
+    fetch("/api/whoami", { cache: "no-store", credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((me) => { if (!stop && me && me.name) setPlayerName((cur) => cur || me.name); })
+      .catch(() => {});
+    return () => { stop = true; };
+  }, [online]);
   const [localState, setLocalState] = useState(null);
   const [localLogs, setLocalLogs] = useState([]);
   // Online: state and log come from the server and are read-only here; every action is
@@ -3564,7 +3576,12 @@ function GameScreens({ online }) {
 
   function startGame() {
     const seedNum = Math.floor(Math.random() * 1e9);
-    const s = initGame(numBots, seedNum, [playerName.trim() || "You"], undefined, personas, variants);
+    const chosen = playerName.trim() || "You";
+    try {
+      fetch("/api/whoami", { method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: chosen }) }).catch(() => {});
+    } catch (_) { /* offline page: nothing to tell */ }
+    const s = initGame(numBots, seedNum, [chosen], undefined, personas, variants);
     rngRef.current = mulberry32(seedNum + 777);
     setLogs([]);
     const seat = s.turnOrder.indexOf(0) + 1;

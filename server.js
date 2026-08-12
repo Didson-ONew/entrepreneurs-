@@ -350,7 +350,63 @@ function applyAction(room, seat, action, data) {
 function body(req) {
   return new Promise((res) => { let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => { try { res(JSON.parse(b || "{}")); } catch { res({}); } }); });
 }
-const json = (res, obj, sc = 200) => { res.writeHead(sc, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify(obj)); };
+const json = (res, obj, sc = 200, extra) => {
+  res.writeHead(sc, { "Content-Type": "application/json", "Cache-Control": "no-store", ...(extra || {}) });
+  res.end(JSON.stringify(obj));
+};
+
+/* ---------- who is this? ----------
+   A small cookie so a returning player does not retype their name. It holds a random
+   id and the last name they used, and nothing else.
+
+   It is HttpOnly, so the page cannot read it - the name comes back from /api/whoami
+   instead. That is deliberate but it is not a security boundary: the cookie is not
+   signed and a determined player can forge one, so it must never be what grants
+   anything. Room membership and host rights still ride on the per-room token the
+   server mints, which this does not touch. */
+const COOKIE = "ent_player";
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;   // a year; a game night is not a session
+
+function readCookies(req) {
+  const out = {};
+  for (const part of String(req.headers.cookie || "").split(";")) {
+    const i = part.indexOf("=");
+    if (i < 0) continue;
+    const k = part.slice(0, i).trim();
+    if (!k) continue;
+    try { out[k] = decodeURIComponent(part.slice(i + 1).trim()); } catch (_) { /* ignore junk */ }
+  }
+  return out;
+}
+const cleanName = (s) => String(s == null ? "" : s).trim().replace(/\s+/g, " ").slice(0, 24);
+/* Read the identity off the request, or mint a fresh one. Anything malformed is
+   treated as a first visit rather than trusted. */
+function identityOf(req) {
+  const raw = readCookies(req)[COOKIE];
+  if (raw) {
+    try {
+      const v = JSON.parse(raw);
+      if (v && typeof v.id === "string" && /^[a-f0-9]{16,32}$/.test(v.id)) {
+        return { id: v.id, name: cleanName(v.name), fresh: false };
+      }
+    } catch (_) { /* fall through and mint a new one */ }
+  }
+  return { id: crypto.randomBytes(12).toString("hex"), name: "", fresh: true };
+}
+function identityCookie(req, id, name) {
+  // Render and most hosts terminate TLS in front of us, so trust the forwarded scheme
+  const proto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  const secure = proto === "https";
+  const value = encodeURIComponent(JSON.stringify({ id, name: cleanName(name) }));
+  return [`${COOKIE}=${value}`, "Path=/", `Max-Age=${COOKIE_MAX_AGE}`, "SameSite=Lax", "HttpOnly"]
+    .concat(secure ? ["Secure"] : []).join("; ");
+}
+/* Remember this name against whoever is asking, and hand back the header to send. */
+function rememberName(req, name) {
+  const me = identityOf(req);
+  const nm = cleanName(name) || me.name;
+  return { id: me.id, name: nm, header: { "Set-Cookie": identityCookie(req, me.id, nm) } };
+}
 
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 
@@ -370,6 +426,19 @@ const server = http.createServer(async (req, res) => {
   /* Statistics and the hall of fame, drawn from every match the server has run.
      Open like /api/presence: it is shown on every screen and holds nothing private
      beyond the display names players chose for themselves. */
+  /* Who the browser says it is, so the join screen can fill the name in. Returns a
+     fresh identity (and sets the cookie) on a first visit. */
+  if (p === "/api/whoami" && req.method === "GET") {
+    const me = identityOf(req);
+    return json(res, { id: me.id, name: me.name, returning: !me.fresh && !!me.name },
+      200, { "Set-Cookie": identityCookie(req, me.id, me.name) });
+  }
+  if (p === "/api/whoami" && req.method === "POST") {
+    const bd = await body(req);
+    const me = rememberName(req, bd.name);
+    return json(res, { id: me.id, name: me.name }, 200, me.header);
+  }
+
   /* The variant catalogue, so the lobby renders whatever the engine actually has
      rather than a copy of the list that can fall out of step with it. */
   if (p === "/api/variants") {
@@ -386,7 +455,8 @@ const server = http.createServer(async (req, res) => {
   if (p === "/api/create" && req.method === "POST") {
     const b = await body(req);
     const room = newRoom(b.name, b.bots);
-    return json(res, { code: room.code, token: room.members[0].token, seat: 0 });
+    const me = rememberName(req, b.name);
+    return json(res, { code: room.code, token: room.members[0].token, seat: 0 }, 200, me.header);
   }
 
   if (p === "/api/join" && req.method === "POST") {
@@ -405,13 +475,15 @@ const server = http.createServer(async (req, res) => {
       room.spectators = room.spectators || [];
       room.spectators.push(sp);
       broadcast(room);
+      const meSp = rememberName(req, b.name);
       return json(res, { code: room.code, token: sp.token, seat: sp.seat, spectator: true,
-        reason: room.state ? "started" : "full" });
+        reason: room.state ? "started" : "full" }, 200, meSp.header);
     }
     const m = { token: token(), name: b.name || `Player ${room.members.length + 1}`, seat: room.members.length, host: false };
     room.members.push(m);
     broadcast(room);
-    return json(res, { code: room.code, token: m.token, seat: m.seat });
+    const me2 = rememberName(req, b.name);
+    return json(res, { code: room.code, token: m.token, seat: m.seat }, 200, me2.header);
   }
 
   if (p === "/api/resume" && req.method === "POST") {

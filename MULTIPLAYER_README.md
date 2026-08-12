@@ -113,6 +113,8 @@ All endpoints are JSON over POST except the event stream.
 | `GET /api/presence?id=` | heartbeat → `{online, matches, waiting, seated}` for the live counters |
 | `GET /api/stats` | the hall of fame and match statistics, drawn from `matches.jsonl` |
 | `GET /api/variants` | the optional-rule catalogue the lobby renders its toggles from |
+| `GET /api/whoami` | who this browser is, from its cookie → `{id, name, returning}` |
+| `POST /api/whoami` `{name}` | remember a name for next time |
 
 Actions: `draft`, `plan`, `act`, `deliver`, `skipDelivery`, `liquidate`,
 `liquidateDone`, `placeLH`, `repay`, `repayDone`.
@@ -171,6 +173,7 @@ test_records_ui.js     plays real games and reads the records back off the page
 test_variants.js       every optional rule, and that they are all off by default
 test_variants_ui.js    the lobby toggles, host to guest to finished game
 audit_strategy.js      are the bots competing for the points actually on the table?
+test_identity.js       the name-remembering cookie, and that it grants nothing
 ```
 
 `build.mjs` also stamps `ENGINE_VERSION` from a hash of the rules code, so changing
@@ -228,6 +231,31 @@ A few things worth knowing:
 - **`matches.jsonl` is your data, not source** — it is gitignored. Back it up if you
   care about it, and see HOSTING_GUIDE.md before hosting somewhere with a disk that
   does not survive a restart. `MATCHES_FILE=/some/path` moves it.
+
+## Remembering who you are
+
+Typing your name every visit is a small annoyance, so the server sets one cookie,
+`ent_player`, holding an id it generated and the last name you played under. Coming
+back, the lobby fills the field in and says "Welcome back, X"; typing over it wins,
+and playing under the new name is what updates the cookie.
+
+It is deliberately thin:
+
+- **HttpOnly, SameSite=Lax, a year long**, `Secure` when the request arrived over
+  https. Page scripts cannot read it, so nothing on the page can leak it.
+- **It is not signed, so it grants nothing.** Room membership and host rights still
+  ride on the per-room token the server mints for each seat — copying somebody's
+  cookie gets you their name in a text box and nothing else. `test_identity.js` tries
+  exactly that and checks it fails.
+- **A corrupt or forged cookie reads as a first visit** rather than an error: the id
+  must look like an id, the name is trimmed, whitespace-collapsed and cut to 24
+  characters, or it is thrown away.
+- **The records do not use it.** The hall of fame is still keyed on the name you
+  typed, so nothing about who gets credit for a game has changed.
+
+The single-player page asks the same endpoint, so the two entry points agree; opened
+straight off the disk there is no server to ask and its own `localStorage` is the
+whole story.
 
 ## The rulebook
 

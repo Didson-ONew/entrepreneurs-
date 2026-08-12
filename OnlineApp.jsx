@@ -23,6 +23,23 @@ function Lobby({ onEnter }) {
   const [bots, setBots] = useState(1);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [returning, setReturning] = useState(false);
+
+  /* The server keeps the last name this browser used in a cookie, so a regular
+     player never retypes it. It is a convenience, not a login: the field stays
+     editable and whatever is in it when you press the button is what you play as. */
+  useEffect(() => {
+    let stop = false;
+    fetch("/api/whoami", { cache: "no-store", credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((me) => {
+        if (stop || !me || !me.name) return;
+        setName((current) => current || me.name);   // never overwrite something typed
+        setReturning(true);
+      })
+      .catch(() => { /* no server, or first visit: the field just stays empty */ });
+    return () => { stop = true; };
+  }, []);
 
   const go = async (fn) => {
     if (!name.trim()) return setErr("Enter your name first.");
@@ -52,7 +69,12 @@ function Lobby({ onEnter }) {
         <p className="text-sm text-gray-400 mb-5">Play online with friends &mdash; 2 to 4 players.</p>
 
         <input style={field} placeholder="Your name" value={name} maxLength={16}
-          onChange={(e) => setName(e.target.value)} />
+          onChange={(e) => { setName(e.target.value); setReturning(false); }} />
+        {returning && !!name && (
+          <div className="text-[10px] -mt-2 mb-3" style={{ color: "#8fd3b6" }}>
+            Welcome back, {name}. <span style={{ color: "#6b7280" }}>Not you? Just type over it.</span>
+          </div>
+        )}
 
         <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#101318" }}>
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Start a new game</div>
