@@ -170,6 +170,7 @@ test_matchlog.js       the match record, the hall of fame and the statistics
 test_records_ui.js     plays real games and reads the records back off the page
 test_variants.js       every optional rule, and that they are all off by default
 test_variants_ui.js    the lobby toggles, host to guest to finished game
+audit_strategy.js      are the bots competing for the points actually on the table?
 ```
 
 `build.mjs` also stamps `ENGINE_VERSION` from a hash of the rules code, so changing
