@@ -187,6 +187,7 @@ accounts.js            registration, passwords, signed sessions, reset tokens
 mailer.js              hands the reset link to whatever the host can send mail with
 test_accounts.js       the login system, and what it refuses
 test_scoring_once.js   a company scores once per build or upgrade, not once a year
+test_adjacency.js      buildings occupy plots that share an edge, never a corner
 testkit.js             shared: drives one seat through a whole game over HTTP
 ```
 
@@ -326,6 +327,23 @@ is not the one the server sees.
 
 Neither mail backend can be exercised from this sandbox against a real provider —
 `test_accounts.js` proves them against a local listener and a local command instead.
+
+## Two adjacencies, deliberately
+
+The board carries two notions of "next to", and mixing them up is a bug that has
+happened once already:
+
+- **`board.graph`** is the road/neighbour network. Inside a district it also joins
+  diagonals. Hub roads, the Hospitality delivery bonus and the adjacency bonus all
+  run on it.
+- **`board.orth`** is strict edge-sharing — up, down, left, right — within a district
+  or across the border into the next one. **Company footprints use only this.**
+
+A horizontal company that stood on two plots meeting at a corner was legal until this
+was separated out; `doLaunch` in fact never checked the shape of a footprint at all,
+so an online client could have sent three unconnected plots and had them accepted.
+Both are now checked in the engine, not only hidden in the plot picker, and
+`test_adjacency.js` pins the rule from both ends.
 
 ## The rulebook
 
