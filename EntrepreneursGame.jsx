@@ -317,7 +317,15 @@ function placeNewLH(state, rng, log) {
   state.board.lhEdges.push([a, b]);
   logNewLH(state, [districtOf(state.board, a), districtOf(state.board, b)], log);
 }
-function freeNeighbors(board, plot) { return [...board.graph[plot]].filter((n) => plotFree(board, n)); }
+/* ---- where a company footprint may grow ----
+   Strictly orthogonal: plots that share an edge, within a district or across the
+   border into the next one. A building never spreads across a corner.
+
+   `board.graph` is looser - it also joins diagonals inside a district - because it
+   is the road/neighbour network, used for hub roads, the Hospitality reach and the
+   adjacency bonus. Footprints are a different question and must not use it: doing
+   so let a horizontal company sit on two plots that only touch at a corner. */
+function freeNeighbors(board, plot) { return orthOf(board, plot).filter((n) => plotFree(board, n)); }
 function ownedFreeNeighbors(board, plot) { return freeNeighbors(board, plot).filter((n) => n in board.owner); }
 /* Rank candidate plots by how much demand a business of `ind` could actually reach
    from there: open icons in the home district, plus hub access if the industry can
@@ -340,15 +348,43 @@ function plotDemandScore(state, ind, plotKeyStr) {
   if (canLH && plotHasLH(board, plotKeyStr)) score += 6;      // opens the whole hub network
   return score;
 }
-function findFootprint(board, nPlots, rng, state, ind) {
+/* ---- how much of this company's output could actually be sold from here ----
+   Built as a probe company and passed through the real eligibleSlotsFor, so it counts
+   the home district, the hub network, the delivery column cap for that level and the
+   Technology doubler exactly as delivery will. Bots used to value a card at
+   production x price, assuming every unit sold; measured over 40 games they were only
+   placing 38% of what they made and recycling the rest at $1. */
+function sellableFrom(state, owner, bp, footprint) {
+  const probe = { id: -1, bp, footprint, level: bp.lvl, upgraded: false, distressed: false,
+    isHQ: false, epOnCard: 0, scored: false, quarterBuilt: state.quarter };
+  const slots = eligibleSlotsFor(state, probe, owner).filter((s) => !s.cross).length;
+  return slots * exchangeRate(state, probe);
+}
+/* The best any plot this player already owns could do for this blueprint. Returns null
+   when they own nowhere to build, in which case the caller has nothing to judge by. */
+function bestSellableFor(state, p, bp) {
+  const mine = Object.keys(state.board.owner)
+    .filter((k) => state.board.owner[k] === p.id && plotFree(state.board, k));
+  if (!mine.length) return null;
+  let best = 0;
+  for (const plot of mine) best = Math.max(best, sellableFrom(state, p, bp, [plot]));
+  return best;
+}
+function findFootprint(board, nPlots, rng, state, ind, bp, owner) {
   let pool = Object.keys(board.graph).filter((p) => plotFree(board, p) && p in board.owner);
-  if (state && ind) {
+  if (state && bp && owner) {
+    // rank by what this exact company could sell from there, falling back to the
+    // cheaper home-district count only to break ties
+    pool = pool.map((pk) => [pk, sellableFrom(state, owner, bp, [pk]), plotDemandScore(state, bp.ind, pk)])
+               .sort((a, b) => b[1] - a[1] || b[2] - a[2])
+               .map(([pk]) => pk);
+  } else if (state && ind) {
     // prefer plots where this industry can actually sell
     pool = pool.map((pk) => [pk, plotDemandScore(state, ind, pk)])
                .sort((a, b) => b[1] - a[1])
                .map(([pk]) => pk);
   }
-  const candidates = state && ind ? pool : shuffle(pool, rng);
+  const candidates = state && (ind || bp) ? pool : shuffle(pool, rng);
   for (const start of candidates) {
     const cluster = new Set([start]);
     let frontier = ownedFreeNeighbors(board, start);
@@ -363,12 +399,47 @@ function findFootprint(board, nPlots, rng, state, ind) {
   }
   return null;
 }
-function adjacentFreePlot(board, footprint, rng) {
+/* Is this footprint one connected building? Every plot must be reachable from every
+   other by orthogonal steps within the footprint itself.
+
+   Checked in the engine rather than only in the plot picker: online the footprint
+   arrives over the wire, and the server must never take a client's word for the shape
+   of a building. A three-plot company made of three unconnected plots used to be
+   accepted, and diagonal ones were accepted everywhere. */
+function footprintIsContiguous(board, footprint) {
+  if (!Array.isArray(footprint) || !footprint.length) return false;
+  if (new Set(footprint).size !== footprint.length) return false;      // no plot listed twice
+  const want = new Set(footprint);
+  const seen = new Set([footprint[0]]);
+  const queue = [footprint[0]];
+  while (queue.length) {
+    const cur = queue.shift();
+    for (const n of orthOf(board, cur)) {
+      if (!want.has(n) || seen.has(n)) continue;
+      seen.add(n);
+      queue.push(n);
+    }
+  }
+  return seen.size === want.size;
+}
+function adjacentFreePlot(board, footprint, rng, state, biz, owner) {
   const opts = new Set();
   footprint.forEach((p) => ownedFreeNeighbors(board, p).forEach((n) => opts.add(n)));
   footprint.forEach((p) => opts.delete(p));
   const arr = [...opts];
   if (!arr.length) return null;
+  /* Growing sideways can reach into the next district, so where the new plot goes
+     decides how much the bigger company can sell. Take the plot that opens the most
+     demand; a random one was as likely to face a wall. */
+  if (state && biz && owner) {
+    let best = arr[0], bestSell = -1;
+    for (const plot of arr) {
+      const grown = { ...biz, level: biz.level + 1, footprint: [...footprint, plot] };
+      const sell = eligibleSlotsFor(state, grown, owner).filter((s) => !s.cross).length;
+      if (sell > bestSell) { bestSell = sell; best = plot; }
+    }
+    return best;
+  }
   return arr[Math.floor(rng() * arr.length)];
 }
 
@@ -547,8 +618,11 @@ function deliveryColumnCap(state, biz, owner) {
   if (bizInd(biz) === "HC" && hasPersona(p, "preventive")) return 4;
   return Math.min(biz.level, 4);
 }
-function eligibleSlotsFor(state, biz) {
-  const __owner = ownerOf(state, biz);
+/* `owner` is normally found from the state, but a bot weighing a company it has not
+   built yet has no owner to find - it passes one in. Everything else is identical, so
+   a bot's idea of what it could sell is the delivery rule itself, not a copy of it. */
+function eligibleSlotsFor(state, biz, owner) {
+  const __owner = owner || ownerOf(state, biz);
   const reach = reachableDistricts(state, biz);
   const ind = bizInd(biz), lvl = biz.level;
   const cap = deliveryColumnCap(state, biz, __owner);
@@ -887,7 +961,13 @@ function launchScore(state, p, bp, archetype) {
   const rentBack = owned >= nPlots ? rent : 0;
   const effOpex = bp.opex + rent - rentBack;
 
-  const gross = bp.prod * px;
+  /* Only what can be delivered earns the market price. Whatever the demand board
+     cannot absorb is recycled at $1, so value it at $1 - which is what the bot will
+     actually collect. This is the difference between judging a card by its printed
+     production and judging the company you would actually be running. */
+  const reach = bestSellableFor(state, p, bp);
+  const sellable = reach === null ? bp.prod : Math.min(bp.prod, reach);
+  const gross = sellable * px + Math.max(0, bp.prod - sellable) * 1;
   const net = gross - effOpex;
   // per-quarter return on the FULL outlay, the honest comparison between cards
   let s = net / Math.max(1, totalOutlay);
@@ -970,9 +1050,10 @@ function claimIndustryBonus(state, p, ind, log) {
 }
 function doLaunch(state, p, bp, rng, log, manualFootprint) {
   const nPlots = SCALING[bp.ind] === "H" ? bp.lvl : 1;
-  const footprint = manualFootprint || findFootprint(state.board, nPlots, rng, state, bp.ind);
+  const footprint = manualFootprint || findFootprint(state.board, nPlots, rng, state, bp.ind, bp, p);
   if (!footprint || footprint.length !== nPlots) return false;
   if (!footprint.every((plot) => plot in state.board.owner && plotFree(state.board, plot))) return false;
+  if (!footprintIsContiguous(state.board, footprint)) return false;
   if (p.cash < bp.setup) return false;
   if (discsFree(state, p) <= 0) return false;   // no disc left to mark the new company
   p.cash -= bp.setup;
@@ -1006,9 +1087,12 @@ function upgradeBlockedReason(state, p, b) {
   }
   return null;
 }
+/* The same orthogonal rule as freeNeighbors, phrased for the whole footprint - this
+   is what tells a player WHY an upgrade is blocked, so it has to agree with what the
+   upgrade will actually accept. */
 function adjacentOwnedFreePlots(board, footprint) {
   const out = new Set();
-  footprint.forEach((pk) => (board.graph[pk] || []).forEach((n) => {
+  footprint.forEach((pk) => orthOf(board, pk).forEach((n) => {
     if (!footprint.includes(n) && n in board.owner && plotFree(board, n)) out.add(n);
   }));
   return [...out];
@@ -1017,8 +1101,11 @@ function doUpgrade(state, p, b, rng, log, manualPlot) {
   if (b.upgraded) return false;
   if (p.cash < bizSetup(b)) return false;   // affordability only - safeToSpend is a bot heuristic
   if (upgradeScaling(p, b) === "H") {
-    const newPlot = manualPlot || adjacentFreePlot(state.board, b.footprint, rng);
+    const newPlot = manualPlot || adjacentFreePlot(state.board, b.footprint, rng, state, b, p);
     if (!newPlot || !(newPlot in state.board.owner) || !plotFree(state.board, newPlot)) return false;
+    // it has to actually touch the building, orthogonally - a manual plot arrives from
+    // the client online, so this cannot be left to the picker either
+    if (!orthOf(state.board, newPlot).some((n) => b.footprint.includes(n))) return false;
     p.cash -= bizSetup(b);
     b.footprint.push(newPlot);
     state.board.occupiedBy[newPlot] = b.id;
@@ -1041,7 +1128,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "76bf430f";
+const ENGINE_VERSION = "6d034fee";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1665,6 +1752,10 @@ function boardMeetingDesire(state, p) {
   // otherwise, is it worth seizing the front of the turn order?
   // sitting late means everyone else picks their track (and their FILO bonus) before you.
   // This costs two meeples for one action, so only the back of the order bothers.
+  /* Repositioning buys first place NEXT quarter. In Quarter 12 there is no next
+     quarter: all it still wins is the closing hub, which is placed after the last
+     delivery and cannot change anybody's score. Both meeples for nothing. */
+  if (state.quarter >= 12) return 0;
   const idx = state.turnOrder.indexOf(p.id);
   if (idx >= 2 && activeBiz(p).length >= 1) return 8 + idx * 9;     // 3rd 26, 4th 35
   return 0;
@@ -1899,7 +1990,22 @@ function botResolveOneAction(state, p, track, rng, log) {
     // A bot with no Blueprints cannot expand at all, so restocking beats upgrading
     // whenever the hand is thin and there is still room to build.
     const starved = p.hand.length === 0 || (p.hand.length < 2 && canLaunchMore(p) && discsFree(state, p) > 0);
-    const upgradable = starved ? null : activeBiz(p).find((b) => !b.upgraded && safeToSpend(p, bizSetup(b), bizOpex(b)));
+    /* Upgrade the company where the extra level actually pays, not simply the first
+       one in the list. A level buys EP either way, but it also buys production - and
+       production the demand board cannot absorb is recycled at $1, so a company that
+       already outruns its reach is the worst one on the list to grow. */
+    const candidates = starved ? [] : activeBiz(p).filter((b) => !b.upgraded
+      && safeToSpend(p, bizSetup(b), bizOpex(b)) && !upgradeBlockedReason(state, p, b));
+    let upgradable = null, bestGain = -Infinity;
+    for (const b of candidates) {
+      const now = eligibleSlotsFor(state, b, p).filter((s) => !s.cross).length;
+      const after = eligibleSlotsFor(state, { ...b, level: b.level + 1 }, p).filter((s) => !s.cross).length;
+      const extraSold = Math.max(0, Math.min(after, bizProd({ ...b, level: b.level + 1 }))
+        - Math.min(now, bizProd(b)));
+      // one level of EP, plus the cash the extra sales bring, against what it costs
+      const gain = (levelEP(state) + extraSold * price(state.pm, bizInd(b)) / 10) / Math.max(1, bizSetup(b));
+      if (gain > bestGain) { bestGain = gain; upgradable = b; }
+    }
     if (upgradable) doUpgrade(state, p, upgradable, rng, log);
     else {
       const openDecks = INDUSTRIES.filter((ind) => state.decks[ind] && state.decks[ind].length);
@@ -2355,8 +2461,10 @@ function computeEligiblePlots(board, selectMode, ctx) {
   if (selected.length >= nPlots) return new Set();
   const ownedFree = (k) => k in board.owner && !(k in board.occupiedBy);
   if (!selected.length) return new Set(Object.keys(board.graph).filter(ownedFree));
+  // a footprint grows orthogonally only - the same rule the engine enforces, so the
+  // picker can never offer a plot the build would refuse
   const opts = new Set();
-  selected.forEach((p) => board.graph[p].forEach((n) => { if (ownedFree(n) && !selected.includes(n)) opts.add(n); }));
+  selected.forEach((p) => orthOf(board, p).forEach((n) => { if (ownedFree(n) && !selected.includes(n)) opts.add(n); }));
   return opts;
 }
 
@@ -3854,7 +3962,11 @@ function GameScreens({ online }) {
                 <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
                   {pickMode.kind === "launch" ? `Placing ${pickMode.bp.name} \u2014 select ${pickMode.selected.length}/${pickMode.nPlots} plot(s)` : `Pick a plot to buy \u2014 ${pickMode.selected.length}/1 selected`}
                 </div>
-                <div className="text-[10px] text-gray-400 mb-2">Click highlighted plots on the board above.</div>
+                <div className="text-[10px] text-gray-400 mb-2">
+                  Click highlighted plots on the board above.
+                  {pickMode.kind === "launch" && pickMode.nPlots > 1 &&
+                    " Plots must share an edge — corners do not count."}
+                </div>
                 {computeEligiblePlots(state.board, pickMode, { state, player: human }).size === 0 && pickMode.selected.length < (pickMode.kind === "buy" ? 1 : pickMode.nPlots) && (
                   <div className="text-[10px] text-red-400 mb-2">No more eligible adjacent plots — this cluster can't be completed here. Cancel and try elsewhere, or buy more land first.</div>
                 )}

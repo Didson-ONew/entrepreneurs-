@@ -163,6 +163,8 @@ A renovation has to fit the shell that is already standing. The card must match 
 
 A horizontal company (Utilities, Manufacturing, Technology) grows sideways: upgrading needs an adjacent plot that you own and that is empty. A vertical company (Retail, Hospitality, Healthcare) stacks on the plot it already occupies. Each company may be upgraded once.
 
+Adjacent means sharing an edge - up, down, left or right - whether the two plots are in the same district or across the border into the next one. Plots that meet only at a corner are not adjacent, so a company can never stand on both. The same rule decides where a multi-plot company may be built in the first place: its plots must form one connected shape.
+
 ### Board Meeting
 
 - GO PUBLIC - merge companies to claim a Megacorp tile. You may only take this action if you actually hold the exact combination one of the available tiles asks for.
