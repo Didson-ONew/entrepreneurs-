@@ -24,6 +24,7 @@ function Lobby({ onEnter }) {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [returning, setReturning] = useState(false);
+  const [nick, setNick] = useState(null);
 
   /* The server keeps the last name this browser used in a cookie, so a regular
      player never retypes it. It is a convenience, not a login: the field stays
@@ -40,6 +41,23 @@ function Lobby({ onEnter }) {
       .catch(() => { /* no server, or first visit: the field just stays empty */ });
     return () => { stop = true; };
   }, []);
+
+  /* The hall of fame is keyed on the name typed, so two players called "Dan" pool
+     their scores into one row. Ask while they are still typing, so it is a choice
+     rather than a discovery. Waiting out the typing keeps this to one request per
+     name rather than one per keystroke. */
+  useEffect(() => {
+    const wanted = name.trim();
+    if (!wanted) { setNick(null); return; }
+    let stop = false;
+    const t = setTimeout(() => {
+      fetch(`/api/nickname?name=${encodeURIComponent(wanted)}`, { cache: "no-store", credentials: "same-origin" })
+        .then((r) => r.json())
+        .then((s) => { if (!stop) setNick(s && s.name === wanted ? s : null); })
+        .catch(() => { if (!stop) setNick(null); });
+    }, 400);
+    return () => { stop = true; clearTimeout(t); };
+  }, [name]);
 
   const go = async (fn) => {
     if (!name.trim()) return setErr("Enter your name first.");
@@ -70,9 +88,21 @@ function Lobby({ onEnter }) {
 
         <input style={field} placeholder="Your name" value={name} maxLength={16}
           onChange={(e) => { setName(e.target.value); setReturning(false); }} />
-        {returning && !!name && (
+        {returning && !!name && !(nick && nick.taken) && (
           <div className="text-[10px] -mt-2 mb-3" style={{ color: "#8fd3b6" }}>
             Welcome back, {name}. <span style={{ color: "#6b7280" }}>Not you? Just type over it.</span>
+          </div>
+        )}
+        {nick && nick.taken && (
+          <div className="text-[10px] -mt-2 mb-3" style={{ color: "#e0b060" }}>
+            Someone else already plays as <b>{nick.name}</b>. Records are kept by name, so
+            your scores would add together in one hall-of-fame row.
+            <span style={{ color: "#6b7280" }}> Add something to tell yourselves apart &mdash; or carry on, if it really is you.</span>
+          </div>
+        )}
+        {nick && !nick.taken && nick.mine && !returning && (
+          <div className="text-[10px] -mt-2 mb-3" style={{ color: "#8fd3b6" }}>
+            Your records are under this name.
           </div>
         )}
 

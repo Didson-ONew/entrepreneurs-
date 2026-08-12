@@ -57,11 +57,11 @@ const rooms = new Map();
 const code = () => crypto.randomBytes(3).toString("hex").toUpperCase();
 const token = () => crypto.randomBytes(16).toString("hex");
 
-function newRoom(hostName, bots) {
+function newRoom(hostName, bots, hostPid) {
   let c; do { c = code(); } while (rooms.has(c));
   const room = {
     code: c, bots: Math.max(0, Math.min(3, bots | 0)),
-    members: [{ token: token(), name: hostName || "Host", seat: 0, host: true }],
+    members: [{ token: token(), name: hostName || "Host", seat: 0, host: true, pid: hostPid || null }],
     spectators: [],
     state: null, rng: null, clients: new Set(), logs: [], version: 0, chat: [], personas: false,
     variants: E.normaliseVariants(null), startedAt: null, recorded: false,
@@ -439,6 +439,18 @@ const server = http.createServer(async (req, res) => {
     return json(res, { id: me.id, name: me.name }, 200, me.header);
   }
 
+  /* Is this name already somebody's in the records? The hall of fame is keyed on the
+     name typed, so two people answering to "Dan" would pool their scores into one row.
+     The lobby asks this while the name is still being typed, and warns before the
+     first game rather than after. It is advice, not a lock: there are no accounts,
+     and a player who cleared their cookies must still be able to type their own name. */
+  if (p === "/api/nickname") {
+    const me = identityOf(req);
+    const wanted = url.searchParams.get("name") || "";
+    return json(res, matchlog.nickStatus(MATCHES, wanted, me.id), 200,
+      { "Set-Cookie": identityCookie(req, me.id, me.name) });
+  }
+
   /* The variant catalogue, so the lobby renders whatever the engine actually has
      rather than a copy of the list that can fall out of step with it. */
   if (p === "/api/variants") {
@@ -454,8 +466,8 @@ const server = http.createServer(async (req, res) => {
 
   if (p === "/api/create" && req.method === "POST") {
     const b = await body(req);
-    const room = newRoom(b.name, b.bots);
     const me = rememberName(req, b.name);
+    const room = newRoom(b.name, b.bots, me.id);
     return json(res, { code: room.code, token: room.members[0].token, seat: 0 }, 200, me.header);
   }
 
@@ -479,10 +491,10 @@ const server = http.createServer(async (req, res) => {
       return json(res, { code: room.code, token: sp.token, seat: sp.seat, spectator: true,
         reason: room.state ? "started" : "full" }, 200, meSp.header);
     }
-    const m = { token: token(), name: b.name || `Player ${room.members.length + 1}`, seat: room.members.length, host: false };
+    const me2 = rememberName(req, b.name);
+    const m = { token: token(), name: b.name || `Player ${room.members.length + 1}`, seat: room.members.length, host: false, pid: me2.id };
     room.members.push(m);
     broadcast(room);
-    const me2 = rememberName(req, b.name);
     return json(res, { code: room.code, token: m.token, seat: m.seat }, 200, me2.header);
   }
 

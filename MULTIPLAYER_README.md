@@ -115,6 +115,7 @@ All endpoints are JSON over POST except the event stream.
 | `GET /api/variants` | the optional-rule catalogue the lobby renders its toggles from |
 | `GET /api/whoami` | who this browser is, from its cookie → `{id, name, returning}` |
 | `POST /api/whoami` `{name}` | remember a name for next time |
+| `GET /api/nickname?name=` | is that name already someone's? → `{name, taken, mine, others}` |
 
 Actions: `draft`, `plan`, `act`, `deliver`, `skipDelivery`, `liquidate`,
 `liquidateDone`, `placeLH`, `repay`, `repayDone`.
@@ -174,6 +175,9 @@ test_variants.js       every optional rule, and that they are all off by default
 test_variants_ui.js    the lobby toggles, host to guest to finished game
 audit_strategy.js      are the bots competing for the points actually on the table?
 test_identity.js       the name-remembering cookie, and that it grants nothing
+test_nickname.js       the "someone already plays as that" warning
+test_scoring_once.js   a company scores once per build or upgrade, not once a year
+testkit.js             shared: drives one seat through a whole game over HTTP
 ```
 
 `build.mjs` also stamps `ENGINE_VERSION` from a hash of the rules code, so changing
@@ -226,6 +230,12 @@ A few things worth knowing:
   text box rather than a record.
 - **Players are the name they type.** There are no accounts, so two people sharing a
   name share a row. Names are matched case-insensitively with whitespace collapsed.
+  The lobby warns about this *before* it happens: as you type, it asks
+  `GET /api/nickname` whether anyone else has finished a game under that name, and says
+  so. It is advice, not a lock — someone who cleared their cookies must still be able to
+  type their own name — so the buttons keep working either way. Each record stores the
+  `pid` of the browser that played the seat, which is the only thing that tells a
+  returning player apart from a stranger; nothing is scored on it.
 - **Bots never enter the hall of fame**, and a seat handed to a bot part-way through
   earns its player nothing for that game.
 - **`matches.jsonl` is your data, not source** — it is gitignored. Back it up if you

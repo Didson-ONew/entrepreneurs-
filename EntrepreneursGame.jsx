@@ -771,13 +771,14 @@ const committedOpex = (p) => activeBiz(p).reduce((s, b) => s + bizOpex(b), 0);
 function safeToSpend(p, spend, addedOpex = 0, buffer = 0.4) {
   return p.cash - spend >= (committedOpex(p) + addedOpex) * buffer;
 }
-/* The cost of caution falls as the game shortens: an unused company slot earns
-   nothing, while a company built now still scores at every remaining year end. */
+/* The cost of caution falls as the game shortens: an unused company slot earns nothing,
+   while a company built now still takes its one score at the next year end and produces
+   until then. Late building is cheaper than it looks. */
 function expansionBuffer(state) {
   return state.quarter >= 9 ? 0.15 : state.quarter >= 5 ? 0.28 : 0.4;
 }
-/* $10 of cash is worth 1 EP at the end; a company is worth its level every year end plus
-   5 EP if it opens a new industry. Sitting on money is close to the worst thing a bot
+/* $10 of cash is worth 1 EP at the end; a company is worth its level once, plus its level
+   again on every upgrade, plus 5 EP if it opens a new industry. Sitting on money is close to the worst thing a bot
    can do, so the safety buffer relaxes hard once the game is nearly over. */
 function endgameSpendMode(state, p) {
   return state.quarter >= 9 && p.cash > 60;
@@ -930,11 +931,13 @@ function launchScore(state, p, bp, archetype) {
   const have = new Set(activeBiz(p).map(bizInd));
   if (!have.has(bp.ind)) s += 0.9;
 
-  /* The EP the building itself will score. Normally a level is 1 EP and this barely
-     registers against the cash return; under "companies score triple" it is the single
-     biggest term on the card and the bot should be chasing buildings, not margins. */
-  const yearEndsLeft = Math.max(1, [4, 8, 12].filter((q) => q >= state.quarter).length);
-  const scoreValue = bp.lvl * levelEP(state) * (hasVariant(state, "immediateScoring") ? 1 : yearEndsLeft / 3);
+  /* The EP the building itself will score. A company scores ONCE - at the next year end,
+     or immediately under "score on completion" - so this does not shrink as the game runs
+     out of year ends; Q12 is a year end, so anything built still gets its one score.
+     Normally a level is 1 EP and this barely registers against the cash return; under
+     "companies score triple" it is the single biggest term on the card and the bot should
+     be chasing buildings, not margins. */
+  const scoreValue = bp.lvl * levelEP(state);
   s += scoreValue / Math.max(1, totalOutlay) * 1.4;
 
   if (archetype === "rush_cheap") s += (30 - bp.setup) / 30;
@@ -1038,7 +1041,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "a6f7fc83";
+const ENGINE_VERSION = "76bf430f";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1601,15 +1604,15 @@ const TRACK_HELP = {
    start of its own quarter, never by pulling a meeple it has already placed. */
 function megacorpWorthIt(state, p, match) {
   if (!match) return false;
-  // What merging actually costs is the level EP those companies would still have scored
-  // at the year ends that remain. Industry bonuses are banked when the company is BUILT
-  // and are never taken back, so they are not at risk here \u2014 an older version of this
-  // test wrongly counted them and refused almost every worthwhile merger.
+  // What merging actually costs in EP is the level EP those companies had not scored yet.
+  // A company scores once, so one that has already scored owes nothing more, and merging
+  // vests what is on its card either way - that EP is safe. The HQ is no exception: it
+  // leaves activeBiz, so it never scores at a year end again.
+  // Industry bonuses are banked when the company is BUILT and are never taken back, so
+  // they are not at risk here \u2014 an older version of this test wrongly counted them and
+  // refused almost every worthwhile merger.
   const ep = match.tile[2];
-  const yearEndsLeft = [4, 8, 12].filter((q) => q >= state.quarter).length;
-  const lostLevels = match.have.reduce((s, b) => s + b.level, 0);
-  // one company survives as the HQ, and its plots keep counting toward the land awards
-  const forgone = Math.max(0, lostLevels - Math.max(...match.have.map((b) => b.level))) * yearEndsLeft * levelEP(state);
+  const forgone = match.have.reduce((s, b) => s + (b.scored ? 0 : b.level * levelEP(state)), 0);
   return ep >= forgone;
 }
 
@@ -1766,7 +1769,7 @@ function botResolveOneAction(state, p, track, rng, log) {
       return net < 0;
     });
     // ...but only when there is something better to put in its place: the company still
-    // scores its level at every year end, so dumping it for nothing is a loss.
+    // holds the EP on its card and can still be upgraded, so dumping it for nothing is a loss.
     const replacement = collapsed && p.hand.find((bp) =>
       bp.ind !== bizInd(collapsed)
       && price(state.pm, bp.ind) >= BASE_PRICE[bp.ind]
@@ -3352,7 +3355,7 @@ const TUTORIAL = [
   { title: "Winning", target: "standings", art: ArtScoring,
     body: "Score steadily rather than chasing one big move. Breadth pays early, size pays late.",
     points: ["5 EP the first time you build in each industry \u2014 paid immediately",
-             "1 EP per company level at each year end",
+             "1 EP per company level, once, at the first year end after you build or upgrade it",
              "10 EP for most plots, 10 EP for most districts",
              "A Megacorp is worth 8\u201322 EP, but eats companies and locks a slot"] },
 ];
@@ -4132,7 +4135,7 @@ function GameScreens({ online }) {
 
           <div className="side-col space-y-3">
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text="Score = 1 EP per active company level at each year end, plus 5 EP the moment you first build in each industry (once per game). Plus endgame bonuses for most plots and most districts, $10 = 1 EP, and -5 EP per unpaid loan disc. A tie is settled by money, then by fewer loan discs. Hover a player for the full breakdown." /></div>
+              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text="Score = 1 EP per company level, taken once at the first year end after you build or upgrade it, plus 5 EP the moment you first build in each industry (once per game). Plus endgame bonuses for most plots and most districts, $10 = 1 EP, and -5 EP per unpaid loan disc. A tie is settled by money, then by fewer loan discs. Hover a player for the full breakdown." /></div>
               <div className="space-y-2">
                 {[...state.players].sort((a, b) => epTotal(b) - epTotal(a)).map((p) => {
                   const onCards = p.businesses.reduce((s2, b) => s2 + (b.epOnCard || 0), 0);

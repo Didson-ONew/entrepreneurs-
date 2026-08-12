@@ -68,6 +68,10 @@ function buildRecord(E, room) {
       // a seat handed to a bot mid-game keeps the human's name in the room, so
       // remember what they were called and that they did not finish the game
       name: cleanName(member ? member.name : p.name),
+      // Which browser played under that name. Nothing is scored on it - the hall of
+      // fame is still keyed on the name typed - it exists so the lobby can tell a
+      // returning player from someone about to share a stranger's row.
+      pid: (member && member.pid) || null,
       human: !!p.isHuman,
       abandoned: !!member && !p.isHuman,
       persona: p.persona || null,
@@ -158,6 +162,41 @@ function hallOfFame(matches) {
   return [...by.values()]
     .map((e) => ({ ...e, avg: round1(e.ep / e.matches), winRate: Math.round((e.wins / e.matches) * 100) }))
     .sort((a, b) => b.ep - a.ep || b.wins - a.wins || a.matches - b.matches);
+}
+
+/* ---------- who already answers to a name ----------
+   The hall of fame is keyed on the name typed, so two people who both call themselves
+   "Dan" pool their scores into one row. Nothing can undo that after the fact, but it
+   can be caught at the moment it is about to happen - which is what this is for.
+
+   Only *identified* holders count. A record written before browsers were identified
+   has no pid, and it would be unfair to tell the person who actually earned those
+   games that their own name is taken, so those records claim nobody. */
+function nameHolders(matches) {
+  const by = new Map();
+  for (const m of matches) {
+    for (const p of (m && m.players) || []) {
+      if (!p.human || !p.pid) continue;
+      const key = nameKey(p.name);
+      if (!key) continue;
+      if (!by.has(key)) by.set(key, new Set());
+      by.get(key).add(p.pid);
+    }
+  }
+  return by;
+}
+
+/* Is this name free for this browser to use? `mine` means they have played under it
+   before, so filling it back in is right; `taken` means somebody else has, and using
+   it would merge two people's records. */
+function nickStatus(matches, name, pid) {
+  const clean = cleanName(name);
+  const key = nameKey(clean);
+  if (!key) return { name: clean, taken: false, mine: false, others: 0 };
+  const holders = nameHolders(matches).get(key);
+  if (!holders || !holders.size) return { name: clean, taken: false, mine: false, others: 0 };
+  const others = [...holders].filter((h) => h !== pid).length;
+  return { name: clean, taken: others > 0, mine: !!pid && holders.has(pid), others };
 }
 
 function summarise(matches, PERSONAS = {}) {
@@ -251,4 +290,5 @@ function summarise(matches, PERSONAS = {}) {
   };
 }
 
-module.exports = { buildRecord, append, load, summarise, hallOfFame, epBucket, nameKey, cleanName, BUCKETS, DEFAULT_FILE };
+module.exports = { buildRecord, append, load, summarise, hallOfFame, epBucket, nameKey, cleanName,
+  nameHolders, nickStatus, BUCKETS, DEFAULT_FILE };
