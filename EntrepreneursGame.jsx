@@ -344,7 +344,7 @@ function plotDemandScore(state, ind, plotKeyStr) {
       for (let l = 0; l < 4; l++) if (openable && !t.filled[rowIdx][l]) score += 1;
     });
   }
-  const canLH = hasVariant(state, "lhOpenToAll") || (ind !== "UT" && ind !== "RE");
+  const canLH = ind !== "UT" && ind !== "RE";      // those two are never on the network
   if (canLH && plotHasLH(board, plotKeyStr)) score += 6;      // opens the whole hub network
   return score;
 }
@@ -506,8 +506,10 @@ function reachableDistricts(state, biz, chosenExtra) {
   const out = new Set(home);
   // Utilities and Retail can never use Logistic Hubs; Healthcare uses the network natively,
   // everyone else needs a footprint plot actually touching a hub.
-  // Utilities and Retail are locked out of the network unless the host opened it
-  const canUseLH = hasVariant(state, "lhOpenToAll") || (bizInd(biz) !== "UT" && bizInd(biz) !== "RE");
+  // Utilities and Retail are never on the network: UT already reads a block of
+  // districts of its own and RE picks extra districts outright, so giving them hubs
+  // as well made them reach everywhere at once.
+  const canUseLH = bizInd(biz) !== "UT" && bizInd(biz) !== "RE";
   const touchesAnyLH = biz.footprint.some((plot) => plotHasLH(board, plot));
   if (canUseLH && (bizInd(biz) === "HC" || touchesAnyLH)) {
     // one shared network: every district any hub reaches becomes reachable
@@ -767,19 +769,27 @@ const PERSONAS = {
    by default, so a table that touches nothing plays the printed rulebook exactly.
    The catalogue is data because three things read it: the lobby, the single-player
    setup screen, and the rulebook. */
+/* ---- optional rules ----
+   Every one of these is OFF by default, and a table that touches nothing plays
+   exactly the printed Rulebook v13.
+
+   They all read as "play it the older way", because that is what they are. Five
+   rules that used to be optional became standard in v13 - companies score the
+   moment they are finished, a level is worth 3 EP, the decks are shuffled whole,
+   hubs stand on plots, and the land awards pay every year - so what remains
+   switchable is the way the game worked before. Keeping them costs a boolean each
+   and makes it possible to play the two side by side. */
 const VARIANTS = [
-  { key: "shuffledDecks", name: "Fully shuffled decks",
-    blurb: "Each industry deck is shuffled whole, so a level 3 can sit on top from the first draft. Normally the decks run level 1 down to level 3." },
-  { key: "lhOnPlots", name: "Hubs on plots",
-    blurb: "Logistic Hubs are built on an empty plot instead of on the road. A company joins the network by standing orthogonally beside one, and the network reaches the district each hub stands in." },
-  { key: "lhOpenToAll", name: "Hubs open to all",
-    blurb: "Utilities and Retail may use Logistic Hubs like everyone else, instead of never." },
-  { key: "tripleLevelScoring", name: "Companies score triple",
-    blurb: "An active company is worth 3 EP per level instead of 1, making building far stronger against land and cash." },
-  { key: "immediateScoring", name: "Score on completion",
-    blurb: "A company puts its EP on its card the moment it is built or upgraded, rather than waiting for the year end. It still vests as normal." },
-  { key: "yearlyLandAwards", name: "Land awards every year",
-    blurb: "The Real-Estate Mogul and The Omnipresent are awarded at the end of every year, not only at the end of the game." },
+  { key: "classicScoring", name: "Score at the year end",
+    blurb: "A company waits for the next year end to take its EP, instead of scoring the moment it is built or upgraded." },
+  { key: "singleLevelEP", name: "Levels score single",
+    blurb: "A company level is worth 1 EP instead of 3, which moves the weight of the game back toward land and cash." },
+  { key: "orderedDecks", name: "Ordered decks",
+    blurb: "Each industry deck runs level 1 down to level 3, instead of being shuffled whole. The early game holds no surprises and no level 3 can be drafted." },
+  { key: "roadHubs", name: "Hubs on the road",
+    blurb: "A Logistic Hub straddles a border and joins the two districts either side, instead of standing on a plot and reaching only its own." },
+  { key: "endgameLandAwards", name: "Land awards at the end only",
+    blurb: "The Real-Estate Mogul and The Omnipresent are paid once, after Quarter 12, instead of at every year end." },
 ];
 const VARIANT_KEYS = VARIANTS.map((v) => v.key);
 /* Anything off the wire is untrusted, so read only the keys we know and coerce
@@ -790,8 +800,9 @@ function normaliseVariants(v) {
   return out;
 }
 const hasVariant = (state, key) => !!(state && state.variants && state.variants[key]);
-/* Company EP per level: the one number the triple-scoring variant moves. */
-const levelEP = (state) => (hasVariant(state, "tripleLevelScoring") ? 3 : 1);
+/* Company EP per level. Three is the standard: building and upgrading is the
+   essence of the game, and at 1 EP a level it lost to land and cash. */
+const levelEP = (state) => (hasVariant(state, "singleLevelEP") ? 1 : 3);
 
 const PERSONA_KEYS = Object.keys(PERSONAS);
 const hasPersona = (p, key) => !!p && p.persona === key;
@@ -888,13 +899,15 @@ function addEP(p, amount, label, quarter) {
 function epTotal(p) {
   return p.epBank + p.businesses.reduce((s, b) => s + (b.epOnCard || 0), 0);
 }
-/* Under "score on completion" a company puts its EP on its own card the moment it
-   is finished, instead of waiting for the year end to notice it. The card is the
-   same card either way, so it still vests when the company is upgraded, sold,
-   merged or the game ends - and the year end, finding it already scored, leaves
-   it alone. */
-function scoreCompanyIfImmediate(state, biz) {
-  if (!hasVariant(state, "immediateScoring") || !biz || biz.isHQ || biz.distressed) return;
+/* A company puts its EP on its own card the moment it is finished - built or
+   upgraded - the same way entering an industry pays the moment you build there.
+   The card is the same card either way, so it still vests when the company is
+   upgraded, sold, merged or the game ends.
+
+   Under "Score at the year end" this does nothing and the year end picks the
+   company up instead, which is how the game worked before v13. */
+function scoreCompanyOnCompletion(state, biz) {
+  if (hasVariant(state, "classicScoring") || !biz || biz.isHQ || biz.distressed) return;
   biz.epOnCard = biz.level * levelEP(state);
   biz.scored = true;
 }
@@ -926,13 +939,12 @@ function worstRoiBusiness(p, pm, quarter, minAge = 1) {
    so the same card can be worth several times more depending on the market. A flat
    breadth bonus used to swamp this entirely, which had bots piling into whatever was
    cheapest regardless of what it sold for. */
-/* What the optional rules are worth to a bot's arithmetic. Without these the bots
-   value a company at 1 EP per level and the land awards at one payout, whatever the
-   host actually switched on - so under "companies score triple" they were undervaluing
-   every building by two thirds, and under "land awards every year" they were ignoring
-   two thirds of the land on offer. */
+/* How many times the two land awards will still be paid. Standard is once per year
+   end, so land is worth chasing from Quarter 1; under "Land awards at the end only"
+   there is a single payout and it is a late-game move. The bots read this rather
+   than assuming, or they would misprice every plot on the board. */
 const landPayouts = (state) => {
-  if (!hasVariant(state, "yearlyLandAwards")) return 1;
+  if (hasVariant(state, "endgameLandAwards")) return 1;
   return [4, 8, 12].filter((q) => q >= state.quarter).length || 1;
 };
 /* One plot is worth this much EP in expectation: the two awards are 10 and 5, paid
@@ -1061,7 +1073,7 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   footprint.forEach((plot) => (state.board.occupiedBy[plot] = biz.id));
   p.businesses.push(biz);
   p.hand = p.hand.filter((x) => x !== bp);
-  scoreCompanyIfImmediate(state, biz);
+  scoreCompanyOnCompletion(state, biz);
   onLaunch(state.pm, bp.ind, bp.deps.map((d) => d.ind));
   log(`${p.name} launches ${bp.name} (${bp.ind} L${bp.lvl}) for $${bp.setup} (cash: $${Math.round(p.cash)}).`, p.id);
   claimIndustryBonus(state, p, bp.ind, log);
@@ -1114,7 +1126,7 @@ function doUpgrade(state, p, b, rng, log, manualPlot) {
   }
   b.upgraded = true; b.level += 1;
   vest(p, b, state.quarter); b.scored = false;
-  scoreCompanyIfImmediate(state, b);
+  scoreCompanyOnCompletion(state, b);
   log(`${p.name} upgrades ${b.bp.name} to level ${b.level} for $${bizSetup(b)} (cash: $${Math.round(p.cash)}).`, p.id);
   return true;
 }
@@ -1128,7 +1140,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "5f100e2f";
+const ENGINE_VERSION = "8bc459a6";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1377,11 +1389,12 @@ function runClosingRest(state, log) {
       // every year end. That threw away 1 EP/level plus possibly 5 EP for the industry,
       // for no gain - being full is the goal, not a problem. Removed.
     }
-    /* The two land awards normally wait for the end of the game. Under the yearly
-       variant they are handed out at every year end as well, so holding the most
-       land in Year 1 is worth something even if you lose it later. Quarter 12 is
-       left to finalizeGame, which awards them once as part of final scoring. */
-    if (hasVariant(state, "yearlyLandAwards") && quarter !== 12) {
+    /* The two land awards are handed out at every year end, so holding the most land
+       in Year 1 is worth something even if you lose it later - and with companies
+       now scoring the moment they are finished, these two are what a year end is
+       FOR. Quarter 12 is left to finalizeGame, which awards them once as part of
+       final scoring. Under "Land awards at the end only" that is the sole payout. */
+    if (!hasVariant(state, "endgameLandAwards") && quarter !== 12) {
       awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", log);
       awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", log);
     }
@@ -1571,7 +1584,7 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   distressedBiz.scored = false;
   distressedBiz.epOnCard = 0;
   distressedBiz.quarterBuilt = state.quarter;
-  scoreCompanyIfImmediate(state, distressedBiz);
+  scoreCompanyOnCompletion(state, distressedBiz);
   p.hand = p.hand.filter((x) => x !== bp);
   p.businesses.push(distressedBiz);
   const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
@@ -1602,7 +1615,7 @@ function doReclaim(state, p, biz, log) {
   biz.scored = false;          // it scores again for its new owner
   biz.epOnCard = 0;
   biz.quarterBuilt = state.quarter;
-  scoreCompanyIfImmediate(state, biz);
+  scoreCompanyOnCompletion(state, biz);
   p.businesses.push(biz);
   const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
   log(`${p.name} buys the distressed ${biz.bp.name} (${bizInd(biz)} L${biz.level}) back from the bank${from} for $${cost} (cash: $${Math.round(p.cash)}).`, p.id);
@@ -2312,7 +2325,9 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
   const nHumans = humanNames && humanNames.length ? humanNames.length : 1;
   const nPlayers = nHumans + numBots;
   const board = buildBoard(rng);
-  board.lhOnPlots = V.lhOnPlots;      // the board itself has to know, so helpers can read it
+  // Hubs stand on plots unless the table asked for the older road hubs. The board
+  // itself has to know, because the hub helpers take a board rather than a state.
+  board.lhOnPlots = !V.roadHubs;
   const demand = makeDemandPool(board, rng);
   const pm = makePriceMatrix();
 
@@ -2321,7 +2336,7 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
   BP_DATA.forEach((bp) => bpByInd[bp.ind].push(bp));
   const decks = {};
   INDUSTRIES.forEach((ind) => {
-    if (V.shuffledDecks) {
+    if (!V.orderedDecks) {
       // one shuffle over the whole deck: a level 3 can be the public card from Q1
       decks[ind] = shuffle(bpByInd[ind], rng);
       return;
@@ -3660,7 +3675,9 @@ function GameScreens({ online }) {
   const [waitSecs, setWaitSecs] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [indTab, setIndTab] = useState("pots");
-  const [personas, setPersonas] = useState(false);
+  // Personas are on by default in v13: they are one line each and give every seat
+  // something of its own from Quarter 1. Still switchable on the setup screen.
+  const [personas, setPersonas] = useState(true);
   const [variants, setVariants] = useState(() => normaliseVariants(null));
   const [reviewing, setReviewing] = useState(false);
   const [tutorial, setTutorial] = useState(false);
@@ -4397,9 +4414,9 @@ function GameScreens({ online }) {
               </div>
               </div>
               <div style={{ display: indTab === "decks" ? "block" : "none" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Decks <Help text={hasVariant(state, "shuffledDecks")
-                ? "Six separate decks, each shuffled whole, so any level can be on top. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."
-                : "Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."} /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Decks <Help text={hasVariant(state, "orderedDecks")
+                ? "Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."
+                : "Six separate decks, each shuffled whole, so any level can be on top. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."} /></div>
               <div className="grid grid-cols-2 gap-1.5">
                 {INDUSTRIES.map((ind) => {
                   const deck = state.decks[ind];
@@ -4651,9 +4668,9 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
           Later seats start with less cash but draft earlier &mdash; pick {need} card{need === 1 ? "" : "s"}.
         </p>
         <p className="text-[11px] text-gray-500 mb-4">
-          {hasVariant(state, "shuffledDecks")
-            ? "Each industry deck is shuffled whole this game, so any level can be on top. Its top card is always public."
-            : "Each industry deck is ordered level 1 on top, level 3 at the bottom, and its top card is always public."}
+          {hasVariant(state, "orderedDecks")
+            ? "Each industry deck is ordered level 1 on top, level 3 at the bottom, and its top card is always public."
+            : "Each deck is shuffled whole, so any level can be on top \u2014 a level 3 may be there from the first draft. Its top card is always public."}
         </p>
 
         {/* Personas are dealt before the draft and are public, so everyone can weigh

@@ -1,15 +1,14 @@
-/* A company scores ONCE - not once per year.
+/* A company scores ONCE per build and once per upgrade - never once per year.
 
-   Standard rules: at the first year end after it is built. Upgrading vests what is
-   on the card into the bank and lets it score again, at the new level, at the next
-   year end.
+   Standard rules (v13): the moment it is finished. Building pays 3 EP per level onto
+   its card; upgrading vests what is on the card into the bank and scores it afresh at
+   the new level, immediately.
 
-   Score on completion: the same one score per build or upgrade, only it happens the
-   moment the work is done. Upgrading vests immediately and puts the new level on the
-   card there and then.
+   "Score at the year end": the same one score per build or upgrade, only it waits for
+   the next year end - which is how the game worked before v13.
 
-   This is easy to get wrong in the direction of a per-year income, which would roughly
-   triple what companies are worth, so it is pinned here.
+   The failure this guards against is a per-year income, which would roughly treble
+   what a company is worth over a game.
 
    Run: node test_scoring_once.js
 */
@@ -27,7 +26,7 @@ function loadEngine() {
   vm.runInContext(logic + `
     box.exports = { initGame, BP_DATA, runClosingRest, doUpgrade, activeBiz, epTotal,
       levelEP, vest, sellCompany, claimMegacorp, megacorpWorthIt, bestMegacorpMatch,
-      scoreCompanyIfImmediate, mulberry32 };
+      scoreCompanyOnCompletion, mulberry32, hasVariant };
   `, sandbox);
   return box.exports;
 }
@@ -50,7 +49,7 @@ function plant(st, p, ind, plot, level = 1) {
     upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt: st.quarter };
   st.board.occupiedBy[plot] = biz.id;
   p.businesses.push(biz);
-  E.scoreCompanyIfImmediate(st, biz);      // the build hook, as doLaunch would call it
+  E.scoreCompanyOnCompletion(st, biz);     // the build hook, as doLaunch would call it
   return biz;
 }
 /* Run the closing of a given quarter without playing the quarter. */
@@ -63,76 +62,86 @@ function giveLand(st, p, n = 6) {
 }
 const freePlot = (st, p) => Object.keys(st.board.owner)
   .find((k) => st.board.owner[k] === p.id && !st.board.occupiedBy[k]);
+/* Everything a company has paid this player: what has vested into the bank plus what
+   is still sitting on its card. Reading p.epBank alone would also pick up the two land
+   awards, which are now paid at every year end and have nothing to do with the company. */
+const fromCompanies = (p) =>
+  (p.epLog || []).filter((e) => String(e.label).startsWith("Vested:")).reduce((n, e) => n + e.amount, 0)
+  + p.businesses.reduce((n, b) => n + (b.epOnCard || 0), 0);
 
 /* ------------------------------------------------------- standard rules */
-section("Standard rules - one score, at the first year end after building");
+section("Standard rules - a company scores the moment it is built");
 {
   const st = game(undefined);
   const p = st.players[0];
   giveLand(st, p);
   const biz = plant(st, p, "HC", freePlot(st, p), 2);
-  check("nothing is on the card before a year end", biz.epOnCard === 0 && biz.scored === false);
+  check("a level is worth 3 EP", E.levelEP(st) === 3);
+  check("building puts 6 EP on the card at once", biz.epOnCard === 6 && biz.scored === true, `${biz.epOnCard} EP`);
 
   closeYear(st, 4);
-  check("Year 1 puts its level on the card", biz.epOnCard === 2 && biz.scored === true, `${biz.epOnCard} EP`);
-
+  check("the year end finds it already scored and leaves it", biz.epOnCard === 6, `${biz.epOnCard} EP`);
   closeYear(st, 8);
-  check("Year 2 leaves it alone - this is not an income", biz.epOnCard === 2, `${biz.epOnCard} EP`);
+  check("so does the next one - this is not an income", biz.epOnCard === 6, `${biz.epOnCard} EP`);
 
-  const bank = p.epBank;
   closeYear(st, 12);
-  check("Year 3 adds nothing either", p.epBank + biz.epOnCard === bank + 2,
-    `${p.epBank + biz.epOnCard - bank} EP for the whole game`);
-  check("and the end of the game vests the card into the bank",
-    biz.epOnCard === 0 && p.epBank === bank + 2, `bank +${p.epBank - bank}`);
+  check("6 EP for the whole game, and no more", fromCompanies(p) === 6, `${fromCompanies(p)} EP`);
+  check("and the end of the game vests the card into the bank", biz.epOnCard === 0);
 }
 
-section("Upgrading is what makes it score again");
+section("Upgrading scores again, on the spot");
 {
   const st = game(undefined);
   const p = st.players[0];
   giveLand(st, p);
   const biz = plant(st, p, "HC", freePlot(st, p), 1);   // vertical scaling: an upgrade needs no new plot
-  closeYear(st, 4);
-  check("it scores 1 for level 1", biz.epOnCard === 1);
+  check("it scores 3 for level 1, immediately", biz.epOnCard === 3);
 
   const bankBefore = p.epBank;
   st.quarter = 5;
   p.cash = 500;
   const ok = E.doUpgrade(st, p, biz, quiet, E.mulberry32(3));
   check("the upgrade went through", ok === true && biz.level === 2, `level ${biz.level}`);
-  check("the old EP vested on upgrade", p.epBank === bankBefore + 1, `bank ${p.epBank - bankBefore}`);
-  check("and the card is empty, waiting for the year end", biz.epOnCard === 0 && biz.scored === false);
+  check("the old EP vested into the bank", p.epBank === bankBefore + 3, `bank +${p.epBank - bankBefore}`);
+  check("and the new level is on the card at once", biz.epOnCard === 6 && biz.scored === true, `${biz.epOnCard} EP`);
 
   closeYear(st, 8);
-  check("the next year end scores it at its NEW level", biz.epOnCard === 2, `${biz.epOnCard} EP`);
-  check("total credited is 1 + 2, not 1 per year", p.epBank + biz.epOnCard === bankBefore + 3,
-    `${p.epBank + biz.epOnCard - bankBefore}`);
+  check("the year end adds nothing", biz.epOnCard === 6, `${biz.epOnCard} EP`);
+  check("the company has paid 3 + 6, not 3 a year", fromCompanies(p) === 9, `${fromCompanies(p)}`);
 }
 
-/* --------------------------------------------------- score on completion */
-section("Score on completion - the same one score, only sooner");
+/* ------------------------------------------------- the older way, as a variant */
+section("Score at the year end - the same one score, only later");
 {
-  const st = game({ immediateScoring: true });
+  const st = game({ classicScoring: true });
   const p = st.players[0];
   giveLand(st, p);
   const biz = plant(st, p, "HC", freePlot(st, p), 2);
-  check("building scores it there and then", biz.epOnCard === 2 && biz.scored === true, `${biz.epOnCard} EP`);
+  check("nothing is on the card yet", biz.epOnCard === 0 && biz.scored === false);
 
   closeYear(st, 4);
-  check("the year end finds it already scored and leaves it", biz.epOnCard === 2, `${biz.epOnCard} EP`);
+  check("the year end scores it", biz.epOnCard === 6 && biz.scored === true, `${biz.epOnCard} EP`);
+  closeYear(st, 8);
+  check("and the next one leaves it alone", biz.epOnCard === 6, `${biz.epOnCard} EP`);
 
-  const bankBefore = p.epBank;
-  st.quarter = 5;
+  const vestedBefore = fromCompanies(p);
+  st.quarter = 9;
   p.cash = 500;
   E.doUpgrade(st, p, biz, quiet, E.mulberry32(3));
-  check("upgrading vests the old level immediately", p.epBank === bankBefore + 2, `bank +${p.epBank - bankBefore}`);
-  check("and puts the new level on the card at once", biz.epOnCard === 3 && biz.scored === true, `${biz.epOnCard} EP`);
+  check("upgrading vests the old level", fromCompanies(p) === vestedBefore, `${fromCompanies(p)}`);
+  check("but the card waits for the year end again", biz.epOnCard === 0 && biz.scored === false);
+  closeYear(st, 12);
+  check("the company has paid 6 + 9", fromCompanies(p) === 15, `${fromCompanies(p)}`);
+}
 
-  closeYear(st, 8);
-  check("the year end still leaves it alone", biz.epOnCard === 3, `${biz.epOnCard} EP`);
-  check("total is 2 + 3 either way", p.epBank + biz.epOnCard === bankBefore + 5,
-    `${p.epBank + biz.epOnCard - bankBefore}`);
+section("Levels score single - the other switch");
+{
+  const st = game({ singleLevelEP: true });
+  const p = st.players[0];
+  giveLand(st, p);
+  const biz = plant(st, p, "HC", freePlot(st, p), 2);
+  check("a level is worth 1 EP", E.levelEP(st) === 1);
+  check("so a level 2 company scores 2, not 6", biz.epOnCard === 2, `${biz.epOnCard} EP`);
 }
 
 section("Both modes pay a company the same, whatever the timing");
@@ -147,11 +156,13 @@ section("Both modes pay a company the same, whatever the timing");
     E.doUpgrade(st, p, b, quiet, E.mulberry32(3));
     closeYear(st, 8);
     closeYear(st, 12);
-    return p.epBank + b.epOnCard;
+    return fromCompanies(p);
   };
   const std = total(undefined);
-  const imm = total({ immediateScoring: true });
-  check("build at level 1, upgrade once: same EP under both", std === imm, `standard ${std}, immediate ${imm}`);
+  const late = total({ classicScoring: true });
+  check("build at level 1, upgrade once: same EP whichever timing", std === late,
+    `on completion ${std}, at the year end ${late}`);
+  check("and that total is 3 + 6 at three EP a level", std === 9, `${std}`);
 }
 
 /* ---------------------------------------------- what the bots believe */
@@ -160,14 +171,19 @@ section("The bots price a company the same way");
   /* megacorpWorthIt weighs a tile against the level EP the merged companies had NOT
      scored yet. Once they have scored, that EP is on their cards and merging vests it,
      so it is not at risk and must not count against the tile. */
-  const st = game(undefined);
-  const p = st.players[0];
-  giveLand(st, p);
-  const plots = Object.keys(st.board.owner).filter((k) => st.board.owner[k] === p.id).slice(0, 3);
-  const inds = ["HC", "TE", "RE"];
-  const built = plots.map((k, i) => plant(st, p, inds[i], k, 1));
-  const match = E.bestMegacorpMatch(E.activeBiz(p), st.megacorpPool);
-  if (!match) { check("a merger combination exists to test with", false, "no match"); }
+  /* Only (players + 1) of the sixteen tiles are in play, so hunt for a table whose
+     pool actually offers something three level-1 companies can claim. */
+  let st = null, p = null, built = null, match = null;
+  for (let seed = 1; seed <= 60 && !match; seed++) {
+    st = E.initGame(3, seed, ["You"], undefined, false, undefined);
+    p = st.players[0];
+    giveLand(st, p);
+    const plots = Object.keys(st.board.owner).filter((k) => st.board.owner[k] === p.id).slice(0, 3);
+    const inds = ["HC", "TE", "RE"];
+    built = plots.map((k, i) => plant(st, p, inds[i], k, 1));
+    match = E.bestMegacorpMatch(E.activeBiz(p), st.megacorpPool);
+  }
+  if (!match) { check("a merger combination exists to test with", false, "none in 60 seeds"); }
   else {
     const beforeScoring = E.megacorpWorthIt(st, p, match);
     closeYear(st, 4);

@@ -119,11 +119,13 @@ function run(label, variants) {
   };
 }
 
+/* The first row is the printed game. The rest turn v13's rules back off one at a
+   time, so the diff shows what each of them is actually doing to the table. */
 const SCENARIOS = [
-  ["standard rules", undefined],
-  ["companies score triple", { tripleLevelScoring: true }],
-  ["land awards every year", { yearlyLandAwards: true }],
-  ["triple + immediate + yearly land", { tripleLevelScoring: true, immediateScoring: true, yearlyLandAwards: true }],
+  ["v13 standard", undefined],
+  ["...levels score single", { singleLevelEP: true }],
+  ["...land awards at the end", { endgameLandAwards: true }],
+  ["everything off (~v12)", { classicScoring: true, singleLevelEP: true, orderedDecks: true, roadHubs: true, endgameLandAwards: true }],
 ];
 
 console.log(`Bot strategy audit - ${SEEDS} seeds per scenario, 4 bots per table\n`);

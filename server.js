@@ -65,7 +65,7 @@ function newRoom(hostName, bots, hostPid) {
     code: c, bots: Math.max(0, Math.min(3, bots | 0)),
     members: [{ token: token(), name: hostName || "Host", seat: 0, host: true, pid: hostPid || null }],
     spectators: [],
-    state: null, rng: null, clients: new Set(), logs: [], version: 0, chat: [], personas: false,
+    state: null, rng: null, clients: new Set(), logs: [], version: 0, chat: [], personas: true,
     variants: E.normaliseVariants(null), startedAt: null, recorded: false,
   };
   rooms.set(c, room);
