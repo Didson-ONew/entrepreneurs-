@@ -164,13 +164,16 @@ Records.jsx            the hall of fame, statistics and recent games panel
 matchlog.js            records finished games and computes the statistics
 rulebook.data.mjs      the rules text — the single source of truth for both books
 make_rulebook.mjs      writes RULEBOOK.md and RULEBOOK_PLAYERS.md from that data
+make_docx.mjs          writes the printed rulebook, both editions, from the same data
 build.mjs              bundles the two shipped pages
 app.css                stylesheet
 Entrepreneurs.html     built single-player page  ← generated, do not hand-edit
 online.html            built online client       ← generated, do not hand-edit
 RULEBOOK.md            full rules + designer's notes  ← generated
 RULEBOOK_PLAYERS.md    the player-facing rules        ← generated
-Entrepreneurs_Rulebook_v12.docx   the last printed edition; v13 lives in rulebook.data.mjs
+Entrepreneurs_Rulebook_v13.docx   the printed rulebook   <- generated
+Entrepreneurs_Rulebook_v13_Designers_Edition.docx   ...with the notes   <- generated
+Entrepreneurs_Rulebook_v12.docx   the previous edition, hand-written, kept for reference
 test_online.js         two-client end-to-end test — run the server, then this
 test_2humans.js        engine-level test: full game with two humans
 test_rulebook_v13.js   conformance: pins the engine to every clause of Rulebook v13
@@ -362,7 +365,7 @@ Both are now checked in the engine, not only hidden in the plot picker, and
 
 ## The rulebook
 
-`rulebook.data.mjs` holds the rules as data, once. Three things read it:
+`rulebook.data.mjs` holds the rules as data, once. Four things read it:
 
 - **the game** — `Rulebook.jsx` renders it as an in-game rulebook, reachable from
   every screen, and deliberately skips every `note` block;

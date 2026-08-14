@@ -465,3 +465,7 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Final tie | most money, then fewest loan discs in the bank |
 | Demand rows 3-4 | closed until Quarter 5 |
 | Demand grid | wiped clean at the end of Quarter 8 |
+| Company scoring | 3 EP per level, the moment it is built - and again when it is upgraded |
+| Industry debut | 5 EP the first time you build in each industry, banked at once |
+| Land awards | 10 EP / 5 EP for most plots and most districts, at every year end |
+| Logistic Hub | one per quarter, on an empty plot; reaches its own district; joins orthogonally |

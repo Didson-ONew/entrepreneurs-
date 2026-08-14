@@ -5,10 +5,13 @@
   "scripts": {
     "start": "node server.js",
     "build": "node make_rulebook.mjs && node build.mjs",
-    "rulebook": "node make_rulebook.mjs"
+    "rulebook": "node make_rulebook.mjs",
+    "docx": "node make_docx.mjs --both"
   },
   "devDependencies": {
-    "esbuild": "^0.28.1"
+    "esbuild": "^0.28.1",
+    "docx": "^9.5.1",
+    "playwright-core": "^1.56.0"
   },
   "dependencies": {
     "react": "^19.2.5",
