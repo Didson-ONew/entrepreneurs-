@@ -255,8 +255,16 @@ Every room has a **Table** button in the bottom-right corner.
 Two honest limitations:
 
 1. Voice needs **HTTPS**. Your Render link is already https, so it works there. It will
-   not work over a plain `http://192.168.x.x` LAN address — browsers block microphone
-   access on insecure origins (localhost is the one exception).
+   not work over a plain `http://192.168.x.x` LAN address, or a plain-http tunnel —
+   browsers block microphone access on insecure origins (localhost is the one exception).
+
+   **This one is easy to misread**, because it does not fail evenly: you, running the
+   server, reach it on `localhost`, which counts as secure, so *your* microphone works
+   and everything looks fine from where you are sitting. Your friends, on the LAN
+   address, get nothing. The Voice tab now says so plainly on the machines it affects
+   and greys the button out, instead of letting them press it and reporting a
+   microphone problem that does not exist. If you want voice, use option B or C below;
+   both give you an https address.
 2. Roughly one connection in ten fails on strict company or mobile-carrier networks. The
    call uses free public STUN servers, which cover most homes but cannot punch through
    every firewall; the fix is a paid TURN relay. A player who can't connect is shown

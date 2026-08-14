@@ -27,7 +27,7 @@ function loadEngine() {
   const sandbox = { console, Math, Set, Object, Array, JSON, box };
   vm.createContext(sandbox);
   vm.runInContext(logic + `
-    box.exports = { initGame, mulberry32, startPlanning, advancePlanning, placeMeeple,
+    box.exports = { initGame, mulberry32, startPlanning, advancePlanning, placeMeeple, advanceDraft,
       consumePlanningTurn, advanceResolution, humanCompleteResolutionAction, humanLiquidationDone,
       finishDelivery, finishQuarterAfterLH, finishQuarterAfterRepay, doPlaceLH, skipDelivery,
       humanDeliver, doRepayLoan, doLoan, doBuyPlot, doSellPlot, doSellBP, doSellCompany,
@@ -180,14 +180,8 @@ function convertToBot(room, seat) {
   const waiting = whoIsAwaited(st) === seat;
   if (waiting) {
     if (st.phase === "drafting") {
-      const need = (st.draftCounts || {})[seat] || 0;
-      while (p.hand.length < need) {
-        const avail = E.INDUSTRIES.filter((i) => st.decks[i] && st.decks[i].length);
-        if (!avail.length) break;
-        p.hand.push(st.decks[avail[Math.floor(room.rng() * avail.length)]].shift());
-      }
-      if (st.draftQueue.length) st.awaitingPlayerId = st.draftQueue[0];
-      else { st.awaitingPlayerId = null; E.startPlanning(st); E.advancePlanning(st, room.rng, lg); }
+      // the seat is a bot now, so the draft order simply carries on through it
+      if (!E.advanceDraft(st, lg)) { E.startPlanning(st); E.advancePlanning(st, room.rng, lg); }
     } else if (st.phase === "resolving" && st.pendingHumanAction) {
       E.botResolveOneAction(st, p, st.pendingHumanAction.track, room.rng, lg);
       E.humanCompleteResolutionAction(st, room.rng, lg);
@@ -245,13 +239,10 @@ function applyAction(room, seat, action, data) {
       st.draftTaken = st.draftTaken || [];
       st.draftTaken.push(card.ind);
       lg(`${p.name} drafts ${card.name}.`, seat);
+      // hand back to the draft order: any bots seated between this player and the next
+      // human take their picks now, in order
       if (p.hand.length >= (st.draftCounts[seat] || 0)) {
-        st.draftQueue = st.draftQueue.filter((x) => x !== seat);
-        if (st.draftQueue.length) st.awaitingPlayerId = st.draftQueue[0];
-        else {
-          st.awaitingPlayerId = null;
-          E.startPlanning(st); E.advancePlanning(st, rng, lg);
-        }
+        if (!E.advanceDraft(st, lg)) { E.startPlanning(st); E.advancePlanning(st, rng, lg); }
       }
       break;
     }
