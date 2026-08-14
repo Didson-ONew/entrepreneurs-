@@ -6,9 +6,14 @@
    the authority over everything else, which meant the game could quietly drift
    away from it. Now there is one source and four outputs.
 
-     node make_docx.mjs           -> Entrepreneurs_Rulebook_v13.docx      (players)
+     node make_docx.mjs --table   -> ..._Tabletop.docx        the physical game
+     node make_docx.mjs           -> Entrepreneurs_Rulebook_v13.docx      (the app)
      node make_docx.mjs --full    -> ..._Designers_Edition.docx           (+ notes)
-     node make_docx.mjs --both
+     node make_docx.mjs --all     -> all three
+
+   The tabletop edition is the same rules with every trace of the app taken out - no
+   host, no bots, no waiting room, no "Playing online" chapter - because a rulebook
+   that mentions things a physical table does not have is a rulebook people distrust.
 
    Needs the `docx` package, which is a build-time tool like esbuild - the game
    server itself still has no runtime dependencies.
@@ -19,11 +24,13 @@ import {
   Table, TableRow, TableCell, WidthType, ShadingType, BorderStyle, LevelFormat,
   TableOfContents, Footer, PageNumber,
 } from "docx";
-import { EDITION, RULEBOOK } from "./rulebook.data.mjs";
+import { EDITION, RULEBOOK, forEdition } from "./rulebook.data.mjs";
 
 const args = process.argv.slice(2);
-const wantFull = args.includes("--full") || args.includes("--both");
-const wantPlayers = !args.includes("--full") || args.includes("--both");
+const all = args.includes("--all") || args.includes("--both");
+const wantTable = args.includes("--table") || all;
+const wantFull = args.includes("--full") || all;
+const wantPlayers = all || (!args.includes("--full") && !args.includes("--table"));
 
 const VERSION = EDITION.replace(/[^0-9v]/gi, "").toLowerCase();   // "Rulebook v13" -> "v13"
 
@@ -141,7 +148,8 @@ const bullet = (text) => new Paragraph({
   children: [new TextRun({ text, font: FONT, size: 21, color: INK })],
 });
 
-function build({ withNotes }) {
+function build({ withNotes, edition = "digital", label }) {
+  const BOOK = forEdition(RULEBOOK, edition);
   const body = [];
 
   /* ---- title page ---- */
@@ -170,7 +178,7 @@ function build({ withNotes }) {
     spacing: { after: 0 },
     alignment: AlignmentType.CENTER,
     children: [new TextRun({
-      text: withNotes ? "Designer's edition - includes the notes" : "Players' edition",
+      text: label,
       font: MONO, size: 17, color: MUTED,
     })],
   }));
@@ -189,7 +197,7 @@ function build({ withNotes }) {
   body.push(new Paragraph({ children: [new PageBreak()] }));
 
   /* ---- the rules ---- */
-  for (const section of RULEBOOK) {
+  for (const section of BOOK) {
     body.push(H1(section.title));
     for (const block of section.blocks) {
       if (block.note) { if (withNotes) body.push(NOTE(block.note)); continue; }
@@ -206,7 +214,7 @@ function build({ withNotes }) {
   return new Document({
     creator: "Entrepreneurs",
     title: `Entrepreneurs - ${EDITION}`,
-    description: withNotes ? "Full rules with designer's notes" : "The rules of play",
+    description: label,
     numbering: {
       config: [{
         reference: "rule-bullets",
@@ -250,5 +258,15 @@ async function write(doc, file) {
   console.log(`wrote ${file}  (${Math.round(buf.length / 1024)} kB)`);
 }
 
-if (wantPlayers) await write(build({ withNotes: false }), `Entrepreneurs_Rulebook_${VERSION}.docx`);
-if (wantFull) await write(build({ withNotes: true }), `Entrepreneurs_Rulebook_${VERSION}_Designers_Edition.docx`);
+if (wantTable) {
+  await write(build({ withNotes: false, edition: "table", label: "Tabletop edition" }),
+    `Entrepreneurs_Rulebook_${VERSION}_Tabletop.docx`);
+}
+if (wantPlayers) {
+  await write(build({ withNotes: false, edition: "digital", label: "Players' edition - the app" }),
+    `Entrepreneurs_Rulebook_${VERSION}.docx`);
+}
+if (wantFull) {
+  await write(build({ withNotes: true, edition: "digital", label: "Designer's edition - includes the notes" }),
+    `Entrepreneurs_Rulebook_${VERSION}_Designers_Edition.docx`);
+}

@@ -28,7 +28,7 @@
 
 You are a founder building a city's economy. You buy land, build companies on it, and sell what they produce to the districts around them. The player with the most Entrepreneurial Points (EP) at the end of Year 3 wins.
 
-- 2 to 4 players. Empty seats can be filled with bots.
+- 2 to 4 players.
 - 3 years of 4 quarters - 12 rounds in total.
 - The board is 16 districts of 4 plots each.
 - The coloured squares inside a district are its demand: what it will buy.
@@ -65,7 +65,7 @@ Starting Blueprints are drafted in reverse seat order - the LAST seat picks firs
 
 - Ten discs each. Nothing else marks what you own.
 - Megacorp tiles: sixteen exist, and only (number of players + 1) are shuffled into the game.
-- Personas are dealt to everyone by default - one each, drawn from six. The host may switch them off.
+- Personas are dealt to everyone by default - one each, drawn from six. Leave them out for a first game if you like.
 
 ---
 
@@ -144,7 +144,7 @@ Going to the Board Meeting costs ALL of your workers for the quarter and buys a 
 ### M&A
 
 - LAUNCH - build a Blueprint from your hand onto empty plots, paying its setup cost. The first time you ever build in an industry you bank 5 EP immediately.
-- BUY - take any unowned plot at its current value, or take over a Distressed Asset. You may buy a distressed structure as it stands for half its own setup cost, keeping its Blueprint and level, or renovate it with a card from your hand for half that card's setup cost.
+- BUY - take any unowned plot at its current value, or take over a Distressed Asset. You may buy a distressed structure as it stands for half its own setup cost, keeping its Blueprint and level, or renovate it with a card from your hand for half that card's setup cost. Any distressed structure is fair game, including one you sold yourself - buying it back as it stands needs no card at all.
 
 You may build on plots owned by another player. They collect the rent every quarter, but the company is yours.
 
@@ -393,7 +393,7 @@ Most EP after Quarter 12 wins. If the final scores tie, the player with more mon
 
 ## Personas
 
-Personas are asymmetric powers, one tied to each industry. They are dealt by default - the host may switch them off for a first game - and only as many as there are players are dealt, so at least two always sit out. Everyone's persona is public from the start, so you can weigh your own specialism and everybody else's while drafting.
+Personas are asymmetric powers, one tied to each industry. They are dealt by default - leave them out for a first game if you like - and only as many as there are players are dealt, so at least two always sit out. Everyone's persona is public from the start, so you can weigh your own specialism and everybody else's while drafting.
 
 | Persona | Power |
 | --- | --- |

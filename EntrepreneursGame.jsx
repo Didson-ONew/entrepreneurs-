@@ -1140,7 +1140,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "8bc459a6";
+const ENGINE_VERSION = "7fdf040c";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1733,7 +1733,9 @@ function goPublicBlockedReason(state, p) {
    the track with an empty hand, at the company cap, or with no land to build on, and
    burning roughly a third of all their actions on nothing. */
 function maWouldAchieveSomething(state, p) {
-  if (findDistressedTargets(state).some((db) => p.hand.some((bp) => renovationEligible(db, bp)))) return true;
+  // a distressed shell is worth the action if you can renovate it OR simply buy it back
+  if (findDistressedTargets(state).some((db) =>
+    canReclaim(state, p, db) || p.hand.some((bp) => renovationEligible(db, bp)))) return true;
   const canBuild = canLaunchMore(p) && discsFree(state, p) > 0
     && p.hand.some((bp) => p.cash >= bp.setup);
   if (canBuild) {
@@ -3069,7 +3071,10 @@ function LiquidationPanel({ state, human, log, onContinue }) {
       <div className="text-xs font-bold mb-1" style={{ color: "#fca5a5" }}>
         Cash shortfall — this quarter's OPEX bill is ${needed}, you have ${Math.round(human.cash)} ({short > 0 ? `$${Math.round(short)} short` : "covered, you may continue"})
       </div>
-      <div className="text-[10px] text-gray-400 mb-2">You choose what to liquidate. Sell hand BPs, businesses, or plots below until covered, then continue.</div>
+      <div className="text-[10px] text-gray-400 mb-2">
+        You choose what to liquidate, and while you are choosing everything sells at its
+        <b> full price</b>. Sell hand BPs, businesses or plots below until the bill is covered, then continue.
+      </div>
       {human.hand.length > 0 && (
         <>
           <div className="text-[10px] text-gray-400 mb-1">Hand BPs:</div>
@@ -3111,7 +3116,11 @@ function LiquidationPanel({ state, human, log, onContinue }) {
         Continue
       </button>
       {!human.hand.length && !activeBiz(human).length && !ownedPlots.length && short > 0 && (
-        <div className="text-[10px] text-red-400 mt-2">Nothing left to sell — continuing will trigger involuntary SOLVENCY at discounted rates.</div>
+        <div className="text-[10px] text-red-400 mt-2">
+          Nothing left to sell — continuing triggers involuntary SOLVENCY, and the bank takes over at
+          half rates: Blueprints fetch ${BP_SOLVENCY_PRICE[1]} / ${BP_SOLVENCY_PRICE[2]} / ${BP_SOLVENCY_PRICE[3]} by
+          level, plots half their value, and a company half what a voluntary sale would pay.
+        </div>
       )}
     </div>
   );
@@ -3127,7 +3136,11 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
   function finish() { setMode(null); onDone(); }
 
   const distressedTargets = findDistressedTargets(state);
-  const renoOptions = distressedTargets.map((db) => ({ db, bps: human.hand.filter((bp) => renovationEligible(db, bp)) })).filter((o) => o.bps.length);
+  /* Every distressed structure in the bank is offered, not only the ones you happen
+     to hold a matching card for. Taking one over as it stands needs no card at all -
+     including the one you sold yourself last quarter - and filtering on the hand made
+     that button unreachable unless you also had a renovation card for the same shell. */
+  const renoOptions = distressedTargets.map((db) => ({ db, bps: human.hand.filter((bp) => renovationEligible(db, bp)) }));
   const ownedPlots = Object.entries(state.board.owner).filter(([k, v]) => v === human.id).map(([k]) => k);
   const unownedPlots = Object.keys(state.board.graph).filter((k) => !(k in state.board.owner));
   const upgradable = activeBiz(human).filter((b) => !b.upgraded);
@@ -3198,7 +3211,13 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
       )}
       {entry.track === "ma" && mode === "buy" && (
         <div className="space-y-2">
-          <div className="text-[10px] text-gray-400">Renovate a distressed structure (pay half the BP&rsquo;s setup) &mdash; location matters, since renovating changes industry. The card must match the shell&rsquo;s level, and from level 2 up its scaling type too; a level-1 shell takes any level-1 card:</div>
+          <div className="text-[10px] text-gray-400">
+            Take over a distressed structure from the bank &mdash; including one you sold yourself.
+            <b> Buy it as it stands</b> for half its own setup, keeping its Blueprint and level, or
+            <b> renovate it</b> with a card from your hand for half that card&rsquo;s setup. Location matters,
+            since renovating changes industry. A renovation card must match the shell&rsquo;s level, and from
+            level 2 up its scaling type too; a level-1 shell takes any level-1 card:
+          </div>
           <div className="flex flex-col gap-1.5">
             {renoOptions.length ? renoOptions.map(({ db, bps }) => {
               const locs = [...new Set(db.footprint.map((pk) => state.board.tiles[`${state.board.cellOf[pk].r},${state.board.cellOf[pk].c}`]))];
@@ -3207,6 +3226,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                 <div key={db.id} className="rounded p-1.5" style={{ backgroundColor: "#161920", border: "1px solid #33384355" }}>
                   <div className="text-[9px] text-gray-500 mb-1">
                     Was {db.bp.ind} L{db.level} — {locs.join("+")} ({db.footprint.length} plot{db.footprint.length > 1 ? "s" : ""}){nearLH ? " \u00b7 near a Logistic Hub" : ""}
+                    {human.businesses.includes(db) && <span style={{ color: "#8fd3b6" }}> &middot; yours before you sold it</span>}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {/* take it over exactly as it stands, keeping its Blueprint and level */}
@@ -3224,7 +3244,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                   </div>
                 </div>
               );
-            }) : <span className="text-[10px] text-gray-600 italic">No eligible distressed structures for your hand.</span>}
+            }) : <span className="text-[10px] text-gray-600 italic">Nothing distressed in the bank right now.</span>}
           </div>
           <div className="text-[10px] text-gray-400">
             Buy a plot ({unownedPlots.length ? `$${Math.min(...unownedPlots.map((pk) => plotValue(state, pk)))}\u2013$${Math.max(...unownedPlots.map((pk) => plotValue(state, pk)))}` : "none left"}):

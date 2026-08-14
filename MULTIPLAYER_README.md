@@ -171,7 +171,8 @@ Entrepreneurs.html     built single-player page  ← generated, do not hand-edit
 online.html            built online client       ← generated, do not hand-edit
 RULEBOOK.md            full rules + designer's notes  ← generated
 RULEBOOK_PLAYERS.md    the player-facing rules        ← generated
-Entrepreneurs_Rulebook_v13.docx   the printed rulebook   <- generated
+Entrepreneurs_Rulebook_v13_Tabletop.docx   the physical game, no app concepts   <- generated
+Entrepreneurs_Rulebook_v13.docx   the app's rulebook   <- generated
 Entrepreneurs_Rulebook_v13_Designers_Edition.docx   ...with the notes   <- generated
 Entrepreneurs_Rulebook_v12.docx   the previous edition, hand-written, kept for reference
 test_online.js         two-client end-to-end test — run the server, then this
@@ -191,6 +192,7 @@ mailer.js              hands the reset link to whatever the host can send mail w
 test_accounts.js       the login system, and what it refuses
 test_scoring_once.js   a company scores once per build or upgrade, not once a year
 test_adjacency.js      buildings occupy plots that share an edge, never a corner
+test_distressed.js     selling a company is not the end of it - who may take it back, and how
 test_draft_order.js    the draft runs in reverse seat order, bots included
 testkit.js             shared: drives one seat through a whole game over HTTP
 ```

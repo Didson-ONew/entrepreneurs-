@@ -12,6 +12,11 @@
    Keeping one copy is the point: a rule can never be right in the book and wrong
    in the game, because there is only one place to change it.
 
+   Editions: a section or a block may carry `only: "digital"` or `only: "table"`.
+   Anything unmarked appears in both. That is how one source produces a rulebook for
+   the app - which has a host, bots and a waiting room - and a rulebook for a physical
+   table, which has none of those things and should not mention them.
+
    Block kinds:
      { h }      sub-heading
      { p }      paragraph
@@ -22,6 +27,15 @@
 
 export const EDITION = "Rulebook v13";
 
+/* Filter the book down to one edition. `edition` is "digital" (the app, which has a
+   host, bots and a waiting room) or "table" (a physical game, which has none of them).
+   Anything not marked `only` belongs to both. */
+export function forEdition(book, edition) {
+  return book
+    .filter((s) => !s.only || s.only === edition)
+    .map((s) => ({ ...s, blocks: s.blocks.filter((b) => !b.only || b.only === edition) }));
+}
+
 export const RULEBOOK = [
 
 /* ------------------------------------------------------------------ */
@@ -31,7 +45,7 @@ export const RULEBOOK = [
   blocks: [
     { p: "You are a founder building a city's economy. You buy land, build companies on it, and sell what they produce to the districts around them. The player with the most Entrepreneurial Points (EP) at the end of Year 3 wins." },
     { ul: [
-      "2 to 4 players. Empty seats can be filled with bots.",
+      "2 to 4 players.",
       "3 years of 4 quarters - 12 rounds in total.",
       "The board is 16 districts of 4 plots each.",
       "The coloured squares inside a district are its demand: what it will buy.",
@@ -66,7 +80,7 @@ export const RULEBOOK = [
     { ul: [
       "Ten discs each. Nothing else marks what you own.",
       "Megacorp tiles: sixteen exist, and only (number of players + 1) are shuffled into the game.",
-      "Personas are dealt to everyone by default - one each, drawn from six. The host may switch them off.",
+      "Personas are dealt to everyone by default - one each, drawn from six. Leave them out for a first game if you like.",
     ] },
     { note: "Reverse-order drafting is the only catch-up mechanism in the game, and it is deliberately small. Seat 4 in a four-player game opens with $20 and three cards against seat 1's $25 and one card - enough to matter in the first two quarters, not enough to decide a game." },
   ],
@@ -148,7 +162,7 @@ export const RULEBOOK = [
     { h: "M&A" },
     { ul: [
       "LAUNCH - build a Blueprint from your hand onto empty plots, paying its setup cost. The first time you ever build in an industry you bank 5 EP immediately.",
-      "BUY - take any unowned plot at its current value, or take over a Distressed Asset. You may buy a distressed structure as it stands for half its own setup cost, keeping its Blueprint and level, or renovate it with a card from your hand for half that card's setup cost.",
+      "BUY - take any unowned plot at its current value, or take over a Distressed Asset. You may buy a distressed structure as it stands for half its own setup cost, keeping its Blueprint and level, or renovate it with a card from your hand for half that card's setup cost. Any distressed structure is fair game, including one you sold yourself - buying it back as it stands needs no card at all.",
     ] },
     { p: "You may build on plots owned by another player. They collect the rent every quarter, but the company is yours." },
     { p: "A renovation has to fit the shell that is already standing. The card must match the distressed structure's level, and from level 2 upwards its scaling type as well: a level-2 or level-3 horizontal structure spreads across several plots and cannot be rebuilt as a vertical one, nor the other way round. At level 1 both kinds occupy a single plot, so a level-1 shell is open to any level-1 Blueprint." },
@@ -387,7 +401,7 @@ export const RULEBOOK = [
   id: "personas",
   title: "Personas",
   blocks: [
-    { p: "Personas are asymmetric powers, one tied to each industry. They are dealt by default - the host may switch them off for a first game - and only as many as there are players are dealt, so at least two always sit out. Everyone's persona is public from the start, so you can weigh your own specialism and everybody else's while drafting." },
+    { p: "Personas are asymmetric powers, one tied to each industry. They are dealt by default - leave them out for a first game if you like - and only as many as there are players are dealt, so at least two always sit out. Everyone's persona is public from the start, so you can weigh your own specialism and everybody else's while drafting." },
     { table: {
       head: ["Persona", "Power"],
       rows: [
@@ -420,7 +434,8 @@ export const RULEBOOK = [
         ["Land awards at the end only", "The Real-Estate Mogul and The Omnipresent are paid once, after Quarter 12, instead of at every year end. Land becomes a late-game race rather than something to hold all game."],
       ],
     } },
-    { p: "Whichever are on is shown in the waiting room before the game starts, and recorded with the finished game, so a variant table is never mistaken for a standard one in the records." },
+    { p: "Agree which of them are on before the draft. Several change what a Blueprint is worth, so choosing halfway through is not a neutral act.", only: "table" },
+    { p: "Whichever are on is shown in the waiting room before the game starts, and recorded with the finished game, so a variant table is never mistaken for a standard one in the records.", only: "digital" },
     { note: "These are kept switchable so the two versions can be played side by side, not because the older ones are balanced against the new. Turning all five on plays v12 almost exactly." },
     { note: "Hubs on plots is a genuine constriction: a quarter of the plots on the board have no orthogonal neighbour at all, so a badly placed hub connects nobody. That is the rule working as intended - it is why the hub picker tells you how many plots a spot would connect before you commit to it - but it is also the rule most likely to need another look after a few tables." },
   ],
@@ -430,6 +445,7 @@ export const RULEBOOK = [
 {
   id: "online",
   title: "Playing online",
+  only: "digital",
   blocks: [
     { p: "Create a room and share the six-character code. Anyone who enters it joins your table." },
     { ul: [

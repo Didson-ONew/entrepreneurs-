@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { RULEBOOK, EDITION } from "./rulebook.data.mjs";
+import { RULEBOOK as BOOK_ALL, EDITION, forEdition } from "./rulebook.data.mjs";
+
+/* The in-game book is the app's book, so it keeps the online section and drops
+   anything written only for a physical table. */
+const RULEBOOK = forEdition(BOOK_ALL, "digital");
 import Records from "./Records.jsx";
 
 /* ============================================================================
