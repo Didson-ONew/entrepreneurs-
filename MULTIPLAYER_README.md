@@ -188,6 +188,7 @@ mailer.js              hands the reset link to whatever the host can send mail w
 test_accounts.js       the login system, and what it refuses
 test_scoring_once.js   a company scores once per build or upgrade, not once a year
 test_adjacency.js      buildings occupy plots that share an edge, never a corner
+test_draft_order.js    the draft runs in reverse seat order, bots included
 testkit.js             shared: drives one seat through a whole game over HTTP
 ```
 
@@ -327,6 +328,20 @@ is not the one the server sees.
 
 Neither mail backend can be exercised from this sandbox against a real provider —
 `test_accounts.js` proves them against a local listener and a local command instead.
+
+## The draft is one sequence
+
+Reverse seat order, last seat first, with bots and humans in the same queue —
+`state.draftOrder` plus a cursor, walked by `advanceDraft`, which lets bots take their
+cards when the order reaches them and stops at the first human who still owes picks.
+Three places call it: setup, a human finishing their picks (single-player and server),
+and a seat being handed to a bot mid-draft.
+
+It used to be two passes — every bot during setup, then every human on the draft
+screen. With one human that is invisible, which is why it survived so long; at a mixed
+table a bot seated 2nd took its Blueprints ahead of a human seated 3rd, who by the rule
+picks first. It also meant no bot could ever weigh what a human had drafted, because no
+human had drafted yet.
 
 ## Two adjacencies, deliberately
 

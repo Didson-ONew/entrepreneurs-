@@ -511,6 +511,25 @@ const store = {
 
 const STUN = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:global.stun.twilio.com:3478" }];
 
+/* Can this page get a microphone at all? Browsers only expose one on a secure
+   origin - https, or localhost. Everywhere else navigator.mediaDevices is simply
+   absent, so this has to be checked before it is touched rather than caught after. */
+function micPossible() {
+  return !!(typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+}
+/* Said in the terms the player is actually in: the host, on localhost, will never
+   see this, so the message has to make sense to the friend who is not. */
+function insecureReason() {
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  const proto = typeof window !== "undefined" ? window.location.protocol : "";
+  if (proto === "http:" && host && host !== "localhost" && host !== "127.0.0.1") {
+    return `Voice needs a secure connection. This page is on http://${host}, and browsers only give a microphone `
+      + "to https:// pages (or to localhost). Chat still works. To get voice, reach the game over https - a "
+      + "tunnel such as ngrok or cloudflared gives you one, and so does hosting it on Render or Fly.";
+  }
+  return "This browser will not give the page a microphone. Chat still works.";
+}
+
 function useVoice(me, active) {
   const [on, setOn] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -595,6 +614,14 @@ function useVoice(me, active) {
 
   async function start() {
     setError("");
+    /* Browsers only hand out a microphone on a secure origin: https, or localhost.
+       Over plain http to an address like 192.168.1.20 or a http:// tunnel,
+       navigator.mediaDevices is not merely empty - it does not exist, and calling
+       getUserMedia on it throws a TypeError. That used to be caught below and
+       reported as "No microphone available", which sent people hunting for a
+       hardware fault that was not there: the host, on localhost, could always join,
+       and only the friends who connected over the network could not. */
+    if (!micPossible()) { setError(insecureReason()); return; }
     try {
       localStream.current = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false,
@@ -602,7 +629,9 @@ function useVoice(me, active) {
     } catch (e) {
       setError(e && e.name === "NotAllowedError"
         ? "Microphone permission was refused. Allow it in your browser's address bar to join the call."
-        : "No microphone available.");
+        : e && e.name === "NotFoundError"
+          ? "No microphone found on this device."
+          : `The microphone could not be opened (${(e && e.name) || "unknown error"}).`);
       return;
     }
     setOn(true);
@@ -740,13 +769,24 @@ function TablePanel({ me, chat, onSend }) {
               <div style={{ padding: 10 }}>
                 {!voice.on ? (
                   <>
-                    <div style={{ fontSize: 11, color: "#9aa3b2", lineHeight: 1.45, marginBottom: 9 }}>
-                      Talk to the other players while you play. Your browser will ask for
-                      microphone permission. Audio goes directly between players, not through the server.
-                    </div>
-                    <button onClick={voice.start}
-                      style={{ ...btn, width: "100%", backgroundColor: "#2c5f4f", color: "#d3fcec",
-                        fontWeight: 700, padding: "8px 0" }}>
+                    {/* Say it before the button is pressed. On a plain-http address the
+                        browser will never hand over a microphone, and the person it
+                        happens to is never the host - so it has to be visible, not an
+                        error you discover halfway through a game. */}
+                    {!micPossible() ? (
+                      <div style={{ fontSize: 11, color: "#e0b060", lineHeight: 1.45, marginBottom: 9 }}>
+                        {insecureReason()}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 11, color: "#9aa3b2", lineHeight: 1.45, marginBottom: 9 }}>
+                        Talk to the other players while you play. Your browser will ask for
+                        microphone permission. Audio goes directly between players, not through the server.
+                      </div>
+                    )}
+                    <button onClick={voice.start} disabled={!micPossible()}
+                      style={{ ...btn, width: "100%", backgroundColor: micPossible() ? "#2c5f4f" : "#20232c",
+                        color: micPossible() ? "#d3fcec" : "#6b7280",
+                        fontWeight: 700, padding: "8px 0", cursor: micPossible() ? "pointer" : "not-allowed" }}>
                       {"\uD83C\uDFA4"} Join voice call
                     </button>
                   </>

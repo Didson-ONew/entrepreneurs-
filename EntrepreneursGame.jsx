@@ -1128,7 +1128,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "6d034fee";
+const ENGINE_VERSION = "5f100e2f";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -2246,6 +2246,66 @@ function draftScore(bp, drafted) {
   return s;
 }
 
+/* ---- the draft, as one sequence ----
+   Reverse seat order, last seat picking first, and everybody is in the same queue.
+   A bot takes its cards when the order reaches it, not before.
+
+   This used to run as two passes: every bot drafted during setup, then every human
+   drafted on the draft screen. With one human that is invisible, but at a mixed table
+   a bot seated 2nd took its Blueprints ahead of a human seated 3rd, who by the rule
+   picks first. It also meant a bot could never see what a human had taken, because no
+   human had taken anything yet. */
+function botDraftPick(state, p) {
+  const avail = INDUSTRIES.filter((ind) => state.decks[ind] && state.decks[ind].length > 0);
+  if (!avail.length) return false;
+  const aware = state.marketAwareSeats;
+  let best = avail[0], bestScore = -Infinity;
+  for (const ind of avail) {
+    // read the draft so far and take the card that will still be worth something
+    // once everyone has built what they are drafting
+    const sc = (aware && !aware.includes(p.id))
+      ? draftScoreNaive(state.decks[ind][0])
+      : draftScore(state.decks[ind][0], state.draftedCards || []);
+    if (sc > bestScore) { bestScore = sc; best = ind; }
+  }
+  const card = state.decks[best].shift();
+  p.hand.push(card);
+  (state.draftedCards = state.draftedCards || []).push(card);
+  (state.draftTaken = state.draftTaken || []).push(card.ind);
+  return true;
+}
+/* Walk the draft order until it reaches a human who still owes picks. Returns true if
+   the game is still drafting (and awaitingPlayerId names who it is waiting on), false
+   when the draft is finished and planning should begin. */
+function advanceDraft(state, log) {
+  const order = state.draftOrder || [];
+  while (state.draftCursor < order.length) {
+    const pid = order[state.draftCursor];
+    const p = byId(state, pid);
+    const need = (state.draftCounts || {})[pid] || 0;
+    if (!p) { state.draftCursor++; continue; }
+    if (p.isHuman && p.hand.length < need) {
+      state.phase = "drafting";
+      state.awaitingPlayerId = pid;
+      // who is still to come, for the waiting screen
+      state.draftQueue = order.slice(state.draftCursor).filter((id) => {
+        const q = byId(state, id);
+        return q && q.isHuman && q.hand.length < ((state.draftCounts || {})[id] || 0);
+      });
+      return true;
+    }
+    if (!p.isHuman) {
+      while (p.hand.length < need && botDraftPick(state, p)) { /* takes its whole hand */ }
+      if (log) log(`${p.name} drafts ${p.hand.length} Blueprint${p.hand.length === 1 ? "" : "s"}.`, p.id);
+    }
+    state.draftCursor++;
+  }
+  state.draftQueue = [];
+  state.awaitingPlayerId = null;
+  state.phase = "planning";
+  return false;
+}
+
 function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, variants) {
   const rng = mulberry32(seedNum);
   const V = normaliseVariants(variants);
@@ -2289,48 +2349,25 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
     }
   }
   // Starting BPs are drafted in REVERSE seat order, so the last player picks first.
-  // Bots draft immediately; the human's picks are made on the setup screen.
+  // Everyone is in one sequence: a bot picks when the order reaches it, not before.
   const draftOrder = [...seats].reverse();
-  const draftedSoFar = [];      // every card taken so far, by anyone, this draft
-  // Each human drafts their own starting hand, in reverse seat order (last picks first).
   const draftCounts = {};
-  players.filter((p) => p.isHuman).forEach((p) => { draftCounts[p.id] = starting[seatOf[p.id]][1]; });
-  const draftQueue = draftOrder.filter((id) => byId({ players }, id).isHuman);
+  players.forEach((p) => { draftCounts[p.id] = starting[seatOf[p.id]][1]; });
   const humanDraftCount = draftCounts[0] || 0;   // kept for the single-player UI
-  for (const pid of draftOrder) {
-    const p = players.find((x) => x.id === pid);
-    const n = starting[seatOf[pid]][1];
-    if (p.isHuman) continue;                   // filled in by the draft screen
-    for (let k = 0; k < n; k++) {
-      const avail = INDUSTRIES.filter((ind) => decks[ind].length > 0);
-      if (!avail.length) break;
-      // read the draft so far and take the card that will still be worth something
-      // once everyone has built what they are drafting
-      let best = avail[0], bestScore = -Infinity;
-      for (const ind of avail) {
-        const sc = (marketAwareSeats && !marketAwareSeats.includes(pid))
-          ? draftScoreNaive(decks[ind][0])
-          : draftScore(decks[ind][0], draftedSoFar);
-        if (sc > bestScore) { bestScore = sc; best = ind; }
-      }
-      const card = decks[best].shift();
-      p.hand.push(card);
-      draftedSoFar.push(card);
-    }
-  }
   // personas are optional; six exist and only nPlayers are dealt, so two or more sit out
   if (usePersonas) {
     const deal = shuffle(PERSONA_KEYS, rng);
     players.forEach((pl, i) => { pl.persona = deal[i % deal.length]; });
   }
   const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers + 1);
-  return {
+  const state = {
     board, demand, pm, players, decks, variants: V, quarter: 1, solvencyEvents: 0, rngSeed: seedNum, rngCalls: 0,
     turnOrder: seats,                      // randomised seating
-    seats, humanDraftCount, draftCounts, draftQueue,
-    draftTaken: draftedSoFar.map((c) => c.ind),
-    awaitingPlayerId: draftQueue.length ? draftQueue[0] : null,
-    phase: draftQueue.length ? "drafting" : "planning",
+    seats, humanDraftCount, draftCounts,
+    draftOrder, draftCursor: 0, draftQueue: [], draftedCards: [], draftTaken: [],
+    marketAwareSeats: marketAwareSeats || null,
+    awaitingPlayerId: null,
+    phase: "drafting",
     tracks: makeTracks(),
     megacorpPool, ipoTileClaimed: false,
     planningQueue: [],
@@ -2343,6 +2380,9 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
     crossSellRemaining: {},
     deliveringBizId: null,
   };
+  // let the bots ahead of the first human take their picks, in order
+  advanceDraft(state);
+  return state;
 }
 
 /* ============================== REACT UI ============================== */
@@ -3781,7 +3821,8 @@ function GameScreens({ online }) {
     if (online) return <DraftScreen state={state} log={log} seatId={isSpectator ? null : online.seat}
       host={!isSpectator && online.host} onKick={online.onKick} onDone={null} spectator={isSpectator} />;
     return <DraftScreen state={state} log={log} onDone={() => {
-      startPlanning(state); advancePlanning(state, rngRef.current, log);
+      // any bots seated after you draft now, then planning begins
+      if (!advanceDraft(state, log)) { startPlanning(state); advancePlanning(state, rngRef.current, log); }
       setState({ ...state });
     }} />;
   }
