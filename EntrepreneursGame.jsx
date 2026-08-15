@@ -1140,7 +1140,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "7fdf040c";
+const ENGINE_VERSION = "5730bbbf";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1159,13 +1159,17 @@ function doLoan(state, p, log) {
   log(`${p.name} takes a loan (+$20, +1 disc) (cash: $${Math.round(p.cash)}, discs used: ${discsUsed(state, p)}/${DISCS_PER_PLAYER}).`, p.id);
   return true;
 }
-function doSellCompany(p, b, log) {
-  const recv = sellCompany(p, b, false);
-  log(`${p.name} sells ${b.bp.name} for $${recv} (cash: $${Math.round(p.cash)}).`, p.id);
+function doSellCompany(p, b, log, solvency = false) {
+  const recv = sellCompany(p, b, solvency);
+  log(`${p.name} sells ${b.bp.name} for $${recv}${solvency ? " (SOLVENCY - half price)" : ""} (cash: $${Math.round(p.cash)}).`, p.id);
 }
-function doSellBP(state, p, bp, log) {
-  sellBpFromHand(state, p, bp, false);
-  log(`${p.name} sells ${bp.name} from hand (cash: $${Math.round(p.cash)}).`, p.id);
+/* `solvency` is set when the sale is forced by a bill you cannot pay. Everything then
+   goes for half what a planned sale through Raise Capital would fetch - which is the
+   whole difference between choosing to sell and having to. */
+function doSellBP(state, p, bp, log, solvency = false) {
+  const before = p.cash;
+  sellBpFromHand(state, p, bp, solvency);
+  log(`${p.name} sells ${bp.name} from hand for $${Math.round(p.cash - before)}${solvency ? " (SOLVENCY - half price)" : ""} (cash: $${Math.round(p.cash)}).`, p.id);
 }
 
 function botTakeActions(state, p, rng, log, nActions) {
@@ -1311,6 +1315,8 @@ function potRecipients(state, ind) {
   return { n, levels };
 }
 
+/* Kept for the balance harnesses, which run all-bot tables and never enter the
+   delivery phase. Real games go through advanceDelivery, in turn order. */
 function runBotRevenue(state) {
   for (const p of state.players) {
     if (p.isHuman) continue;
@@ -2113,17 +2119,46 @@ function proceedToProduction(state, log, rng) {
   state.reExtraDistrict = {};              // the Retail bonus lasts one quarter only
   applySupplyChainBump(state, log);
   runProduction(state, log);
-  runBotRevenue(state);
   state.deliveryRemaining = {};
   state.crossSellRemaining = {};
   state.reChoices = {};   // Retail re-picks its extra districts every delivery
   state.hoBonusPaid = {};
-  state.delQueue = humansNeedingDelivery(state);
-  if (state.delQueue.length) {
-    startDeliveryFor(state, state.delQueue[0], log);
-    return;
+  /* Delivery runs in turn order, everybody in one sequence. Demand icons are first
+     come first served, so who sells before whom is the whole point of being first
+     player - and this used to run every bot first, whatever the seating, which meant
+     a human at the front of the order still arrived to a picked-over board. */
+  state.deliveryOrder = [...state.turnOrder];
+  state.deliveryCursor = 0;
+  if (!advanceDelivery(state, log)) finishQuarter(state, log, rng);
+}
+/* Walk the delivery order: a bot sells where it stands, a human is handed the board.
+   Returns true while somebody still has to be waited for. */
+function advanceDelivery(state, log) {
+  const order = state.deliveryOrder || [];
+  while (state.deliveryCursor < order.length) {
+    const pid = order[state.deliveryCursor];
+    const p = byId(state, pid);
+    if (!p) { state.deliveryCursor++; continue; }
+    if (p.isHuman) {
+      if (humanDeliveryQueue(state, p).length) {
+        // who is still to come, for the waiting screen
+        state.delQueue = order.slice(state.deliveryCursor).filter((id) => {
+          const q = byId(state, id);
+          return q && q.isHuman && humanDeliveryQueue(state, q).length > 0;
+        });
+        startDeliveryFor(state, pid, log);
+        return true;
+      }
+      state.deliveryCursor++;
+      continue;
+    }
+    for (const b of activeBiz(p)) if (businessCanProduce(state, b)) autoDeliver(state, p, b);
+    state.deliveryCursor++;
   }
-  finishQuarter(state, log, rng);
+  state.delQueue = [];
+  state.awaitingPlayerId = null;
+  state.deliveringBizId = null;
+  return false;
 }
 function startDeliveryFor(state, playerId, log) {
   const human = byId(state, playerId);
@@ -2168,11 +2203,9 @@ function skipDelivery(state, human, bizId, log) {
 function finishDelivery(state, log, rng) {
   const next = nextDeliveryTarget(state);
   if (next) { state.deliveringBizId = next.id; return; }
-  // this player is done - hand delivery to the next human who has production
-  state.delQueue = (state.delQueue || []).filter((id) => id !== state.awaitingPlayerId);
-  if (state.delQueue.length) { startDeliveryFor(state, state.delQueue[0], log); return; }
-  state.deliveringBizId = null;
-  state.awaitingPlayerId = null;
+  // this player is done - carry on down the turn order, bots included
+  state.deliveryCursor = (state.deliveryCursor || 0) + 1;
+  if (advanceDelivery(state, log)) return;
   finishQuarter(state, log, rng);
 }
 function finishQuarter(state, log, rng) {
@@ -3071,17 +3104,18 @@ function LiquidationPanel({ state, human, log, onContinue }) {
       <div className="text-xs font-bold mb-1" style={{ color: "#fca5a5" }}>
         Cash shortfall — this quarter's OPEX bill is ${needed}, you have ${Math.round(human.cash)} ({short > 0 ? `$${Math.round(short)} short` : "covered, you may continue"})
       </div>
-      <div className="text-[10px] text-gray-400 mb-2">
-        You choose what to liquidate, and while you are choosing everything sells at its
-        <b> full price</b>. Sell hand BPs, businesses or plots below until the bill is covered, then continue.
+      <div className="text-[10px] mb-2" style={{ color: "#e0b060" }}>
+        This is a forced sale: <b>everything goes for half</b> what a planned sale through Raise
+        Capital would fetch. Sell hand BPs, businesses or plots below until the bill is covered,
+        then continue.
       </div>
       {human.hand.length > 0 && (
         <>
-          <div className="text-[10px] text-gray-400 mb-1">Hand BPs:</div>
+          <div className="text-[10px] text-gray-400 mb-1">Hand BPs (${BP_SOLVENCY_PRICE[1]} / ${BP_SOLVENCY_PRICE[2]} / ${BP_SOLVENCY_PRICE[3]} by level):</div>
           <div className="flex flex-wrap gap-2 mb-2">
             {human.hand.map((bp, i) => (
-              <button key={i} onClick={() => { if (NET) return NET.send("liquidate", { type: "bp", index: i }); doSellBP(state, human, bp, log); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#e5e7eb" }}>
-                {bp.name} <span style={{ color: "#f3a5a5" }}>${BP_SELL_PRICE[bp.lvl] || 4}</span>
+              <button key={i} onClick={() => { if (NET) return NET.send("liquidate", { type: "bp", index: i }); doSellBP(state, human, bp, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#e5e7eb" }}>
+                {bp.name} <span style={{ color: "#f3a5a5" }}>${BP_SOLVENCY_PRICE[bp.lvl] || 2}</span>
               </button>
             ))}
           </div>
@@ -3092,8 +3126,8 @@ function LiquidationPanel({ state, human, log, onContinue }) {
           <div className="text-[10px] text-gray-400 mb-1">Businesses:</div>
           <div className="flex flex-wrap gap-2 mb-2">
             {activeBiz(human).map((b) => (
-              <button key={b.id} onClick={() => { if (NET) return NET.send("liquidate", { type: "biz", bizId: b.id }); doSellCompany(human, b, log); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
-                {b.bp.name} <span style={{ color: "#f3a5a5" }}>${b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2)}</span>
+              <button key={b.id} onClick={() => { if (NET) return NET.send("liquidate", { type: "biz", bizId: b.id }); doSellCompany(human, b, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
+                {b.bp.name} <span style={{ color: "#f3a5a5" }}>${b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4)}</span>
               </button>
             ))}
           </div>
@@ -3104,8 +3138,8 @@ function LiquidationPanel({ state, human, log, onContinue }) {
           <div className="text-[10px] text-gray-400 mb-1">Owned plots:</div>
           <div className="flex flex-wrap gap-2 mb-2">
             {ownedPlots.map((pk) => (
-              <button key={pk} onClick={() => { if (NET) return NET.send("liquidate", { type: "plot", plot: pk }); doSellPlot(state, human, pk, log); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
-                {plotLabel(state.board, pk)} <span style={{ color: "#f3a5a5" }}>${plotValue(state, pk)}</span>
+              <button key={pk} onClick={() => { if (NET) return NET.send("liquidate", { type: "plot", plot: pk }); doSellPlot(state, human, pk, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
+                {plotLabel(state.board, pk)} <span style={{ color: "#f3a5a5" }}>${Math.floor(plotValue(state, pk) / 2)}</span>
               </button>
             ))}
           </div>

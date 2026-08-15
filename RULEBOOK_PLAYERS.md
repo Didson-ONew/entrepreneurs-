@@ -250,7 +250,9 @@ Every active company pays its OPEX, automatically, whether or not it sells anyth
 
 ### If you cannot pay
 
-Before OPEX is charged, any player whose cash will not cover their whole bill gets a window to sell whatever they choose at normal prices. If the bill still cannot be met when a company's OPEX comes due, that company enters SOLVENCY and the sale is forced at half rates: Blueprints fetch $2 / $4 / $6, plots fetch half their value, companies fetch half what a voluntary sale would pay. The company that triggered it goes to the bank as a Distressed Asset.
+Before OPEX is charged, any player whose cash will not cover their whole bill gets a window to choose what to sell. This is a forced sale and everything in it goes at HALF what a planned sale through Raise Capital would fetch: Blueprints $2 / $4 / $6 by level, plots half their value, a company half what it would have paid voluntarily. What you keep control of is which assets go, not the price.
+
+If the bill still cannot be met once a company's OPEX comes due, that company enters SOLVENCY: the bank sells for you, at those same half rates, and the company that triggered it goes to the bank as a Distressed Asset.
 
 ---
 
@@ -259,6 +261,8 @@ Before OPEX is charged, any player whose cash will not cover their whole bill ge
 ## Revenue: selling what you produce
 
 Each company produces a number of units printed on its Blueprint, doubled if it has been upgraded. You deliver those units to demand icons your company can reach, and each icon pays the current market price for your industry.
+
+Delivery goes in turn order. Every icon is first come, first served, so being early in the order is worth real money on a contested district - and it is the main thing REPOSITION buys you.
 
 ### Which icons you may use
 
@@ -454,8 +458,8 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Company slots | 5, counting Megacorp headquarters |
 | Hand limit | 5 Blueprints |
 | Loan | +$20 and one disc; buy back for $30 / $35 / $40 at year ends; -5 EP if unpaid |
-| Sell a Blueprint | $4 / $8 / $12 by level (half in a forced sale) |
-| Sell a company | half its setup cost, or the full cost if upgraded (half again in a forced sale) |
+| Sell a Blueprint | $4 / $8 / $12 by level; $2 / $4 / $6 in a forced sale |
+| Sell a company | half its setup, or the full setup if upgraded; halved again in a forced sale |
 | Plot value | road price (1-6) + $1 per occupied neighbour + $1 if it touches a hub |
 | Upgrade | pay the setup cost again; production and OPEX double; level +1 |
 | Rent | $3 per company level, to the owners of the plots it stands on |

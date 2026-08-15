@@ -34,7 +34,7 @@ function loadEngine() {
       doLaunch, doRenovate, doDraw, doUpgrade, claimMegacorp, doReposition, byId, activeBiz,
       eligibleSlotsFor, findDistressedTargets, renovationEligible, plotValue, discsFree,
       canLaunchMore, isCrossDistrictEdge, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal, canGoPublic, doReclaim, canReclaim,
-      botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, ENGINE_VERSION,
+      botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, advanceDelivery, ENGINE_VERSION,
       bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER,
       PERSONAS, MEGACORP_TILES, VARIANTS, VARIANT_KEYS, normaliseVariants };
   `, sandbox);
@@ -307,9 +307,10 @@ function applyAction(room, seat, action, data) {
     }
     case "liquidate": {
       if (st.phase !== "liquidating") return { error: "Not liquidating." };
-      if (d.type === "bp") { const bp = p.hand[d.index]; if (bp) E.doSellBP(st, p, bp, lg); }
-      else if (d.type === "biz") { const b = p.businesses.find((x) => x.id === d.bizId); if (b) E.doSellCompany(p, b, lg); }
-      else if (d.type === "plot") E.doSellPlot(st, p, d.plot, lg);
+      // this window exists because a bill cannot be paid: everything goes at half price
+      if (d.type === "bp") { const bp = p.hand[d.index]; if (bp) E.doSellBP(st, p, bp, lg, true); }
+      else if (d.type === "biz") { const b = p.businesses.find((x) => x.id === d.bizId); if (b) E.doSellCompany(p, b, lg, true); }
+      else if (d.type === "plot") E.doSellPlot(st, p, d.plot, lg, true);
       break;
     }
     case "liquidateDone": {
