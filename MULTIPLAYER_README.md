@@ -164,16 +164,20 @@ Records.jsx            the hall of fame, statistics and recent games panel
 matchlog.js            records finished games and computes the statistics
 rulebook.data.mjs      the rules text — the single source of truth for both books
 make_rulebook.mjs      writes RULEBOOK.md and RULEBOOK_PLAYERS.md from that data
+make_docx.mjs          writes the printed rulebook, both editions, from the same data
 build.mjs              bundles the two shipped pages
 app.css                stylesheet
 Entrepreneurs.html     built single-player page  ← generated, do not hand-edit
 online.html            built online client       ← generated, do not hand-edit
 RULEBOOK.md            full rules + designer's notes  ← generated
 RULEBOOK_PLAYERS.md    the player-facing rules        ← generated
-Entrepreneurs_Rulebook_v12.docx   the printed rulebook — the authority over all of the above
+Entrepreneurs_Rulebook_v13_Tabletop.docx   the physical game, no app concepts   <- generated
+Entrepreneurs_Rulebook_v13.docx   the app's rulebook   <- generated
+Entrepreneurs_Rulebook_v13_Designers_Edition.docx   ...with the notes   <- generated
+Entrepreneurs_Rulebook_v12.docx   the previous edition, hand-written, kept for reference
 test_online.js         two-client end-to-end test — run the server, then this
 test_2humans.js        engine-level test: full game with two humans
-test_rulebook_v12.js   conformance: pins the engine to every clause of Rulebook v12
+test_rulebook_v13.js   conformance: pins the engine to every clause of Rulebook v13
 test_preventive.js     regression test: the Public Health Director rule (engine only)
 test_preventive_ui.js  the same persona through the real page - needs the server
 test_matchlog.js       the match record, the hall of fame and the statistics
@@ -188,6 +192,7 @@ mailer.js              hands the reset link to whatever the host can send mail w
 test_accounts.js       the login system, and what it refuses
 test_scoring_once.js   a company scores once per build or upgrade, not once a year
 test_adjacency.js      buildings occupy plots that share an edge, never a corner
+test_distressed.js     selling a company is not the end of it - who may take it back, and how
 test_draft_order.js    the draft runs in reverse seat order, bots included
 testkit.js             shared: drives one seat through a whole game over HTTP
 ```
@@ -362,7 +367,7 @@ Both are now checked in the engine, not only hidden in the plot picker, and
 
 ## The rulebook
 
-`rulebook.data.mjs` holds the rules as data, once. Three things read it:
+`rulebook.data.mjs` holds the rules as data, once. Four things read it:
 
 - **the game** — `Rulebook.jsx` renders it as an in-game rulebook, reachable from
   every screen, and deliberately skips every `note` block;
@@ -371,8 +376,8 @@ Both are now checked in the engine, not only hidden in the plot picker, and
 
 So a rule cannot be right in the book and wrong in the game: there is one copy.
 
-The printed **Rulebook v12** (`Entrepreneurs_Rulebook_v12.docx`) is the authority above
-both. `test_rulebook_v11.js` pins
+**Rulebook v13** in `rulebook.data.mjs` is the authority. The printed
+`Entrepreneurs_Rulebook_v12.docx` is the previous edition, kept for reference. `test_rulebook_v13.js` pins
 the engine to it clause by clause - starting capital, the card tables, the price
 curve, how the pots divide, what going public does, the tiebreak - so a change that
 contradicts the printed rules fails a test that names the sentence it broke.

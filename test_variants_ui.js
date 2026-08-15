@@ -21,7 +21,7 @@ const section = (t) => console.log(`\n${t}`);
 (async () => {
   section("The catalogue the lobby renders from");
   const cat = await get("/api/variants");
-  check("the server publishes the variant list", Array.isArray(cat.variants) && cat.variants.length === 6,
+  check("the server publishes the variant list", Array.isArray(cat.variants) && cat.variants.length === 5,
     (cat.variants || []).map((v) => v.key).join(", "));
   check("every entry has a name and an explanation",
     cat.variants.every((v) => v.key && v.name && v.blurb));
@@ -33,38 +33,38 @@ const section = (t) => console.log(`\n${t}`);
   check("a fresh room has every variant off",
     lob.variants && Object.values(lob.variants).every((v) => v === false), JSON.stringify(lob.variants));
 
-  const wanted = { lhOnPlots: true, tripleLevelScoring: true, shuffledDecks: true };
+  const wanted = { roadHubs: true, singleLevelEP: true, orderedDecks: true };
   const r = await post("/api/options", { code: host.code, token: host.token, variants: wanted });
   check("the host may set them", !r.error, r.error || "");
   lob = await lobbyOf(host.code, host.token);
   check("the lobby reports exactly what was set",
-    lob.variants.lhOnPlots && lob.variants.tripleLevelScoring && lob.variants.shuffledDecks
-    && !lob.variants.lhOpenToAll && !lob.variants.immediateScoring && !lob.variants.yearlyLandAwards,
+    lob.variants.roadHubs && lob.variants.singleLevelEP && lob.variants.orderedDecks
+    && !lob.variants.classicScoring && !lob.variants.endgameLandAwards,
     JSON.stringify(lob.variants));
   const guestView = await lobbyOf(host.code, guest.token);
   check("the guest sees the same rules", JSON.stringify(guestView.variants) === JSON.stringify(lob.variants));
 
-  const bad = await post("/api/options", { code: host.code, token: guest.token, variants: { lhOpenToAll: true } });
+  const bad = await post("/api/options", { code: host.code, token: guest.token, variants: { endgameLandAwards: true } });
   check("a guest cannot change them", !!bad.error, bad.error || "no error!");
   await post("/api/options", { code: host.code, token: host.token, variants: { nonsense: true } });
   lob = await lobbyOf(host.code, host.token);
   check("an unknown variant is ignored, not stored", !("nonsense" in lob.variants));
   check("and naming one variant does not switch the others off",
-    lob.variants.lhOnPlots && lob.variants.tripleLevelScoring && lob.variants.shuffledDecks,
+    lob.variants.roadHubs && lob.variants.singleLevelEP && lob.variants.orderedDecks,
     JSON.stringify(lob.variants));
-  await post("/api/options", { code: host.code, token: host.token, variants: { shuffledDecks: false } });
+  await post("/api/options", { code: host.code, token: host.token, variants: { orderedDecks: false } });
   lob = await lobbyOf(host.code, host.token);
   check("a partial update changes only what it names",
-    lob.variants.shuffledDecks === false && lob.variants.lhOnPlots === true);
-  await post("/api/options", { code: host.code, token: host.token, variants: { shuffledDecks: true } });
+    lob.variants.orderedDecks === false && lob.variants.roadHubs === true);
+  await post("/api/options", { code: host.code, token: host.token, variants: { orderedDecks: true } });
 
   section("The game starts under them");
   await post("/api/start", { code: host.code, token: host.token });
   const st = (await lobbyOf(host.code, host.token)).state;
-  check("the state carries the variants", st.variants.lhOnPlots === true && st.variants.tripleLevelScoring === true);
-  check("the board is in plot-hub mode", st.board.lhOnPlots === true);
-  check("the decks are shuffled whole",
-    Object.values(st.decks).some((d) => d[0] && d[0].lvl > 1),
+  check("the state carries the variants", st.variants.roadHubs === true && st.variants.singleLevelEP === true);
+  check("the board is in road-hub mode, as those variants asked", st.board.lhOnPlots === false);
+  check("and the decks are ordered, as Ordered decks asked",
+    Object.values(st.decks).every((d) => !d[0] || d[0].lvl === 1),
     Object.entries(st.decks).map(([k, d]) => `${k}:${d[0] ? d[0].lvl : "-"}`).join(" "));
 
   section("The lobby in a browser");
@@ -87,19 +87,19 @@ const section = (t) => console.log(`\n${t}`);
   const code = ((await txt(A)).match(/([0-9A-F]{6})/) || [])[1];
   check("a room was created", !!code, code);
 
-  check("the variants are folded away by default", /Rule variants/.test(await txt(A)) && !/Hubs on plots/.test(await txt(A)));
+  check("the variants are folded away by default", /Rule variants/.test(await txt(A)) && !/Hubs on the road/.test(await txt(A)));
   await A.getByText(/Rule variants/).click();
   await sleep(300);
   let t = await txt(A);
-  check("opening the fold lists all six",
-    ["Fully shuffled decks", "Hubs on plots", "Hubs open to all", "Companies score triple",
-     "Score on completion", "Land awards every year"].every((n) => t.includes(n)));
-  check("they start OFF", (t.match(/OFF/g) || []).length >= 6);
+  check("opening the fold lists all five",
+    ["Score at the year end", "Levels score single", "Ordered decks", "Hubs on the road",
+     "Land awards at the end only"].every((n) => t.includes(n)));
+  check("they start OFF", (t.match(/OFF/g) || []).length >= 5);
 
-  await A.getByText("Companies score triple").click();
+  await A.getByText("Levels score single").click();
   await sleep(500);
   t = await txt(A);
-  check("clicking one turns it on", /Companies score triple[\s\S]{0,20}ON/.test(t));
+  check("clicking one turns it on", /Levels score single[\s\S]{0,20}ON/.test(t));
   check("the fold header counts what is on", /Rule variants\s*—\s*1 on/.test(t) || /1 on/.test(t));
   await A.screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/variants-host.png` : "/tmp/variants-host.png" });
 
@@ -110,7 +110,7 @@ const section = (t) => console.log(`\n${t}`);
   await B.getByRole("button", { name: "Join room" }).click();
   await sleep(1200);
   const tb = await txt(B);
-  check("the guest is told what the host changed", /The host changed the rules/.test(tb) && /Companies score triple/.test(tb));
+  check("the guest is told what the host changed", /The host changed the rules/.test(tb) && /Levels score single/.test(tb));
   check("the guest gets no toggles of their own", !/Rule variants/.test(tb));
   await B.screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/variants-guest.png` : "/tmp/variants-guest.png" });
 
@@ -119,7 +119,7 @@ const section = (t) => console.log(`\n${t}`);
 
   section("A finished game remembers them");
   const solo = await post("/api/create", { name: "Eve", bots: 1 });
-  await post("/api/options", { code: solo.code, token: solo.token, variants: { yearlyLandAwards: true, lhOpenToAll: true } });
+  await post("/api/options", { code: solo.code, token: solo.token, variants: { endgameLandAwards: true, orderedDecks: true } });
   await post("/api/start", { code: solo.code, token: solo.token });
   const act = (action, data) => post("/api/action", { code: solo.code, token: solo.token, action, data });
   for (let i = 0; i < 3000; i++) {
@@ -147,7 +147,7 @@ const section = (t) => console.log(`\n${t}`);
   const stats = await get("/api/stats");
   const last = stats.recent[0];
   check("the finished game names the variants it used",
-    last && Array.isArray(last.variants) && last.variants.includes("yearlyLandAwards") && last.variants.includes("lhOpenToAll"),
+    last && Array.isArray(last.variants) && last.variants.includes("endgameLandAwards") && last.variants.includes("orderedDecks"),
     last ? JSON.stringify(last.variants) : "no game recorded");
 
   console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed\n");

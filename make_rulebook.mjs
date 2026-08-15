@@ -7,7 +7,11 @@
    Usage:  node make_rulebook.mjs
    ========================================================================== */
 import { writeFileSync } from "node:fs";
-import { RULEBOOK, EDITION } from "./rulebook.data.mjs";
+import { RULEBOOK, EDITION, forEdition } from "./rulebook.data.mjs";
+
+/* The markdown books document the app, so they take the digital edition.
+   make_docx.mjs writes the tabletop one. */
+const BOOK = forEdition(RULEBOOK, "digital");
 
 const esc = (s) => String(s).replace(/\|/g, "\\|");
 
@@ -34,8 +38,8 @@ function document(withNotes) {
   const sub = withNotes
     ? `${EDITION}. The complete rules, with the designer's notes on why each one exists.`
     : `${EDITION}. Everything you need to play, and nothing you don't.`;
-  const toc = RULEBOOK.map((s, i) => `${i + 1}. [${s.title}](#${s.id})`).join("\n");
-  const body = RULEBOOK.map((s) =>
+  const toc = BOOK.map((s, i) => `${i + 1}. [${s.title}](#${s.id})`).join("\n");
+  const body = BOOK.map((s) =>
     `<a id="${s.id}"></a>\n\n## ${s.title}\n\n${render(s.blocks, withNotes)}`).join("\n\n---\n\n");
   return `# ${title}\n\n*${sub}*\n\n${toc}\n\n---\n\n${body}\n`;
 }

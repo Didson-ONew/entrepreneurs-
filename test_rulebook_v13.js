@@ -1,8 +1,8 @@
-/* Pins the engine to Rulebook v12 on every point where the two had drifted apart.
+/* Pins the engine to Rulebook v13 on every point where the two had drifted apart.
    Each check names the clause it is enforcing, so a future rules change that breaks
    one of these tells you which sentence it just contradicted.
 
-   Run: node test_rulebook_v12.js
+   Run: node test_rulebook_v13.js
 */
 const fs = require("fs");
 const path = require("path");
@@ -21,7 +21,8 @@ function loadEngine() {
       companySlotsUsed, canLaunchMore, discsUsed, discsFree, finalRank, unitPrice,
       renovationEligible, bizInd,
       byId, BP_DATA, MEGACORP_TILES, STARTING, INDUSTRIES, BASE_PRICE, SCALING,
-      LOAN_REPAY_RATE, BP_SELL_PRICE, DISCS_PER_PLAYER, COMPANY_SLOTS, PERSONAS };
+      LOAN_REPAY_RATE, BP_SELL_PRICE, DISCS_PER_PLAYER, COMPANY_SLOTS, PERSONAS,
+      levelEP, landPayouts, VARIANT_KEYS, scoreCompanyOnCompletion, runClosingRest };
   `, sandbox);
   return box.exports;
 }
@@ -287,5 +288,47 @@ section("Persona names");
   }
 }
 
-console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed - the engine matches Rulebook v12\n");
+/* ---------------- what v13 changed ----------------
+   Five rules that were optional in v12 are the printed rules now. Each is pinned
+   here against the sentence in the book that states it. */
+section("v13: the rules that used to be variants");
+{
+  const st = E.initGame(3, 5, ["You"], undefined, true, undefined);
+  check("every optional rule is off by default", E.VARIANT_KEYS.every((k) => st.variants[k] === false),
+    E.VARIANT_KEYS.join(", "));
+
+  // "The moment a company is built it takes 3 EP per level, placed on its card."
+  check("a company level is worth 3 EP", E.levelEP(st) === 3);
+  const me = E.byId(st, 0);
+  Object.keys(st.board.graph).slice(0, 4).forEach((k) => { st.board.owner[k] = me.id; });
+  const plot = Object.keys(st.board.owner).find((k) => st.board.owner[k] === me.id);
+  const bp = E.BP_DATA.find((x) => x.ind === "HC" && x.lvl === 1);
+  const biz = { id: 9001, bp, footprint: [plot], level: 2, upgraded: false, distressed: false,
+    isHQ: false, scored: false, epOnCard: 0, quarterBuilt: 1 };
+  me.businesses.push(biz);
+  st.board.occupiedBy[plot] = biz.id;
+  E.scoreCompanyOnCompletion(st, biz);
+  check("and it scores the moment it is built, not at a year end",
+    biz.epOnCard === 6 && biz.scored === true, `${biz.epOnCard} EP on the card`);
+
+  // "The Real-Estate Mogul and The Omnipresent are awarded [at every year end]"
+  check("the land awards pay at every year end", E.landPayouts(st) === 3, `${E.landPayouts(st)} payouts`);
+
+  // "Each industry deck is shuffled whole, so any level can be sitting on top"
+  let sawHigh = false;
+  for (let seed = 1; seed <= 12; seed++) {
+    const s2 = E.initGame(3, seed, ["You"], undefined, false, undefined);
+    for (const ind of E.INDUSTRIES) if (s2.decks[ind][0] && s2.decks[ind][0].lvl > 1) sawHigh = true;
+  }
+  check("the decks are shuffled whole, so a big card can be on top from the first pick", sawHigh);
+
+  // "a new Logistic Hub being built on an empty plot"
+  check("hubs stand on plots", st.board.lhOnPlots === true);
+
+  // "Personas are dealt to everyone by default"
+  check("personas are dealt when the table asks for them",
+    st.players.every((p) => !!p.persona), st.players.map((p) => p.persona).join(", "));
+}
+
+console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed - the engine matches Rulebook v13\n");
 process.exit(fails ? 1 : 0);

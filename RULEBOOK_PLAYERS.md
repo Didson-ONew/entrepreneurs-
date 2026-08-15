@@ -1,6 +1,6 @@
 # Entrepreneurs - How to play
 
-*Rulebook v12. Everything you need to play, and nothing you don't.*
+*Rulebook v13. Everything you need to play, and nothing you don't.*
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
@@ -15,7 +15,7 @@
 11. [Closing and the year end](#closing)
 12. [Going public and Megacorps](#megacorp)
 13. [Winning](#scoring)
-14. [Personas (optional)](#personas)
+14. [Personas](#personas)
 15. [Rule variants (optional)](#variants)
 16. [Playing online](#online)
 17. [Quick reference](#quickref)
@@ -28,7 +28,7 @@
 
 You are a founder building a city's economy. You buy land, build companies on it, and sell what they produce to the districts around them. The player with the most Entrepreneurial Points (EP) at the end of Year 3 wins.
 
-- 2 to 4 players. Empty seats can be filled with bots.
+- 2 to 4 players.
 - 3 years of 4 quarters - 12 rounds in total.
 - The board is 16 districts of 4 plots each.
 - The coloured squares inside a district are its demand: what it will buy.
@@ -57,13 +57,15 @@ Seating is randomised - you are not automatically first. Your starting money and
 
 ### The draft
 
+Each industry deck is shuffled whole, so any level can be sitting on top - a level 3 may be there from the very first pick. The top card of every deck is public all game.
+
 Starting Blueprints are drafted in reverse seat order - the LAST seat picks first. On your pick you take the face-up top card of any industry deck. Watch what the others are taking: every card drafted is a company that will probably get built, which pushes that industry's price down and its suppliers' prices up before you have even started.
 
 ### The rest
 
 - Ten discs each. Nothing else marks what you own.
 - Megacorp tiles: sixteen exist, and only (number of players + 1) are shuffled into the game.
-- Personas are optional and off by default. If they are on, everyone is dealt one.
+- Personas are dealt to everyone by default - one each, drawn from six. Leave them out for a first game if you like.
 
 ---
 
@@ -95,7 +97,7 @@ All twelve quarters run the same five phases. You only make decisions in the fir
 | 2. Action | The tracks resolve and each worker takes its actions. |
 | 3. Production | Every active company pays OPEX; rent and supplier pots are paid out of it. |
 | 4. Revenue | You deliver production to demand icons for cash, then the industry pots are shared out. |
-| 5. Closing | A new Logistic Hub opens. At the end of each year, companies score. |
+| 5. Closing | A new Logistic Hub opens. At the end of each year, the two land awards are paid. |
 
 ---
 
@@ -142,7 +144,7 @@ Going to the Board Meeting costs ALL of your workers for the quarter and buys a 
 ### M&A
 
 - LAUNCH - build a Blueprint from your hand onto empty plots, paying its setup cost. The first time you ever build in an industry you bank 5 EP immediately.
-- BUY - take any unowned plot at its current value, or take over a Distressed Asset. You may buy a distressed structure as it stands for half its own setup cost, keeping its Blueprint and level, or renovate it with a card from your hand for half that card's setup cost.
+- BUY - take any unowned plot at its current value, or take over a Distressed Asset. You may buy a distressed structure as it stands for half its own setup cost, keeping its Blueprint and level, or renovate it with a card from your hand for half that card's setup cost. Any distressed structure is fair game, including one you sold yourself - buying it back as it stands needs no card at all.
 
 You may build on plots owned by another player. They collect the rent every quarter, but the company is yours.
 
@@ -248,7 +250,9 @@ Every active company pays its OPEX, automatically, whether or not it sells anyth
 
 ### If you cannot pay
 
-Before OPEX is charged, any player whose cash will not cover their whole bill gets a window to sell whatever they choose at normal prices. If the bill still cannot be met when a company's OPEX comes due, that company enters SOLVENCY and the sale is forced at half rates: Blueprints fetch $2 / $4 / $6, plots fetch half their value, companies fetch half what a voluntary sale would pay. The company that triggered it goes to the bank as a Distressed Asset.
+Before OPEX is charged, any player whose cash will not cover their whole bill gets a window to choose what to sell. This is a forced sale and everything in it goes at HALF what a planned sale through Raise Capital would fetch: Blueprints $2 / $4 / $6 by level, plots half their value, a company half what it would have paid voluntarily. What you keep control of is which assets go, not the price.
+
+If the bill still cannot be met once a company's OPEX comes due, that company enters SOLVENCY: the bank sells for you, at those same half rates, and the company that triggered it goes to the bank as a Distressed Asset.
 
 ---
 
@@ -257,6 +261,8 @@ Before OPEX is charged, any player whose cash will not cover their whole bill ge
 ## Revenue: selling what you produce
 
 Each company produces a number of units printed on its Blueprint, doubled if it has been upgraded. You deliver those units to demand icons your company can reach, and each icon pays the current market price for your industry.
+
+Delivery goes in turn order. Every icon is first come, first served, so being early in the order is worth real money on a contested district - and it is the main thing REPOSITION buys you.
 
 ### Which icons you may use
 
@@ -271,7 +277,7 @@ Every district shows a 4x4 grid of demand. Each row is an industry; the four col
 
 A company can always sell into the district or districts its own plots sit in. Beyond that:
 
-- Logistic Hubs link districts. If any plot of your footprint touches a hub, your company can reach every district touched by any hub on the board.
+- Logistic Hubs stand on plots. If any plot of your footprint is orthogonally beside a hub - up to four plots can be, since corners do not count - your company joins the network and reaches every district that any hub on the board stands in.
 - Utilities and Retail can never use hubs at all.
 - Healthcare is on the hub network natively - it reaches every hub district without needing to touch one.
 
@@ -302,14 +308,20 @@ A pot with no company of that type to pay carries over in full, growing quarter 
 
 ## Closing and the year end
 
-Every quarter ends with a new Logistic Hub opening on a border between two districts. The first player in turn order chooses where it goes.
+Every quarter ends with a new Logistic Hub being built on an empty plot. The first player in turn order chooses which one. That plot is filled for good - nothing can be built there afterwards - and the hub adds its own district to the network.
 
 ### At the end of Quarter 4, 8 and 12
 
-- Every active company that has not scored yet takes EP equal to its level, placed on its card.
+- The Real-Estate Mogul and The Omnipresent are awarded - 10 EP each, 5 EP for second place.
 - You may buy back loan discs: $30 at the end of Year 1, $35 at Year 2, $40 at Year 3.
 
-A company scores once, at the first year end after it is built - not again every year. Upgrading it is what makes it score again: the EP already on the card vest into your bank, and the company scores afresh at its new level at the next year end.
+Companies do not wait for the year end. A company scores the moment it is finished - see below - so by the time a year ends its EP are already on its card. What a year end decides is who is holding the city.
+
+### Companies score on completion
+
+The moment a company is built it takes 3 EP per level, placed on its card. The moment it is upgraded, the EP already on the card vest into your bank and the company scores afresh at its new level, immediately. It is one score per build and one per upgrade - the same way entering an industry pays you the moment you build there, not at some later reckoning.
+
+So a level-2 company built and then upgraded pays 6 EP on the day it opens and 9 more on the day it grows.
 
 EP sitting on a company's card are yours - they show in the standings immediately. They vest - move permanently into your bank - when the company is upgraded, sold, merged into a Megacorp, or at the end of the game. You never lose EP you have already scored.
 
@@ -367,11 +379,11 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Source | EP |
 | --- | --- |
 | Entering an industry for the first time | +5 each, once per industry per game, banked immediately |
-| Each company, once, at the first year end after it is built or upgraded | +1 per level |
+| Each company, when it is built - and again when it is upgraded | +3 per level |
 | Megacorp tile | +8 to +22 as printed |
 | IPO tile (first player to go public) | +5 |
-| The Real-Estate Mogul - most plots owned | +10, second place +5 |
-| The Omnipresent - most districts you are present in | +10, second place +5 |
+| The Real-Estate Mogul - most plots owned, at every year end | +10, second place +5 |
+| The Omnipresent - most districts you are present in, at every year end | +10, second place +5 |
 | Cash on hand at the end | +1 per full $10 |
 | Each loan disc still in the bank | -5 |
 
@@ -383,9 +395,9 @@ Most EP after Quarter 12 wins. If the final scores tie, the player with more mon
 
 <a id="personas"></a>
 
-## Personas (optional)
+## Personas
 
-Personas are asymmetric powers, one tied to each industry. They are off unless the host turns them on, and only as many as there are players are dealt, so some always sit out.
+Personas are asymmetric powers, one tied to each industry. They are dealt by default - leave them out for a first game if you like - and only as many as there are players are dealt, so at least two always sit out. Everyone's persona is public from the start, so you can weigh your own specialism and everybody else's while drafting.
 
 | Persona | Power |
 | --- | --- |
@@ -402,16 +414,17 @@ Personas are asymmetric powers, one tied to each industry. They are off unless t
 
 ## Rule variants (optional)
 
-The host may switch any of these on before a game starts. They are all off by default, and a table that leaves them alone plays exactly the rules in this book. They can be combined freely.
+Every one of these is off by default, and a table that leaves them alone plays exactly the rules in this book. They can be combined freely.
+
+They all read as playing it the older way, because that is what they are. Five rules that were optional in v12 became standard in v13, and what remains switchable is the game as it was before.
 
 | Variant | What changes |
 | --- | --- |
-| Fully shuffled decks | Each industry deck is shuffled whole, so a level 2 or 3 can be the public top card from the very first draft. Normally the decks run level 1 down to level 3. |
-| Hubs on plots | A Logistic Hub is built on an empty plot instead of on the road. A company joins the network by standing orthogonally beside it - up to four plots, since diagonals do not count - and the network reaches the district each hub stands in. The plot is filled: nothing can be built there afterwards. |
-| Hubs open to all | Utilities and Retail may use Logistic Hubs like every other industry, instead of never. |
-| Companies score triple | An active company is worth 3 EP per level instead of 1. Building becomes far stronger against land and cash. |
-| Score on completion | A company puts its EP on its own card the moment it is built, rather than waiting for the year end. Upgrading it vests those EP into your bank at once and puts the new, higher level on the card straight away. It is still one score per build or upgrade - the year end finds it already scored and leaves it alone. |
-| Land awards every year | The Real-Estate Mogul and The Omnipresent are awarded at the end of every year, not only at the end of the game. Holding the most land in Year 1 is then worth something even if you lose it later. |
+| Score at the year end | A company waits for the next year end to take its EP, instead of scoring the moment it is built or upgraded. It still scores once per build or upgrade. |
+| Levels score single | A company level is worth 1 EP instead of 3. The weight of the game moves back toward land, cash and the industry entry bonuses. |
+| Ordered decks | Each industry deck runs level 1 on top down to level 3 at the bottom, instead of being shuffled whole. No level 3 can be drafted, and the early game holds no surprises. |
+| Hubs on the road | A Logistic Hub straddles a border and joins the two districts either side, instead of standing on a plot and reaching only its own. No plot is consumed, and every hub is worth two districts rather than one. |
+| Land awards at the end only | The Real-Estate Mogul and The Omnipresent are paid once, after Quarter 12, instead of at every year end. Land becomes a late-game race rather than something to hold all game. |
 
 Whichever are on is shown in the waiting room before the game starts, and recorded with the finished game, so a variant table is never mistaken for a standard one in the records.
 
@@ -445,8 +458,8 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Company slots | 5, counting Megacorp headquarters |
 | Hand limit | 5 Blueprints |
 | Loan | +$20 and one disc; buy back for $30 / $35 / $40 at year ends; -5 EP if unpaid |
-| Sell a Blueprint | $4 / $8 / $12 by level (half in a forced sale) |
-| Sell a company | half its setup cost, or the full cost if upgraded (half again in a forced sale) |
+| Sell a Blueprint | $4 / $8 / $12 by level; $2 / $4 / $6 in a forced sale |
+| Sell a company | half its setup, or the full setup if upgraded; halved again in a forced sale |
 | Plot value | road price (1-6) + $1 per occupied neighbour + $1 if it touches a hub |
 | Upgrade | pay the setup cost again; production and OPEX double; level +1 |
 | Rent | $3 per company level, to the owners of the plots it stands on |
@@ -456,3 +469,7 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Final tie | most money, then fewest loan discs in the bank |
 | Demand rows 3-4 | closed until Quarter 5 |
 | Demand grid | wiped clean at the end of Quarter 8 |
+| Company scoring | 3 EP per level, the moment it is built - and again when it is upgraded |
+| Industry debut | 5 EP the first time you build in each industry, banked at once |
+| Land awards | 10 EP / 5 EP for most plots and most districts, at every year end |
+| Logistic Hub | one per quarter, on an empty plot; reaches its own district; joins orthogonally |
