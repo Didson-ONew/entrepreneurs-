@@ -429,8 +429,8 @@ section("v13: the rules that used to be variants");
   check("every optional rule is off by default", E.VARIANT_KEYS.every((k) => st.variants[k] === false),
     E.VARIANT_KEYS.join(", "));
 
-  // "The moment a company is built it takes 3 EP per level, placed on its card."
-  check("a company level is worth 3 EP", E.levelEP(st) === 3);
+  // "The moment a company is built it takes 1 EP per level, placed on its card."
+  check("a company level is worth 1 EP", E.levelEP(st) === 1);
   const me = E.byId(st, 0);
   Object.keys(st.board.graph).slice(0, 4).forEach((k) => { st.board.owner[k] = me.id; });
   const plot = Object.keys(st.board.owner).find((k) => st.board.owner[k] === me.id);
@@ -441,7 +441,7 @@ section("v13: the rules that used to be variants");
   st.board.occupiedBy[plot] = biz.id;
   E.scoreCompanyOnCompletion(st, biz);
   check("and it scores the moment it is built, not at a year end",
-    biz.epOnCard === 6 && biz.scored === true, `${biz.epOnCard} EP on the card`);
+    biz.epOnCard === 2 && biz.scored === true, `${biz.epOnCard} EP on the card`);
 
   // "The Real-Estate Mogul and The Omnipresent are awarded [at every year end]"
   check("the land awards pay at every year end", E.landPayouts(st) === 3, `${E.landPayouts(st)} payouts`);

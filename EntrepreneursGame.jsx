@@ -866,8 +866,8 @@ const PERSONAS = {
 const VARIANTS = [
   { key: "classicScoring", name: "Score at the year end",
     blurb: "A company waits for the next year end to take its EP, instead of scoring the moment it is built or upgraded." },
-  { key: "singleLevelEP", name: "Levels score single",
-    blurb: "A company level is worth 1 EP instead of 3, which moves the weight of the game back toward land and cash." },
+  { key: "tripleLevelEP", name: "Levels score triple",
+    blurb: "A company level is worth 3 EP instead of 1, which puts far more of the game's weight on how tall you build." },
   { key: "orderedDecks", name: "Ordered decks",
     blurb: "Each industry deck runs level 1 down to level 3, instead of being shuffled whole. The early game holds no surprises and no level 3 can be drafted." },
   { key: "roadHubs", name: "Hubs on the road",
@@ -886,7 +886,7 @@ function normaliseVariants(v) {
 const hasVariant = (state, key) => !!(state && state.variants && state.variants[key]);
 /* Company EP per level. Three is the standard: building and upgrading is the
    essence of the game, and at 1 EP a level it lost to land and cash. */
-const levelEP = (state) => (hasVariant(state, "singleLevelEP") ? 1 : 3);
+const levelEP = (state) => (hasVariant(state, "tripleLevelEP") ? 3 : 1);
 
 const PERSONA_KEYS = Object.keys(PERSONAS);
 const hasPersona = (p, key) => !!p && p.persona === key;
@@ -1063,9 +1063,23 @@ const landPayouts = (state) => {
   if (hasVariant(state, "endgameLandAwards")) return 1;
   return [4, 8, 12].filter((q) => q >= state.quarter).length || 1;
 };
-/* One plot is worth this much EP in expectation: the two awards are 10 and 5, paid
-   `landPayouts` times, spread over the plots it takes to lead them. */
-const landEPWeight = (state) => landPayouts(state) * 1.5;
+/* What is one more plot worth in points?
+
+   Only the OUTRIGHT leader takes a land award now, and a shared lead pays almost
+   nothing, so a plot is worth chasing to a player who can actually win the race and
+   worth nothing at all to one who cannot. That is a different question from the old
+   rule, where second place still collected and every plot had some expected value.
+
+   Called without a player it gives the board-level figure the setup screens want. */
+function landEPWeight(state, p) {
+  const payouts = landPayouts(state);
+  if (!p) return payouts * LAND_AWARD.sole * 0.5;
+  const mine = plotCount(state, p);
+  const best = Math.max(...state.players.map((q) => plotCount(state, q)));
+  if (mine >= best) return payouts * LAND_AWARD.sole * 0.6;   // leading, or level with the leader
+  if (best - mine <= 2) return payouts * LAND_AWARD.sole * 0.35;  // close enough to take it
+  return 0;                                                   // not a race this player is in
+}
 
 /* $10 on hand is 1 EP at the end of the game. That rate is what makes it possible to
    compare a company's earnings with the points its building scores, so it is the unit
@@ -1403,7 +1417,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "dcf4b9a1";
+const ENGINE_VERSION = "452bcb83";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1711,26 +1725,27 @@ function runClosingRest(state, log) {
     for (const p of players) if (!p.isHuman) botRepayLoans(state, p, quarter, log);
   }
 }
+/* A land award goes to first place and nobody else, and it shrinks hard when it is
+   shared: 5 EP outright, 2 each if two players tie, 1 each if three or more do. Second
+   place gets nothing.
+
+   It used to pay 10 and 5 and split the pot between ties, which made land the quietest
+   reliable points on the board - everybody collected something, so holding land was
+   never really a contest. Paying only the outright leader, and paying badly for a draw,
+   turns it back into a race worth winning rather than a dividend. */
+const LAND_AWARD = { sole: 5, two: 2, many: 1 };
 function awardRanked(state, scoreFn, label, log) {
   const scores = state.players.map((p) => ({ p, s: scoreFn(p) })).filter((x) => x.s > 0);
   if (!scores.length) return;
-  scores.sort((a, b) => b.s - a.s);
-  const values = [10, 5];
-  let i = 0;
-  while (i < scores.length && i < values.length) {
-    let j = i;
-    while (j + 1 < scores.length && scores[j + 1].s === scores[i].s) j++;
-    const tiedCount = j - i + 1;
-    const pot = values.slice(i, Math.min(j + 1, values.length)).reduce((a, b) => a + b, 0);
-    /* Rounded down, like every other split in the game: a two-way tie for first takes
-       7 EP each rather than 7.5, and the odd point is simply not awarded. A score track
-       has no half points on it. */
-    const share = Math.floor(pot / tiedCount);
-    if (share <= 0) { i = j + 1; continue; }
-    // stamp the quarter it was actually awarded in - under the yearly-land variant this
-    // runs at Q4 and Q8 too, and hardcoding 12 made the scoring log claim otherwise
-    for (let k = i; k <= j; k++) { addEP(scores[k].p, share, label, state.quarter); if (log) log(`${scores[k].p.name} earns ${label} (+${share} EP).`, scores[k].p.id); }
-    i = j + 1;
+  const top = Math.max(...scores.map((x) => x.s));
+  const leaders = scores.filter((x) => x.s === top);
+  const share = leaders.length === 1 ? LAND_AWARD.sole
+    : leaders.length === 2 ? LAND_AWARD.two : LAND_AWARD.many;
+  for (const { p } of leaders) {
+    // stamp the quarter it was actually awarded in - the land awards pay at every year
+    // end, and hardcoding 12 made the scoring log claim otherwise
+    addEP(p, share, label, state.quarter);
+    if (log) log(`${p.name} earns ${label} (+${share} EP).`, p.id);
   }
 }
 /* The two endgame land awards, exposed so the standings can show the same running
@@ -2364,7 +2379,7 @@ function botResolveOneAction(state, p, track, rng, log) {
       && p.cash > committedOpex(p) * 1.5 + 10
       // either the awards pay often enough to chase all game, or it is late and the
       // money is otherwise going to convert at a flat $10 per EP
-      && (landEPWeight(state) >= 3 || endgameSpendMode(state, p));
+      && (landEPWeight(state, p) >= 3 || endgameSpendMode(state, p));
     if (unowned.length && ((mayBuyLand && (freeOwnedByMe < maxNeeded || landIsPoints)) || mayBuyGrowth)) {
       const ownedByMe = Object.entries(state.board.owner).filter(([k, v]) => v === p.id).map(([k]) => k);
       const adjacentCandidates = new Set();
@@ -2389,7 +2404,7 @@ function botResolveOneAction(state, p, track, rng, log) {
         // the upgrade this plot unlocks is worth points; points are worth $10 each, so
         // that is the number that belongs beside a plot price in dollars
         const growth = (growthValue.get(k) || 0) * CASH_PER_EP;
-        return { k, cost, growth, score: demand * 3 + growth + (landIsPoints ? landEPWeight(state) * (1 + newDistrict) : 0) - cost };
+        return { k, cost, growth, score: demand * 3 + growth + (landIsPoints ? landEPWeight(state, p) * (1 + newDistrict) : 0) - cost };
       }).sort((a, b) => b.score - a.score);
       /* Buying to unblock a build takes the best affordable plot even if the score is
          negative - a plot that lets a company exist beats no company. Buying for points
