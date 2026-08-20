@@ -1140,7 +1140,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "5730bbbf";
+const ENGINE_VERSION = "5e235abf";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1255,8 +1255,15 @@ function runProduction(state, log) {
       p.cash -= cost;
       const rentTotal = 3 * b.level;
       const nPlots = b.footprint.length;
-      const perPlot = nPlots ? rentTotal / nPlots : 0;
+      /* The rent is split among the plots the company stands on, as evenly as it
+         will go. It has to come out in whole dollars: a table pays this with chips,
+         and a level 3 company on two plots would otherwise owe $4.50 a plot. The odd
+         dollars go to the first plots of the footprint. */
+      const base = nPlots ? Math.floor(rentTotal / nPlots) : 0;
+      let odd = nPlots ? rentTotal - base * nPlots : 0;
       for (const plot of b.footprint) {
+        const perPlot = base + (odd > 0 ? 1 : 0);
+        if (odd > 0) odd--;
         const ownerId = board.owner[plot];
         if (ownerId !== undefined) { const owner = players.find((pl) => pl.id === ownerId); if (owner) owner.cash += perPlot; }
       }
@@ -1543,13 +1550,16 @@ function runMegacorpSyphon(state, log) {
       });
       let taken = 0;
       industries.forEach((ind) => {
-        const take = Math.min(5, state.pots[ind] || 0);
+        /* Pots hold the fractional change left over from OPEX, so this has to take
+           whole dollars only - the remainder rides forward exactly as a B2B share
+           does. It used to hand over $4.80 while the log said $5. */
+        const take = Math.min(5, Math.floor(state.pots[ind] || 0));
         state.pots[ind] -= take;
         taken += take;
       });
       if (taken > 0) {
         p.cash += taken;
-        log(`Megacorp "${hq.megacorpName}" siphons $${taken.toFixed(0)} from neighbouring industries' pots.`, p.id);
+        log(`Megacorp "${hq.megacorpName}" siphons $${taken} from neighbouring industries' pots.`, p.id);
       }
     }
   }
