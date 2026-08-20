@@ -17,7 +17,8 @@ function loadEngine() {
   vm.createContext(sandbox);
   vm.runInContext(logic + `
     box.exports = { initGame, mulberry32, makePriceMatrix, price, onLaunch, runB2B,
-      claimMegacorp, canGoPublic, bestMegacorpMatch, activeBiz, megacorpHQs,
+      claimMegacorp, canGoPublic, bestMegacorpMatch, activeBiz, megacorpHQs, companySlotsFor,
+      runMegacorpDividend, price, businessCanProduce, payHqRent, hqRentDue,
       hqNeighbours, MEGACORP_NEIGHBOUR_EP, runB2B, finalizeGame, epTotal, orthOf,
       companySlotsUsed, canLaunchMore, discsUsed, discsFree, finalRank, unitPrice,
       renovationEligible, bizInd,
@@ -134,8 +135,12 @@ section("Board Meeting - going public always forms a Megacorp");
   check("now they can", E.canGoPublic(st, a) === true);
   const ok = E.claimMegacorp(st, a, () => {});
   check("the merge happens", ok === true);
-  check("the first Megacorp of the game also takes the IPO tile (+5 EP)",
-    st.ipoTileClaimed === true && a.epBank === 8 + 5, `banked ${a.epBank} EP`);
+  check("the first Megacorp of the game also takes the IPO tile",
+    st.ipoTileClaimed === true && st.ipoOwner === a.id);
+  check("which is a sixth company bay, not points",
+    a.ipoTile === true && a.epBank === 8, `banked ${a.epBank} EP`);
+  check("so going public first does not narrow how wide they can operate",
+    E.companySlotsFor(a) === 6, `${E.companySlotsFor(a)} bays`);
   check("one company survives as the headquarters", a.businesses.filter((x) => x.isHQ).length === 1);
   check("the rest go distressed", a.businesses.filter((x) => x.distressed).length === 2);
   check("the headquarters stops trading", E.activeBiz(a).length === 0);
@@ -153,10 +158,12 @@ section("A headquarters keeps its share of its industry's pot");
   const hq = { id: 700, bp: reBp, footprint: [plots[0]], levels: { [plots[0]]: 1 }, level: 1,
     isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
   a.businesses.push(hq);
+  st.board.owner[plots[0]] = a.id;          // a monument still needs its ground
   st.board.occupiedBy[plots[0]] = hq.id;
   const rival = { id: 710, bp: reBp, footprint: [plots[9]], levels: { [plots[9]]: 1 }, level: 1,
     upgraded: false, distressed: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
   b.businesses.push(rival);
+  st.board.owner[plots[9]] = b.id;
   st.board.occupiedBy[plots[9]] = rival.id;
 
   st.pots = Object.fromEntries(E.INDUSTRIES.map((i) => [i, 0]));
@@ -167,6 +174,59 @@ section("A headquarters keeps its share of its industry's pot");
     a.cash === 10, `HQ took $${a.cash}`);
   check("and the company that is still trading draws the same", b.cash === 10, `$${b.cash}`);
   check("the pot is emptied cleanly", st.pots.RE === 0, `$${st.pots.RE} left`);
+}
+
+section("A headquarters banks its industry's price every quarter");
+{
+  const st = E.initGame(0, 31, ["A", "B"], undefined, false);
+  const a = st.players[0];
+  const plots = Object.keys(st.board.graph);
+  const teBp = E.BP_DATA.find((x) => x.ind === "TE" && x.lvl === 1);
+  const hq = { id: 900, bp: teBp, footprint: [plots[0]], levels: { [plots[0]]: 1 }, level: 1,
+    isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+  a.businesses.push(hq);
+  st.board.owner[plots[0]] = a.id;
+  st.board.occupiedBy[plots[0]] = hq.id;
+
+  const px = E.price(st.pm, "TE");
+  const before = a.epBank;
+  E.runMegacorpDividend(st, () => {});
+  check(`it banks ${px} EP, which is what a unit of Technology sells for`,
+    a.epBank - before === px, `+${a.epBank - before} EP at $${px}`);
+
+  /* Sell the ground and the monument goes quiet. */
+  delete st.board.owner[plots[0]];
+  const before2 = a.epBank;
+  E.runMegacorpDividend(st, () => {});
+  check("with the land sold out from under it, it banks nothing",
+    a.epBank === before2, `+${a.epBank - before2} EP`);
+  check("and it draws no pot share either",
+    E.businessCanProduce(st, hq) === false);
+}
+
+section("Its owner pays the ground rent out of pocket");
+{
+  const st = E.initGame(0, 33, ["A", "B"], undefined, false);
+  const [a, b] = st.players;
+  const plots = Object.keys(st.board.graph);
+  const reBp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 2);
+  const hq = { id: 910, bp: reBp, footprint: [plots[0]], levels: { [plots[0]]: 2 }, level: 2,
+    isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+  a.businesses.push(hq);
+  st.board.owner[plots[0]] = b.id;               // standing on somebody else's land
+  st.board.occupiedBy[plots[0]] = hq.id;
+
+  check("the bill is $3 for every level standing there", E.hqRentDue(st, a) === 6, `$${E.hqRentDue(st, a)}`);
+  a.cash = 50; b.cash = 0;
+  E.payHqRent(st, a, () => {});
+  check("the owner pays it and the landlord collects it",
+    a.cash === 44 && b.cash === 6, `owner $${a.cash}, landlord $${b.cash}`);
+
+  st.board.owner[plots[0]] = a.id;               // now it is their own land
+  check("on your own land nothing moves", E.hqRentDue(st, a) === 0);
+  a.cash = 50;
+  E.payHqRent(st, a, () => {});
+  check("and no money changes hands", a.cash === 50, `$${a.cash}`);
 }
 
 section("A headquarters scores for the district that grew around it");
@@ -181,6 +241,7 @@ section("A headquarters scores for the district that grew around it");
   const hq = { id: 800, bp: reBp, footprint: [hub], levels: { [hub]: 1 }, level: 1, isHQ: true,
     megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
   a.businesses.push(hq);
+  st.board.owner[hub] = a.id;
   st.board.occupiedBy[hub] = hq.id;
 
   check("an isolated headquarters counts nothing", E.hqNeighbours(st, hq) === 0);
@@ -189,6 +250,7 @@ section("A headquarters scores for the district that grew around it");
     const biz = { id, bp: reBp, footprint: [pk], levels: { [pk]: 1 }, level: 1, upgraded: false,
       distressed, scored: true, epOnCard: 0, quarterBuilt: 1 };
     b.businesses.push(biz);
+    st.board.owner[pk] = b.id;
     st.board.occupiedBy[pk] = biz.id;
     return biz;
   };

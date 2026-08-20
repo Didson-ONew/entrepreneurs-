@@ -937,7 +937,11 @@ const activeBiz = (p) => p.businesses.filter((b) => !b.distressed && !b.isHQ);
 const megacorpHQs = (p) => p.businesses.filter((b) => b.isHQ);
 const companySlotsUsed = (p) => activeBiz(p).length + megacorpHQs(p).length;
 const COMPANY_SLOTS = 5;
-const canLaunchMore = (p) => companySlotsUsed(p) < COMPANY_SLOTS;
+/* The IPO tile is the prize for forming the first Megacorp of the game. It is a sixth
+   company bay rather than points, so being first to merge does not narrow how wide you
+   can operate - which is what made merging early feel like a punishment. */
+const companySlotsFor = (p) => COMPANY_SLOTS + (p.ipoTile ? 1 : 0);
+const canLaunchMore = (p) => companySlotsUsed(p) < companySlotsFor(p);
 const committedOpex = (p) => activeBiz(p).reduce((s, b) => s + bizOpex(b), 0);
 function safeToSpend(p, spend, addedOpex = 0, buffer = 0.4) {
   return p.cash - spend >= (committedOpex(p) + addedOpex) * buffer;
@@ -1338,7 +1342,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "c3995f0b";
+const ENGINE_VERSION = "ee648d68";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1370,10 +1374,41 @@ function doSellBP(state, p, bp, log, solvency = false) {
   log(`${p.name} sells ${bp.name} from hand for $${Math.round(p.cash - before)}${solvency ? " (SOLVENCY - half price)" : ""} (cash: $${Math.round(p.cash)}).`, p.id);
 }
 
+/* What a Megacorp headquarters costs its owner every quarter. It has no Blueprint and
+   therefore no OPEX, but it still stands on somebody's land, and the owner pays that rent
+   out of pocket - $3 for every level standing on a plot, exactly as any other building
+   pays it. Land the owner holds themselves costs nothing: the money would only go round
+   in a circle. */
+function hqRentDue(state, p) {
+  let due = 0;
+  for (const hq of megacorpHQs(p)) {
+    for (const plot of hq.footprint) {
+      const ownerId = state.board.owner[plot];
+      if (ownerId === undefined || ownerId === p.id) continue;
+      due += 3 * levelsOn(hq, plot);
+    }
+  }
+  return due;
+}
+function payHqRent(state, p, log) {
+  for (const hq of megacorpHQs(p)) {
+    for (const plot of hq.footprint) {
+      const ownerId = state.board.owner[plot];
+      if (ownerId === undefined || ownerId === p.id) continue;
+      const owner = state.players.find((pl) => pl.id === ownerId);
+      if (!owner) continue;
+      const due = Math.min(Math.max(0, p.cash), 3 * levelsOn(hq, plot));
+      if (due <= 0) continue;
+      p.cash -= due;
+      owner.cash += due;
+      if (log) log(`${p.name} pays $${due} ground rent on Megacorp "${hq.megacorpName}" to ${owner.name}.`, p.id);
+    }
+  }
+}
 function runProduction(state, log) {
   const { players, board, pm } = state;
   for (const p of players) {
-    let bill = committedOpex(p);
+    let bill = committedOpex(p) + hqRentDue(state, p);
     while (p.cash < bill && p.hand.length) {
       const bp = p.hand.reduce((a, b) => ((BP_SELL_PRICE[a.lvl] || 4) < (BP_SELL_PRICE[b.lvl] || 4) ? a : b));
       sellBpFromHand(state, p, bp, false);
@@ -1382,16 +1417,17 @@ function runProduction(state, log) {
       const cheapPlot = cheapestOwnedPlot(state, p);
       if (!cheapPlot) break;
       doSellPlot(state, p, cheapPlot, log, false);
-      bill = committedOpex(p);
+      bill = committedOpex(p) + hqRentDue(state, p);
     }
     while (p.cash < bill) {
       const worst = worstRoiBusiness(p, pm, state.quarter, 0);
       if (!worst) break;
       sellCompany(p, worst, false);
-      bill = committedOpex(p);
+      bill = committedOpex(p) + hqRentDue(state, p);
     }
     if (p.cash < bill) { p.cash += 20; p.discsInBank += 1; }
   }
+  for (const p of players) payHqRent(state, p, log);
   for (const p of players) {
     for (const b of activeBiz(p)) {
       const cost = bizOpex(b);
@@ -1464,6 +1500,28 @@ function applySupplyChainBump(state, log) {
     if (log) log(`${p.name} works the supply chain: ${pick} demand rises, and Retail reaches one extra district this quarter.`, p.id);
   }
 }
+/* A Megacorp headquarters is a standing asset, not a business. It produces nothing, but
+   the sector still pays it - a full share of its industry's pot - and its name is worth
+   points every quarter: EP equal to what one unit of its industry currently sells for.
+   An industry climbing while nobody serves it makes an old headquarters quietly
+   valuable, and forming one early is worth more than forming one late.
+
+   Both of those depend on the ground it stands on. Sell a plot out from under a
+   headquarters and it collects nothing at all - no pot share, no points - until the land
+   is bought back, exactly as a company stops producing. */
+function runMegacorpDividend(state, log) {
+  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      if (!businessCanProduce(state, hq)) {
+        if (log) log(`Megacorp "${hq.megacorpName}" stands on land ${p.name} no longer owns \u2014 it collects nothing this quarter.`, p.id);
+        continue;
+      }
+      const ep = price(state.pm, bizInd(hq));
+      addEP(p, ep, `Megacorp brand: ${hq.megacorpName}`, state.quarter);
+      if (log) log(`Megacorp "${hq.megacorpName}" banks ${ep} EP \u2014 ${bizInd(hq)} sells at $${ep}.`, p.id);
+    }
+  }
+}
 function runB2B(state, log) {
   if (!state.pots) return;
   for (const ind of INDUSTRIES) {
@@ -1478,7 +1536,7 @@ function runB2B(state, log) {
     const recipients = [];
     state.players.forEach((p) => {
       activeBiz(p).forEach((b) => { if (bizInd(b) === ind) recipients.push({ p, b }); });
-      megacorpHQs(p).forEach((b) => { if (bizInd(b) === ind) recipients.push({ p, b }); });
+      megacorpHQs(p).forEach((b) => { if (bizInd(b) === ind && businessCanProduce(state, b)) recipients.push({ p, b }); });
     });
     if (!recipients.length) continue;                    // nobody to pay: carries over
     /* One equal share each, whatever size the companies are, and whatever will not
@@ -1725,8 +1783,9 @@ function claimMegacorp(state, p, log, hqChoice) {
   // first Megacorp of the game also takes the IPO tile, which opens Board Meeting's second seat
   if (!state.ipoTileClaimed) {
     state.ipoTileClaimed = true;
-    addEP(p, 5, "IPO tile", state.quarter);
-    log(`${p.name} was first to go public and takes the IPO tile (+5 EP) \u2014 Board Meeting's second seat is now open.`, p.id);
+    state.ipoOwner = p.id;
+    p.ipoTile = true;
+    log(`${p.name} was first to go public and takes the IPO tile \u2014 a sixth company bay, and Board Meeting's second seat is now open.`, p.id);
   }
   return true;
 }
@@ -1753,7 +1812,7 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   // renovating brings a structure back online, so it counts against the active-company cap
   if (!p.businesses.includes(distressedBiz) && !canLaunchMore(p)) return false;
   if (!p.businesses.includes(distressedBiz) && discsFree(state, p) <= 0) return false;
-  if (p.businesses.includes(distressedBiz) && companySlotsUsed(p) >= COMPANY_SLOTS) return false;
+  if (p.businesses.includes(distressedBiz) && companySlotsUsed(p) >= companySlotsFor(p)) return false;
   // A distressed structure still sits in its previous owner's ledger. Detach it there
   // first, otherwise the same business object ends up listed under both players.
   const prev = state.players.find((pl) => pl.businesses.includes(distressedBiz));
@@ -1911,16 +1970,36 @@ function megacorpWorthIt(state, p, match) {
     lostPerQuarter += Math.max(0, trade);
   }
   const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);
-  return ep + districtEP - forgone - (lostPerQuarter * qLeft) / CASH_PER_EP > 0;
+  /* The headquarters banks EP equal to its industry's price every quarter it stands, so
+     merging early is worth far more than merging late - and it pays ground rent for the
+     privilege if the land under it is somebody else's. */
+  const brandEP = price(state.pm, bizInd(hq)) * qLeft;
+  const rentEP = (hqGroundRent(state, p, hq) * qLeft) / CASH_PER_EP;
+  return ep + districtEP + brandEP - rentEP - forgone - (lostPerQuarter * qLeft) / CASH_PER_EP > 0;
+}
+/* What this building would cost in ground rent if it became the headquarters. */
+function hqGroundRent(state, p, b) {
+  let due = 0;
+  for (const plot of b.footprint) {
+    const ownerId = state.board.owner[plot];
+    if (ownerId === undefined || ownerId === p.id) continue;
+    due += 3 * levelsOn(b, plot);
+  }
+  return due;
 }
 /* Which company keeps standing as the headquarters. It scores for the companies around
    it at the end of the game, so the one already in a built-up corner is worth more than
    the biggest one - which is what bots used to take. */
 function pickHQ(state, p, have) {
-  return have.reduce((a, b) => {
-    const na = hqNeighbours(state, a), nb = hqNeighbours(state, b);
-    return nb > na || (nb === na && b.level > a.level) ? b : a;
-  });
+  const qLeft = Math.max(1, 13 - (state.quarter || 1));
+  /* Two things now decide which building to keep: the industry it sits in, because the
+     headquarters banks that industry's price in EP every quarter, and what stands around
+     it, because the district it ends up in scores at the end. Ground rent on somebody
+     else's land comes off the top. */
+  const worth = (b) => price(state.pm, bizInd(b)) * qLeft
+    + MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, b)
+    - (hqGroundRent(state, p, b) * qLeft) / CASH_PER_EP;
+  return have.reduce((a, b) => (worth(b) > worth(a) ? b : a));
 }
 
 /* Going public is only a legal choice when it can actually do something: form a
@@ -2470,6 +2549,7 @@ function finishDelivery(state, log, rng) {
 }
 function finishQuarter(state, log, rng) {
   state.phase = "production";
+  runMegacorpDividend(state, log);   // Revenue - B2B: headquarters bank their brand EP first
   runB2B(state, log);            // Revenue - B2B: share out the industry pots
   runClosing(state, log, rng);
   if (state.phase === "placingLH") return; // paused for human's LH choice; UI resumes via finishQuarterAfterLH
@@ -3644,9 +3724,10 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
           </div>
           <div className="text-[10px] text-gray-400">
             The company you pick keeps its building and your disc, gains a Megacorp block, and returns its
-            BP to its industry deck. It stops trading but keeps drawing its industry&rsquo;s pot share, and at the
-            end of the game it scores 3 EP for every other company standing beside it &mdash; so pick the corner you
-            think the city will fill in. The other {megacorpMatch.have.length - 1} go to the bank as Distressed Assets.
+            BP to its industry deck. It stops trading but keeps drawing its industry&rsquo;s pot share, banks EP
+            equal to that industry&rsquo;s price every quarter, and at the end scores 3 EP for every other company
+            standing beside it. You pay its ground rent from pocket, and it collects nothing at all if you sell
+            the land under it. The other {megacorpMatch.have.length - 1} go to the bank as Distressed Assets.
           </div>
           <div className="flex flex-wrap gap-2">
             {megacorpMatch.have.map((b) => {
@@ -3659,8 +3740,8 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                     <span className="text-[10px] font-mono text-gray-400">L{b.level}</span>
                   </div>
                   <div className="text-[10px] font-semibold text-gray-100 leading-tight">{b.bp.name}</div>
-                  <div className="text-[9px] font-mono mt-0.5" style={{ color: nbrs ? "#8fd3b6" : "#6b7280" }}>
-                    {nbrs} neighbour{nbrs === 1 ? "" : "s"} now &middot; +{nbrs * MEGACORP_NEIGHBOUR_EP} EP
+                  <div className="text-[9px] font-mono mt-0.5" style={{ color: "#8fd3b6" }}>
+                    {price(state.pm, b.bp.ind)} EP/quarter &middot; {nbrs} neighbour{nbrs === 1 ? "" : "s"} (+{nbrs * MEGACORP_NEIGHBOUR_EP} EP)
                   </div>
                 </button>
               );
@@ -4771,7 +4852,7 @@ function GameScreens({ online }) {
                 keeps a single, full-width block instead of two stubby ones. */}
             <div className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
 
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, and at the end of the game it scores 3 EP for every other company standing beside it. The rest go distressed. Each Megacorp permanently locks one of your five company slots." /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks EP equal to that industry's price every quarter, and at the end scores 3 EP for every other company standing beside it. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots - unless you were first to go public, which wins the IPO tile and a sixth bay." /></div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
                 {state.megacorpPool.map(([name, combo, ep], i) => (
                   <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>
