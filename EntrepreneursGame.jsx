@@ -354,22 +354,26 @@ function plotDemandScore(state, ind, plotKeyStr) {
    Technology doubler exactly as delivery will. Bots used to value a card at
    production x price, assuming every unit sold; measured over 40 games they were only
    placing 38% of what they made and recycling the rest at $1. */
+/* How many units could this company actually PLACE?
+
+   Every route counts, because they are all places for the same production to go: its own
+   industry's rows, the rows Manufacturing may route into (up to its level), and the
+   businesses a Hospitality company can move to with no demand icon at all. None of them
+   is extra output - a company sells what it produces and no more - but a company with
+   somewhere to send its units is worth more than one without, and that is what this
+   measures. */
+function placeableFor(state, owner, biz) {
+  const slots = eligibleSlotsFor(state, biz, owner);
+  const direct = slots.filter((s) => !s.cross).length * exchangeRate(state, biz);
+  const cross = bizInd(biz) === "MA"
+    ? Math.min(biz.level, slots.filter((s) => s.cross).length) : 0;
+  const neighbours = bizInd(biz) === "HO" ? hoBonusUnits(state, biz, owner) : 0;
+  return direct + cross + neighbours;
+}
 function sellableFrom(state, owner, bp, footprint) {
   const probe = { id: -1, bp, footprint, level: bp.lvl, upgraded: false, distressed: false,
     isHQ: false, epOnCard: 0, scored: false, quarterBuilt: state.quarter };
-  const slots = eligibleSlotsFor(state, probe, owner).filter((s) => !s.cross).length;
-  return slots * exchangeRate(state, probe);
-}
-/* Manufacturing pushes a level's worth of units into OTHER industries' rows in its own
-   districts. Those units are EXTRA - the delivery loop funds them from their own budget
-   and never touches the company's production - so a Manufacturing card's real output is
-   its production plus this. Leaving them out made every Manufacturing card look worse
-   than it plays, which is part of why the most profitable industry on the board was
-   also among the least built. */
-function crossSellUnits(state, owner, probe) {
-  if (bizInd(probe) !== "MA") return 0;
-  const slots = eligibleSlotsFor(state, probe, owner).filter((s) => s.cross).length;
-  return Math.min(probe.level, slots);
+  return placeableFor(state, owner, probe);
 }
 /* The best any plot this player already owns could do for this blueprint. Returns null
    when they own nowhere to build, in which case the caller has nothing to judge by. */
@@ -377,15 +381,9 @@ function bestSellableFor(state, p, bp) {
   const mine = Object.keys(state.board.owner)
     .filter((k) => state.board.owner[k] === p.id && plotFree(state.board, k));
   if (!mine.length) return null;
-  let best = 0, bestCross = 0;
-  for (const plot of mine) {
-    const units = sellableFrom(state, p, bp, [plot]);
-    if (units < best) continue;
-    const probe = { id: -1, bp, footprint: [plot], level: bp.lvl, upgraded: false,
-      distressed: false, isHQ: false, epOnCard: 0, scored: false, quarterBuilt: state.quarter };
-    best = units; bestCross = crossSellUnits(state, p, probe);
-  }
-  return { units: best, cross: bestCross };
+  let best = 0;
+  for (const plot of mine) best = Math.max(best, sellableFrom(state, p, bp, [plot]));
+  return best;
 }
 function findFootprint(board, nPlots, rng, state, ind, bp, owner) {
   let pool = Object.keys(board.graph).filter((p) => plotFree(board, p) && p in board.owner);
@@ -725,34 +723,43 @@ function unitPrice(state, p, biz, slotInd) {
   if (bizInd(biz) === "UT" && hasPersona(p, "gov_rel")) return own + 1;
   return own;
 }
+/* A company sells exactly what it produces - no more.
+
+   Manufacturing's cross-sell and Hospitality's neighbour trade are both ROUTES for that
+   production, not extra output. Cross-selling used to run on a budget of its own, so a
+   level-2 Manufacturing with 6 production really sold 8; the neighbour trade was taken
+   off the top before the demand board was even looked at. Both now come out of the same
+   units, which is what makes them decisions: where to send a unit, not whether to
+   conjure one. */
 function autoDeliver(state, p, biz) {
   let remaining = bizProd(biz);
-  // Hospitality moves extra units straight to neighbours, no demand icon required
-  const hoBonus = Math.min(remaining, hoBonusUnits(state, biz, p));
-  if (hoBonus > 0) { p.cash += hoBonus * unitPrice(state, p, biz); remaining -= hoBonus; }
-  let crossRemaining = bizInd(biz) === "MA" ? biz.level : 0;
-  let sold = 0, crossPaid = 0;
-  const slots = eligibleSlotsFor(state, biz);
+  let crossAllowance = bizInd(biz) === "MA" ? biz.level : 0;
+  let earned = 0;
+
+  /* Demand icons are contested and first come first served; the businesses around a
+     Hospitality company are not going anywhere. So fill icons first, best-paying first -
+     which is not a fixed order, because a White-Label Supplier is paid the price of the
+     row it cross-sells into, and that can beat its own industry. */
+  const slots = eligibleSlotsFor(state, biz).map((s) => ({ ...s,
+    pay: unitPrice(state, p, biz, s.cross ? slotIndustry(state.demand, s.tileKey, s.rowIdx) : null),
+  })).sort((a, b) => b.pay - a.pay);
   for (const s of slots) {
-    if (s.cross) {
-      if (crossRemaining <= 0) continue;
-      const got = deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, true);
-      if (got > 0) {
-        crossRemaining -= got;
-        crossPaid += got * unitPrice(state, p, biz, slotIndustry(state.demand, s.tileKey, s.rowIdx));
-      }
-    } else {
-      if (remaining <= 0) continue;
-      const got = deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, false);
-      if (got > 0) {
-        const n = Math.min(got, remaining);
-        sold += n * unitPrice(state, p, biz);
-        remaining -= n;
-      }
-    }
+    if (remaining <= 0) break;
+    if (s.cross && crossAllowance <= 0) continue;
+    const got = deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, s.cross);
+    if (got <= 0) continue;
+    const n = Math.min(got, remaining);
+    earned += n * s.pay;
+    remaining -= n;
+    if (s.cross) crossAllowance -= n;
   }
+
+  // whatever the icons could not take, Hospitality moves to its neighbours at full price
+  const hoBonus = Math.min(remaining, hoBonusUnits(state, biz, p));
+  if (hoBonus > 0) { earned += hoBonus * unitPrice(state, p, biz); remaining -= hoBonus; }
+
   const leftover = Math.max(0, remaining);
-  p.cash += sold + crossPaid + leftover * 1;
+  p.cash += earned + leftover * 1;
 }
 
 function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
@@ -767,8 +774,11 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
   const slotInd = cross ? slotIndustry(state.demand, tileKey, rowIdx) : null;
   const paid = got * unitPrice(state, human, biz, slotInd);
   human.cash += paid;
+  /* Cross-selling spends production like any other delivery. crossSellRemaining is a
+     CAP on how many of those units may be routed outside the company's own industry,
+     not a second pile of goods. */
+  state.deliveryRemaining[bizId] = Math.max(0, (state.deliveryRemaining[bizId] || 0) - got);
   if (cross) state.crossSellRemaining[bizId] = Math.max(0, (state.crossSellRemaining[bizId] || 0) - got);
-  else state.deliveryRemaining[bizId] = Math.max(0, (state.deliveryRemaining[bizId] || 0) - got);
   log(`${human.name} delivers ${got} ${bizInd(biz)}${cross ? " (cross-sell)" : ""} to ${state.board.tiles[tileKey]} for $${paid}.`, human.id);
   return true;
 }
@@ -1086,10 +1096,9 @@ function launchScore(state, p, bp, archetype) {
      actually collect. This is the difference between judging a card by its printed
      production and judging the company you would actually be running. */
   const reach = bestSellableFor(state, p, bp);
-  const sellable = reach === null ? bp.prod : Math.min(bp.prod, reach.units);
+  const sellable = reach === null ? bp.prod : Math.min(bp.prod, reach);
   const waste = Math.max(0, bp.prod - sellable);
-  const cross = reach === null ? (bp.ind === "MA" ? bp.lvl : 0) : reach.cross;
-  let perQuarter = (sellable + cross) * px + waste * 1 - effOpex;
+  let perQuarter = sellable * px + waste * 1 - effOpex;
 
   /* Two things say the good years will not last, and both belong on the revenue, not
      on the finished score. Other companies in your industry compete for the same demand
@@ -1136,9 +1145,7 @@ function launchScore(state, p, bp, archetype) {
 }
 /* How many units could this exact company place, at this exact moment? The delivery
    rule itself, asked a question - not a copy of it. */
-function sellableForBiz(state, owner, biz) {
-  return eligibleSlotsFor(state, biz, owner).filter((s) => !s.cross).length * exchangeRate(state, biz);
-}
+const sellableForBiz = (state, owner, biz) => placeableFor(state, owner, biz);
 
 /* What is upgrading worth, in the same points a build is measured in?
 
@@ -1165,8 +1172,8 @@ function upgradeScore(state, p, b, assumePlot) {
   const spreads = upgradeScaling(p, b) === "H";
 
   const nowUnits = Math.min(bizProd(b), sellableForBiz(state, p, b));
-  const nowNet = (nowUnits + crossSellUnits(state, p, b)) * px
-    + Math.max(0, bizProd(b) - nowUnits) * 1 - bizOpex(b) - 3 * b.level;
+  const nowNet = nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1
+    - bizOpex(b) - 3 * b.level;
 
   /* Where it would grow to. A sideways step reaches from a new plot, so ask the
      delivery rule about the grown footprint rather than assuming the reach is the same. */
@@ -1186,8 +1193,8 @@ function upgradeScore(state, p, b, assumePlot) {
   const grown = { ...b, level: b.level + 1, upgraded: true, footprint: grownFootprint };
   const grownProd = bizProd(grown);
   const grownUnits = Math.min(grownProd, sellableForBiz(state, p, grown));
-  const grownNet = (grownUnits + crossSellUnits(state, p, grown)) * px
-    + Math.max(0, grownProd - grownUnits) * 1 - bizOpex(grown) - 3 * grown.level;
+  const grownNet = grownUnits * px + Math.max(0, grownProd - grownUnits) * 1
+    - bizOpex(grown) - 3 * grown.level;
 
   const cashEP = (grownNet - nowNet) * qLeft / CASH_PER_EP;
   const buildEP = levelEP(state);                        // one more level on the card
@@ -1331,7 +1338,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "181d9f69";
+const ENGINE_VERSION = "c3995f0b";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1899,7 +1906,7 @@ function megacorpWorthIt(state, p, match) {
   let lostPerQuarter = 0;
   for (const b of match.have) {
     const units = Math.min(bizProd(b), sellableForBiz(state, p, b));
-    const trade = (units + crossSellUnits(state, p, b)) * price(state.pm, bizInd(b))
+    const trade = units * price(state.pm, bizInd(b))
       + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - 3 * b.level;
     lostPerQuarter += Math.max(0, trade);
   }
@@ -2410,17 +2417,13 @@ function startDeliveryFor(state, playerId, log) {
   {
     state.phase = "delivering";
     state.awaitingPlayerId = playerId;
+    /* The Hospitality neighbour trade is no longer taken off the top. Icons are
+       contested and neighbours are not, so it is applied to whatever is left when the
+       player is done delivering - which is both the better play and their choice. */
     pending.forEach((b) => {
-      let prod = bizProd(b);
-      const bonus = Math.min(prod, hoBonusUnits(state, b));
-      if (bonus > 0) {
-        human.cash += bonus * unitPrice(state, human, b);   // via unitPrice so personas apply here too
-        prod -= bonus;
-        state.hoBonusPaid[b.id] = bonus;
-        log(`${b.bp.name} moves ${bonus} unit${bonus === 1 ? "" : "s"} to neighbouring businesses/hubs for $${bonus * price(state.pm, bizInd(b))}.`, human.id);
-      }
-      state.deliveryRemaining[b.id] = prod;
+      state.deliveryRemaining[b.id] = bizProd(b);
       state.crossSellRemaining[b.id] = bizInd(b) === "MA" ? b.level : 0;
+      state.hoBonusPaid[b.id] = 0;
     });
     state.deliveringBizId = pending[0].id;
   }
@@ -2436,10 +2439,23 @@ function humanLiquidationDone(state, rng, log) {
 function nextDeliveryTarget(state) {
   const human = byId(state, state.awaitingPlayerId);
   if (!human) return null;
-  return activeBiz(human).find((b) => (state.deliveryRemaining[b.id] || 0) > 0 || (state.crossSellRemaining[b.id] || 0) > 0) || null;
+  return activeBiz(human).find((b) => (state.deliveryRemaining[b.id] || 0) > 0) || null;
 }
 function skipDelivery(state, human, bizId, log) {
-  const remaining = (state.deliveryRemaining[bizId] || 0) + (state.crossSellRemaining[bizId] || 0);
+  let remaining = state.deliveryRemaining[bizId] || 0;
+  const biz = human.businesses.find((b) => b.id === bizId);
+  /* Hospitality sends what the icons could not take to the businesses and hubs around
+     it, at the full market price. Only what is left after THAT is recycled at $1. */
+  if (biz && remaining > 0) {
+    const bonus = Math.min(remaining, hoBonusUnits(state, biz, human));
+    if (bonus > 0) {
+      const paid = bonus * unitPrice(state, human, biz);
+      human.cash += paid;
+      remaining -= bonus;
+      state.hoBonusPaid[bizId] = (state.hoBonusPaid[bizId] || 0) + bonus;
+      log(`${biz.bp.name} moves ${bonus} unit${bonus === 1 ? "" : "s"} to neighbouring businesses/hubs for $${paid}.`, human.id);
+    }
+  }
   if (remaining > 0) { human.cash += remaining; log(`Unsold production recycled for $${remaining}.`, human.id); }
   state.deliveryRemaining[bizId] = 0;
   state.crossSellRemaining[bizId] = 0;

@@ -273,7 +273,8 @@ export const RULEBOOK = [
   id: "revenue",
   title: "Revenue: selling what you produce",
   blocks: [
-    { p: "Each company produces a number of units printed on its Blueprint, doubled if it has been upgraded. You deliver those units to demand icons your company can reach, and each icon pays the current market price for your industry." },
+    { p: "Each company produces a number of units printed on its Blueprint, doubled if it has been upgraded. That number is all it has: every ability below is a route for those units, never a source of more. You deliver them to demand icons your company can reach, and each icon pays the current market price for your industry." },
+    { p: "Demand icons are first come, first served, and the businesses a Hospitality company sells to are not - so it is usually right to take the contested icons first and send whatever is left to the neighbours. Anything you still cannot place is recycled for $1 a unit." },
     { p: "Delivery goes in turn order. Every icon is first come, first served, so being early in the order is worth real money on a contested district - and it is the main thing REPOSITION buys you." },
     { h: "Which icons you may use" },
     { p: "Every district shows a 4x4 grid of demand. Each row is an industry; the four columns are levels 1 to 4. You may deliver to an icon if the row's industry is yours and the column is no higher than your company's level - so a bigger company reaches deeper into the same district." },
@@ -296,8 +297,8 @@ export const RULEBOOK = [
       rows: [
         ["Utilities", "Reads demand across a block of districts as wide as its level, positioned anywhere that still covers its own footprint. Never uses hubs."],
         ["Retail", "Sells into one extra district of your choice per level. Never uses hubs."],
-        ["Hospitality", "Sells one extra unit at market price for every business or hub within its level in plots - no demand icon needed."],
-        ["Manufacturing", "May cross-sell up to its level in units into OTHER industries' rows in its own district."],
+        ["Hospitality", "May sell to the businesses and hubs around it instead of to demand icons - one unit at market price for each business or hub within its level in plots, no icon needed. Those units come out of its production like any other."],
+        ["Manufacturing", "May route up to its level in units into OTHER industries' rows in its own district. Those units come out of its production - cross-selling is a place to send goods, not extra goods."],
         ["Healthcare", "Reaches every district on the hub network without touching a hub."],
         ["Technology", "Delivers two units to every icon it reaches instead of one."],
       ],

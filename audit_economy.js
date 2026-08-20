@@ -33,14 +33,14 @@ function hook(needle, replacement, what) {
 }
 
 // 1. every unit a company sells, and everything it could not
-hook("  const leftover = Math.max(0, remaining);\n  p.cash += sold + crossPaid + leftover * 1;",
+hook("  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;",
   "  const leftover = Math.max(0, remaining);\n" +
-  "  __econ.sale(state, p, biz, sold + crossPaid, leftover, hoBonus);\n" +
-  "  p.cash += sold + crossPaid + leftover * 1;", "autoDeliver");
+  "  __econ.sale(state, p, biz, earned, leftover, hoBonus);\n" +
+  "  p.cash += earned + leftover * 1;", "autoDeliver");
 
 // 1b. every unit, and which district it went to - the real hub question
-hook("        const n = Math.min(got, remaining);\n        sold += n * unitPrice(state, p, biz);",
-  "        const n = Math.min(got, remaining);\n        __econ.unit(state, biz, s.tileKey, n, unitPrice(state, p, biz));\n        sold += n * unitPrice(state, p, biz);", "autoDeliver slot");
+hook("    const n = Math.min(got, remaining);\n    earned += n * s.pay;",
+  "    const n = Math.min(got, remaining);\n    __econ.unit(state, biz, s.tileKey, n, s.pay);\n    earned += n * s.pay;", "autoDeliver slot");
 
 // 2. what each industry pot pays out
 hook("    state.pots[ind] = pot - share * recipients.length;",
@@ -111,7 +111,9 @@ const newTally = () => ({
 __econ.sale = (state, p, biz, cash, leftover, hoBonus) => {
   if (!T) return;
   const ind = E.bizInd(biz);
-  T.sales[ind] += cash + (hoBonus || 0) * E.price(state.pm, ind);
+  /* `cash` already includes the neighbour trade - it comes out of the same production
+     and is paid through the same total, so adding it again double-counted it. */
+  T.sales[ind] += cash;
   T.recycled[ind] += leftover;
   T.hoBonus += hoBonus || 0;
   if (cash > 0) { T.payments.push(cash); FLOW.push([BANK, p.id, cash]); }
