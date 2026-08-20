@@ -62,10 +62,10 @@ hook("  state.megacorpPool = state.megacorpPool.filter((t) => t !== match.tile);
   "  __econ.megacorp(state, p, match);\n  state.megacorpPool = state.megacorpPool.filter((t) => t !== match.tile);", "claimMegacorp");
 
 // 6. rent handed to landlords - the one payment the engine can make fractional
-hook("        const perPlot = base + (odd > 0 ? 1 : 0);",
-  "        const perPlot = base + (odd > 0 ? 1 : 0);\n        __econ.rent(rentTotal, nPlots, perPlot, b.level);", "rent split");
-hook("if (owner) owner.cash += perPlot;",
-  "if (owner) { __econ.rentPay(p.id, owner.id, perPlot); owner.cash += perPlot; }", "rent payment");
+hook("        const due = 3 * levelsOn(b, plot);",
+  "        const due = 3 * levelsOn(b, plot);\n        __econ.rent(due, b.footprint.length, due, b.level);", "rent split");
+hook("if (owner) owner.cash += due;",
+  "if (owner) { __econ.rentPay(p.id, owner.id, due); owner.cash += due; }", "rent payment");
 
 // 7. a snapshot at the close of every quarter, for the cash curve
 hook("function finishQuarterAfterLH(state, log, rng) {\n  runClosingRest(state, log);",
