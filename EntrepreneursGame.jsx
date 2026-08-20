@@ -1331,7 +1331,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "adbbea5f";
+const ENGINE_VERSION = "181d9f69";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1459,12 +1459,20 @@ function applySupplyChainBump(state, log) {
 }
 function runB2B(state, log) {
   if (!state.pots) return;
-  runMegacorpSyphon(state, log);
   for (const ind of INDUSTRIES) {
     const pot = state.pots[ind];
     if (pot <= 0.005) continue;
+    /* A headquarters keeps its seat at the table. It produces nothing and pays no
+       OPEX, but the sector still pays it: one equal share of its industry's pot, the
+       same as any company standing in that industry. That is what makes WHICH company
+       becomes the HQ a decision worth making - it used to siphon $5 out of every
+       neighbouring industry instead, which took money from the board rather than
+       earning it, and paid in fractions of a dollar no table could hand over. */
     const recipients = [];
-    state.players.forEach((p) => activeBiz(p).forEach((b) => { if (bizInd(b) === ind) recipients.push({ p, b }); }));
+    state.players.forEach((p) => {
+      activeBiz(p).forEach((b) => { if (bizInd(b) === ind) recipients.push({ p, b }); });
+      megacorpHQs(p).forEach((b) => { if (bizInd(b) === ind) recipients.push({ p, b }); });
+    });
     if (!recipients.length) continue;                    // nobody to pay: carries over
     /* One equal share each, whatever size the companies are, and whatever will not
        divide cleanly rides forward in the pot. A big company draws no more from the
@@ -1478,7 +1486,8 @@ function runB2B(state, log) {
 }
 function potRecipients(state, ind) {
   let n = 0, levels = 0;
-  state.players.forEach((p) => activeBiz(p).forEach((b) => { if (bizInd(b) === ind) { n++; levels += b.level; } }));
+  const count = (b) => { if (bizInd(b) === ind) { n++; levels += b.level; } };
+  state.players.forEach((p) => { activeBiz(p).forEach(count); megacorpHQs(p).forEach(count); });
   return { n, levels };
 }
 
@@ -1617,9 +1626,38 @@ function districtCount(state, p) {
 function finalRank(a, b) {
   return epTotal(b) - epTotal(a) || b.cash - a.cash || a.discsInBank - b.discsInBank;
 }
+/* A headquarters is a monument, not a business, and the city grows up around it. At the
+   end of the game it scores for every OTHER company standing orthogonally beside it -
+   one company level's worth of points each, so the number reads the same way as every
+   other building on the board.
+
+   Counted at the END rather than when the Megacorp forms, which is what makes it a bet
+   rather than a snapshot: you pick the corner you think the district will fill in, and
+   you can still improve it yourself, or watch nobody build there. */
+const MEGACORP_NEIGHBOUR_EP = 3;
+function hqNeighbours(state, hq) {
+  const seen = new Set();
+  hq.footprint.forEach((pk) => orthOf(state.board, pk).forEach((n) => {
+    if (hq.footprint.includes(n)) return;
+    const id = state.board.occupiedBy[n];
+    if (id === undefined || id === hq.id) return;
+    // a distressed shell belongs to the bank, not to anybody's skyline
+    for (const q of state.players) {
+      const b = q.businesses.find((x) => x.id === id);
+      if (b && !b.distressed) { seen.add(id); return; }
+    }
+  }));
+  return seen.size;
+}
 function finalizeGame(state) {
   awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", null);
   awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", null);
+  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      const n = hqNeighbours(state, hq);
+      if (n) addEP(p, MEGACORP_NEIGHBOUR_EP * n, `Megacorp district: ${hq.megacorpName}`, 12);
+    }
+  }
   for (const p of state.players) {
     if (p.discsInBank) addEP(p, -5 * p.discsInBank, `Unpaid loans (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"})`, 12);
     const cashEP = Math.floor(p.cash / 10);
@@ -1664,9 +1702,7 @@ function claimMegacorp(state, p, log, hqChoice) {
   // One of the merged companies becomes the Megacorp HQ: it keeps its building and the
   // owner's disc, gains a Megacorp block, and its BP returns to its industry deck.
   // Bots take the highest-level company; the human is asked to choose.
-  const hq = hqChoice && match.have.includes(hqChoice)
-    ? hqChoice
-    : match.have.reduce((a, b) => (b.level > a.level ? b : a));
+  const hq = hqChoice && match.have.includes(hqChoice) ? hqChoice : pickHQ(state, p, match.have);
   match.have.forEach((b) => {
     vest(p, b, state.quarter);
     if (b === hq) return;
@@ -1686,47 +1722,6 @@ function claimMegacorp(state, p, log, hqChoice) {
     log(`${p.name} was first to go public and takes the IPO tile (+5 EP) \u2014 Board Meeting's second seat is now open.`, p.id);
   }
   return true;
-}
-
-/* Revenue - B2B, step 1: every Megacorp HQ siphons $5 out of the industry pot that each
-   adjacent active business draws from, before the pots are shared out. */
-function runMegacorpSyphon(state, log) {
-  if (!state.pots) return;
-  for (const p of state.players) {
-    for (const hq of p.businesses.filter((b) => b.isHQ)) {
-      const neighbourIds = new Set();
-      hq.footprint.forEach((pk) => {
-        (state.board.graph[pk] || []).forEach((n) => {
-          const id = state.board.occupiedBy[n];
-          if (id !== undefined && id !== hq.id) neighbourIds.add(id);
-        });
-      });
-      /* $5 out of the pot of every INDUSTRY the headquarters touches - not $5 per
-         neighbouring building. Two neighbours in the same industry are still one pot,
-         and it can only be tapped once. */
-      const industries = new Set();
-      neighbourIds.forEach((id) => {
-        for (const q of state.players) {
-          const b = q.businesses.find((x) => x.id === id);
-          if (!b || b.distressed || b.isHQ) continue;
-          industries.add(bizInd(b));
-        }
-      });
-      let taken = 0;
-      industries.forEach((ind) => {
-        /* Pots hold the fractional change left over from OPEX, so this has to take
-           whole dollars only - the remainder rides forward exactly as a B2B share
-           does. It used to hand over $4.80 while the log said $5. */
-        const take = Math.min(5, Math.floor(state.pots[ind] || 0));
-        state.pots[ind] -= take;
-        taken += take;
-      });
-      if (taken > 0) {
-        p.cash += taken;
-        log(`Megacorp "${hq.megacorpName}" siphons $${taken} from neighbouring industries' pots.`, p.id);
-      }
-    }
-  }
 }
 
 /* ---------------- Renovation & plot market ---------------- */
@@ -1893,7 +1888,32 @@ function megacorpWorthIt(state, p, match) {
   // refused almost every worthwhile merger.
   const ep = match.tile[2];
   const forgone = match.have.reduce((s, b) => s + (b.scored ? 0 : b.level * levelEP(state)), 0);
-  return ep >= forgone;
+
+  /* What merging really costs is the trade of every company in the set: the ones that go
+     distressed stop earning, and so does the headquarters. Against that the tile pays,
+     the headquarters keeps drawing its industry's pot, and the district that grows around
+     it scores at the end - so the company with the most neighbours already standing is
+     the one to keep. */
+  const qLeft = Math.max(1, 13 - (state.quarter || 1));
+  const hq = pickHQ(state, p, match.have);
+  let lostPerQuarter = 0;
+  for (const b of match.have) {
+    const units = Math.min(bizProd(b), sellableForBiz(state, p, b));
+    const trade = (units + crossSellUnits(state, p, b)) * price(state.pm, bizInd(b))
+      + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - 3 * b.level;
+    lostPerQuarter += Math.max(0, trade);
+  }
+  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);
+  return ep + districtEP - forgone - (lostPerQuarter * qLeft) / CASH_PER_EP > 0;
+}
+/* Which company keeps standing as the headquarters. It scores for the companies around
+   it at the end of the game, so the one already in a built-up corner is worth more than
+   the biggest one - which is what bots used to take. */
+function pickHQ(state, p, have) {
+  return have.reduce((a, b) => {
+    const na = hqNeighbours(state, a), nb = hqNeighbours(state, b);
+    return nb > na || (nb === na && b.level > a.level) ? b : a;
+  });
 }
 
 /* Going public is only a legal choice when it can actually do something: form a
@@ -3608,16 +3628,13 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
           </div>
           <div className="text-[10px] text-gray-400">
             The company you pick keeps its building and your disc, gains a Megacorp block, and returns its
-            BP to its industry deck. It will siphon $5 from each neighbouring business's industry pot every
-            B2B. The other {megacorpMatch.have.length - 1} go to the bank as Distressed Assets.
+            BP to its industry deck. It stops trading but keeps drawing its industry&rsquo;s pot share, and at the
+            end of the game it scores 3 EP for every other company standing beside it &mdash; so pick the corner you
+            think the city will fill in. The other {megacorpMatch.have.length - 1} go to the bank as Distressed Assets.
           </div>
           <div className="flex flex-wrap gap-2">
             {megacorpMatch.have.map((b) => {
-              const nbrs = new Set();
-              b.footprint.forEach((pk) => (state.board.graph[pk] || []).forEach((n) => {
-                const id = state.board.occupiedBy[n];
-                if (id !== undefined && id !== b.id) nbrs.add(id);
-              }));
+              const nbrs = hqNeighbours(state, b);
               return (
                 <button key={b.id} onClick={() => { if (NET) return NET.send("act", { type: "megacorp", hqId: b.id }); claimMegacorp(state, human, log, b); finish(); }}
                   className="text-left rounded-md p-2" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}77`, width: 150 }}>
@@ -3626,8 +3643,8 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                     <span className="text-[10px] font-mono text-gray-400">L{b.level}</span>
                   </div>
                   <div className="text-[10px] font-semibold text-gray-100 leading-tight">{b.bp.name}</div>
-                  <div className="text-[9px] font-mono mt-0.5" style={{ color: nbrs.size ? "#8fd3b6" : "#6b7280" }}>
-                    {nbrs.size} neighbour{nbrs.size === 1 ? "" : "s"} to siphon
+                  <div className="text-[9px] font-mono mt-0.5" style={{ color: nbrs ? "#8fd3b6" : "#6b7280" }}>
+                    {nbrs} neighbour{nbrs === 1 ? "" : "s"} now &middot; +{nbrs * MEGACORP_NEIGHBOUR_EP} EP
                   </div>
                 </button>
               );
@@ -4738,7 +4755,7 @@ function GameScreens({ online }) {
                 keeps a single, full-width block instead of two stubby ones. */}
             <div className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
 
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc, stops trading, and siphons $5 from the pot of every industry it touches. The rest go distressed. Each Megacorp permanently locks one of your five company slots." /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, and at the end of the game it scores 3 EP for every other company standing beside it. The rest go distressed. Each Megacorp permanently locks one of your five company slots." /></div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
                 {state.megacorpPool.map(([name, combo, ep], i) => (
                   <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>

@@ -17,7 +17,8 @@ function loadEngine() {
   vm.createContext(sandbox);
   vm.runInContext(logic + `
     box.exports = { initGame, mulberry32, makePriceMatrix, price, onLaunch, runB2B,
-      runMegacorpSyphon, claimMegacorp, canGoPublic, bestMegacorpMatch, activeBiz,
+      claimMegacorp, canGoPublic, bestMegacorpMatch, activeBiz, megacorpHQs,
+      hqNeighbours, MEGACORP_NEIGHBOUR_EP, runB2B, finalizeGame, epTotal, orthOf,
       companySlotsUsed, canLaunchMore, discsUsed, discsFree, finalRank, unitPrice,
       renovationEligible, bizInd,
       byId, BP_DATA, MEGACORP_TILES, STARTING, INDUSTRIES, BASE_PRICE, SCALING,
@@ -142,30 +143,70 @@ section("Board Meeting - going public always forms a Megacorp");
   check("and it still holds its disc", E.discsUsed(st, a) === 1);
 }
 
-/* --------------------------------------------------------- Megacorp siphon */
-section("Megacorp - $5 from every industry it touches, not every neighbour");
+/* ------------------------------------------------------- Megacorp headquarters */
+section("A headquarters keeps its share of its industry's pot");
 {
   const st = E.initGame(0, 13, ["A", "B"], undefined, false);
   const [a, b] = st.players;
   const plots = Object.keys(st.board.graph);
-  // find a plot with two neighbours, and put two RE companies on them
-  const hub = plots.find((k) => [...st.board.graph[k]].length >= 2);
-  const [n1, n2] = [...st.board.graph[hub]];
   const reBp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 1);
-  const hq = { id: 700, bp: reBp, footprint: [hub], level: 1, isHQ: true, megacorpName: "T", distressed: false, epOnCard: 0, quarterBuilt: 1 };
+  const hq = { id: 700, bp: reBp, footprint: [plots[0]], levels: { [plots[0]]: 1 }, level: 1,
+    isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
   a.businesses.push(hq);
-  [n1, n2].forEach((pk, i) => {
-    const biz = { id: 710 + i, bp: reBp, footprint: [pk], level: 1, upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt: 1 };
-    b.businesses.push(biz);
-    st.board.occupiedBy[pk] = biz.id;
-  });
-  st.board.occupiedBy[hub] = hq.id;
+  st.board.occupiedBy[plots[0]] = hq.id;
+  const rival = { id: 710, bp: reBp, footprint: [plots[9]], levels: { [plots[9]]: 1 }, level: 1,
+    upgraded: false, distressed: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+  b.businesses.push(rival);
+  st.board.occupiedBy[plots[9]] = rival.id;
+
   st.pots = Object.fromEntries(E.INDUSTRIES.map((i) => [i, 0]));
   st.pots.RE = 20;
-  a.cash = 0;
-  E.runMegacorpSyphon(st, () => {});
-  check("two Retail neighbours are still one Retail pot, tapped once", a.cash === 5, `took $${a.cash}`);
-  check("the pot loses exactly $5", st.pots.RE === 15);
+  a.cash = 0; b.cash = 0;
+  E.runB2B(st, () => {});
+  check("the headquarters draws an equal share even though it trades nothing",
+    a.cash === 10, `HQ took $${a.cash}`);
+  check("and the company that is still trading draws the same", b.cash === 10, `$${b.cash}`);
+  check("the pot is emptied cleanly", st.pots.RE === 0, `$${st.pots.RE} left`);
+}
+
+section("A headquarters scores for the district that grew around it");
+{
+  const st = E.initGame(0, 21, ["A", "B"], undefined, false);
+  const [a, b] = st.players;
+  const plots = Object.keys(st.board.graph);
+  const reBp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 1);
+  /* a plot with at least two ORTHOGONAL neighbours, so we can build beside it */
+  const hub = plots.find((k) => E.orthOf(st.board, k).length >= 2);
+  const [n1, n2] = E.orthOf(st.board, hub);
+  const hq = { id: 800, bp: reBp, footprint: [hub], levels: { [hub]: 1 }, level: 1, isHQ: true,
+    megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+  a.businesses.push(hq);
+  st.board.occupiedBy[hub] = hq.id;
+
+  check("an isolated headquarters counts nothing", E.hqNeighbours(st, hq) === 0);
+
+  const mk = (id, pk, distressed) => {
+    const biz = { id, bp: reBp, footprint: [pk], levels: { [pk]: 1 }, level: 1, upgraded: false,
+      distressed, scored: true, epOnCard: 0, quarterBuilt: 1 };
+    b.businesses.push(biz);
+    st.board.occupiedBy[pk] = biz.id;
+    return biz;
+  };
+  mk(810, n1, false);
+  check("one company beside it counts one", E.hqNeighbours(st, hq) === 1);
+  mk(811, n2, true);
+  check("a distressed shell belongs to the bank and does not count",
+    E.hqNeighbours(st, hq) === 1, `counted ${E.hqNeighbours(st, hq)}`);
+
+  const before = E.epTotal(a);
+  E.finalizeGame(st);
+  const gained = E.epTotal(a) - before;
+  const districtEP = (a.epLog || []).filter((e) => String(e.label).startsWith("Megacorp district"))
+    .reduce((s2, e) => s2 + e.amount, 0);
+  check(`it scores ${E.MEGACORP_NEIGHBOUR_EP} EP for that one neighbour`,
+    districtEP === E.MEGACORP_NEIGHBOUR_EP, `${districtEP} EP`);
+  check("which is one company level's worth, so the number reads like the rest of the board",
+    E.MEGACORP_NEIGHBOUR_EP === 3);
 }
 
 /* ------------------------------------------------------------- persona: UT */
