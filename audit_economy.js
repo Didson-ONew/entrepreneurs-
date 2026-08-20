@@ -306,10 +306,9 @@ console.log(`${SEEDS} games, 4 seats, personas on, Rulebook v13 standard rules\n
 T = newTally();
 const finals = [];
 const LADDERS = {
-  "yours      1/2/10/20/50/100/500": [500, 100, 50, 20, 10, 2, 1],
-  "with a 5   1/2/5/10/20/50/100":   [100, 50, 20, 10, 5, 2, 1],
-  "tight      1/2/5/10/20/50":       [50, 20, 10, 5, 2, 1],
-  "no 2s      1/5/10/25/50":         [50, 25, 10, 5, 1],
+  "yours   1/2/5/10/20/50/100/500": [500, 100, 50, 20, 10, 5, 2, 1],
+  "small only  1/2/5/10/20":       [20, 10, 5, 2, 1],
+  "one 50 up   1/2/5/10/20/50":    [50, 20, 10, 5, 2, 1],
 };
 const CHIP = Object.fromEntries(Object.keys(LADDERS).map((k) => [k, { peak: {}, samples: {}, stats: { chips: 0, payments: 0, short: 0, impossible: 0, odd: {} } }]));
 

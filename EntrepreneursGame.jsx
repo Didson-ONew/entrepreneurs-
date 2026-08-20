@@ -360,15 +360,32 @@ function sellableFrom(state, owner, bp, footprint) {
   const slots = eligibleSlotsFor(state, probe, owner).filter((s) => !s.cross).length;
   return slots * exchangeRate(state, probe);
 }
+/* Manufacturing pushes a level's worth of units into OTHER industries' rows in its own
+   districts. Those units are EXTRA - the delivery loop funds them from their own budget
+   and never touches the company's production - so a Manufacturing card's real output is
+   its production plus this. Leaving them out made every Manufacturing card look worse
+   than it plays, which is part of why the most profitable industry on the board was
+   also among the least built. */
+function crossSellUnits(state, owner, probe) {
+  if (bizInd(probe) !== "MA") return 0;
+  const slots = eligibleSlotsFor(state, probe, owner).filter((s) => s.cross).length;
+  return Math.min(probe.level, slots);
+}
 /* The best any plot this player already owns could do for this blueprint. Returns null
    when they own nowhere to build, in which case the caller has nothing to judge by. */
 function bestSellableFor(state, p, bp) {
   const mine = Object.keys(state.board.owner)
     .filter((k) => state.board.owner[k] === p.id && plotFree(state.board, k));
   if (!mine.length) return null;
-  let best = 0;
-  for (const plot of mine) best = Math.max(best, sellableFrom(state, p, bp, [plot]));
-  return best;
+  let best = 0, bestCross = 0;
+  for (const plot of mine) {
+    const units = sellableFrom(state, p, bp, [plot]);
+    if (units < best) continue;
+    const probe = { id: -1, bp, footprint: [plot], level: bp.lvl, upgraded: false,
+      distressed: false, isHQ: false, epOnCard: 0, scored: false, quarterBuilt: state.quarter };
+    best = units; bestCross = crossSellUnits(state, p, probe);
+  }
+  return { units: best, cross: bestCross };
 }
 function findFootprint(board, nPlots, rng, state, ind, bp, owner) {
   let pool = Object.keys(board.graph).filter((p) => plotFree(board, p) && p in board.owner);
@@ -1069,9 +1086,10 @@ function launchScore(state, p, bp, archetype) {
      actually collect. This is the difference between judging a card by its printed
      production and judging the company you would actually be running. */
   const reach = bestSellableFor(state, p, bp);
-  const sellable = reach === null ? bp.prod : Math.min(bp.prod, reach);
+  const sellable = reach === null ? bp.prod : Math.min(bp.prod, reach.units);
   const waste = Math.max(0, bp.prod - sellable);
-  let perQuarter = sellable * px + waste * 1 - effOpex;
+  const cross = reach === null ? (bp.ind === "MA" ? bp.lvl : 0) : reach.cross;
+  let perQuarter = (sellable + cross) * px + waste * 1 - effOpex;
 
   /* Two things say the good years will not last, and both belong on the revenue, not
      on the finished score. Other companies in your industry compete for the same demand
@@ -1147,8 +1165,8 @@ function upgradeScore(state, p, b, assumePlot) {
   const spreads = upgradeScaling(p, b) === "H";
 
   const nowUnits = Math.min(bizProd(b), sellableForBiz(state, p, b));
-  const nowNet = nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1
-    - bizOpex(b) - 3 * b.level;
+  const nowNet = (nowUnits + crossSellUnits(state, p, b)) * px
+    + Math.max(0, bizProd(b) - nowUnits) * 1 - bizOpex(b) - 3 * b.level;
 
   /* Where it would grow to. A sideways step reaches from a new plot, so ask the
      delivery rule about the grown footprint rather than assuming the reach is the same. */
@@ -1168,8 +1186,8 @@ function upgradeScore(state, p, b, assumePlot) {
   const grown = { ...b, level: b.level + 1, upgraded: true, footprint: grownFootprint };
   const grownProd = bizProd(grown);
   const grownUnits = Math.min(grownProd, sellableForBiz(state, p, grown));
-  const grownNet = grownUnits * px + Math.max(0, grownProd - grownUnits) * 1
-    - bizOpex(grown) - 3 * grown.level;
+  const grownNet = (grownUnits + crossSellUnits(state, p, grown)) * px
+    + Math.max(0, grownProd - grownUnits) * 1 - bizOpex(grown) - 3 * grown.level;
 
   const cashEP = (grownNet - nowNet) * qLeft / CASH_PER_EP;
   const buildEP = levelEP(state);                        // one more level on the card
@@ -1313,7 +1331,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "f603d733";
+const ENGINE_VERSION = "adbbea5f";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
