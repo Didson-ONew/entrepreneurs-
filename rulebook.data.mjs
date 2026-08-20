@@ -79,7 +79,7 @@ export const RULEBOOK = [
     { h: "The rest" },
     { ul: [
       "Ten discs each. Nothing else marks what you own.",
-      "Megacorp tiles: sixteen exist, and only (number of players + 1) are shuffled into the game.",
+      "Megacorp tiles: sixteen exist, and twice the number of players are shuffled into the game.",
       "Personas are dealt to everyone by default - one each, drawn from six. Leave them out for a first game if you like.",
     ] },
     { note: "Reverse-order drafting is the only catch-up mechanism in the game, and it is deliberately small. Seat 4 in a four-player game opens with $20 and three cards against seat 1's $25 and one card - enough to matter in the first two quarters, not enough to decide a game." },
@@ -287,7 +287,7 @@ export const RULEBOOK = [
     { h: "How far a company reaches" },
     { p: "A company can always sell into the district or districts its own plots sit in. Beyond that:" },
     { ul: [
-      "Logistic Hubs stand on plots. If any plot of your footprint is orthogonally beside a hub - up to four plots can be, since corners do not count - your company joins the network and reaches every district that any hub on the board stands in.",
+      "Logistic Hubs stand on plots. If any plot of your footprint is orthogonally beside a hub - up to four plots can be, since corners do not count - your company joins the network and reaches every district that any hub on the board stands in. A Megacorp headquarters counts as a hub for this, so building beside somebody else's monument puts you on the network too.",
       "Utilities and Retail can never use hubs at all.",
       "Healthcare is on the hub network natively - it reaches every hub district without needing to touch one.",
     ] },
@@ -346,11 +346,12 @@ export const RULEBOOK = [
       "The HQ stops trading: with no Blueprint it produces nothing and pays no OPEX. It still draws its equal share of its industry's pot every B2B - a headquarters that has stopped building has not stopped collecting.",
       "Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for eight more quarters than one formed in Year 3.",
       "It has no OPEX to pay its rent out of, so its owner pays the ground rent from pocket every quarter - $3 for every level standing on a plot, to that plot's owner. On your own land nothing moves.",
-      "Sell a plot out from under a headquarters and it collects nothing at all - no pot share, no points - until the land is bought back. A monument still needs its ground.",
+      "A headquarters is public infrastructure: it counts as a Logistic Hub. Any company built orthogonally beside one joins the network through it, whoever owns them. A monument that only collected would be a monument nobody wanted to build near - and the companies that gather round it are exactly the ones it scores 3 EP each for at the end.",
+      "Sell a plot out from under a headquarters and it collects nothing at all - no pot share, no points, and it stops being a hub. A monument still needs its ground.",
       "It keeps its disc, and it permanently locks one of your five company slots. Every Megacorp you form narrows how wide you can operate.",
       "At the end of the game the HQ scores 3 EP for every OTHER company standing orthogonally beside it - the district that grew up around it. Counted at scoring, not when the Megacorp forms, so where you put your headquarters is a bet on where the city fills in.",
     ] },
-    { p: "Only (number of players + 1) tiles are in play, so the good combinations are contested." },
+    { p: "Twice the number of players are in play - eight at a four-player table - so a combination you are working toward is usually still there, but the best-paying ones are contested." },
     { h: "The tiles" },
     { table: {
       head: ["Megacorp", "Requires", "Companies", "Value"],

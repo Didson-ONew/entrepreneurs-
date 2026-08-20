@@ -157,7 +157,7 @@ function buildBoard(rng) {
 
   const centerPlots = Object.keys(cellOf).filter((k) => CENTER_CELLS.some(([cr, cc]) => cr === cellOf[k].r && cc === cellOf[k].c));
   const distFromCenter = bfsDistances(graph, centerPlots);
-  const board = { tiles, graph, orth, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhEdges: [], lhPlots: [], lhOnPlots: false };
+  const board = { tiles, graph, orth, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhEdges: [], lhPlots: [], hqFootprints: [], lhOnPlots: false };
   board.priceLattice = computePriceLattice(board);
   return board;
 }
@@ -183,17 +183,43 @@ const orthOf = (board, plot) => (board.orth && board.orth[plot]) || [];
 /* Is this plot itself a hub? Only ever true under the variant - on the road, a hub
    occupies no plot at all. */
 const plotIsLH = (board, plot) => !!board.lhOnPlots && (board.lhPlots || []).includes(plot);
+/* A Megacorp headquarters is public infrastructure. It stops trading, but its loading
+   bays, roads and warehouses are still there, and anything built beside one joins the
+   Logistic Hub network through it.
+
+   This is the one thing a runaway leader's monument does FOR the table rather than to
+   it, and it is deliberately reciprocal: the neighbours get reach, and the headquarters
+   scores 3 EP for each of them at the end. It also gives the table a reason to crowd in
+   around a leader - and building in the headquarters' own industry is what pushes its
+   price, and so its quarterly points, back down.
+
+   Like everything else a headquarters collects, it depends on the ground: sell a plot
+   out from under it and it stops being a hub too. */
+function hqNetworkPlots(board) {
+  const out = [];
+  for (const fp of board.hqFootprints || []) {
+    if (fp.every((pk) => pk in board.owner)) out.push(...fp);
+  }
+  return out;
+}
 /* Does a company standing on this plot touch the network? */
 function plotHasLH(board, plot) {
-  if (board.lhOnPlots) return orthOf(board, plot).some((n) => (board.lhPlots || []).includes(n));
+  if (board.lhOnPlots) {
+    const nbrs = orthOf(board, plot);
+    if (nbrs.some((n) => (board.lhPlots || []).includes(n))) return true;
+    const hq = hqNetworkPlots(board);
+    return nbrs.some((n) => hq.includes(n));
+  }
   return board.lhEdges.some((e) => e[0] === plot || e[1] === plot);
 }
 /* Every district the network reaches. */
 function lhDistricts(board) {
   const out = new Set();
   const add = (plot) => { const c = board.cellOf[plot]; if (c) out.add(`${c.r},${c.c}`); };
-  if (board.lhOnPlots) (board.lhPlots || []).forEach(add);
-  else board.lhEdges.forEach(([a, b]) => { add(a); add(b); });
+  if (board.lhOnPlots) {
+    (board.lhPlots || []).forEach(add);
+    hqNetworkPlots(board).forEach(add);
+  } else board.lhEdges.forEach(([a, b]) => { add(a); add(b); });
   return out;
 }
 const lhCount = (board) => (board.lhOnPlots ? (board.lhPlots || []).length : board.lhEdges.length);
@@ -1136,6 +1162,41 @@ function launchScore(state, p, bp, archetype) {
   const costEP = totalOutlay / CASH_PER_EP;
   let s = cashEP + buildEP + debutEP - costEP;
 
+  /* Pushing back on somebody who is ahead.
+
+     A Megacorp headquarters banks EP equal to its industry's CURRENT PRICE every
+     quarter, so entering that industry takes points off its owner for the rest of the
+     game - the price falls a dollar for every two companies built there. It is the only
+     pressure the table has on a runaway leader, and it costs nothing extra: you are
+     building a company you were going to build anyway, in a different sector.
+
+     Only worth chasing against somebody actually ahead of you, and worth less than
+     earning the same points yourself - denying a rival a point does not put it on your
+     own track.
+
+     Measured over 400 games this fires on 10% of build decisions and is currently close
+     to inert: it takes TWO companies to move a price a dollar, and a headquarters sits
+     in whichever industry was expensive, which is the one under upward pressure. An
+     HQ's industry price rose 21% of the time over its life and fell only 9%, and the
+     brand EP it banked came out 2% ABOVE what a frozen price would have paid. The term
+     is right and the lever is weak; it becomes live the moment a price moves on one
+     build instead of two. */
+  const drop = price(pm, bp.ind) - px;      // px is already the price after this build
+  if (drop > 0) {
+    const mine = epTotal(p);
+    let denied = 0;
+    for (const q of state.players) {
+      if (q.id === p.id) continue;
+      if (epTotal(q) <= mine) continue;                 // not ahead: leave them alone
+      for (const hq of megacorpHQs(q)) {
+        if (bizInd(hq) !== bp.ind) continue;
+        if (!businessCanProduce(state, hq)) continue;   // already collecting nothing
+        denied += drop * qLeft;
+      }
+    }
+    s += denied * 0.5;
+  }
+
   // a horizontal build also needs a contiguous cluster, which gets harder as the city
   // fills and constrains where the business can ever be upgraded
   if (SCALING[bp.ind] === "H" && bp.lvl >= 2) s -= 1;
@@ -1342,7 +1403,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "ee648d68";
+const ENGINE_VERSION = "dcf4b9a1";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1776,6 +1837,8 @@ function claimMegacorp(state, p, log, hqChoice) {
   hq.isHQ = true;
   hq.distressed = false;
   hq.megacorpName = name;
+  // it joins the Logistic Hub network as a piece of it, for everyone
+  (state.board.hqFootprints = state.board.hqFootprints || []).push([...hq.footprint]);
   if (state.decks && state.decks[hq.bp.ind]) state.decks[hq.bp.ind].push(hq.bp);   // BP back to its deck
   addEP(p, ep, `Megacorp: ${name}`, state.quarter);
   state.megacorpPool = state.megacorpPool.filter((t) => t !== match.tile);
@@ -2749,7 +2812,10 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
     const deal = shuffle(PERSONA_KEYS, rng);
     players.forEach((pl, i) => { pl.persona = deal[i % deal.length]; });
   }
-  const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers + 1);
+  /* Twice as many tiles as players. At (players + 1) only a third of seats ever formed
+     a Megacorp and the first one arrived in Quarter 7; at 2n it is half the seats and
+     Quarter 6.7, and being first to go public stops being a near-decisive edge. */
+  const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers * 2);
   const state = {
     board, demand, pm, players, decks, variants: V, quarter: 1, solvencyEvents: 0, rngSeed: seedNum, rngCalls: 0,
     turnOrder: seats,                      // randomised seating
@@ -3726,8 +3792,9 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
             The company you pick keeps its building and your disc, gains a Megacorp block, and returns its
             BP to its industry deck. It stops trading but keeps drawing its industry&rsquo;s pot share, banks EP
             equal to that industry&rsquo;s price every quarter, and at the end scores 3 EP for every other company
-            standing beside it. You pay its ground rent from pocket, and it collects nothing at all if you sell
-            the land under it. The other {megacorpMatch.have.length - 1} go to the bank as Distressed Assets.
+            standing beside it. It also counts as a Logistic Hub for anything built beside it, whoever owns it.
+            You pay its ground rent from pocket, and it collects nothing at all if you sell the land under it.
+            The other {megacorpMatch.have.length - 1} go to the bank as Distressed Assets.
           </div>
           <div className="flex flex-wrap gap-2">
             {megacorpMatch.have.map((b) => {
@@ -4852,7 +4919,7 @@ function GameScreens({ online }) {
                 keeps a single, full-width block instead of two stubby ones. */}
             <div className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
 
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks EP equal to that industry's price every quarter, and at the end scores 3 EP for every other company standing beside it. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots - unless you were first to go public, which wins the IPO tile and a sixth bay." /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks EP equal to that industry's price every quarter, counts as a Logistic Hub for anything built beside it, and at the end scores 3 EP for every other company standing beside it. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots - unless you were first to go public, which wins the IPO tile and a sixth bay." /></div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
                 {state.megacorpPool.map(([name, combo, ep], i) => (
                   <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>

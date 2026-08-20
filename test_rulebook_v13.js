@@ -19,6 +19,7 @@ function loadEngine() {
     box.exports = { initGame, mulberry32, makePriceMatrix, price, onLaunch, runB2B,
       claimMegacorp, canGoPublic, bestMegacorpMatch, activeBiz, megacorpHQs, companySlotsFor,
       runMegacorpDividend, price, businessCanProduce, payHqRent, hqRentDue,
+      plotHasLH, lhDistricts, hqNetworkPlots,
       hqNeighbours, MEGACORP_NEIGHBOUR_EP, runB2B, finalizeGame, epTotal, orthOf,
       companySlotsUsed, canLaunchMore, discsUsed, discsFree, finalRank, unitPrice,
       renovationEligible, bizInd,
@@ -174,6 +175,34 @@ section("A headquarters keeps its share of its industry's pot");
     a.cash === 10, `HQ took $${a.cash}`);
   check("and the company that is still trading draws the same", b.cash === 10, `$${b.cash}`);
   check("the pot is emptied cleanly", st.pots.RE === 0, `$${st.pots.RE} left`);
+}
+
+section("A headquarters is public infrastructure");
+{
+  const st = E.initGame(0, 41, ["A", "B"], undefined, false);
+  const [a, b] = st.players;
+  st.board.lhOnPlots = true;                     // hubs stand on plots under v13
+  const plots = Object.keys(st.board.graph);
+  const hub = plots.find((k) => E.orthOf(st.board, k).length >= 1);
+  const beside = E.orthOf(st.board, hub)[0];
+  const reBp = E.BP_DATA.find((x) => x.ind === "MA" && x.lvl === 1);
+  const hq = { id: 920, bp: reBp, footprint: [hub], levels: { [hub]: 1 }, level: 1, isHQ: true,
+    megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+  a.businesses.push(hq);
+  st.board.owner[hub] = a.id;
+  st.board.occupiedBy[hub] = hq.id;
+
+  check("nothing is on the network before the headquarters counts",
+    E.plotHasLH(st.board, beside) === false);
+  st.board.hqFootprints = [[hub]];
+  check("a plot beside a headquarters is on the network",
+    E.plotHasLH(st.board, beside) === true);
+  check("and the district it stands in is reachable from the network",
+    E.lhDistricts(st.board).size > 0, `${E.lhDistricts(st.board).size} district(s)`);
+
+  delete st.board.owner[hub];
+  check("sell the ground and it stops being a hub too",
+    E.plotHasLH(st.board, beside) === false);
 }
 
 section("A headquarters banks its industry's price every quarter");

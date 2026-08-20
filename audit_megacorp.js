@@ -26,28 +26,32 @@ const cut = src.indexOf("/* ============================== REACT UI ============
 const base = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
 
 const NEEDLES = {
-  pool: "const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers + 1);",
+  pool: "const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers * 2);",
   ipoBay: "    p.ipoTile = true;",
+  hub: "    const hq = hqNetworkPlots(board);\n    return nbrs.some((n) => hq.includes(n));",
+  denial: "    s += denied * 0.5;",
+  support: "  for (const p of players) { payHqRent(state, p, log); payHqSupport(state, p, log); }",
 };
 for (const [k, v] of Object.entries(NEEDLES)) {
   if (!base.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
 }
 
-/* tiles: how many are shuffled in.  ipo: "bay" (current) or "ep" (the old 5 EP). */
+/* tiles: how many are shuffled in.  hub: does a headquarters carry the network for its
+   neighbours.  push: do the bots build into a leader's industry to push its price down. */
 const CASES = [
-  { name: "n+1 tiles, IPO = bay", tiles: "nPlayers + 1", ipo: "bay" },
-  { name: "n+1 tiles, IPO = 5 EP", tiles: "nPlayers + 1", ipo: "ep" },
-  { name: "2n tiles, IPO = bay", tiles: "nPlayers * 2", ipo: "bay" },
-  { name: "2n tiles, IPO = 5 EP", tiles: "nPlayers * 2", ipo: "ep" },
-  { name: "all 16 tiles, IPO = bay", tiles: "MEGACORP_TILES.length", ipo: "bay" },
+  { name: "2n, nothing", tiles: "nPlayers * 2", hub: false, push: false, support: false },
+  { name: "2n + HQ is a hub", tiles: "nPlayers * 2", hub: true, push: false, support: false },
+  { name: "2n + HQ pays neighbours", tiles: "nPlayers * 2", hub: false, push: false, support: true },
+  { name: "2n + hub + pays", tiles: "nPlayers * 2", hub: true, push: false, support: true },
+  { name: "2n + all three", tiles: "nPlayers * 2", hub: true, push: true, support: true },
 ];
 
 function engineFor(c) {
   let logic = base.replace(NEEDLES.pool,
     `const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, ${c.tiles});`);
-  if (c.ipo === "ep") {
-    logic = logic.replace(NEEDLES.ipoBay, '    addEP(p, 5, "IPO tile", state.quarter);');
-  }
+  if (!c.hub) logic = logic.replace(NEEDLES.hub, "    return false;");
+  if (!c.push) logic = logic.replace(NEEDLES.denial, "    s += 0;");
+  if (!c.support) logic = logic.replace(NEEDLES.support, "  for (const p of players) payHqRent(state, p, log);");
   const box = {};
   const sandbox = { console, Math, Set, Object, Array, JSON, box };
   vm.createContext(sandbox);
@@ -127,11 +131,11 @@ for (const c of CASES) {
 /* ---------------------------------------------------------------- report */
 console.log("Entrepreneurs - going public: the IPO tile and how many tiles are in play");
 console.log(`${results[0].T.games} games per case, 4 seats, personas on.`);
-console.log("A four-seat game shuffles in 5 tiles as it stands, 8 at 2n, 16 for all of them.\n");
+console.log("A four-seat game shuffles in 8 tiles at 2n, 5 at n+1.\n");
 
 const cols = results.map((r) => r.c.name);
-const W = 22;
-const head = () => console.log(pad("", 34) + cols.map((c) => rp(c.replace(", IPO = ", " / "), W)).join(""));
+const W = 21;
+const head = () => console.log(pad("", 34) + cols.map((c) => rp(c, W)).join(""));
 const row = (name, fn, dp = 2) =>
   console.log(pad(name, 34) + results.map((r) => rp(fn(r.T).toFixed(dp), W)).join(""));
 const pct = (name, fn) =>
