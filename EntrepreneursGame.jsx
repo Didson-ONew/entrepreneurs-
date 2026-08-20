@@ -811,8 +811,36 @@ const ARCHETYPES = ["balanced", "rush_cheap", "upgrade_focus", "tech_heavy", "ve
 const ARCHETYPE_LABEL = { balanced: "Balanced", rush_cheap: "Rush-Cheap", upgrade_focus: "Upgrade-Focus", tech_heavy: "Tech-Heavy", vest_rebuild: "Vest & Rebuild" };
 
 let bizIdCounter = 1;
+/* A footprint is not a flat area. A horizontal company spreads one level onto each plot
+   it covers; a vertical one stacks all of its levels on a single plot. Personas can flip
+   which way a company grows, so a Technology company that spread to two plots and was
+   then upgraded vertically stands two storeys on one plot and one on the other.
+
+   That matters for rent: a landlord collects $3 for every level standing on their plot,
+   so the two-storey corner pays $6 and the neighbour pays $3. Recording the levels per
+   plot is the only way the rent can be right, and it keeps the total at $3 x level. */
+function startingLevels(bp, footprint) {
+  const levels = {};
+  if (footprint.length <= 1) levels[footprint[0]] = bp.lvl;      // one stack
+  else footprint.forEach((plot) => { levels[plot] = 1; });       // one storey each
+  return levels;
+}
+/* Businesses that predate this record, and any that arrive over the wire from an older
+   client, fall back to the even split the previous rule described. */
+function ensureLevels(b) {
+  if (b.levels && b.footprint.every((pk) => pk in b.levels)) return b.levels;
+  const n = b.footprint.length || 1;
+  const base = Math.floor(b.level / n);
+  let odd = b.level - base * n;
+  const out = {};
+  b.footprint.forEach((pk) => { out[pk] = base + (odd > 0 ? 1 : 0); if (odd > 0) odd--; });
+  b.levels = out;
+  return out;
+}
+const levelsOn = (b, plot) => ensureLevels(b)[plot] || 0;
 function newBusiness(bp, footprint, quarterBuilt) {
-  return { id: bizIdCounter++, bp, footprint, level: bp.lvl, upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt };
+  return { id: bizIdCounter++, bp, footprint, levels: startingLevels(bp, footprint), level: bp.lvl,
+    upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt };
 }
 const bizOpex = (b) => b.bp.opex * (b.upgraded ? 2 : 1);
 const bizProd = (b) => b.bp.prod * (b.upgraded ? 2 : 1);
@@ -1119,10 +1147,19 @@ function doUpgrade(state, p, b, rng, log, manualPlot) {
     // the client online, so this cannot be left to the picker either
     if (!orthOf(state.board, newPlot).some((n) => b.footprint.includes(n))) return false;
     p.cash -= bizSetup(b);
+    ensureLevels(b)[newPlot] = 1;                // the new wing is one storey
     b.footprint.push(newPlot);
     state.board.occupiedBy[newPlot] = b.id;
   } else {
+    /* Vertical growth stacks the new level on one plot the company already stands on.
+       Which one is a real choice: rent for every level on a plot goes to that plot's
+       owner, so stacking on your own land brings the whole rent back to you. */
+    const mine = b.footprint.filter((pk) => state.board.owner[pk] === p.id);
+    const target = manualPlot && b.footprint.includes(manualPlot) ? manualPlot
+                 : (mine[0] || b.footprint[0]);
     p.cash -= bizSetup(b);
+    const levels = ensureLevels(b);
+    levels[target] = (levels[target] || 0) + 1;
   }
   b.upgraded = true; b.level += 1;
   vest(p, b, state.quarter); b.scored = false;
@@ -1140,7 +1177,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "5e235abf";
+const ENGINE_VERSION = "4e2cfdf7";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1254,25 +1291,31 @@ function runProduction(state, log) {
       }
       p.cash -= cost;
       const rentTotal = 3 * b.level;
-      const nPlots = b.footprint.length;
-      /* The rent is split among the plots the company stands on, as evenly as it
-         will go. It has to come out in whole dollars: a table pays this with chips,
-         and a level 3 company on two plots would otherwise owe $4.50 a plot. The odd
-         dollars go to the first plots of the footprint. */
-      const base = nPlots ? Math.floor(rentTotal / nPlots) : 0;
-      let odd = nPlots ? rentTotal - base * nPlots : 0;
+      /* $3 for every level standing on a plot, paid to whoever owns that plot. A
+         two-storey corner pays its landlord $6 while the single-storey neighbour
+         collects $3, and the total still comes to $3 x level. */
       for (const plot of b.footprint) {
-        const perPlot = base + (odd > 0 ? 1 : 0);
-        if (odd > 0) odd--;
+        const due = 3 * levelsOn(b, plot);
         const ownerId = board.owner[plot];
-        if (ownerId !== undefined) { const owner = players.find((pl) => pl.id === ownerId); if (owner) owner.cash += perPlot; }
+        if (ownerId !== undefined) { const owner = players.find((pl) => pl.id === ownerId); if (owner) owner.cash += due; }
       }
-      // whatever survives rent flows into each supplier's industry pot, split in
-      // proportion to what this business owes them
+      /* Whatever survives rent flows into each supplier's industry pot, split in
+         proportion to what this business owes them. Whole dollars only: each supplier
+         takes its share rounded down, and the odd dollars go to the largest dependency
+         first, so the company's whole bill still leaves its hands. Pots used to hold
+         fractions of a dollar, which no table can pay and which then leaked out through
+         the Megacorp siphon. */
       if (!state.pots) state.pots = Object.fromEntries(INDUSTRIES.map((i) => [i, 0]));
       const toPots = Math.max(0, cost - rentTotal);
-      const depTotal = b.bp.deps.reduce((s2, d) => s2 + d.val, 0) || 1;
-      b.bp.deps.forEach((d) => { state.pots[d.ind] += toPots * (d.val / depTotal); });
+      const deps = b.bp.deps;
+      if (deps.length && toPots > 0) {
+        const depTotal = deps.reduce((s2, d) => s2 + d.val, 0) || 1;
+        const shares = deps.map((d) => Math.floor((toPots * d.val) / depTotal));
+        let rest = toPots - shares.reduce((s2, v) => s2 + v, 0);
+        const biggestFirst = deps.map((d, i) => i).sort((x, y) => deps[y].val - deps[x].val);
+        for (let k = 0; rest > 0; k = (k + 1) % biggestFirst.length) { shares[biggestFirst[k]] += 1; rest--; }
+        deps.forEach((d, i) => { state.pots[d.ind] += shares[i]; });
+      }
     }
   }
 }
@@ -1427,10 +1470,14 @@ function awardRanked(state, scoreFn, label, log) {
     while (j + 1 < scores.length && scores[j + 1].s === scores[i].s) j++;
     const tiedCount = j - i + 1;
     const pot = values.slice(i, Math.min(j + 1, values.length)).reduce((a, b) => a + b, 0);
-    const share = pot / tiedCount;
+    /* Rounded down, like every other split in the game: a two-way tie for first takes
+       7 EP each rather than 7.5, and the odd point is simply not awarded. A score track
+       has no half points on it. */
+    const share = Math.floor(pot / tiedCount);
+    if (share <= 0) { i = j + 1; continue; }
     // stamp the quarter it was actually awarded in - under the yearly-land variant this
     // runs at Q4 and Q8 too, and hardcoding 12 made the scoring log claim otherwise
-    for (let k = i; k <= j; k++) { addEP(scores[k].p, share, label, state.quarter); if (log) log(`${scores[k].p.name} earns ${label} (+${share.toFixed(1)} EP).`, scores[k].p.id); }
+    for (let k = i; k <= j; k++) { addEP(scores[k].p, share, label, state.quarter); if (log) log(`${scores[k].p.name} earns ${label} (+${share} EP).`, scores[k].p.id); }
     i = j + 1;
   }
 }
