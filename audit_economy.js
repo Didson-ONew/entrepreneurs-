@@ -104,6 +104,7 @@ const newTally = () => ({
   seats: 0, loansTaken: 0, solvency: 0, hubsPlaced: 0,
   unitsHome: 0, unitsAway: 0, cashHome: 0, cashAway: 0, reachWhy: {}, reachCash: {}, awayByInd: {},
   rents: 0, rentsFractional: 0, rentSizes: {}, rentShapes: {},
+  hubsFinal: 0, hubsFinalN: 0,
   winsBySeat: {}, seatGames: 0, spread: 0, gapToSecond: 0,
 });
 
@@ -195,6 +196,7 @@ __econ.quarter = (state) => {
   }
   if (table > T.peakTable) T.peakTable = table;
   T.hubsPlaced = Math.max(T.hubsPlaced, E.lhCount(state.board));
+  if (state.quarter >= 12) { T.hubsFinal += E.lhCount(state.board); T.hubsFinalN++; }
 };
 
 
@@ -458,7 +460,7 @@ console.log(`Hospitality's neighbour bonus moved ${per(T.hoBonus)} units a game 
 /* ---- 4. hubs ---- */
 console.log("\n─── LOGISTIC HUBS ─────────────────────────────────────────────────");
 const totalSaleEvents = T.hubSales + T.homeSales;
-console.log(`Hubs on the board by the end:            ${T.hubsPlaced}`);
+console.log(`Hubs on the board: ${(T.hubsFinal / Math.max(1, T.hubsFinalN)).toFixed(1)} on average at the last quarter, most ever ${T.hubsPlaced}`);
 console.log(`Companies that could reach past their own districts: ${T.hubSales} of ${totalSaleEvents} delivery turns (${(100 * T.hubSales / totalSaleEvents).toFixed(0)}%)`);
 const unitsAll = T.unitsHome + T.unitsAway;
 console.log(`Units actually delivered outside the company's own districts:`);
@@ -480,7 +482,8 @@ for (const i of IND) {
 
 /* ---- 5. megacorps ---- */
 console.log("\n─── MEGACORPS ─────────────────────────────────────────────────────");
-console.log(`Formed: ${per(T.megacorps)} per game (${(100 * T.megacorps / g).toFixed(0)}% of a game's worth), worth ${(T.megacorpEP / Math.max(1, T.megacorps)).toFixed(1)} EP each on average`);
+console.log(`Formed: ${T.megacorps} in all, ${per(T.megacorps)} per game, worth ${(T.megacorpEP / Math.max(1, T.megacorps)).toFixed(1)} EP each on average`);
+console.log(`So roughly one seat in ${(4 * g / Math.max(1, T.megacorps)).toFixed(1)} completes one.`);
 const megaList = Object.entries(T.megacorpBy).sort((a, b) => b[1] - a[1]).slice(0, 6);
 console.log(`Most claimed: ${megaList.map(([n, c]) => `${n} x${c}`).join(", ") || "none"}`);
 
