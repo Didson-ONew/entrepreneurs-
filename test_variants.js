@@ -41,12 +41,16 @@ const game = (variants, seed = 5) => E.initGame(3, seed, ["You"], undefined, fal
 function plant(st, p, ind, plot, level = 1) {
   const bp = E.BP_DATA.find((x) => x.ind === ind && x.lvl === 1);
   const biz = { id: 5000 + p.businesses.length + p.id * 100, bp, footprint: [plot], level,
-    upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt: st.quarter };
+    upgraded: false, distressed: false, scored: false, quarterBuilt: st.quarter };
   st.board.occupiedBy[plot] = biz.id;
   p.businesses.push(biz);
-  E.scoreCompanyOnCompletion(st, biz);    // the build hook, as doLaunch would call it
+  E.scoreCompanyOnCompletion(st, p, biz);  // the build hook, as doLaunch would call it
   return biz;
 }
+/* What companies have paid this player. EP go straight to the bank now, so the bank
+   alone would also count the land awards a year end hands out. */
+const fromCompanies = (p) =>
+  (p.epLog || []).filter((e) => String(e.label).startsWith("Company:")).reduce((n, e) => n + e.amount, 0);
 
 
 /* ------------------------------------------------------------------ defaults */
@@ -135,26 +139,27 @@ section("1. Score at the year end");
   Object.keys(st.board.graph).slice(0, 4).forEach((p) => { st.board.owner[p] = me.id; });
   const plot = Object.keys(st.board.owner).find((k) => st.board.owner[k] === me.id);
   const biz = plant(st, me, "HC", plot, 2);
-  check("building scores nothing yet", biz.epOnCard === 0 && biz.scored === false);
+  check("building scores nothing yet", fromCompanies(me) === 0 && biz.scored === false);
   st.quarter = 4;
   E.runClosingRest(st, () => {});
-  check("the year end pays it", biz.epOnCard === 4 && biz.scored === true, `${biz.epOnCard} EP`);
+  check("the year end pays it", fromCompanies(me) === 4 && biz.scored === true, `${fromCompanies(me)} EP`);
 
   const std = game(undefined);
   const me2 = E.byId(std, 0);
   Object.keys(std.board.graph).slice(0, 4).forEach((p) => { std.board.owner[p] = me2.id; });
   const b2 = plant(std, me2, "HC", Object.keys(std.board.owner).find((k) => std.board.owner[k] === me2.id), 2);
-  check("whereas standard pays it on the spot", b2.epOnCard === 4 && b2.scored === true);
+  check("whereas standard pays it on the spot", fromCompanies(me2) === 4 && b2.scored === true);
 }
 
-section("2. Levels score single");
+section("2. Levels score heavy");
 {
   const mk = (v) => {
     const st = game(v);
     const me = E.byId(st, 0);
     Object.keys(st.board.graph).slice(0, 4).forEach((p) => { st.board.owner[p] = me.id; });
     const plot = Object.keys(st.board.owner).find((k) => st.board.owner[k] === me.id);
-    return plant(st, me, "HC", plot, 2).epOnCard;
+    plant(st, me, "HC", plot, 2);
+    return fromCompanies(me);
   };
   check("a level 2 company scores 4 as standard", mk(undefined) === 4, `${mk(undefined)} EP`);
   check("and 6 under the variant", mk({ heavyLevelEP: true }) === 6, `${mk({ heavyLevelEP: true })} EP`);

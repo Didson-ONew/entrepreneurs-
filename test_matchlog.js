@@ -103,7 +103,7 @@ let rec;
 section("Classifying where EP came from");
 {
   const cases = [
-    ["Entered RE", "industries"], ["Vested: Corner Store I", "companies"],
+    ["Entered RE", "industries"], ["Company: Corner Store I L2", "companies"],
     ["Megacorp: Local Syndicate", "megacorps"], ["IPO tile", "ipo"],
     ["The Real-Estate Mogul", "land"], ["The Omnipresent", "land"],
     ["Cash on hand ($35)", "cash"], ["Unpaid loans (2 discs)", "loans"],
