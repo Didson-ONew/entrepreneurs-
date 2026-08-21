@@ -140,6 +140,82 @@ section("Data inside the application folder is called out as at risk");
     /accounts/.test(safe) && /Data directory/.test(safe), safe.trim().split("\n")[0]);
 }
 
+section("A disk it cannot write to is caught at boot, not at the first sign-up");
+{
+  const dir = path.join(tmp, "readonly");
+  fs.mkdirSync(dir, { recursive: true });
+  const d = require("./datadir.js");
+  check("a writable directory reports no problem", d.writable(path.join(dir, "x.json")) === null);
+
+  /* A disk that is not mounted where the configuration says: the path simply is not
+     there. This is the failure a wrong mountPath actually produces. */
+  const missing = path.join(tmp, "not-mounted", "accounts.json");
+  check("a directory that does not exist is reported, not created",
+    d.writable(missing) !== null && !fs.existsSync(path.dirname(missing)),
+    `${d.writable(missing)}`);
+
+  /* A disk mounted read-only, or owned by another user. root overrides the mode bits,
+     so this only stages as an ordinary user - which is how Render runs a service. */
+  fs.chmodSync(dir, 0o500);
+  const why = d.writable(path.join(dir, "x.json"));
+  const asRoot = process.getuid && process.getuid() === 0;
+  check(asRoot
+    ? "a read-only directory: skipped, this test is running as root"
+    : "a read-only directory is reported rather than assumed fine",
+    asRoot ? true : why !== null, `${why}`);
+  fs.chmodSync(dir, 0o700);
+
+  /* And the boot log has to say so loudly, because a server that starts happily and
+     then forgets everything is the worst of the available failures. */
+  const src = `
+    const d = require(${JSON.stringify(path.join(__dirname, "datadir.js"))});
+    d.report({ accounts: [${JSON.stringify(missing)}, 0] });`;
+  const out = execFileSync(process.execPath, ["-e", src], { encoding: "utf8" });
+  check("the boot log says CANNOT WRITE against the store", /CANNOT WRITE/.test(out),
+    (out.split("\n").find((l) => /accounts/.test(l)) || "").trim());
+  check("and explains what is usually wrong", /STOP:/.test(out) && /mounted/.test(out));
+}
+
+section("A data directory that is not a directory stops the server, in words");
+{
+  /* The failure a wrong Render mountPath actually produces: ENT_DATA_DIR points at
+     something that is not a folder, or at a disk that never mounted. */
+  const notADir = path.join(tmp, "not-a-directory");
+  fs.writeFileSync(notADir, "this is a file");
+
+  const probe = `
+    const d = require(${JSON.stringify(path.join(__dirname, "datadir.js"))});
+    const f = d.resolve("accounts.json", "NOPE_1");
+    console.log(JSON.stringify({ file: f, why: d.writable(f) }));`;
+  const out = execFileSync(process.execPath, ["-e", probe], {
+    env: { ...process.env, ENT_DATA_DIR: notADir }, encoding: "utf8",
+  });
+  const got = JSON.parse(out.trim().split("\n").pop());
+  check("resolving a path there does not throw out of a require", !!got.file, got.file);
+  check("and the problem is reported rather than hidden", got.why !== null, `${got.why}`);
+
+  /* And the server says so in a sentence and stops, instead of a stack trace. */
+  let boot;
+  try {
+    boot = execFileSync(process.execPath, [path.join(__dirname, "server.js")], {
+      env: { ...process.env, ENT_DATA_DIR: notADir, PORT: "10777" },
+      encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 20000,
+    });
+    boot = { status: 0, text: boot };
+  } catch (e) {
+    boot = { status: e.status, text: `${e.stdout || ""}${e.stderr || ""}` };
+  }
+  check("the server refuses to start rather than run without accounts", boot.status === 1,
+    `exit ${boot.status}`);
+  check("and explains it without a stack trace",
+    /cannot start/.test(boot.text) && !/at Object\./.test(boot.text),
+    boot.text.trim().split("\n")[0]);
+  check("naming the data directory and what to check",
+    /ENT_DATA_DIR/.test(boot.text) && boot.text.includes(notADir));
+
+  fs.unlinkSync(notADir);
+}
+
 for (const fn of after) fn();
 fs.rmSync(tmp, { recursive: true, force: true });
 

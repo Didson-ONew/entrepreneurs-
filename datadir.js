@@ -37,11 +37,21 @@ const DIR = process.env.ENT_DATA_DIR || path.join(__dirname, "data");
 /* Where a file WOULD have lived before there was a data directory. */
 const legacyPath = (basename) => path.join(__dirname, basename);
 
+/* Making the directory is allowed to fail, and must not take the server down where it
+   stands. A wrong mountPath, a disk that never mounted, a path that turns out to be a
+   file - all of those used to throw out of a `require`, killing the process with a
+   stack trace before it had printed a single useful line. The failure is remembered
+   instead and reported at boot in words, beside the store it affects. */
 let ensured = false;
+let ensureError = null;
 function ensureDir() {
   if (ensured) return;
-  fs.mkdirSync(DIR, { recursive: true, mode: 0o700 });
-  ensured = true;
+  try {
+    fs.mkdirSync(DIR, { recursive: true, mode: 0o700 });
+    ensured = true;
+  } catch (e) {
+    ensureError = e.code || e.message;
+  }
 }
 
 /* Resolve one store's file, honouring its own variable first, and carry a
@@ -82,15 +92,47 @@ function insideApp(file) {
   return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
 }
 
+/* Can this store actually be written to? A mounted disk is one more thing that can
+   be wrong - mounted read-only, owned by another user, or simply not mounted where
+   the configuration says it is - and every one of those failures otherwise waits
+   until the first person registers and then throws in the middle of a request. */
+function writable(file) {
+  const dir = path.dirname(file);
+  /* Deliberately creates nothing. A check that repairs what it is checking cannot
+     report a problem, and mkdir on some special filesystems does not return at all. */
+  try {
+    if (!fs.existsSync(dir)) return ensureError ? `${ensureError} (could not make the directory)` : "ENOENT (no such directory)";
+    if (!fs.statSync(dir).isDirectory()) return "ENOTDIR (that path is not a directory)";
+  } catch (e) { return e.code || "ENOENT"; }
+  const probe = path.join(dir, `.write-probe-${process.pid}`);
+  try {
+    fs.writeFileSync(probe, "");
+    fs.unlinkSync(probe);
+    return null;
+  } catch (e) {
+    return e.code || e.message;
+  }
+}
+
 /* One line per store at boot: where it is, how much is in it, and whether it is
    somewhere a deployment can delete. `counts` is {label: [file, count]}. */
 function report(stores) {
   console.log(`Data directory: ${DIR}`);
   let atRisk = false;
+  const unwritable = [];
   for (const [label, [file, count]] of Object.entries(stores)) {
     const risky = insideApp(file);
     atRisk = atRisk || risky;
-    console.log(`  ${label.padEnd(9)} ${String(count).padStart(5)}  ${file}`);
+    const why = writable(file);
+    if (why) unwritable.push([label, file, why]);
+    console.log(`  ${label.padEnd(9)} ${String(count).padStart(5)}  ${file}${why ? `   CANNOT WRITE (${why})` : ""}`);
+  }
+  if (unwritable.length) {
+    console.log("");
+    console.log("  STOP: the server cannot write where it keeps its data, so nothing it is");
+    console.log("  told from now on will be remembered - no account, no finished game, no");
+    console.log("  playtest note. Usually the disk is not mounted where ENT_DATA_DIR says,");
+    console.log("  or it is mounted read-only, or it belongs to a different user.");
   }
   if (atRisk) {
     console.log("");
@@ -103,4 +145,4 @@ function report(stores) {
   console.log("");
 }
 
-module.exports = { DIR, resolve, report, insideApp };
+module.exports = { DIR, resolve, report, insideApp, writable };

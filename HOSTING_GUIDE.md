@@ -7,7 +7,7 @@ There are three ways to play, from easiest to most permanent:
 |---|---|---|---|
 | **A. Same wi-fi** | Friends in the same house | No | No |
 | **B. Quick internet link** | A game night, friends anywhere | No | No |
-| **C. Free permanent hosting** | Playing regularly | Yes (free) | **Yes** |
+| **C. Hosting on Render** | Playing regularly | Yes | **Yes** — the records only if you attach a disk |
 
 Whichever you choose, do **Step 0** and **Step 1** first.
 
@@ -194,31 +194,95 @@ Notes worth knowing:
 
 ---
 
-## Option C — Free permanent hosting (set up once, play any time)
+## Option C — Permanent hosting on Render (set up once, play any time)
 
 The game runs on Render's computers, not yours. Anyone can join any time from a fixed
-link, even when your PC is off. Free tier is plenty for this game.
+link, even when your PC is off.
 
-1. Put the game folder on GitHub:
-   1. Make a free account at **https://github.com**
-   2. Click **+** (top right) → **New repository** → name it `entrepreneurs` → Create
-   3. On the empty repository page click **uploading an existing file**,
-      drag ALL the files from the unzipped folder in, click **Commit changes**
-2. Make a free account at **https://render.com** (sign in *with GitHub* — easiest)
-3. In Render: **New → Web Service** → pick your `entrepreneurs` repository
-4. Fill the form:
-   - **Name:** anything, e.g. `entrepreneurs`
-   - **Build Command:** *leave empty*
-   - **Start Command:** `node server.js`
-   - **Instance Type:** Free
-5. Click **Deploy Web Service** and wait ~2 minutes.
-6. Render shows your permanent link at the top, like
-   **`https://entrepreneurs.onrender.com`** — that's your game, forever.
-   Send it to friends, create a room, share the code, play.
+The repository carries a **`render.yaml`**, so Render can read the settings from the
+code instead of from a form somebody filled in once. Merging to `main` then deploys on
+its own.
+
+### Read this first: the free tier forgets everything
+
+Render's free tier has **no persistent storage**. Its filesystem is rebuilt on every
+deploy *and* every time the service wakes from sleep, so `accounts.json`,
+`matches.jsonl` and `feedback.json` are erased over and over. That is what empties the
+hall of fame and lets a reserved name be reserved a second time by somebody else.
+
+There is no free way around it — a disk needs a paid instance type (Starter and up).
+So there is a decision to make before you set it up:
+
+| | Costs | Accounts and hall of fame |
+|---|---|---|
+| **Free instance** | nothing | wiped on every deploy and every wake from sleep |
+| **Instance with a disk** | Render's Starter price | kept, permanently |
+
+If you stay on free, that is a fine choice for a game night — just know that the
+records are for the evening, not for keeps.
+
+### Setting it up with the blueprint
+
+1. Push the game to GitHub if it is not there already.
+2. Make an account at **https://render.com** (sign in *with GitHub* — easiest).
+3. **New → Blueprint** → pick your repository. Render reads `render.yaml`.
+4. Check the instance type it offers. `render.yaml` asks for one that supports a disk;
+   if you would rather stay free, edit `render.yaml` first — delete the `plan:` line
+   and the whole `disk:` block, and change `ENT_DATA_DIR` to
+   `/opt/render/project/src/data`.
+5. **Apply**. Two minutes later your permanent link is at the top of the page, like
+   `https://entrepreneurs.onrender.com`.
+
+**If you already have a Render service for this game**, a blueprint matches services
+*by name*. The file calls it `entrepreneurs` — if yours is called something else,
+rename it in the Render dashboard first, or change the name in `render.yaml`.
+Otherwise Render builds a **second** service on a **new URL**, and the link you have
+already given people keeps pointing at the old one.
+
+### Setting it up by hand instead
+
+You never have to use the blueprint. In the Render dashboard, on your service:
+
+- **Build Command:** `npm install --include=dev && npm run build`
+- **Start Command:** `node server.js`
+- **Settings → Disks → Add Disk:** mount path `/var/lib/entrepreneurs`, 1 GB
+- **Environment:**
+  - `ENT_DATA_DIR` = `/var/lib/entrepreneurs` — **must match the mount path**
+  - `TRUST_PROXY` = `1` — Render sits in front of the service, and without this the
+    rate limiter treats the whole internet as one visitor
+  - `ENT_ADMINS` = the account names that may read the playtest notes
+  - `NODE_VERSION` = `22`
+
+Do not set `PORT`; Render sets it and the server reads it.
+
+### Checking it worked
+
+Open the service's **Logs** in Render after a deploy. The server says where its data is
+and how much of it survived:
+
+```
+Data directory: /var/lib/entrepreneurs
+  accounts      3  /var/lib/entrepreneurs/accounts.json
+  matches      12  /var/lib/entrepreneurs/matches.jsonl
+  feedback      0  /var/lib/entrepreneurs/feedback.json
+```
+
+Three things to read in that block:
+
+- **Counts of zero** when you know there were more: the disk was wiped, or
+  `ENT_DATA_DIR` is not pointing at it.
+- **`CANNOT WRITE`** beside a line: the disk is not mounted where the setting says, is
+  read-only, or belongs to another user. The server will run and forget everything.
+- **A `NOTE:` about the application folder**: the data is somewhere a deploy deletes.
+  That is the free-tier situation, expected there and a mistake anywhere else.
+
+Files left over from an older version beside `server.js` are moved onto the disk
+automatically the first time the new server starts, so switching to a disk does not
+cost you the records you already have.
 
 One quirk of the free tier: if nobody has opened the link for ~15 minutes, the first
 visit takes ~30 seconds to wake up. After that it's instant. **Don't create the room
-until everyone has the page open** — a sleeping restart wipes rooms.
+until everyone has the page open** — a sleeping restart wipes rooms in progress.
 
 ---
 
@@ -254,9 +318,13 @@ these three usually travel together:
 | `server.js` | rooms, turns and syncing |
 
 If the page is newer than the rules file, a yellow bar appears at the top of the game
-saying so, naming both versions. On Render, drag the changed files into your repository
-and commit; it redeploys in a couple of minutes and your link stays the same. Restarting
-wipes any room in progress, so update between matches.
+saying so, naming both versions — and the game refuses to start on the mismatch rather
+than quietly playing by two sets of rules.
+
+On Render you do not have to keep those in step by hand: the build command in
+`render.yaml` rebuilds the pages from the rules on every deploy, so the two cannot
+disagree. Merge to `main` and it redeploys in a couple of minutes; your link stays the
+same. Restarting wipes any room in progress, so update between matches.
 
 ## Watching a game (spectators)
 

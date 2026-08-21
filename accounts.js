@@ -79,9 +79,18 @@ function load(file = DEFAULT_FILE) {
   } catch (e) {
     // No file yet is the normal first run: start with an empty store.
     if (e.code === "ENOENT") return emptyStore();
-    /* Anything else - unreadable, truncated, not JSON - must NOT be silently replaced.
-       Overwriting it would delete every account on the next save. Refuse to start and
-       let a human look at the file. */
+    /* The directory itself is unreachable - a disk that never mounted, a mount path
+       that points at a file, a folder belonging to another user. That is a hosting
+       mistake rather than a damaged store, and telling somebody to "move the file
+       aside" would send them looking for a file that is not the problem. */
+    if (e.code === "ENOTDIR" || e.code === "EACCES" || e.code === "EPERM" || e.code === "EISDIR") {
+      throw new Error(`cannot read the accounts at ${file} (${e.code}). `
+        + `The folder it lives in is not usable - check that the disk is mounted and that `
+        + `ENT_DATA_DIR points at it. Refusing to start rather than run without accounts.`);
+    }
+    /* Anything else - truncated, not JSON, the wrong shape - must NOT be silently
+       replaced. Overwriting it would delete every account on the next save. Refuse to
+       start and let a human look at the file. */
     throw new Error(`accounts file at ${file} could not be read (${e.message}). ` +
       `Move it aside if you mean to start fresh - replacing it deletes every account.`);
   }

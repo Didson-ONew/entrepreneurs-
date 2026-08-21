@@ -411,8 +411,24 @@ function rememberName(req, name) {
    and is the only thing here that is an authority. Nobody has to have an account -
    guests play exactly as before - but a name that HAS been registered can only be
    played by whoever holds its password. That is the whole point of the feature. */
-const ACCOUNTS = accounts.load();
-const FEEDBACK = feedback.load();
+/* Both stores refuse to load rather than be silently replaced, which is right - but a
+   raw stack trace at the top of a deploy log is not how to tell somebody their disk is
+   not mounted. Say it in a sentence and stop. */
+function loadOrExplain(what, fn) {
+  try { return fn(); } catch (e) {
+    console.error("");
+    console.error(`Entrepreneurs cannot start: the ${what} could not be read.`);
+    console.error(`  ${e.message}`);
+    console.error("");
+    console.error(`  Data directory: ${datadir.DIR}`);
+    console.error("  If this is a hosted server, check the disk is mounted and that");
+    console.error("  ENT_DATA_DIR points at it. See HOSTING_GUIDE.md.");
+    console.error("");
+    process.exit(1);
+  }
+}
+const ACCOUNTS = loadOrExplain("accounts", () => accounts.load());
+const FEEDBACK = loadOrExplain("playtest notes", () => feedback.load());
 const SESSION_COOKIE = "ent_session";
 
 /* Who may read what players have written in, and who is sitting in which match.
