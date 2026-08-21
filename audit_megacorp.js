@@ -1,17 +1,21 @@
 /* ============================================================================
-   Two questions about going public.
+   Going public: how often it happens, and whether getting there first decides
+   the game.
 
-   1. The IPO tile. It used to pay 5 EP for forming the first Megacorp of the
-      game. It is now a sixth company bay instead, so being first to merge no
-      longer narrows how wide you can operate. Does that make more Megacorps
-      happen - and does whoever gets there first now win too often?
+   Sixteen Megacorp tiles exist and only some are shuffled into a game. The
+   count is the dial: at (players + 1) roughly a third of seats ever formed one
+   and the first arrived in Quarter 7; at twice the players it is half the
+   seats and Quarter 6.7. This sweeps that dial against the rules as they now
+   stand.
 
-   2. How many tiles are in play. Only (players + 1) of the sixteen are
-      shuffled in, so the good combinations are contested and a table can run
-      out. What happens with twice as many?
+   Read "first to go public then won" against the 25% a seat wins by chance -
+   but read it with the control in mind. Whoever merges first is usually the
+   player who was already ahead, and the leader at that same moment wins about
+   as often whether they merge or not, so this number is far more selection
+   than cause.
 
-   Both are patched into the engine inside a sandbox; the repo file is never
-   touched.
+   The tile count is patched into the engine inside a sandbox; the repo file is
+   never touched.
 
    Run: node audit_megacorp.js [seeds]
    ========================================================================== */
@@ -30,7 +34,6 @@ const NEEDLES = {
   ipoBay: "    p.ipoTile = true;",
   hub: "    const hq = hqNetworkPlots(board);\n    return nbrs.some((n) => hq.includes(n));",
   denial: "    s += denied * 0.5;",
-  support: "  for (const p of players) { payHqRent(state, p, log); payHqSupport(state, p, log); }",
 };
 for (const [k, v] of Object.entries(NEEDLES)) {
   if (!base.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
@@ -39,11 +42,9 @@ for (const [k, v] of Object.entries(NEEDLES)) {
 /* tiles: how many are shuffled in.  hub: does a headquarters carry the network for its
    neighbours.  push: do the bots build into a leader's industry to push its price down. */
 const CASES = [
-  { name: "2n, nothing", tiles: "nPlayers * 2", hub: false, push: false, support: false },
-  { name: "2n + HQ is a hub", tiles: "nPlayers * 2", hub: true, push: false, support: false },
-  { name: "2n + HQ pays neighbours", tiles: "nPlayers * 2", hub: false, push: false, support: true },
-  { name: "2n + hub + pays", tiles: "nPlayers * 2", hub: true, push: false, support: true },
-  { name: "2n + all three", tiles: "nPlayers * 2", hub: true, push: true, support: true },
+  { name: "as it stands (2n)", tiles: "nPlayers * 2", hub: true, push: true },
+  { name: "n+1 tiles", tiles: "nPlayers + 1", hub: true, push: true },
+  { name: "all 16 tiles", tiles: "MEGACORP_TILES.length", hub: true, push: true },
 ];
 
 function engineFor(c) {
@@ -51,7 +52,6 @@ function engineFor(c) {
     `const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, ${c.tiles});`);
   if (!c.hub) logic = logic.replace(NEEDLES.hub, "    return false;");
   if (!c.push) logic = logic.replace(NEEDLES.denial, "    s += 0;");
-  if (!c.support) logic = logic.replace(NEEDLES.support, "  for (const p of players) payHqRent(state, p, log);");
   const box = {};
   const sandbox = { console, Math, Set, Object, Array, JSON, box };
   vm.createContext(sandbox);
@@ -131,7 +131,7 @@ for (const c of CASES) {
 /* ---------------------------------------------------------------- report */
 console.log("Entrepreneurs - going public: the IPO tile and how many tiles are in play");
 console.log(`${results[0].T.games} games per case, 4 seats, personas on.`);
-console.log("A four-seat game shuffles in 8 tiles at 2n, 5 at n+1.\n");
+console.log("A four-seat game shuffles in 8 tiles at 2n, 5 at n+1, 16 for all of them.\n");
 
 const cols = results.map((r) => r.c.name);
 const W = 21;
