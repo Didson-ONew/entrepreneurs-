@@ -100,7 +100,7 @@ section("B2B - one equal share each, remainder rides forward");
   const [a, b] = st.players;
   const mk = (owner, ind, level) => {
     const bp = E.BP_DATA.find((x) => x.ind === ind && x.lvl === 1);
-    const biz = { id: 900 + owner.businesses.length + owner.id * 10, bp, footprint: [], level, upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt: 1 };
+    const biz = { id: 900 + owner.businesses.length + owner.id * 10, bp, footprint: [], level, upgraded: false, distressed: false, scored: false, quarterBuilt: 1 };
     owner.businesses.push(biz);
     return biz;
   };
@@ -132,7 +132,7 @@ section("Board Meeting - going public always forms a Megacorp");
 
   // give them the cheapest tile's combination: Local Syndicate, 3 x L1
   const bp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 1);
-  for (let i = 0; i < 3; i++) a.businesses.push({ id: 800 + i, bp, footprint: [], level: 1, upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt: 1 });
+  for (let i = 0; i < 3; i++) a.businesses.push({ id: 800 + i, bp, footprint: [], level: 1, upgraded: false, distressed: false, scored: false, quarterBuilt: 1 });
   st.megacorpPool = [E.MEGACORP_TILES.find((t) => t[0] === "Local Syndicate")];
   check("now they can", E.canGoPublic(st, a) === true);
   const ok = E.claimMegacorp(st, a, () => {});
@@ -158,12 +158,12 @@ section("A headquarters keeps its share of its industry's pot");
   const plots = Object.keys(st.board.graph);
   const reBp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 1);
   const hq = { id: 700, bp: reBp, footprint: [plots[0]], levels: { [plots[0]]: 1 }, level: 1,
-    isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+    isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, quarterBuilt: 1 };
   a.businesses.push(hq);
   st.board.owner[plots[0]] = a.id;          // a monument still needs its ground
   st.board.occupiedBy[plots[0]] = hq.id;
   const rival = { id: 710, bp: reBp, footprint: [plots[9]], levels: { [plots[9]]: 1 }, level: 1,
-    upgraded: false, distressed: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+    upgraded: false, distressed: false, scored: true, quarterBuilt: 1 };
   b.businesses.push(rival);
   st.board.owner[plots[9]] = b.id;
   st.board.occupiedBy[plots[9]] = rival.id;
@@ -239,7 +239,7 @@ section("A headquarters is public infrastructure");
   const beside = E.orthOf(st.board, hub)[0];
   const reBp = E.BP_DATA.find((x) => x.ind === "MA" && x.lvl === 1);
   const hq = { id: 920, bp: reBp, footprint: [hub], levels: { [hub]: 1 }, level: 1, isHQ: true,
-    megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+    megacorpName: "T", distressed: false, upgraded: false, scored: true, quarterBuilt: 1 };
   a.businesses.push(hq);
   st.board.owner[hub] = a.id;
   st.board.occupiedBy[hub] = hq.id;
@@ -264,7 +264,7 @@ section("A headquarters banks its industry's price every quarter");
   const plots = Object.keys(st.board.graph);
   const teBp = E.BP_DATA.find((x) => x.ind === "TE" && x.lvl === 1);
   const hq = { id: 900, bp: teBp, footprint: [plots[0]], levels: { [plots[0]]: 1 }, level: 1,
-    isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+    isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, quarterBuilt: 1 };
   a.businesses.push(hq);
   st.board.owner[plots[0]] = a.id;
   st.board.occupiedBy[plots[0]] = hq.id;
@@ -292,7 +292,7 @@ section("Its owner pays the ground rent out of pocket");
   const plots = Object.keys(st.board.graph);
   const reBp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 2);
   const hq = { id: 910, bp: reBp, footprint: [plots[0]], levels: { [plots[0]]: 2 }, level: 2,
-    isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+    isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, quarterBuilt: 1 };
   a.businesses.push(hq);
   st.board.owner[plots[0]] = b.id;               // standing on somebody else's land
   st.board.occupiedBy[plots[0]] = hq.id;
@@ -320,7 +320,7 @@ section("A headquarters scores for the district that grew around it");
   const hub = plots.find((k) => E.orthOf(st.board, k).length >= 2);
   const [n1, n2] = E.orthOf(st.board, hub);
   const hq = { id: 800, bp: reBp, footprint: [hub], levels: { [hub]: 1 }, level: 1, isHQ: true,
-    megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+    megacorpName: "T", distressed: false, upgraded: false, scored: true, quarterBuilt: 1 };
   a.businesses.push(hq);
   st.board.owner[hub] = a.id;
   st.board.occupiedBy[hub] = hq.id;
@@ -329,7 +329,7 @@ section("A headquarters scores for the district that grew around it");
 
   const mk = (id, pk, distressed) => {
     const biz = { id, bp: reBp, footprint: [pk], levels: { [pk]: 1 }, level: 1, upgraded: false,
-      distressed, scored: true, epOnCard: 0, quarterBuilt: 1 };
+      distressed, scored: true, quarterBuilt: 1 };
     b.businesses.push(biz);
     st.board.owner[pk] = b.id;
     st.board.occupiedBy[pk] = biz.id;
@@ -365,7 +365,7 @@ section("Personas - Concession Holder");
     return `${c.r},${c.c}` !== `${m.r},${m.c}`;
   });
   st.board.owner[mine] = a.id;
-  const biz = { id: 600, bp: utBp, footprint: [mine], level: 1, upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt: 1 };
+  const biz = { id: 600, bp: utBp, footprint: [mine], level: 1, upgraded: false, distressed: false, scored: false, quarterBuilt: 1 };
   a.businesses.push(biz);
   const base = E.price(st.pm, "UT");
   check("+$1 above the current price, everywhere", E.unitPrice(st, a, biz) === base + 1);
@@ -488,12 +488,13 @@ section("v13: the rules that used to be variants");
   const plot = Object.keys(st.board.owner).find((k) => st.board.owner[k] === me.id);
   const bp = E.BP_DATA.find((x) => x.ind === "HC" && x.lvl === 1);
   const biz = { id: 9001, bp, footprint: [plot], level: 2, upgraded: false, distressed: false,
-    isHQ: false, scored: false, epOnCard: 0, quarterBuilt: 1 };
+    isHQ: false, scored: false, quarterBuilt: 1 };
   me.businesses.push(biz);
   st.board.occupiedBy[plot] = biz.id;
-  E.scoreCompanyOnCompletion(st, biz);
-  check("and it scores the moment it is built, not at a year end",
-    biz.epOnCard === 4 && biz.scored === true, `${biz.epOnCard} EP on the card`);
+  const bankBefore = me.epBank;
+  E.scoreCompanyOnCompletion(st, me, biz);
+  check("and it scores the moment it is built, straight into the bank",
+    me.epBank - bankBefore === 4 && biz.scored === true, `banked ${me.epBank - bankBefore} EP`);
 
   // "The Real-Estate Mogul and The Omnipresent are awarded [at every year end]"
   check("the land awards pay at every year end", E.landPayouts(st) === 3, `${E.landPayouts(st)} payouts`);

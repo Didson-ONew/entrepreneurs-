@@ -82,7 +82,8 @@ section("You may buy your own back, as it stands");
     `paid $${cashBefore - me.cash}`);
   check("it keeps its Blueprint and level", biz.bp.ind === "HC" && biz.level === 1);
   check("and it scores again for you, as a fresh build",
-    biz.epOnCard === biz.level * E.levelEP(st), `${biz.epOnCard} EP`);
+    (me.epLog || []).some((e) => String(e.label).startsWith("Company:") && e.amount === biz.level * E.levelEP(st)),
+    (me.epLog || []).filter((e) => String(e.label).startsWith("Company:")).map((e) => `+${e.amount}`).join(" "));
 }
 
 section("Or renovate it into something else");

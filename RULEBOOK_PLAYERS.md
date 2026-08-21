@@ -317,15 +317,15 @@ Every quarter ends with a new Logistic Hub being built on an empty plot. The fir
 - The Real-Estate Mogul and The Omnipresent are awarded - 5 EP each, to the outright leader only.
 - You may buy back loan discs: $30 at the end of Year 1, $35 at Year 2, $40 at Year 3.
 
-Companies do not wait for the year end. A company scores the moment it is finished - see below - so by the time a year ends its EP are already on its card. What a year end decides is who is holding the city.
+Companies do not wait for the year end. A company scores the moment it is finished - see below - so by the time a year ends its EP are already banked. What a year end decides is who is holding the city.
 
 ### Companies score on completion
 
-The moment a company is built it takes 2 EP per level, placed on its card. The moment it is upgraded, the EP already on the card vest into your bank and the company scores afresh at its new level, immediately. It is one score per build and one per upgrade - the same way entering an industry pays you the moment you build there, not at some later reckoning.
+The moment a company is built it scores 2 EP per level, straight into your bank. The moment it is upgraded it scores afresh at its new level, again straight into your bank. It is one score per build and one per upgrade - the same way entering an industry pays you the moment you build there, not at some later reckoning.
 
-So a level-2 company built and then upgraded pays 6 EP on the day it opens and 9 more on the day it grows.
+So a level-2 company built and then upgraded pays 4 EP on the day it opens and 6 more on the day it grows.
 
-EP sitting on a company's card are yours - they show in the standings immediately. They vest - move permanently into your bank - when the company is upgraded, sold, merged into a Megacorp, or at the end of the game. You never lose EP you have already scored.
+There is nothing held back and nothing to keep track of on the cards: every EP you have earned is banked, and the standings are the score. You never lose EP you have already scored - not when a company is sold, not when it goes distressed, not when it is merged into a Megacorp.
 
 ---
 

@@ -66,7 +66,7 @@ function engineFor(c) {
 function bucketOf(label) {
   const l = String(label || "");
   if (l.startsWith("Entered ")) return "industries";
-  if (l.startsWith("Vested:")) return "companies";
+  if (l.startsWith("Company:")) return "companies";
   if (l.startsWith("Megacorp brand:")) return "hq brand";
   if (l.startsWith("Megacorp district:")) return "hq district";
   if (l.startsWith("Megacorp:")) return "megacorp tiles";

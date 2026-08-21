@@ -414,7 +414,7 @@ function placeableFor(state, owner, biz) {
 }
 function sellableFrom(state, owner, bp, footprint) {
   const probe = { id: -1, bp, footprint, level: bp.lvl, upgraded: false, distressed: false,
-    isHQ: false, epOnCard: 0, scored: false, quarterBuilt: state.quarter };
+    isHQ: false, scored: false, quarterBuilt: state.quarter };
   return placeableFor(state, owner, probe);
 }
 /* The best any plot this player already owns could do for this blueprint. Returns null
@@ -918,7 +918,7 @@ const PERSONA_KEYS = Object.keys(PERSONAS);
 const hasPersona = (p, key) => !!p && p.persona === key;
 
 const ARCHETYPES = ["balanced", "rush_cheap", "upgrade_focus", "tech_heavy", "vest_rebuild"];
-const ARCHETYPE_LABEL = { balanced: "Balanced", rush_cheap: "Rush-Cheap", upgrade_focus: "Upgrade-Focus", tech_heavy: "Tech-Heavy", vest_rebuild: "Vest & Rebuild" };
+const ARCHETYPE_LABEL = { balanced: "Balanced", rush_cheap: "Rush-Cheap", upgrade_focus: "Upgrade-Focus", tech_heavy: "Tech-Heavy", vest_rebuild: "Harvest & Rebuild" };
 
 let bizIdCounter = 1;
 /* A footprint is not a flat area. A horizontal company spreads one level onto each plot
@@ -950,7 +950,7 @@ function ensureLevels(b) {
 const levelsOn = (b, plot) => ensureLevels(b)[plot] || 0;
 function newBusiness(bp, footprint, quarterBuilt) {
   return { id: bizIdCounter++, bp, footprint, levels: startingLevels(bp, footprint), level: bp.lvl,
-    upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt };
+    upgraded: false, distressed: false, scored: false, quarterBuilt };
 }
 const bizOpex = (b) => b.bp.opex * (b.upgraded ? 2 : 1);
 const bizProd = (b) => b.bp.prod * (b.upgraded ? 2 : 1);
@@ -1036,32 +1036,33 @@ function addEP(p, amount, label, quarter) {
   if (!p.epLog) p.epLog = [];
   p.epLog.push({ label, amount, quarter });
 }
-/* What a player would score if the game ended right now: banked EPs plus the
-   tokens still sitting on scored BP cards (those vest at the Grand Finale). */
+/* What a player has scored. There is nothing held back: every EP a player has earned
+   is in the bank the moment it is earned. */
 function epTotal(p) {
-  return p.epBank + p.businesses.reduce((s, b) => s + (b.epOnCard || 0), 0);
+  return p.epBank;
 }
-/* A company puts its EP on its own card the moment it is finished - built or
-   upgraded - the same way entering an industry pays the moment you build there.
-   The card is the same card either way, so it still vests when the company is
-   upgraded, sold, merged or the game ends.
+/* A company scores the moment it is finished - built or upgraded - straight into the
+   bank, the same way entering an industry pays the moment you build there.
+
+   EP used to sit on the company's card as an unvested token until the company was
+   upgraded, sold, merged or the game ended. It never changed anybody's total, because
+   the standings always counted the cards too and no path ever cleared a card without
+   vesting it first. All it added was a second pile to keep straight at the table, and
+   a question - "is that vested?" - with no consequence riding on the answer.
 
    Under "Score at the year end" this does nothing and the year end picks the
    company up instead, which is how the game worked before v13. */
-function scoreCompanyOnCompletion(state, biz) {
+function scoreCompanyOnCompletion(state, p, biz) {
   if (hasVariant(state, "classicScoring") || !biz || biz.isHQ || biz.distressed) return;
-  biz.epOnCard = biz.level * levelEP(state);
+  addEP(p, biz.level * levelEP(state), `Company: ${biz.bp.name} L${biz.level}`, state.quarter);
   biz.scored = true;
-}
-function vest(p, b, quarter) {
-  if (b.epOnCard > 0) { addEP(p, b.epOnCard, `Vested: ${b.bp.name}`, quarter); b.epOnCard = 0; }
 }
 
 function sellCompany(p, b, solvency = false) {
   let recv;
   if (solvency) recv = b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4);
   else recv = b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2);
-  p.cash += recv; b.distressed = true; vest(p, b);
+  p.cash += recv; b.distressed = true;
   return recv;
 }
 function sellBpFromHand(state, p, bp, solvency = false) {
@@ -1345,9 +1346,8 @@ function bestLaunch(state, p, archetype, buffer) {
 }
 
 /* Entering an industry you have never built in before. Paid straight away, the moment the
-   first company of that
-   type is built, rather than waiting for a year-end. It is banked immediately and can
-   never be earned twice, so it is not placed on a card and does not need vesting. */
+   first company of that type is built, rather than waiting for a year-end, and it can
+   never be earned twice. */
 function claimIndustryBonus(state, p, ind, log) {
   p.industriesScored = p.industriesScored || [];
   if (p.industriesScored.includes(ind)) return;
@@ -1368,7 +1368,7 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   footprint.forEach((plot) => (state.board.occupiedBy[plot] = biz.id));
   p.businesses.push(biz);
   p.hand = p.hand.filter((x) => x !== bp);
-  scoreCompanyOnCompletion(state, biz);
+  scoreCompanyOnCompletion(state, p, biz);
   onLaunch(state.pm, bp.ind, bp.deps.map((d) => d.ind));
   log(`${p.name} launches ${bp.name} (${bp.ind} L${bp.lvl}) for $${bp.setup} (cash: $${Math.round(p.cash)}).`, p.id);
   claimIndustryBonus(state, p, bp.ind, log);
@@ -1429,8 +1429,8 @@ function doUpgrade(state, p, b, rng, log, manualPlot) {
     levels[target] = (levels[target] || 0) + 1;
   }
   b.upgraded = true; b.level += 1;
-  vest(p, b, state.quarter); b.scored = false;
-  scoreCompanyOnCompletion(state, b);
+  b.scored = false;
+  scoreCompanyOnCompletion(state, p, b);
   log(`${p.name} upgrades ${b.bp.name} to level ${b.level} for $${bizSetup(b)} (cash: $${Math.round(p.cash)}).`, p.id);
   return true;
 }
@@ -1444,7 +1444,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "9e3e12ee";
+const ENGINE_VERSION = "c86d98ff";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1730,7 +1730,7 @@ function runClosingRest(state, log) {
   const { players, quarter } = state;
   if ([4, 8, 12].includes(quarter)) {
     for (const p of players) {
-      for (const b of activeBiz(p)) if (!b.scored) { b.epOnCard = b.level * levelEP(state); b.scored = true; }
+      for (const b of activeBiz(p)) if (!b.scored) { addEP(p, b.level * levelEP(state), `Company: ${b.bp.name} L${b.level}`, quarter); b.scored = true; }
       // Each industry pays its entry bonus once per game, the first year a company of that
       // type is active. Entering a new industry is what scores, not holding one.
       // (industry bonuses are awarded on construction, see claimIndustryBonus)
@@ -1748,7 +1748,6 @@ function runClosingRest(state, log) {
       awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", log);
     }
     log(`\u2014\u2014\u2014 Year-end scoring complete (Q${quarter}) \u2014\u2014\u2014`, null);
-    if (quarter === 12) for (const p of players) for (const b of p.businesses) vest(p, b, quarter);
     for (const p of players) if (!p.isHuman) botRepayLoans(state, p, quarter, log);
   }
 }
@@ -1872,7 +1871,6 @@ function claimMegacorp(state, p, log, hqChoice) {
   // Bots take the highest-level company; the human is asked to choose.
   const hq = hqChoice && match.have.includes(hqChoice) ? hqChoice : pickHQ(state, p, match.have);
   match.have.forEach((b) => {
-    vest(p, b, state.quarter);
     if (b === hq) return;
     b.distressed = true;
   });
@@ -1928,9 +1926,8 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   distressedBiz.level = bp.lvl;
   distressedBiz.upgraded = false;
   distressedBiz.scored = false;
-  distressedBiz.epOnCard = 0;
   distressedBiz.quarterBuilt = state.quarter;
-  scoreCompanyOnCompletion(state, distressedBiz);
+  scoreCompanyOnCompletion(state, p, distressedBiz);
   p.hand = p.hand.filter((x) => x !== bp);
   p.businesses.push(distressedBiz);
   const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
@@ -1959,9 +1956,8 @@ function doReclaim(state, p, biz, log) {
   p.cash -= cost;
   biz.distressed = false;
   biz.scored = false;          // it scores again for its new owner
-  biz.epOnCard = 0;
   biz.quarterBuilt = state.quarter;
-  scoreCompanyOnCompletion(state, biz);
+  scoreCompanyOnCompletion(state, p, biz);
   p.businesses.push(biz);
   const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
   log(`${p.name} buys the distressed ${biz.bp.name} (${bizInd(biz)} L${biz.level}) back from the bank${from} for $${cost} (cash: $${Math.round(p.cash)}).`, p.id);
@@ -2051,8 +2047,8 @@ const TRACK_HELP = {
 function megacorpWorthIt(state, p, match) {
   if (!match) return false;
   // What merging actually costs in EP is the level EP those companies had not scored yet.
-  // A company scores once, so one that has already scored owes nothing more, and merging
-  // vests what is on its card either way - that EP is safe. The HQ is no exception: it
+  // A company scores once and the EP is banked on the spot, so one that has already
+  // scored owes nothing more and nothing is taken back. The HQ is no exception: it
   // leaves activeBiz, so it never scores at a year end again.
   // Industry bonuses are banked when the company is BUILT and are never taken back, so
   // they are not at risk here \u2014 an older version of this test wrongly counted them and
@@ -3331,8 +3327,6 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
 function EPBreakdown({ hover }) {
   if (!hover || !hover.p) return null;
   const p = hover.p;
-  const onCards = p.businesses.filter((b) => (b.epOnCard || 0) > 0);
-  const onCardTotal = onCards.reduce((s, b) => s + b.epOnCard, 0);
   const log = p.epLog || [];
   const vw = typeof window !== "undefined" ? window.innerWidth : 1400;
   const vh = typeof window !== "undefined" ? window.innerHeight : 900;
@@ -3349,10 +3343,9 @@ function EPBreakdown({ hover }) {
         <span className="text-xs font-bold" style={{ color: PLAYER_COLORS[p.id] }}>{p.name}</span>
         <span className="text-xs font-bold font-mono" style={{ color: "#8fd3b6" }}>{epTotal(p).toFixed(0)} EP</span>
       </div>
-      {!log.length && !onCards.length && <div className="text-[10px] text-gray-500 italic">No points scored yet.</div>}
+      {!log.length && <div className="text-[10px] text-gray-500 italic">No points scored yet.</div>}
       {log.length > 0 && (
         <>
-          <div className="text-[9px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Banked</div>
           <div className="space-y-0.5 mb-1.5">
             {log.map((e, i) => (
               <div key={i} className="flex items-start justify-between gap-2 text-[10px]">
@@ -3365,20 +3358,6 @@ function EPBreakdown({ hover }) {
               </div>
             ))}
           </div>
-        </>
-      )}
-      {onCards.length > 0 && (
-        <>
-          <div className="text-[9px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">On cards (not yet vested)</div>
-          <div className="space-y-0.5">
-            {onCards.map((b) => (
-              <div key={b.id} className="flex items-start justify-between gap-2 text-[10px]">
-                <span className="text-gray-300 leading-tight">{b.bp.name}</span>
-                <span className="font-mono shrink-0" style={{ color: "#a5d6f3" }}>+{b.epOnCard}</span>
-              </div>
-            ))}
-          </div>
-          <div className="text-[9px] text-gray-600 mt-1">{onCardTotal} EP vest at game end, or sooner if upgraded, sold or merged.</div>
         </>
       )}
     </div></Floating>
@@ -4788,12 +4767,6 @@ function GameScreens({ online }) {
                         <span style={{ color: "#f3b0a5" }}>opex ${bizOpex(b)}</span>
                         <span className="text-gray-400">prod {bizProd(b)}</span>
                       </div>
-                      {b.epOnCard > 0 && (
-                        <div className="flex items-center gap-1 mt-1 rounded px-1 py-0.5" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
-                          <span className="text-[9px] font-bold" style={{ color: "#8fd3b6" }}>{b.epOnCard} EP</span>
-                          <span className="text-[8px] text-gray-500">on card &mdash; vests if upgraded/sold</span>
-                        </div>
-                      )}
                       {!canProd && <div className="text-[9px] text-red-400 mt-0.5">Land unowned &mdash; can't produce</div>}
                     </div>
                   );
@@ -4806,10 +4779,9 @@ function GameScreens({ online }) {
 
           <div className="side-col space-y-3">
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text="Score = 1 EP per company level, taken once at the first year end after you build or upgrade it, plus 5 EP the moment you first build in each industry (once per game). Plus endgame bonuses for most plots and most districts, $10 = 1 EP, and -5 EP per unpaid loan disc. A tie is settled by money, then by fewer loan discs. Hover a player for the full breakdown." /></div>
+              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text="Score = 2 EP per company level, banked the moment you build or upgrade it, plus 3 EP the first time you build in each industry (once per game). Plus land awards at every year end, endgame bonuses, $10 = 1 EP, and -5 EP per unpaid loan disc. A tie is settled by money, then by fewer loan discs. Hover a player for the full breakdown." /></div>
               <div className="space-y-2">
                 {[...state.players].sort((a, b) => epTotal(b) - epTotal(a)).map((p) => {
-                  const onCards = p.businesses.reduce((s2, b) => s2 + (b.epOnCard || 0), 0);
                   return (
                     <div key={p.id} className="rounded p-1.5" style={{ backgroundColor: "#1c1f26" }}
                       onMouseEnter={(e) => { const r = e.currentTarget.getBoundingClientRect(); setEpHover({ p, x: r.left, y: r.top }); }}
@@ -4824,7 +4796,6 @@ function GameScreens({ online }) {
                       </div>
                       <div className="flex items-center justify-between text-[9px] font-mono text-gray-500 mt-0.5">
                         <span>${Math.round(p.cash)} &middot; {activeBiz(p).length}biz &middot; {p.hand.length}BP &middot; {p.discsInBank}disc</span>
-                        <span>{p.epBank.toFixed(0)} banked{onCards > 0 ? ` + ${onCards} on cards` : ""}</span>
                       </div>
                       {p.persona && PERSONAS[p.persona] && (
                         <div className="text-[9px] mt-0.5" style={{ color: IND_COLOR[PERSONAS[p.persona].ind] }}

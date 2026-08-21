@@ -63,7 +63,7 @@ const BUCKETS = ["industries", "companies", "megacorps", "ipo", "land", "cash", 
 function bucketOf(label) {
   const l = String(label || "");
   if (l.startsWith("Entered ")) return "industries";
-  if (l.startsWith("Vested:")) return "companies";
+  if (l.startsWith("Company:")) return "companies";
   if (l.startsWith("Megacorp:")) return "megacorps";
   if (l === "IPO tile") return "ipo";
   if (l === "The Real-Estate Mogul" || l === "The Omnipresent") return "land";

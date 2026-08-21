@@ -29,7 +29,6 @@ const __watch = (state) => {
   for (const p of state.players) {
     if (!whole(p.cash)) bad.push(`Q${state.quarter} ${p.name} holds $${p.cash}`);
     if (!whole(p.epBank)) bad.push(`Q${state.quarter} ${p.name} has ${p.epBank} EP banked`);
-    for (const b of p.businesses) if (!whole(b.epOnCard)) bad.push(`Q${state.quarter} ${b.bp.name} carries ${b.epOnCard} EP`);
     for (const e of p.epLog || []) if (!whole(e.amount)) bad.push(`Q${state.quarter} "${e.label}" awarded ${e.amount} EP`);
   }
   for (const [ind, v] of Object.entries(state.pots || {})) if (!whole(v)) bad.push(`Q${state.quarter} the ${ind} pot holds $${v}`);
