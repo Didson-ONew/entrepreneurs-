@@ -350,6 +350,24 @@ Data directory: /var/lib/entrepreneurs
   feedback      5  /var/lib/entrepreneurs/feedback.json
 ```
 
+### On Render
+
+`render.yaml` in the repository root is the blueprint: a web service that builds with
+`npm install --include=dev && npm run build`, starts with `node server.js`, health-checks
+on `/api/presence`, and mounts a disk at `/var/lib/entrepreneurs` with `ENT_DATA_DIR`
+pointing at it. `TRUST_PROXY=1` is set because Render terminates TLS in front of the
+service and the rate limiter would otherwise see the whole internet as one address.
+
+The disk is the point of the file, and **a disk needs a paid instance type** — Render's
+free tier has no persistent storage, so on free the three stores are erased on every
+deploy and every wake from sleep. The blueprint's header comment says how to strip the
+disk out if you would rather stay on free and accept that.
+
+Building on deploy rather than trusting the committed HTML means the served pages can
+never be older than the rules the server loaded, so the mismatch the lobby warns about
+is unreachable in that setup.
+
+
 ## Playtest feedback
 
 A **Feedback** pill sits with the Rulebook and Records buttons, on every screen. Anyone
