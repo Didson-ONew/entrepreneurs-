@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 
 /* ============================================================================
@@ -290,7 +290,7 @@ function btn(bg, edge, fg) {
   };
 }
 
-export function FeedbackPanel({ admin, context, onClose }) {
+export function FeedbackPanel({ admin, context, onClose, onOpened }) {
   const [tab, setTab] = useState("write");
 
   useEffect(() => {
@@ -298,6 +298,9 @@ export function FeedbackPanel({ admin, context, onClose }) {
     window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
   }, [onClose]);
+  /* Ask the server who this is every time the panel opens, in case they signed in
+     since the page loaded. */
+  useEffect(() => { if (onOpened) onOpened(); }, [onOpened]);
 
   const tabs = admin
     ? [["write", "Write in"], ["notes", "What came in"], ["matches", "Who is playing"]]
@@ -353,17 +356,45 @@ export function FeedbackPanel({ admin, context, onClose }) {
    is the only thing that can answer it - a name typed at the join screen proves
    nothing. If there is no server at all (the single-file build opened from disk)
    the whole thing stays hidden, because there is nowhere for a note to go. */
+/* Who is looking, and what they are allowed to see.
+
+   This used to ask the server once, when the panel first mounted. The pill lives in the
+   site chrome, so it mounts as the page loads - before anybody has signed in. Sign in
+   afterwards and the answer was never asked again: the designer's own account got the
+   visitor's panel, with a box to write in and no way to read anything back.
+
+   So it asks again whenever the account changes. accountChanged() is called by the sign
+   in, register, recover and sign out paths; the tab regaining focus and the panel being
+   opened both re-ask too, which covers signing in from another tab. */
+const ACCOUNT_EVENT = "entrepreneurs:account";
+export function accountChanged() {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(ACCOUNT_EVENT));
+}
 export function useFeedbackAccess() {
-  const [access, setAccess] = useState({ ready: false, server: false, admin: false });
+  const [access, setAccess] = useState({ ready: false, server: false, admin: false, name: null });
+  const [nonce, setNonce] = useState(0);
+  const recheck = useCallback(() => setNonce((n) => n + 1), []);
   useEffect(() => {
     let stop = false;
     fetch("/api/account", { cache: "no-store", credentials: "same-origin" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no"))))
-      .then((j) => { if (!stop) setAccess({ ready: true, server: true, admin: !!j.admin }); })
-      .catch(() => { if (!stop) setAccess({ ready: true, server: false, admin: false }); });
+      .then((j) => { if (!stop) setAccess({ ready: true, server: true, admin: !!j.admin, name: (j.user && j.user.name) || null }); })
+      .catch(() => { if (!stop) setAccess({ ready: true, server: false, admin: false, name: null }); });
     return () => { stop = true; };
-  }, []);
-  return access;
+  }, [nonce]);
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const onFocus = () => { if (!document.hidden) recheck(); };
+    window.addEventListener(ACCOUNT_EVENT, recheck);
+    document.addEventListener("visibilitychange", onFocus);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.removeEventListener(ACCOUNT_EVENT, recheck);
+      document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [recheck]);
+  return { ...access, recheck };
 }
 
 export default FeedbackPanel;

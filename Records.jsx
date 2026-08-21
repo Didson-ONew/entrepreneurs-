@@ -259,10 +259,57 @@ function Empty({ text }) {
 
 const TABS = [["hof", "Hall of fame"], ["stats", "Statistics"], ["recent", "Recent games"]];
 
+/* The rules change, and a record book that spans a scoring change is not one league.
+   Every match is stamped with the engine version that played it, so the book can be
+   read one edition at a time. The newest edition is the game as it is now. */
+function Filters({ data, filter, setFilter }) {
+  if (!data) return null;
+  const eds = data.editions || [];
+  const when = (t) => new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  const control = {
+    fontSize: 11, padding: "4px 8px", borderRadius: 6, cursor: "pointer",
+    backgroundColor: INK.bg, color: INK.head, border: `1px solid ${INK.edge}`,
+  };
+  const toggle = (on) => ({
+    ...control, fontWeight: 700,
+    borderColor: on ? "#7a6a3f" : INK.edge,
+    backgroundColor: on ? INK.accentBg : "transparent",
+    color: on ? INK.accent : INK.dim,
+  });
+  const narrowed = filter.engine || filter.standard || filter.people;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+      <select value={filter.engine || ""} style={control} aria-label="Which ruleset"
+        onChange={(e) => setFilter({ ...filter, engine: e.target.value || null })}>
+        <option value="">Every ruleset ({data.total} game{data.total === 1 ? "" : "s"})</option>
+        {eds.map((ed, i) => (
+          <option key={ed.engine} value={ed.engine}>
+            {i === 0 ? "Current rules" : `Rules ${ed.engine.slice(0, 6)}`}
+            {" · "}{ed.matches} game{ed.matches === 1 ? "" : "s"}
+            {" · "}{when(ed.firstAt)}{ed.lastAt - ed.firstAt > 864e5 ? `–${when(ed.lastAt)}` : ""}
+          </option>
+        ))}
+      </select>
+      <button style={toggle(filter.standard)} title="Leave out games with optional rules switched on"
+        onClick={() => setFilter({ ...filter, standard: !filter.standard })}>Standard rules only</button>
+      <button style={toggle(filter.people)} title="Leave out solo games against bots"
+        onClick={() => setFilter({ ...filter, people: !filter.people })}>Two or more people</button>
+      {narrowed && (
+        <button style={{ ...control, color: INK.dim, border: "none" }}
+          onClick={() => setFilter({ engine: null, standard: false, people: false })}>Clear</button>
+      )}
+      <span style={{ fontSize: 10, color: INK.dim, marginLeft: "auto" }}>
+        {narrowed ? `${data.matches} of ${data.total} games` : `${data.total} game${data.total === 1 ? "" : "s"}`}
+      </span>
+    </div>
+  );
+}
+
 export function Records({ onClose }) {
   const [tab, setTab] = useState("hof");
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
+  const [filter, setFilter] = useState({ engine: null, standard: false, people: false });
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -272,12 +319,17 @@ export function Records({ onClose }) {
 
   useEffect(() => {
     let stop = false;
-    fetch("/api/stats", { cache: "no-store" })
+    const q = new URLSearchParams();
+    if (filter.engine) q.set("engine", filter.engine);
+    if (filter.standard) q.set("standard", "1");
+    if (filter.people) q.set("people", "1");
+    const qs = q.toString();
+    fetch(`/api/stats${qs ? `?${qs}` : ""}`, { cache: "no-store" })
       .then((r) => { if (!r.ok) throw new Error("no records endpoint"); return r.json(); })
       .then((j) => { if (!stop) setData(j); })
       .catch(() => { if (!stop) setErr("These records live on the game server, so they are only here when you are playing online."); });
     return () => { stop = true; };
-  }, []);
+  }, [filter]);
 
   return (
     <Portal>
@@ -294,7 +346,10 @@ export function Records({ onClose }) {
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: INK.head, letterSpacing: -0.2 }}>Records</div>
             <div style={{ fontSize: 10, color: INK.dim }}>
-              {data ? `${data.matches} game${data.matches === 1 ? "" : "s"} recorded` : " "}
+              {data
+                ? `${data.total} game${data.total === 1 ? "" : "s"} recorded, across `
+                  + `${(data.editions || []).length} ruleset${(data.editions || []).length === 1 ? "" : "s"}`
+                : " "}
             </div>
           </div>
           <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
@@ -314,9 +369,13 @@ export function Records({ onClose }) {
         <div style={{ flex: 1, overflowY: "auto", padding: "14px 18px 40px" }}>
           {err && <Empty text={err} />}
           {!err && !data && <Empty text="Reading the record book…" />}
-          {!err && data && tab === "hof" && <HallOfFame data={data} />}
-          {!err && data && tab === "stats" && <Statistics data={data} />}
-          {!err && data && tab === "recent" && <Recent data={data} />}
+          {!err && data && <Filters data={data} filter={filter} setFilter={setFilter} />}
+          {!err && data && data.matches === 0 && (
+            <Empty text="No games in the book match that. Widen the filter, or clear it." />
+          )}
+          {!err && data && data.matches > 0 && tab === "hof" && <HallOfFame data={data} />}
+          {!err && data && data.matches > 0 && tab === "stats" && <Statistics data={data} />}
+          {!err && data && data.matches > 0 && tab === "recent" && <Recent data={data} />}
         </div>
       </div>
     </Portal>

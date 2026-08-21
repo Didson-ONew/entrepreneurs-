@@ -315,7 +315,8 @@ export default function SiteChrome({ table }) {
       {open === "rules" && <Rulebook onClose={() => setOpen(null)} />}
       {open === "records" && <Records onClose={() => setOpen(null)} />}
       {open === "feedback" && (
-        <FeedbackPanel admin={access.admin} context={table || {}} onClose={() => setOpen(null)} />
+        <FeedbackPanel admin={access.admin} context={table || {}}
+          onOpened={access.recheck} onClose={() => setOpen(null)} />
       )}
     </>
   );

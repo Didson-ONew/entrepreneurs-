@@ -16,7 +16,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-const DEFAULT_FILE = process.env.FEEDBACK_FILE || path.join(__dirname, "feedback.json");
+const DEFAULT_FILE = require("./datadir.js").resolve("feedback.json", "FEEDBACK_FILE");
 
 /* What a note can be. Anything else is refused rather than coerced, so the list
    stays worth filtering by. */

@@ -13,7 +13,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-const DEFAULT_FILE = process.env.MATCHES_FILE || path.join(__dirname, "matches.jsonl");
+const DEFAULT_FILE = require("./datadir.js").resolve("matches.jsonl", "MATCHES_FILE");
 
 /* ---------- who a player is ----------
    There are no accounts, so a player is the name they typed. Trimmed, collapsed
@@ -199,10 +199,48 @@ function nickStatus(matches, name, pid) {
   return { name: clean, taken: others > 0, mine: !!pid && holders.has(pid), others };
 }
 
-function summarise(matches, PERSONAS = {}) {
-  const finished = matches.filter((m) => m && Array.isArray(m.players));
+/* Which rulesets the record book actually contains, newest first.
+
+   Every record carries the ENGINE_VERSION that played it, which changes whenever a
+   rule changes. That makes the record book a stack of editions rather than one long
+   run, and comparing a score across a scoring change is comparing two games. This is
+   what lets the reader ask for one edition at a time. */
+function editions(matches) {
+  const by = new Map();
+  for (const m of matches) {
+    if (!m || !Array.isArray(m.players)) continue;
+    const key = m.engine || "unknown";
+    const e = by.get(key) || { engine: key, matches: 0, firstAt: m.at, lastAt: m.at };
+    e.matches += 1;
+    if (m.at < e.firstAt) e.firstAt = m.at;
+    if (m.at > e.lastAt) e.lastAt = m.at;
+    by.set(key, e);
+  }
+  return [...by.values()].sort((a, b) => b.lastAt - a.lastAt);
+}
+
+/* Narrow the record book before summarising it.
+
+     engine    only games played on one ruleset
+     standard  only games with no optional rules switched on
+     people    only games with a human at the table, and more than one of them
+
+   An unknown filter matches nothing rather than everything: a filter that silently
+   does not apply is worse than an empty table, because the numbers still look real. */
+function selectMatches(matches, filter = {}) {
+  let out = matches.filter((m) => m && Array.isArray(m.players));
+  if (filter.engine) out = out.filter((m) => (m.engine || "unknown") === filter.engine);
+  if (filter.standard) out = out.filter((m) => !(m.variants || []).length);
+  if (filter.people) out = out.filter((m) => (m.humans || 0) > 1);
+  return out;
+}
+
+function summarise(matches, PERSONAS = {}, filter = {}) {
+  const finished = selectMatches(matches, filter);
   if (!finished.length) {
-    return { matches: 0, hallOfFame: [], summary: null, recent: [], industries: [], personas: [], epSources: [] };
+    return { matches: 0, total: matches.filter((m) => m && Array.isArray(m.players)).length,
+      editions: editions(matches), filter, hallOfFame: [], summary: null, recent: [],
+      industries: [], personas: [], epSources: [] };
   }
 
   const humanScores = [];
@@ -269,6 +307,10 @@ function summarise(matches, PERSONAS = {}) {
 
   return {
     matches: finished.length,
+    /* how many the book holds in total, so a filter can say "12 of 340" */
+    total: matches.filter((m) => m && Array.isArray(m.players)).length,
+    editions: editions(matches),
+    filter,
     hallOfFame: hallOfFame(finished),
     summary: {
       matches: finished.length,
@@ -291,4 +333,4 @@ function summarise(matches, PERSONAS = {}) {
 }
 
 module.exports = { buildRecord, append, load, summarise, hallOfFame, epBucket, nameKey, cleanName,
-  nameHolders, nickStatus, BUCKETS, DEFAULT_FILE };
+  nameHolders, nickStatus, editions, selectMatches, BUCKETS, DEFAULT_FILE };

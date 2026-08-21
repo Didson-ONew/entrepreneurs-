@@ -64,7 +64,7 @@ function buildOne(seed, ind, lvl, persona, neighbour) {
   const me = E.byId(st, 0);
   if (persona) me.persona = persona;
   /* A connected run of plots to build on. Not the whole board: owning a plot costs a
-     disc, and ten discs is the whole point of the disc rule. */
+     disc, and the disc limit is the whole point of the disc rule. */
   const run = connectedRun(st, 3);
   if (!run) return null;
   run.forEach((k) => { st.board.owner[k] = me.id; });

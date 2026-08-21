@@ -10,6 +10,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const vm = require("vm");
+const datadir = require("./datadir.js");
 const matchlog = require("./matchlog.js");
 const accounts = require("./accounts.js");
 const feedback = require("./feedback.js");
@@ -52,7 +53,8 @@ function encodeState(st) {
 
 /* ---------- rooms ---------- */
 /* Every match ever recorded, read once at boot and appended to as games end.
-   Summarising is pure, so the answer is cached until the next match lands. */
+   Summarising is pure, so each answer is cached - keyed on the filter that asked
+   for it - until the next match lands and empties the lot. */
 const MATCHES = matchlog.load();
 let STATS_CACHE = null;
 
@@ -796,9 +798,21 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (p === "/api/stats") {
-    if (!STATS_CACHE) STATS_CACHE = matchlog.summarise(MATCHES, E.PERSONAS);
+    /* The record book spans every ruleset the game has ever had, and a scoring change
+       makes two editions' numbers incomparable. So it can be asked for one edition at a
+       time, for standard-rules games only, or for games with more than one person at
+       the table. Each answer is cached under the question that produced it. */
+    const q = url.searchParams;
+    const filter = {
+      engine: q.get("engine") || null,
+      standard: q.get("standard") === "1",
+      people: q.get("people") === "1",
+    };
+    const key = `${filter.engine || "*"}|${filter.standard ? "s" : ""}|${filter.people ? "p" : ""}`;
+    if (!STATS_CACHE) STATS_CACHE = new Map();
+    if (!STATS_CACHE.has(key)) STATS_CACHE.set(key, matchlog.summarise(MATCHES, E.PERSONAS, filter));
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
-    return res.end(JSON.stringify(STATS_CACHE));
+    return res.end(JSON.stringify(STATS_CACHE.get(key)));
   }
 
   if (p === "/api/create" && req.method === "POST") {
@@ -1079,5 +1093,14 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`Entrepreneurs server on http://localhost:${PORT}`);
   console.log(`Rules engine ${E.ENGINE_VERSION} (loaded from EntrepreneursGame.jsx)`);
-  console.log(`Accounts: ${ACCOUNTS.users.length} registered - ${mailer.describe(MAIL)}`);
+  console.log(`Mail: ${mailer.describe(MAIL)}`);
+  console.log(`Admins: ${[...ADMINS].join(", ") || "(none)"} - set ENT_ADMINS to change`);
+  console.log("");
+  /* Say what survived the last restart. An empty store here is the only warning
+     anybody gets before a player discovers their account is gone. */
+  datadir.report({
+    accounts: [accounts.DEFAULT_FILE, ACCOUNTS.users.length],
+    matches: [matchlog.DEFAULT_FILE, MATCHES.length],
+    feedback: [feedback.DEFAULT_FILE, (FEEDBACK.entries || []).length],
+  });
 });

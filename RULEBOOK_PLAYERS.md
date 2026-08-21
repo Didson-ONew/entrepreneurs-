@@ -4,7 +4,7 @@
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
-3. [Your ten discs](#discs)
+3. [Your twelve discs](#discs)
 4. [A quarter, step by step](#quarter)
 5. [Planning: placing workers](#planning)
 6. [The actions](#actions)
@@ -63,7 +63,7 @@ Starting Blueprints are drafted in reverse seat order - the LAST seat picks firs
 
 ### The rest
 
-- Ten discs each. Nothing else marks what you own.
+- Twelve discs each. Nothing else marks what you own.
 - Megacorp tiles: sixteen exist, and twice the number of players are shuffled into the game.
 - Personas are dealt to everyone by default - one each, drawn from six. Leave them out for a first game if you like.
 
@@ -71,9 +71,9 @@ Starting Blueprints are drafted in reverse seat order - the LAST seat picks firs
 
 <a id="discs"></a>
 
-## Your ten discs
+## Your twelve discs
 
-Your discs are your entire footprint in the world. You have ten, and every one of them is committed somewhere:
+Your discs are your entire footprint in the world. You have twelve, and every one of them is committed somewhere:
 
 - one disc on each plot of land you own,
 - one disc on each active company you run,
