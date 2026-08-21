@@ -10,3 +10,8 @@ matches.jsonl
 # This must never be committed - it is the one file here that is a secret.
 accounts.json
 accounts.json.tmp
+
+# playtest notes: they name players and say what they were doing. Not a secret in
+# the way accounts.json is, but it is other people's words and not source.
+feedback.json
+feedback.json.tmp

@@ -87,7 +87,8 @@ in a shared folder or a public repository. On free hosting with a temporary disk
 it on the same persistent disk as the records:
 
 ```bash
-MATCHES_FILE=/data/matches.jsonl ACCOUNTS_FILE=/data/accounts.json node server.js
+MATCHES_FILE=/data/matches.jsonl ACCOUNTS_FILE=/data/accounts.json \
+  FEEDBACK_FILE=/data/feedback.json ENT_ADMINS=Dids,Didson node server.js
 ```
 
 **2. "Forgot my password" needs a way to send email**, and a game server has no mail

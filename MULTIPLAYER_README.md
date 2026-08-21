@@ -314,6 +314,39 @@ join rooms under any unregistered name, and nothing about the game changes.
   Without it that header is ignored, since otherwise anyone could forge it and walk
   past the rate limit.
 
+## Playtest feedback
+
+A **Feedback** pill sits with the Rulebook and Records buttons, on every screen. Anyone
+can open it and send an idea, report something that went wrong, or score a session out
+of five — no account needed, because the friend who sat down for one game and never
+registered is exactly whose opinion is worth having. Each note is stamped server-side
+with the room, the quarter and the **rules version** it was written under, so it still
+makes sense a month later.
+
+Notes land in `feedback.json`, written `0600` like `accounts.json` and refusing to be
+silently replaced if it cannot be parsed. `FEEDBACK_FILE=/some/path` moves it.
+
+### Reading them
+
+Sign in as an account named in **`ENT_ADMINS`** (a comma-separated list, defaulting to
+`Dids,Didson`) and the pill becomes **Playtest**, with two more tabs:
+
+- **What came in** — every note, newest first, filterable by kind, with an average of
+  the session scores. A note from a signed-in player is marked with a tick, so it is
+  clear which ones are attributable and which came from a typed nickname.
+- **Who is playing** — every table right now, refreshing itself, with the human players
+  named seat by seat and bots marked as bots. A player who dropped out and was taken
+  over shows as a bot under the name they sat down as.
+
+Both are refused with a 403 to everyone else, including signed-in players who are not
+admins. Being an admin needs the account *signed in* — typing the name at the join
+screen proves nothing. It is a list of names rather than a flag on the account on
+purpose: this is one person's playtest, not a permissions system.
+
+```bash
+ENT_ADMINS=Dids,Didson FEEDBACK_FILE=/data/feedback.json node server.js
+```
+
 ### Sending the reset email
 
 This is the one part a game server cannot do by itself — it needs a mail account, and

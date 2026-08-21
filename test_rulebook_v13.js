@@ -17,12 +17,16 @@ function loadEngine() {
   vm.createContext(sandbox);
   vm.runInContext(logic + `
     box.exports = { initGame, mulberry32, makePriceMatrix, price, onLaunch, runB2B,
-      runMegacorpSyphon, claimMegacorp, canGoPublic, bestMegacorpMatch, activeBiz,
+      claimMegacorp, canGoPublic, bestMegacorpMatch, activeBiz, megacorpHQs, companySlotsFor,
+      runMegacorpDividend, price, businessCanProduce, payHqRent, hqRentDue,
+      plotHasLH, lhDistricts, hqNetworkPlots,
+      hqNeighbours, MEGACORP_NEIGHBOUR_EP, runB2B, finalizeGame, epTotal, orthOf,
       companySlotsUsed, canLaunchMore, discsUsed, discsFree, finalRank, unitPrice,
       renovationEligible, bizInd,
       byId, BP_DATA, MEGACORP_TILES, STARTING, INDUSTRIES, BASE_PRICE, SCALING,
       LOAN_REPAY_RATE, BP_SELL_PRICE, DISCS_PER_PLAYER, COMPANY_SLOTS, PERSONAS,
-      levelEP, landPayouts, VARIANT_KEYS, scoreCompanyOnCompletion, runClosingRest };
+      levelEP, landPayouts, VARIANT_KEYS, scoreCompanyOnCompletion, runClosingRest,
+      INDUSTRY_DEBUT_EP, LAND_AWARD, awardRanked, claimIndustryBonus, finalizeGame };
   `, sandbox);
   return box.exports;
 }
@@ -133,8 +137,12 @@ section("Board Meeting - going public always forms a Megacorp");
   check("now they can", E.canGoPublic(st, a) === true);
   const ok = E.claimMegacorp(st, a, () => {});
   check("the merge happens", ok === true);
-  check("the first Megacorp of the game also takes the IPO tile (+5 EP)",
-    st.ipoTileClaimed === true && a.epBank === 8 + 5, `banked ${a.epBank} EP`);
+  check("the first Megacorp of the game also takes the IPO tile",
+    st.ipoTileClaimed === true && st.ipoOwner === a.id);
+  check("which is a sixth company bay, not points",
+    a.ipoTile === true && a.epBank === 8, `banked ${a.epBank} EP`);
+  check("so going public first does not narrow how wide they can operate",
+    E.companySlotsFor(a) === 6, `${E.companySlotsFor(a)} bays`);
   check("one company survives as the headquarters", a.businesses.filter((x) => x.isHQ).length === 1);
   check("the rest go distressed", a.businesses.filter((x) => x.distressed).length === 2);
   check("the headquarters stops trading", E.activeBiz(a).length === 0);
@@ -142,30 +150,206 @@ section("Board Meeting - going public always forms a Megacorp");
   check("and it still holds its disc", E.discsUsed(st, a) === 1);
 }
 
-/* --------------------------------------------------------- Megacorp siphon */
-section("Megacorp - $5 from every industry it touches, not every neighbour");
+/* ------------------------------------------------------- Megacorp headquarters */
+section("A headquarters keeps its share of its industry's pot");
 {
   const st = E.initGame(0, 13, ["A", "B"], undefined, false);
   const [a, b] = st.players;
   const plots = Object.keys(st.board.graph);
-  // find a plot with two neighbours, and put two RE companies on them
-  const hub = plots.find((k) => [...st.board.graph[k]].length >= 2);
-  const [n1, n2] = [...st.board.graph[hub]];
   const reBp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 1);
-  const hq = { id: 700, bp: reBp, footprint: [hub], level: 1, isHQ: true, megacorpName: "T", distressed: false, epOnCard: 0, quarterBuilt: 1 };
+  const hq = { id: 700, bp: reBp, footprint: [plots[0]], levels: { [plots[0]]: 1 }, level: 1,
+    isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
   a.businesses.push(hq);
-  [n1, n2].forEach((pk, i) => {
-    const biz = { id: 710 + i, bp: reBp, footprint: [pk], level: 1, upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt: 1 };
-    b.businesses.push(biz);
-    st.board.occupiedBy[pk] = biz.id;
-  });
-  st.board.occupiedBy[hub] = hq.id;
+  st.board.owner[plots[0]] = a.id;          // a monument still needs its ground
+  st.board.occupiedBy[plots[0]] = hq.id;
+  const rival = { id: 710, bp: reBp, footprint: [plots[9]], levels: { [plots[9]]: 1 }, level: 1,
+    upgraded: false, distressed: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+  b.businesses.push(rival);
+  st.board.owner[plots[9]] = b.id;
+  st.board.occupiedBy[plots[9]] = rival.id;
+
   st.pots = Object.fromEntries(E.INDUSTRIES.map((i) => [i, 0]));
   st.pots.RE = 20;
-  a.cash = 0;
-  E.runMegacorpSyphon(st, () => {});
-  check("two Retail neighbours are still one Retail pot, tapped once", a.cash === 5, `took $${a.cash}`);
-  check("the pot loses exactly $5", st.pots.RE === 15);
+  a.cash = 0; b.cash = 0;
+  E.runB2B(st, () => {});
+  check("the headquarters draws an equal share even though it trades nothing",
+    a.cash === 10, `HQ took $${a.cash}`);
+  check("and the company that is still trading draws the same", b.cash === 10, `$${b.cash}`);
+  check("the pot is emptied cleanly", st.pots.RE === 0, `$${st.pots.RE} left`);
+}
+
+section("What the scoreboard pays");
+{
+  const st = E.initGame(0, 51, ["A", "B", "C"], undefined, false);
+  check("a company level is worth 2 EP", E.levelEP(st) === 2);
+  check("entering an industry is worth 3 EP", E.INDUSTRY_DEBUT_EP === 3,
+    `${E.INDUSTRY_DEBUT_EP} EP`);
+  check("so breadth is worth about a level-2 company, not five levels",
+    E.INDUSTRY_DEBUT_EP < 2 * E.levelEP(st) + 1);
+
+  const [a] = st.players;
+  const before = a.epBank;
+  E.claimIndustryBonus(st, a, "TE", () => {});
+  check("and it is banked at once", a.epBank - before === 3, `+${a.epBank - before} EP`);
+  E.claimIndustryBonus(st, a, "TE", () => {});
+  check("once per industry, ever", a.epBank - before === 3, `+${a.epBank - before} EP`);
+}
+
+section("A land award goes to the leader alone, and a draw pays badly");
+{
+  const st = E.initGame(0, 53, ["A", "B", "C"], undefined, false);
+  const [a, b, c] = st.players;
+  check("5 EP outright, 2 each for two, 1 each for three or more",
+    E.LAND_AWARD.sole === 5 && E.LAND_AWARD.two === 2 && E.LAND_AWARD.many === 1);
+
+  const holdings = new Map();
+  const run = (label) => {
+    st.players.forEach((p) => { p.epBank = 0; p.epLog = []; });
+    E.awardRanked(st, (p) => holdings.get(p.id) || 0, label, null);
+    return st.players.map((p) => p.epBank);
+  };
+
+  holdings.set(a.id, 5); holdings.set(b.id, 3); holdings.set(c.id, 1);
+  check("an outright leader takes 5, and second takes nothing",
+    JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([5, 0, 0]),
+    run("The Real-Estate Mogul").join(","));
+
+  holdings.set(b.id, 5);
+  check("two tied for the lead take 2 each",
+    JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([2, 2, 0]),
+    run("The Real-Estate Mogul").join(","));
+
+  holdings.set(c.id, 5);
+  check("three or more take 1 each",
+    JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([1, 1, 1]),
+    run("The Real-Estate Mogul").join(","));
+
+  holdings.set(a.id, 0); holdings.set(b.id, 0); holdings.set(c.id, 0);
+  check("nobody holding anything is awarded nothing",
+    JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([0, 0, 0]));
+}
+
+section("A headquarters is public infrastructure");
+{
+  const st = E.initGame(0, 41, ["A", "B"], undefined, false);
+  const [a, b] = st.players;
+  st.board.lhOnPlots = true;                     // hubs stand on plots under v13
+  const plots = Object.keys(st.board.graph);
+  const hub = plots.find((k) => E.orthOf(st.board, k).length >= 1);
+  const beside = E.orthOf(st.board, hub)[0];
+  const reBp = E.BP_DATA.find((x) => x.ind === "MA" && x.lvl === 1);
+  const hq = { id: 920, bp: reBp, footprint: [hub], levels: { [hub]: 1 }, level: 1, isHQ: true,
+    megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+  a.businesses.push(hq);
+  st.board.owner[hub] = a.id;
+  st.board.occupiedBy[hub] = hq.id;
+
+  check("nothing is on the network before the headquarters counts",
+    E.plotHasLH(st.board, beside) === false);
+  st.board.hqFootprints = [[hub]];
+  check("a plot beside a headquarters is on the network",
+    E.plotHasLH(st.board, beside) === true);
+  check("and the district it stands in is reachable from the network",
+    E.lhDistricts(st.board).size > 0, `${E.lhDistricts(st.board).size} district(s)`);
+
+  delete st.board.owner[hub];
+  check("sell the ground and it stops being a hub too",
+    E.plotHasLH(st.board, beside) === false);
+}
+
+section("A headquarters banks its industry's price every quarter");
+{
+  const st = E.initGame(0, 31, ["A", "B"], undefined, false);
+  const a = st.players[0];
+  const plots = Object.keys(st.board.graph);
+  const teBp = E.BP_DATA.find((x) => x.ind === "TE" && x.lvl === 1);
+  const hq = { id: 900, bp: teBp, footprint: [plots[0]], levels: { [plots[0]]: 1 }, level: 1,
+    isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+  a.businesses.push(hq);
+  st.board.owner[plots[0]] = a.id;
+  st.board.occupiedBy[plots[0]] = hq.id;
+
+  const px = E.price(st.pm, "TE");
+  const before = a.epBank;
+  E.runMegacorpDividend(st, () => {});
+  check(`it banks ${px} EP, which is what a unit of Technology sells for`,
+    a.epBank - before === px, `+${a.epBank - before} EP at $${px}`);
+
+  /* Sell the ground and the monument goes quiet. */
+  delete st.board.owner[plots[0]];
+  const before2 = a.epBank;
+  E.runMegacorpDividend(st, () => {});
+  check("with the land sold out from under it, it banks nothing",
+    a.epBank === before2, `+${a.epBank - before2} EP`);
+  check("and it draws no pot share either",
+    E.businessCanProduce(st, hq) === false);
+}
+
+section("Its owner pays the ground rent out of pocket");
+{
+  const st = E.initGame(0, 33, ["A", "B"], undefined, false);
+  const [a, b] = st.players;
+  const plots = Object.keys(st.board.graph);
+  const reBp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 2);
+  const hq = { id: 910, bp: reBp, footprint: [plots[0]], levels: { [plots[0]]: 2 }, level: 2,
+    isHQ: true, megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+  a.businesses.push(hq);
+  st.board.owner[plots[0]] = b.id;               // standing on somebody else's land
+  st.board.occupiedBy[plots[0]] = hq.id;
+
+  check("the bill is $3 for every level standing there", E.hqRentDue(st, a) === 6, `$${E.hqRentDue(st, a)}`);
+  a.cash = 50; b.cash = 0;
+  E.payHqRent(st, a, () => {});
+  check("the owner pays it and the landlord collects it",
+    a.cash === 44 && b.cash === 6, `owner $${a.cash}, landlord $${b.cash}`);
+
+  st.board.owner[plots[0]] = a.id;               // now it is their own land
+  check("on your own land nothing moves", E.hqRentDue(st, a) === 0);
+  a.cash = 50;
+  E.payHqRent(st, a, () => {});
+  check("and no money changes hands", a.cash === 50, `$${a.cash}`);
+}
+
+section("A headquarters scores for the district that grew around it");
+{
+  const st = E.initGame(0, 21, ["A", "B"], undefined, false);
+  const [a, b] = st.players;
+  const plots = Object.keys(st.board.graph);
+  const reBp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 1);
+  /* a plot with at least two ORTHOGONAL neighbours, so we can build beside it */
+  const hub = plots.find((k) => E.orthOf(st.board, k).length >= 2);
+  const [n1, n2] = E.orthOf(st.board, hub);
+  const hq = { id: 800, bp: reBp, footprint: [hub], levels: { [hub]: 1 }, level: 1, isHQ: true,
+    megacorpName: "T", distressed: false, upgraded: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
+  a.businesses.push(hq);
+  st.board.owner[hub] = a.id;
+  st.board.occupiedBy[hub] = hq.id;
+
+  check("an isolated headquarters counts nothing", E.hqNeighbours(st, hq) === 0);
+
+  const mk = (id, pk, distressed) => {
+    const biz = { id, bp: reBp, footprint: [pk], levels: { [pk]: 1 }, level: 1, upgraded: false,
+      distressed, scored: true, epOnCard: 0, quarterBuilt: 1 };
+    b.businesses.push(biz);
+    st.board.owner[pk] = b.id;
+    st.board.occupiedBy[pk] = biz.id;
+    return biz;
+  };
+  mk(810, n1, false);
+  check("one company beside it counts one", E.hqNeighbours(st, hq) === 1);
+  mk(811, n2, true);
+  check("a distressed shell belongs to the bank and does not count",
+    E.hqNeighbours(st, hq) === 1, `counted ${E.hqNeighbours(st, hq)}`);
+
+  const before = E.epTotal(a);
+  E.finalizeGame(st);
+  const gained = E.epTotal(a) - before;
+  const districtEP = (a.epLog || []).filter((e) => String(e.label).startsWith("Megacorp district"))
+    .reduce((s2, e) => s2 + e.amount, 0);
+  check(`it scores ${E.MEGACORP_NEIGHBOUR_EP} EP for that one neighbour`,
+    districtEP === E.MEGACORP_NEIGHBOUR_EP, `${districtEP} EP`);
+  check("which is one company level's worth, so the number reads like the rest of the board",
+    E.MEGACORP_NEIGHBOUR_EP === 3);
 }
 
 /* ------------------------------------------------------------- persona: UT */
@@ -297,8 +481,8 @@ section("v13: the rules that used to be variants");
   check("every optional rule is off by default", E.VARIANT_KEYS.every((k) => st.variants[k] === false),
     E.VARIANT_KEYS.join(", "));
 
-  // "The moment a company is built it takes 3 EP per level, placed on its card."
-  check("a company level is worth 3 EP", E.levelEP(st) === 3);
+  // "The moment a company is built it takes 2 EP per level, placed on its card."
+  check("a company level is worth 2 EP", E.levelEP(st) === 2);
   const me = E.byId(st, 0);
   Object.keys(st.board.graph).slice(0, 4).forEach((k) => { st.board.owner[k] = me.id; });
   const plot = Object.keys(st.board.owner).find((k) => st.board.owner[k] === me.id);
@@ -309,7 +493,7 @@ section("v13: the rules that used to be variants");
   st.board.occupiedBy[plot] = biz.id;
   E.scoreCompanyOnCompletion(st, biz);
   check("and it scores the moment it is built, not at a year end",
-    biz.epOnCard === 6 && biz.scored === true, `${biz.epOnCard} EP on the card`);
+    biz.epOnCard === 4 && biz.scored === true, `${biz.epOnCard} EP on the card`);
 
   // "The Real-Estate Mogul and The Omnipresent are awarded [at every year end]"
   check("the land awards pay at every year end", E.landPayouts(st) === 3, `${E.landPayouts(st)} payouts`);

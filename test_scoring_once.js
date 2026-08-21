@@ -1,6 +1,6 @@
 /* A company scores ONCE per build and once per upgrade - never once per year.
 
-   Standard rules (v13): the moment it is finished. Building pays 3 EP per level onto
+   Standard rules (v13): the moment it is finished. Building pays 2 EP per level onto
    its card; upgrading vests what is on the card into the bank and scores it afresh at
    the new level, immediately.
 
@@ -76,16 +76,16 @@ section("Standard rules - a company scores the moment it is built");
   const p = st.players[0];
   giveLand(st, p);
   const biz = plant(st, p, "HC", freePlot(st, p), 2);
-  check("a level is worth 3 EP", E.levelEP(st) === 3);
-  check("building puts 6 EP on the card at once", biz.epOnCard === 6 && biz.scored === true, `${biz.epOnCard} EP`);
+  check("a level is worth 2 EP", E.levelEP(st) === 2);
+  check("building puts 4 EP on the card at once", biz.epOnCard === 4 && biz.scored === true, `${biz.epOnCard} EP`);
 
   closeYear(st, 4);
-  check("the year end finds it already scored and leaves it", biz.epOnCard === 6, `${biz.epOnCard} EP`);
+  check("the year end finds it already scored and leaves it", biz.epOnCard === 4, `${biz.epOnCard} EP`);
   closeYear(st, 8);
-  check("so does the next one - this is not an income", biz.epOnCard === 6, `${biz.epOnCard} EP`);
+  check("so does the next one - this is not an income", biz.epOnCard === 4, `${biz.epOnCard} EP`);
 
   closeYear(st, 12);
-  check("6 EP for the whole game, and no more", fromCompanies(p) === 6, `${fromCompanies(p)} EP`);
+  check("4 EP for the whole game, and no more", fromCompanies(p) === 4, `${fromCompanies(p)} EP`);
   check("and the end of the game vests the card into the bank", biz.epOnCard === 0);
 }
 
@@ -95,19 +95,19 @@ section("Upgrading scores again, on the spot");
   const p = st.players[0];
   giveLand(st, p);
   const biz = plant(st, p, "HC", freePlot(st, p), 1);   // vertical scaling: an upgrade needs no new plot
-  check("it scores 3 for level 1, immediately", biz.epOnCard === 3);
+  check("it scores 2 for level 1, immediately", biz.epOnCard === 2);
 
   const bankBefore = p.epBank;
   st.quarter = 5;
   p.cash = 500;
   const ok = E.doUpgrade(st, p, biz, quiet, E.mulberry32(3));
   check("the upgrade went through", ok === true && biz.level === 2, `level ${biz.level}`);
-  check("the old EP vested into the bank", p.epBank === bankBefore + 3, `bank +${p.epBank - bankBefore}`);
-  check("and the new level is on the card at once", biz.epOnCard === 6 && biz.scored === true, `${biz.epOnCard} EP`);
+  check("the old EP vested into the bank", p.epBank === bankBefore + 2, `bank +${p.epBank - bankBefore}`);
+  check("and the new level is on the card at once", biz.epOnCard === 4 && biz.scored === true, `${biz.epOnCard} EP`);
 
   closeYear(st, 8);
-  check("the year end adds nothing", biz.epOnCard === 6, `${biz.epOnCard} EP`);
-  check("the company has paid 3 + 6, not 3 a year", fromCompanies(p) === 9, `${fromCompanies(p)}`);
+  check("the year end adds nothing", biz.epOnCard === 4, `${biz.epOnCard} EP`);
+  check("the company has paid 2 + 4, not 2 a year", fromCompanies(p) === 6, `${fromCompanies(p)}`);
 }
 
 /* ------------------------------------------------- the older way, as a variant */
@@ -120,9 +120,9 @@ section("Score at the year end - the same one score, only later");
   check("nothing is on the card yet", biz.epOnCard === 0 && biz.scored === false);
 
   closeYear(st, 4);
-  check("the year end scores it", biz.epOnCard === 6 && biz.scored === true, `${biz.epOnCard} EP`);
+  check("the year end scores it", biz.epOnCard === 4 && biz.scored === true, `${biz.epOnCard} EP`);
   closeYear(st, 8);
-  check("and the next one leaves it alone", biz.epOnCard === 6, `${biz.epOnCard} EP`);
+  check("and the next one leaves it alone", biz.epOnCard === 4, `${biz.epOnCard} EP`);
 
   const vestedBefore = fromCompanies(p);
   st.quarter = 9;
@@ -131,17 +131,17 @@ section("Score at the year end - the same one score, only later");
   check("upgrading vests the old level", fromCompanies(p) === vestedBefore, `${fromCompanies(p)}`);
   check("but the card waits for the year end again", biz.epOnCard === 0 && biz.scored === false);
   closeYear(st, 12);
-  check("the company has paid 6 + 9", fromCompanies(p) === 15, `${fromCompanies(p)}`);
+  check("the company has paid 4 + 6", fromCompanies(p) === 10, `${fromCompanies(p)}`);
 }
 
 section("Levels score single - the other switch");
 {
-  const st = game({ singleLevelEP: true });
+  const st = game({ heavyLevelEP: true });
   const p = st.players[0];
   giveLand(st, p);
   const biz = plant(st, p, "HC", freePlot(st, p), 2);
-  check("a level is worth 1 EP", E.levelEP(st) === 1);
-  check("so a level 2 company scores 2, not 6", biz.epOnCard === 2, `${biz.epOnCard} EP`);
+  check("a level is worth 3 EP", E.levelEP(st) === 3);
+  check("so a level 2 company scores 6, not 2", biz.epOnCard === 6, `${biz.epOnCard} EP`);
 }
 
 section("Both modes pay a company the same, whatever the timing");
@@ -162,7 +162,7 @@ section("Both modes pay a company the same, whatever the timing");
   const late = total({ classicScoring: true });
   check("build at level 1, upgrade once: same EP whichever timing", std === late,
     `on completion ${std}, at the year end ${late}`);
-  check("and that total is 3 + 6 at three EP a level", std === 9, `${std}`);
+  check("and that total is 2 + 4 at two EP a level", std === 6, `${std}`);
 }
 
 /* ---------------------------------------------- what the bots believe */

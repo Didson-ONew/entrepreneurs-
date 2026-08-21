@@ -1,0 +1,175 @@
+/* ============================================================================
+   Going public: how often it happens, and whether getting there first decides
+   the game.
+
+   Sixteen Megacorp tiles exist and only some are shuffled into a game. The
+   count is the dial: at (players + 1) roughly a third of seats ever formed one
+   and the first arrived in Quarter 7; at twice the players it is half the
+   seats and Quarter 6.7. This sweeps that dial against the rules as they now
+   stand.
+
+   Read "first to go public then won" against the 25% a seat wins by chance -
+   but read it with the control in mind. Whoever merges first is usually the
+   player who was already ahead, and the leader at that same moment wins about
+   as often whether they merge or not, so this number is far more selection
+   than cause.
+
+   The tile count is patched into the engine inside a sandbox; the repo file is
+   never touched.
+
+   Run: node audit_megacorp.js [seeds]
+   ========================================================================== */
+const fs = require("fs");
+const path = require("path");
+const vm = require("vm");
+
+const SEEDS = parseInt(process.argv[2] || "300", 10);
+
+const src = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
+const cut = src.indexOf("/* ============================== REACT UI ============================== */");
+const base = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
+
+const NEEDLES = {
+  pool: "const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers * 2);",
+  ipoBay: "    p.ipoTile = true;",
+  hub: "    const hq = hqNetworkPlots(board);\n    return nbrs.some((n) => hq.includes(n));",
+  denial: "    s += denied * 0.5;",
+};
+for (const [k, v] of Object.entries(NEEDLES)) {
+  if (!base.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
+}
+
+/* tiles: how many are shuffled in.  hub: does a headquarters carry the network for its
+   neighbours.  push: do the bots build into a leader's industry to push its price down. */
+const CASES = [
+  { name: "as it stands (2n)", tiles: "nPlayers * 2", hub: true, push: true },
+  { name: "n+1 tiles", tiles: "nPlayers + 1", hub: true, push: true },
+  { name: "all 16 tiles", tiles: "MEGACORP_TILES.length", hub: true, push: true },
+];
+
+function engineFor(c) {
+  let logic = base.replace(NEEDLES.pool,
+    `const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, ${c.tiles});`);
+  if (!c.hub) logic = logic.replace(NEEDLES.hub, "    return false;");
+  if (!c.push) logic = logic.replace(NEEDLES.denial, "    s += 0;");
+  const box = {};
+  const sandbox = { console, Math, Set, Object, Array, JSON, box };
+  vm.createContext(sandbox);
+  vm.runInContext(logic + `
+    box.exports = { initGame, mulberry32, advancePlanning, advanceDraft, startPlanning,
+      activeBiz, megacorpHQs, epTotal, finalRank, plotCount, districtCount, bizInd,
+      hqNeighbours, MEGACORP_TILES, INDUSTRIES };
+  `, sandbox);
+  return box.exports;
+}
+
+function bucketOf(label) {
+  const l = String(label || "");
+  if (l.startsWith("Entered ")) return "industries";
+  if (l.startsWith("Vested:")) return "companies";
+  if (l.startsWith("Megacorp brand:")) return "hq brand";
+  if (l.startsWith("Megacorp district:")) return "hq district";
+  if (l.startsWith("Megacorp:")) return "megacorp tiles";
+  if (l === "IPO tile") return "ipo";
+  if (l === "The Real-Estate Mogul" || l === "The Omnipresent") return "land";
+  if (l.startsWith("Cash on hand")) return "cash";
+  if (l.startsWith("Unpaid loans")) return "loans";
+  return "other";
+}
+const BUCKETS = ["companies", "land", "cash", "industries", "megacorp tiles", "hq brand", "hq district", "ipo", "loans", "other"];
+
+const pad = (s, n) => String(s).padEnd(n);
+const rp = (s, n) => String(s).padStart(n);
+const results = [];
+
+for (const c of CASES) {
+  const E = engineFor(c);
+  const T = {
+    games: 0, seats: 0, hqs: 0, tilesLeft: 0,
+    firstClaimGames: 0, firstClaimWins: 0, firstClaimQuarter: 0,
+    twoOrMore: 0, seatsWithAny: 0,
+    winnerEP: 0, winnerHQs: 0, spread: 0, gapToSecond: 0,
+    ep: Object.fromEntries(BUCKETS.map((b) => [b, 0])),
+    hqInd: {},
+  };
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const st = E.initGame(3, seed, ["Seat 1"], undefined, true, undefined);
+    st.players[0].isHuman = false;
+    if (st.phase === "drafting") { E.advanceDraft(st, () => {}); E.startPlanning(st); }
+    E.advancePlanning(st, E.mulberry32(seed + 777), () => {});
+    if (st.phase !== "gameover") continue;
+    T.games++;
+    T.tilesLeft += st.megacorpPool.length;
+    const ranked = [...st.players].sort(E.finalRank);
+    const winner = ranked[0];
+    for (const p of st.players) {
+      T.seats++;
+      const hqs = E.megacorpHQs(p);
+      T.hqs += hqs.length;
+      if (hqs.length) T.seatsWithAny++;
+      if (hqs.length >= 2) T.twoOrMore++;
+      for (const hq of hqs) T.hqInd[E.bizInd(hq)] = (T.hqInd[E.bizInd(hq)] || 0) + 1;
+      for (const e of p.epLog || []) T.ep[bucketOf(e.label)] += e.amount;
+    }
+    /* Who got there first, and did it win? The engine stamps the owner of the IPO tile. */
+    if (st.ipoOwner !== undefined) {
+      T.firstClaimGames++;
+      if (st.ipoOwner === winner.id) T.firstClaimWins++;
+      const p = st.players.find((q) => q.id === st.ipoOwner);
+      const first = (p.epLog || []).find((e) => String(e.label).startsWith("Megacorp:"));
+      if (first) T.firstClaimQuarter += first.quarter;
+    }
+    T.winnerEP += E.epTotal(winner);
+    T.winnerHQs += E.megacorpHQs(winner).length;
+    const eps = ranked.map((p) => E.epTotal(p));
+    T.spread += eps[0] - eps[eps.length - 1];
+    T.gapToSecond += eps[0] - eps[1];
+  }
+  results.push({ c, T });
+}
+
+/* ---------------------------------------------------------------- report */
+console.log("Entrepreneurs - going public: the IPO tile and how many tiles are in play");
+console.log(`${results[0].T.games} games per case, 4 seats, personas on.`);
+console.log("A four-seat game shuffles in 8 tiles at 2n, 5 at n+1, 16 for all of them.\n");
+
+const cols = results.map((r) => r.c.name);
+const W = 21;
+const head = () => console.log(pad("", 34) + cols.map((c) => rp(c, W)).join(""));
+const row = (name, fn, dp = 2) =>
+  console.log(pad(name, 34) + results.map((r) => rp(fn(r.T).toFixed(dp), W)).join(""));
+const pct = (name, fn) =>
+  console.log(pad(name, 34) + results.map((r) => rp(`${(100 * fn(r.T)).toFixed(0)}%`, W)).join(""));
+
+head();
+console.log("─".repeat(34 + W * cols.length));
+row("Megacorps formed per game", (T) => T.hqs / T.games);
+pct("seats that formed one", (T) => T.seatsWithAny / T.seats);
+pct("seats that formed two or more", (T) => T.twoOrMore / T.seats);
+row("tiles left unclaimed at the end", (T) => T.tilesLeft / T.games, 1);
+row("quarter the first one was formed", (T) => T.firstClaimQuarter / Math.max(1, T.firstClaimGames), 1);
+console.log("");
+pct("games where anybody went public", (T) => T.firstClaimGames / T.games);
+pct("first to go public then won", (T) => T.firstClaimWins / Math.max(1, T.firstClaimGames));
+console.log(pad("  (a seat wins 25% by chance)", 34));
+console.log("");
+row("winning score", (T) => T.winnerEP / T.games, 0);
+row("winner's headquarters", (T) => T.winnerHQs / T.games);
+row("winner's lead over second", (T) => T.gapToSecond / T.games, 1);
+row("winner's lead over last", (T) => T.spread / T.games, 1);
+
+console.log("\nEvery seat's points, by source");
+head();
+for (const k of BUCKETS) {
+  const any = results.some((r) => Math.abs(r.T.ep[k]) > 0.05);
+  if (!any) continue;
+  console.log(pad(`  ${k}`, 34) + results.map((r) => rp((r.T.ep[k] / r.T.seats).toFixed(1), W)).join(""));
+}
+
+console.log("\nWhich industry the headquarters ended up in");
+const IND = engineFor(CASES[0]).INDUSTRIES;
+for (const i of IND) {
+  console.log(pad(`  ${i}`, 34) + results.map((r) =>
+    rp(`${(100 * (r.T.hqInd[i] || 0) / Math.max(1, r.T.hqs)).toFixed(0)}%`, W)).join(""));
+}
+console.log("");

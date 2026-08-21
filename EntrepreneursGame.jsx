@@ -157,7 +157,7 @@ function buildBoard(rng) {
 
   const centerPlots = Object.keys(cellOf).filter((k) => CENTER_CELLS.some(([cr, cc]) => cr === cellOf[k].r && cc === cellOf[k].c));
   const distFromCenter = bfsDistances(graph, centerPlots);
-  const board = { tiles, graph, orth, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhEdges: [], lhPlots: [], lhOnPlots: false };
+  const board = { tiles, graph, orth, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhEdges: [], lhPlots: [], hqFootprints: [], lhOnPlots: false };
   board.priceLattice = computePriceLattice(board);
   return board;
 }
@@ -183,17 +183,43 @@ const orthOf = (board, plot) => (board.orth && board.orth[plot]) || [];
 /* Is this plot itself a hub? Only ever true under the variant - on the road, a hub
    occupies no plot at all. */
 const plotIsLH = (board, plot) => !!board.lhOnPlots && (board.lhPlots || []).includes(plot);
+/* A Megacorp headquarters is public infrastructure. It stops trading, but its loading
+   bays, roads and warehouses are still there, and anything built beside one joins the
+   Logistic Hub network through it.
+
+   This is the one thing a runaway leader's monument does FOR the table rather than to
+   it, and it is deliberately reciprocal: the neighbours get reach, and the headquarters
+   scores 3 EP for each of them at the end. It also gives the table a reason to crowd in
+   around a leader - and building in the headquarters' own industry is what pushes its
+   price, and so its quarterly points, back down.
+
+   Like everything else a headquarters collects, it depends on the ground: sell a plot
+   out from under it and it stops being a hub too. */
+function hqNetworkPlots(board) {
+  const out = [];
+  for (const fp of board.hqFootprints || []) {
+    if (fp.every((pk) => pk in board.owner)) out.push(...fp);
+  }
+  return out;
+}
 /* Does a company standing on this plot touch the network? */
 function plotHasLH(board, plot) {
-  if (board.lhOnPlots) return orthOf(board, plot).some((n) => (board.lhPlots || []).includes(n));
+  if (board.lhOnPlots) {
+    const nbrs = orthOf(board, plot);
+    if (nbrs.some((n) => (board.lhPlots || []).includes(n))) return true;
+    const hq = hqNetworkPlots(board);
+    return nbrs.some((n) => hq.includes(n));
+  }
   return board.lhEdges.some((e) => e[0] === plot || e[1] === plot);
 }
 /* Every district the network reaches. */
 function lhDistricts(board) {
   const out = new Set();
   const add = (plot) => { const c = board.cellOf[plot]; if (c) out.add(`${c.r},${c.c}`); };
-  if (board.lhOnPlots) (board.lhPlots || []).forEach(add);
-  else board.lhEdges.forEach(([a, b]) => { add(a); add(b); });
+  if (board.lhOnPlots) {
+    (board.lhPlots || []).forEach(add);
+    hqNetworkPlots(board).forEach(add);
+  } else board.lhEdges.forEach(([a, b]) => { add(a); add(b); });
   return out;
 }
 const lhCount = (board) => (board.lhOnPlots ? (board.lhPlots || []).length : board.lhEdges.length);
@@ -354,11 +380,26 @@ function plotDemandScore(state, ind, plotKeyStr) {
    Technology doubler exactly as delivery will. Bots used to value a card at
    production x price, assuming every unit sold; measured over 40 games they were only
    placing 38% of what they made and recycling the rest at $1. */
+/* How many units could this company actually PLACE?
+
+   Every route counts, because they are all places for the same production to go: its own
+   industry's rows, the rows Manufacturing may route into (up to its level), and the
+   businesses a Hospitality company can move to with no demand icon at all. None of them
+   is extra output - a company sells what it produces and no more - but a company with
+   somewhere to send its units is worth more than one without, and that is what this
+   measures. */
+function placeableFor(state, owner, biz) {
+  const slots = eligibleSlotsFor(state, biz, owner);
+  const direct = slots.filter((s) => !s.cross).length * exchangeRate(state, biz);
+  const cross = bizInd(biz) === "MA"
+    ? Math.min(biz.level, slots.filter((s) => s.cross).length) : 0;
+  const neighbours = bizInd(biz) === "HO" ? hoBonusUnits(state, biz, owner) : 0;
+  return direct + cross + neighbours;
+}
 function sellableFrom(state, owner, bp, footprint) {
   const probe = { id: -1, bp, footprint, level: bp.lvl, upgraded: false, distressed: false,
     isHQ: false, epOnCard: 0, scored: false, quarterBuilt: state.quarter };
-  const slots = eligibleSlotsFor(state, probe, owner).filter((s) => !s.cross).length;
-  return slots * exchangeRate(state, probe);
+  return placeableFor(state, owner, probe);
 }
 /* The best any plot this player already owns could do for this blueprint. Returns null
    when they own nowhere to build, in which case the caller has nothing to judge by. */
@@ -385,7 +426,7 @@ function findFootprint(board, nPlots, rng, state, ind, bp, owner) {
                .map(([pk]) => pk);
   }
   const candidates = state && (ind || bp) ? pool : shuffle(pool, rng);
-  for (const start of candidates) {
+  const grow = (start) => {
     const cluster = new Set([start]);
     let frontier = ownedFreeNeighbors(board, start);
     while (cluster.size < nPlots && frontier.length) {
@@ -395,8 +436,39 @@ function findFootprint(board, nPlots, rng, state, ind, bp, owner) {
       cluster.add(nxt);
       frontier = frontier.concat(ownedFreeNeighbors(board, nxt).filter((p) => !cluster.has(p)));
     }
-    if (cluster.size >= nPlots) return [...cluster].slice(0, nPlots);
+    return cluster.size >= nPlots ? [...cluster].slice(0, nPlots) : null;
+  };
+  /* A horizontal company grows by taking one more plot beside itself, so a spot with no
+     empty ground next to it is a spot the company can never be upgraded from. Measured
+     across 120 games, being boxed in was the single commonest reason a Utilities or
+     Manufacturing company sat at level 1 all game - more common than having no money for
+     the upgrade. Room to grow is therefore part of choosing where to build, not an
+     afterthought at upgrade time. Vertical companies stack on their own plot and do not
+     care. */
+  const wantsRoom = bp ? SCALING[bp.ind] === "H" : (ind ? SCALING[ind] === "H" : false);
+  if (!wantsRoom || !state || !bp || !owner) {
+    for (const start of candidates) { const c = grow(start); if (c) return c; }
+    return null;
   }
+  const roomAround = (cluster) => {
+    const set = new Set(cluster), seen = new Set();
+    cluster.forEach((pk) => orthOf(board, pk).forEach((n) => {
+      if (set.has(n) || seen.has(n)) return;
+      // somewhere the company could later spread to: empty ground, owned or not
+      if (!(n in board.occupiedBy)) seen.add(n);
+    }));
+    return seen.size;
+  };
+  let best = null, bestScore = -Infinity;
+  for (const start of candidates.slice(0, 24)) {
+    const cluster = grow(start);
+    if (!cluster) continue;
+    // units it could place now, plus what having somewhere to grow into is worth
+    const score = sellableFrom(state, owner, bp, cluster) + Math.min(2, roomAround(cluster)) * 1.5;
+    if (score > bestScore) { bestScore = score; best = cluster; }
+  }
+  if (best) return best;
+  for (const start of candidates) { const c = grow(start); if (c) return c; }
   return null;
 }
 /* Is this footprint one connected building? Every plot must be reachable from every
@@ -677,34 +749,43 @@ function unitPrice(state, p, biz, slotInd) {
   if (bizInd(biz) === "UT" && hasPersona(p, "gov_rel")) return own + 1;
   return own;
 }
+/* A company sells exactly what it produces - no more.
+
+   Manufacturing's cross-sell and Hospitality's neighbour trade are both ROUTES for that
+   production, not extra output. Cross-selling used to run on a budget of its own, so a
+   level-2 Manufacturing with 6 production really sold 8; the neighbour trade was taken
+   off the top before the demand board was even looked at. Both now come out of the same
+   units, which is what makes them decisions: where to send a unit, not whether to
+   conjure one. */
 function autoDeliver(state, p, biz) {
   let remaining = bizProd(biz);
-  // Hospitality moves extra units straight to neighbours, no demand icon required
-  const hoBonus = Math.min(remaining, hoBonusUnits(state, biz, p));
-  if (hoBonus > 0) { p.cash += hoBonus * unitPrice(state, p, biz); remaining -= hoBonus; }
-  let crossRemaining = bizInd(biz) === "MA" ? biz.level : 0;
-  let sold = 0, crossPaid = 0;
-  const slots = eligibleSlotsFor(state, biz);
+  let crossAllowance = bizInd(biz) === "MA" ? biz.level : 0;
+  let earned = 0;
+
+  /* Demand icons are contested and first come first served; the businesses around a
+     Hospitality company are not going anywhere. So fill icons first, best-paying first -
+     which is not a fixed order, because a White-Label Supplier is paid the price of the
+     row it cross-sells into, and that can beat its own industry. */
+  const slots = eligibleSlotsFor(state, biz).map((s) => ({ ...s,
+    pay: unitPrice(state, p, biz, s.cross ? slotIndustry(state.demand, s.tileKey, s.rowIdx) : null),
+  })).sort((a, b) => b.pay - a.pay);
   for (const s of slots) {
-    if (s.cross) {
-      if (crossRemaining <= 0) continue;
-      const got = deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, true);
-      if (got > 0) {
-        crossRemaining -= got;
-        crossPaid += got * unitPrice(state, p, biz, slotIndustry(state.demand, s.tileKey, s.rowIdx));
-      }
-    } else {
-      if (remaining <= 0) continue;
-      const got = deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, false);
-      if (got > 0) {
-        const n = Math.min(got, remaining);
-        sold += n * unitPrice(state, p, biz);
-        remaining -= n;
-      }
-    }
+    if (remaining <= 0) break;
+    if (s.cross && crossAllowance <= 0) continue;
+    const got = deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, s.cross);
+    if (got <= 0) continue;
+    const n = Math.min(got, remaining);
+    earned += n * s.pay;
+    remaining -= n;
+    if (s.cross) crossAllowance -= n;
   }
+
+  // whatever the icons could not take, Hospitality moves to its neighbours at full price
+  const hoBonus = Math.min(remaining, hoBonusUnits(state, biz, p));
+  if (hoBonus > 0) { earned += hoBonus * unitPrice(state, p, biz); remaining -= hoBonus; }
+
   const leftover = Math.max(0, remaining);
-  p.cash += sold + crossPaid + leftover * 1;
+  p.cash += earned + leftover * 1;
 }
 
 function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
@@ -719,8 +800,11 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
   const slotInd = cross ? slotIndustry(state.demand, tileKey, rowIdx) : null;
   const paid = got * unitPrice(state, human, biz, slotInd);
   human.cash += paid;
+  /* Cross-selling spends production like any other delivery. crossSellRemaining is a
+     CAP on how many of those units may be routed outside the company's own industry,
+     not a second pile of goods. */
+  state.deliveryRemaining[bizId] = Math.max(0, (state.deliveryRemaining[bizId] || 0) - got);
   if (cross) state.crossSellRemaining[bizId] = Math.max(0, (state.crossSellRemaining[bizId] || 0) - got);
-  else state.deliveryRemaining[bizId] = Math.max(0, (state.deliveryRemaining[bizId] || 0) - got);
   log(`${human.name} delivers ${got} ${bizInd(biz)}${cross ? " (cross-sell)" : ""} to ${state.board.tiles[tileKey]} for $${paid}.`, human.id);
   return true;
 }
@@ -749,7 +833,7 @@ const BP_SOLVENCY_PRICE = { 1: 2, 2: 4, 3: 6 };
 /* ============================== PERSONAS ==============================
    Optional asymmetric powers, one per industry. Off unless a game is created with
    personas enabled, so the base game is unchanged. Each is a tilt, not a cage: the
-   5 EP-per-industry bonus still pushes everyone toward breadth. */
+   industry entry bonus still pushes everyone toward breadth. */
 const PERSONAS = {
   tech_savvy:  { ind: "TE", name: "Systems Architect",
     blurb: "Your Technology companies upgrade vertically, stacking on one plot instead of needing a free neighbour." },
@@ -782,8 +866,8 @@ const PERSONAS = {
 const VARIANTS = [
   { key: "classicScoring", name: "Score at the year end",
     blurb: "A company waits for the next year end to take its EP, instead of scoring the moment it is built or upgraded." },
-  { key: "singleLevelEP", name: "Levels score single",
-    blurb: "A company level is worth 1 EP instead of 3, which moves the weight of the game back toward land and cash." },
+  { key: "heavyLevelEP", name: "Levels score heavy",
+    blurb: "A company level is worth 3 EP instead of 2, which puts far more of the game's weight on how tall you build and pushes land, cash and the entry bonuses into the background." },
   { key: "orderedDecks", name: "Ordered decks",
     blurb: "Each industry deck runs level 1 down to level 3, instead of being shuffled whole. The early game holds no surprises and no level 3 can be drafted." },
   { key: "roadHubs", name: "Hubs on the road",
@@ -800,9 +884,19 @@ function normaliseVariants(v) {
   return out;
 }
 const hasVariant = (state, key) => !!(state && state.variants && state.variants[key]);
-/* Company EP per level. Three is the standard: building and upgrading is the
-   essence of the game, and at 1 EP a level it lost to land and cash. */
-const levelEP = (state) => (hasVariant(state, "singleLevelEP") ? 1 : 3);
+/* The two dials the whole scoreboard hangs off, kept together because they are only
+   meaningful against each other.
+
+   A company level is worth 2 EP, at build and at upgrade. One was too little: measured
+   over 300 games an upgrade stopped being worth the setup cost paid twice, and upgraded
+   companies fell from 5.1 a game to 3.1. Three was too much the other way - building
+   became 32% of a seat's score and everything else faded behind it.
+
+   Entering an industry you have never built in pays 3 EP, so breadth is worth about a
+   level-2 company. At 5 it was the largest bucket on the board once levels came down:
+   27% of a seat's score for a decision that is barely a decision - build one of each. */
+const levelEP = (state) => (hasVariant(state, "heavyLevelEP") ? 3 : 2);
+const INDUSTRY_DEBUT_EP = 3;
 
 const PERSONA_KEYS = Object.keys(PERSONAS);
 const hasPersona = (p, key) => !!p && p.persona === key;
@@ -811,8 +905,36 @@ const ARCHETYPES = ["balanced", "rush_cheap", "upgrade_focus", "tech_heavy", "ve
 const ARCHETYPE_LABEL = { balanced: "Balanced", rush_cheap: "Rush-Cheap", upgrade_focus: "Upgrade-Focus", tech_heavy: "Tech-Heavy", vest_rebuild: "Vest & Rebuild" };
 
 let bizIdCounter = 1;
+/* A footprint is not a flat area. A horizontal company spreads one level onto each plot
+   it covers; a vertical one stacks all of its levels on a single plot. Personas can flip
+   which way a company grows, so a Technology company that spread to two plots and was
+   then upgraded vertically stands two storeys on one plot and one on the other.
+
+   That matters for rent: a landlord collects $3 for every level standing on their plot,
+   so the two-storey corner pays $6 and the neighbour pays $3. Recording the levels per
+   plot is the only way the rent can be right, and it keeps the total at $3 x level. */
+function startingLevels(bp, footprint) {
+  const levels = {};
+  if (footprint.length <= 1) levels[footprint[0]] = bp.lvl;      // one stack
+  else footprint.forEach((plot) => { levels[plot] = 1; });       // one storey each
+  return levels;
+}
+/* Businesses that predate this record, and any that arrive over the wire from an older
+   client, fall back to the even split the previous rule described. */
+function ensureLevels(b) {
+  if (b.levels && b.footprint.every((pk) => pk in b.levels)) return b.levels;
+  const n = b.footprint.length || 1;
+  const base = Math.floor(b.level / n);
+  let odd = b.level - base * n;
+  const out = {};
+  b.footprint.forEach((pk) => { out[pk] = base + (odd > 0 ? 1 : 0); if (odd > 0) odd--; });
+  b.levels = out;
+  return out;
+}
+const levelsOn = (b, plot) => ensureLevels(b)[plot] || 0;
 function newBusiness(bp, footprint, quarterBuilt) {
-  return { id: bizIdCounter++, bp, footprint, level: bp.lvl, upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt };
+  return { id: bizIdCounter++, bp, footprint, levels: startingLevels(bp, footprint), level: bp.lvl,
+    upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt };
 }
 const bizOpex = (b) => b.bp.opex * (b.upgraded ? 2 : 1);
 const bizProd = (b) => b.bp.prod * (b.upgraded ? 2 : 1);
@@ -851,7 +973,11 @@ const activeBiz = (p) => p.businesses.filter((b) => !b.distressed && !b.isHQ);
 const megacorpHQs = (p) => p.businesses.filter((b) => b.isHQ);
 const companySlotsUsed = (p) => activeBiz(p).length + megacorpHQs(p).length;
 const COMPANY_SLOTS = 5;
-const canLaunchMore = (p) => companySlotsUsed(p) < COMPANY_SLOTS;
+/* The IPO tile is the prize for forming the first Megacorp of the game. It is a sixth
+   company bay rather than points, so being first to merge does not narrow how wide you
+   can operate - which is what made merging early feel like a punishment. */
+const companySlotsFor = (p) => COMPANY_SLOTS + (p.ipoTile ? 1 : 0);
+const canLaunchMore = (p) => companySlotsUsed(p) < companySlotsFor(p);
 const committedOpex = (p) => activeBiz(p).reduce((s, b) => s + bizOpex(b), 0);
 function safeToSpend(p, spend, addedOpex = 0, buffer = 0.4) {
   return p.cash - spend >= (committedOpex(p) + addedOpex) * buffer;
@@ -863,12 +989,12 @@ function expansionBuffer(state) {
   return state.quarter >= 9 ? 0.15 : state.quarter >= 5 ? 0.28 : 0.4;
 }
 /* $10 of cash is worth 1 EP at the end; a company is worth its level once, plus its level
-   again on every upgrade, plus 5 EP if it opens a new industry. Sitting on money is close to the worst thing a bot
+   again on every upgrade, plus the entry bonus if it opens a new industry. Sitting on money is close to the worst thing a bot
    can do, so the safety buffer relaxes hard once the game is nearly over. */
 function endgameSpendMode(state, p) {
   return state.quarter >= 9 && p.cash > 60;
 }
-/* Scoring rewards breadth (5 EP per distinct active industry) and endgame bonuses
+/* Scoring rewards breadth (an entry bonus per distinct industry) and endgame bonuses
    reward land and district spread. Bots were hoarding cash and finishing with ~1.6
    companies of a possible 5, so expansion is weighted much more aggressively. */
 function missingIndustries(p) {
@@ -947,15 +1073,62 @@ const landPayouts = (state) => {
   if (hasVariant(state, "endgameLandAwards")) return 1;
   return [4, 8, 12].filter((q) => q >= state.quarter).length || 1;
 };
-/* One plot is worth this much EP in expectation: the two awards are 10 and 5, paid
-   `landPayouts` times, spread over the plots it takes to lead them. */
-const landEPWeight = (state) => landPayouts(state) * 1.5;
+/* What is one more plot worth in points?
 
+   Only the OUTRIGHT leader takes a land award now, and a shared lead pays almost
+   nothing, so a plot is worth chasing to a player who can actually win the race and
+   worth nothing at all to one who cannot. That is a different question from the old
+   rule, where second place still collected and every plot had some expected value.
+
+   Called without a player it gives the board-level figure the setup screens want. */
+function landEPWeight(state, p) {
+  const payouts = landPayouts(state);
+  if (!p) return payouts * LAND_AWARD.sole * 0.5;
+  const mine = plotCount(state, p);
+  const best = Math.max(...state.players.map((q) => plotCount(state, q)));
+  if (mine >= best) return payouts * LAND_AWARD.sole * 0.6;   // leading, or level with the leader
+  if (best - mine <= 2) return payouts * LAND_AWARD.sole * 0.35;  // close enough to take it
+  return 0;                                                   // not a race this player is in
+}
+
+/* $10 on hand is 1 EP at the end of the game. That rate is what makes it possible to
+   compare a company's earnings with the points its building scores, so it is the unit
+   everything below is measured in. */
+const CASH_PER_EP = 10;
+
+/* What will this industry pay ME, once my own company is standing in it?
+
+   Building pushes your own industry's price down. A bot that reads the price before it
+   builds is reading a price it will never sell at, which matters most in exactly the
+   case that goes wrong: an industry already at the floor, where one more entrant is the
+   difference between $2 and $1. */
+function priceAfterMyBuild(pm, ind) {
+  return Math.max(1, BASE_PRICE[ind] + Math.floor(pm.demand[ind] / 2) - Math.floor((pm.offer[ind] + 1) / 2));
+}
+
+/* What is a company actually worth, in points?
+
+   The old version added the EP a building scores - a ONE-OFF - to a per-quarter cash
+   return, and then multiplied the whole thing by its risk factors. That treated 3 EP as
+   though it arrived every quarter, and it meant a cheap card scored well no matter what
+   the market was doing: the price penalty scaled a term that had already been swamped.
+   The result was a board full of $10 Retail selling at $1, which is what the balance
+   audit found and what a human would never build.
+
+   Everything is now on one clock and in one unit:
+     - what it earns each quarter, for the quarters that are actually left
+     - the money it earns, converted at the rate the game really pays for cash
+     - the points the building scores, once
+     - the 5 points for entering an industry, once, and only if it is really owed
+     - minus what it costs to get standing, also converted to points
+
+   A company that cannot sell now scores negative, which is the whole point. */
 function launchScore(state, p, bp, archetype) {
   const pm = state.pm;
-  const px = price(pm, bp.ind);
+  const px = priceAfterMyBuild(pm, bp.ind);
+  const qLeft = Math.max(1, 13 - (state.quarter || 1));
 
-  // --- true cost, not just the printed setup ---
+  // --- what it costs to get standing ---
   // Horizontal industries (UT/MA/TE) need one plot per level, and upgrading needs yet
   // another adjacent plot. That land is a real outlay the printed setup hides, and it
   // is why a level-3 Manufacturing is the most expensive thing on the board.
@@ -963,10 +1136,9 @@ function launchScore(state, p, bp, archetype) {
   const owned = Object.entries(state.board.owner).filter(([k, v]) =>
     v === p.id && !(k in state.board.occupiedBy)).length;
   const mustBuy = Math.max(0, nPlots - owned);
-  const landCost = mustBuy * 3;                 // mid-board plots run about $3
-  const totalOutlay = bp.setup + landCost;
+  const totalOutlay = bp.setup + mustBuy * 3;   // mid-board plots run about $3
 
-  // --- rent comes back if you stand on your own land ---
+  // --- what it earns every quarter it stands ---
   // Rent is $3 per level, so a business on land you own returns that rent to you,
   // which materially narrows the gap between cheap-OPEX and expensive-OPEX industries.
   const rent = 3 * bp.lvl;
@@ -979,63 +1151,162 @@ function launchScore(state, p, bp, archetype) {
      production and judging the company you would actually be running. */
   const reach = bestSellableFor(state, p, bp);
   const sellable = reach === null ? bp.prod : Math.min(bp.prod, reach);
-  const gross = sellable * px + Math.max(0, bp.prod - sellable) * 1;
-  const net = gross - effOpex;
-  // per-quarter return on the FULL outlay, the honest comparison between cards
-  let s = net / Math.max(1, totalOutlay);
+  const waste = Math.max(0, bp.prod - sellable);
+  let perQuarter = sellable * px + waste * 1 - effOpex;
 
-  // horizontal builds also need a contiguous cluster, which gets harder as the city
-  // fills and constrains where the business can ever be upgraded
-  if (SCALING[bp.ind] === "H" && bp.lvl >= 2) s *= 0.85;
+  /* Two things say the good years will not last, and both belong on the revenue, not
+     on the finished score. Other companies in your industry compete for the same demand
+     icons; a picked-over deck means more of them are coming. */
+  if (perQuarter > 0) {
+    const ownActive = state.players.reduce((n, pl) =>
+      n + activeBiz(pl).filter((b) => bizInd(b) === bp.ind).length, 0);
+    const deckLeft = (state.decks && state.decks[bp.ind]) ? state.decks[bp.ind].length : 5;
+    perQuarter *= 1 / (1 + 0.45 * ownActive);
+    perQuarter *= Math.min(1.15, 0.92 + 0.025 * deckLeft);
+  }
 
-  // Building your own industry pushes its price DOWN (2 launches = -$1) while every
-  // dependent build pushes it UP. Prefer industries the table is under-supplying.
-  const ownActive = state.players.reduce((n, pl) =>
-    n + activeBiz(pl).filter((b) => bizInd(b) === bp.ind).length, 0);
-  s *= 1 / (1 + 0.45 * ownActive);              // crowding penalty
-  // price relative to the card's own base: a doubled price is worth chasing hard
-  s *= Math.pow(px / BASE_PRICE[bp.ind], 1.1);
-  if (px <= 1) s *= 0.3;                        // selling at $1 is barely above recycling
-
-  // --- money already sitting in the pot ---
-  // An industry nobody serves keeps accumulating its suppliers' OPEX with no one to
-  // collect it. Building there pays out immediately and repeats every quarter, which
-  // is why an unserved Healthcare or Technology is often the best buy on the board.
+  /* Money already sitting in the pot is a stock, not a flow: an industry nobody serves
+     has been collecting its suppliers' OPEX with nobody to collect it, and the first
+     company in takes a share of the whole pile. */
+  let potNow = 0;
   const pot = (state.pots && state.pots[bp.ind]) || 0;
   if (pot > 0) {
     const levelsThere = state.players.reduce((acc, pl) =>
       acc + activeBiz(pl).filter((b) => bizInd(b) === bp.ind).reduce((a, b) => a + b.level, 0), 0);
-    const myShare = pot * (bp.lvl / (levelsThere + bp.lvl));
-    s += myShare / Math.max(1, totalOutlay) * 0.9;
+    potNow = pot * (bp.lvl / (levelsThere + bp.lvl));
   }
 
-  // --- what the rest of the table is drawing ---
-  // Deck depth is public information. A deck nobody has touched means no competitor is
-  // preparing to enter, so the price there will hold; a picked-over deck means supply
-  // is coming and the price will fall before the company pays for itself.
-  const deckLeft = (state.decks && state.decks[bp.ind]) ? state.decks[bp.ind].length : 5;
-  s *= 0.92 + 0.025 * deckLeft;                 // 10 left -> x1.17, 2 left -> x0.97
+  // --- add it up, in points ---
+  const cashEP = (perQuarter * qLeft + potNow) / CASH_PER_EP;
+  const buildEP = bp.lvl * levelEP(state);
+  /* Entering an industry is owed once per game, ever. Reading the live ledger rather
+     than "do I have one standing right now" stops a bot rebuilding an industry it has
+     already scored and calling it free points. */
+  const debutEP = (p.industriesScored || []).includes(bp.ind) ? 0 : INDUSTRY_DEBUT_EP;
+  const costEP = totalOutlay / CASH_PER_EP;
+  let s = cashEP + buildEP + debutEP - costEP;
+
+  /* Pushing back on somebody who is ahead.
+
+     A Megacorp headquarters banks EP equal to its industry's CURRENT PRICE every
+     quarter, so entering that industry takes points off its owner for the rest of the
+     game - the price falls a dollar for every two companies built there. It is the only
+     pressure the table has on a runaway leader, and it costs nothing extra: you are
+     building a company you were going to build anyway, in a different sector.
+
+     Only worth chasing against somebody actually ahead of you, and worth less than
+     earning the same points yourself - denying a rival a point does not put it on your
+     own track.
+
+     Measured over 400 games this fires on 10% of build decisions and is currently close
+     to inert: it takes TWO companies to move a price a dollar, and a headquarters sits
+     in whichever industry was expensive, which is the one under upward pressure. An
+     HQ's industry price rose 21% of the time over its life and fell only 9%, and the
+     brand EP it banked came out 2% ABOVE what a frozen price would have paid. The term
+     is right and the lever is weak; it becomes live the moment a price moves on one
+     build instead of two. */
+  const drop = price(pm, bp.ind) - px;      // px is already the price after this build
+  if (drop > 0) {
+    const mine = epTotal(p);
+    let denied = 0;
+    for (const q of state.players) {
+      if (q.id === p.id) continue;
+      if (epTotal(q) <= mine) continue;                 // not ahead: leave them alone
+      for (const hq of megacorpHQs(q)) {
+        if (bizInd(hq) !== bp.ind) continue;
+        if (!businessCanProduce(state, hq)) continue;   // already collecting nothing
+        denied += drop * qLeft;
+      }
+    }
+    s += denied * 0.5;
+  }
+
+  // a horizontal build also needs a contiguous cluster, which gets harder as the city
+  // fills and constrains where the business can ever be upgraded
+  if (SCALING[bp.ind] === "H" && bp.lvl >= 2) s -= 1;
 
   // a player with a persona leans toward the industry it empowers, the way a human would
-  if (p.persona && PERSONAS[p.persona] && PERSONAS[p.persona].ind === bp.ind) s *= 1.5;
+  if (p.persona && PERSONAS[p.persona] && PERSONAS[p.persona].ind === bp.ind) s += 3;
 
-  // breadth is worth 5 EP/year, but must not drown the market signal
-  const have = new Set(activeBiz(p).map(bizInd));
-  if (!have.has(bp.ind)) s += 0.9;
-
-  /* The EP the building itself will score. A company scores ONCE - at the next year end,
-     or immediately under "score on completion" - so this does not shrink as the game runs
-     out of year ends; Q12 is a year end, so anything built still gets its one score.
-     Normally a level is 1 EP and this barely registers against the cash return; under
-     "companies score triple" it is the single biggest term on the card and the bot should
-     be chasing buildings, not margins. */
-  const scoreValue = bp.lvl * levelEP(state);
-  s += scoreValue / Math.max(1, totalOutlay) * 1.4;
-
-  if (archetype === "rush_cheap") s += (30 - bp.setup) / 30;
-  else if (archetype === "tech_heavy" && bp.ind === "TE") s += 0.5;
+  if (archetype === "rush_cheap") s += (30 - bp.setup) / 15;
+  else if (archetype === "tech_heavy" && bp.ind === "TE") s += 2;
   return s;
 }
+/* How many units could this exact company place, at this exact moment? The delivery
+   rule itself, asked a question - not a copy of it. */
+const sellableForBiz = (state, owner, biz) => placeableFor(state, owner, biz);
+
+/* What is upgrading worth, in the same points a build is measured in?
+
+   Only two of the five archetypes ever upgraded, and they took the first upgradable
+   company in their list rather than the best one. That is most of why the audit found
+   level 2 and level 3 buildings almost exclusively in the two industries that happen to
+   get built first, and why Utilities, Manufacturing and Technology sat at level 1 all
+   game with their level 2 and 3 cards doing nothing.
+
+   An upgrade is a purchase like any other: production and OPEX both double, rent rises
+   by $3, a horizontal company gains a plot - and with it whatever districts that plot
+   can reach, which for UT, MA and TE is the whole point of scaling sideways - and the
+   building scores another level. */
+/* `assumePlot` asks the question the other way round: what would this upgrade be worth
+   if I owned that plot? A horizontal company can only grow onto an empty plot that
+   somebody already owns, and that is the single biggest thing standing between the three
+   sideways industries and their level 2 and 3 cards - so the plot that unblocks an
+   upgrade has to be pricable before it is bought. */
+function upgradeScore(state, p, b, assumePlot) {
+  const blocked = upgradeBlockedReason(state, p, b);
+  if (blocked && !(assumePlot && blocked.startsWith("no owned"))) return -Infinity;
+  const qLeft = Math.max(1, 13 - (state.quarter || 1));
+  const px = price(state.pm, bizInd(b));   // upgrading adds no new supply to the market
+  const spreads = upgradeScaling(p, b) === "H";
+
+  const nowUnits = Math.min(bizProd(b), sellableForBiz(state, p, b));
+  const nowNet = nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1
+    - bizOpex(b) - 3 * b.level;
+
+  /* Where it would grow to. A sideways step reaches from a new plot, so ask the
+     delivery rule about the grown footprint rather than assuming the reach is the same. */
+  let grownFootprint = b.footprint;
+  if (spreads) {
+    let opts = adjacentOwnedFreePlots(state.board, b.footprint);
+    if (!opts.length && assumePlot) opts = [assumePlot];
+    if (!opts.length) return -Infinity;
+    let best = null, bestUnits = -1;
+    for (const plot of opts) {
+      const probe = { ...b, level: b.level + 1, upgraded: true, footprint: [...b.footprint, plot] };
+      const u = sellableForBiz(state, p, probe);
+      if (u > bestUnits) { bestUnits = u; best = plot; }
+    }
+    grownFootprint = [...b.footprint, best];
+  }
+  const grown = { ...b, level: b.level + 1, upgraded: true, footprint: grownFootprint };
+  const grownProd = bizProd(grown);
+  const grownUnits = Math.min(grownProd, sellableForBiz(state, p, grown));
+  const grownNet = grownUnits * px + Math.max(0, grownProd - grownUnits) * 1
+    - bizOpex(grown) - 3 * grown.level;
+
+  const cashEP = (grownNet - nowNet) * qLeft / CASH_PER_EP;
+  const buildEP = levelEP(state);                        // one more level on the card
+  const costEP = bizSetup(b) / CASH_PER_EP;
+  let s = cashEP + buildEP - costEP;
+
+  /* A bigger company also reads more of each demand tile - the column cap is its level -
+     so the next upgrade after this one is worth more than this one. Worth a nudge, not
+     a term: it only pays if the company survives to use it. */
+  if (b.level < 3 && qLeft >= 4) s += 0.5;
+  return s;
+}
+/* The best upgrade on this player's board, and what it is worth. */
+function bestUpgrade(state, p) {
+  let best = null, bestScore = -Infinity;
+  for (const b of activeBiz(p)) {
+    if (b.upgraded || b.isHQ) continue;
+    const s = upgradeScore(state, p, b);
+    if (s > bestScore) { bestScore = s; best = b; }
+  }
+  return best ? { biz: best, score: bestScore } : null;
+}
+
 function pickLaunchCandidate(p, archetype, pm, missingInds, buffer, state) {
   if (!p.hand.length) return null;
   let scored = [];
@@ -1049,16 +1320,24 @@ function pickLaunchCandidate(p, archetype, pm, missingInds, buffer, state) {
   scored.sort((a, b) => b[0] - a[0]);
   return scored[0][1];
 }
+/* The same choice, but saying what the card is worth as well as which one it is, so a
+   build can be weighed against an upgrade instead of always beating it. */
+function bestLaunch(state, p, archetype, buffer) {
+  const bp = pickLaunchCandidate(p, archetype, state.pm, undefined, buffer, state);
+  if (!bp) return null;
+  return { bp, score: launchScore(state, p, bp, archetype) };
+}
 
-/* Entering an industry pays 5 EP straight away, the moment the first company of that
+/* Entering an industry you have never built in before. Paid straight away, the moment the
+   first company of that
    type is built, rather than waiting for a year-end. It is banked immediately and can
    never be earned twice, so it is not placed on a card and does not need vesting. */
 function claimIndustryBonus(state, p, ind, log) {
   p.industriesScored = p.industriesScored || [];
   if (p.industriesScored.includes(ind)) return;
   p.industriesScored.push(ind);
-  addEP(p, 5, `Entered ${ind}`, state.quarter);
-  if (log) log(`${p.name} enters ${ind} for the first time (+5 EP).`, p.id);
+  addEP(p, INDUSTRY_DEBUT_EP, `Entered ${ind}`, state.quarter);
+  if (log) log(`${p.name} enters ${ind} for the first time (+${INDUSTRY_DEBUT_EP} EP).`, p.id);
 }
 function doLaunch(state, p, bp, rng, log, manualFootprint) {
   const nPlots = SCALING[bp.ind] === "H" ? bp.lvl : 1;
@@ -1119,10 +1398,19 @@ function doUpgrade(state, p, b, rng, log, manualPlot) {
     // the client online, so this cannot be left to the picker either
     if (!orthOf(state.board, newPlot).some((n) => b.footprint.includes(n))) return false;
     p.cash -= bizSetup(b);
+    ensureLevels(b)[newPlot] = 1;                // the new wing is one storey
     b.footprint.push(newPlot);
     state.board.occupiedBy[newPlot] = b.id;
   } else {
+    /* Vertical growth stacks the new level on one plot the company already stands on.
+       Which one is a real choice: rent for every level on a plot goes to that plot's
+       owner, so stacking on your own land brings the whole rent back to you. */
+    const mine = b.footprint.filter((pk) => state.board.owner[pk] === p.id);
+    const target = manualPlot && b.footprint.includes(manualPlot) ? manualPlot
+                 : (mine[0] || b.footprint[0]);
     p.cash -= bizSetup(b);
+    const levels = ensureLevels(b);
+    levels[target] = (levels[target] || 0) + 1;
   }
   b.upgraded = true; b.level += 1;
   vest(p, b, state.quarter); b.scored = false;
@@ -1140,7 +1428,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "5730bbbf";
+const ENGINE_VERSION = "ba0049c9";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1172,47 +1460,41 @@ function doSellBP(state, p, bp, log, solvency = false) {
   log(`${p.name} sells ${bp.name} from hand for $${Math.round(p.cash - before)}${solvency ? " (SOLVENCY - half price)" : ""} (cash: $${Math.round(p.cash)}).`, p.id);
 }
 
-function botTakeActions(state, p, rng, log, nActions) {
-  for (let i = 0; i < nActions; i++) {
-    let did = false;
-    const bill = committedOpex(p);
-    if (bill > p.cash) {
-      if (p.hand.length) {
-        const bp = p.hand.reduce((a, b) => ((BP_SELL_PRICE[a.lvl] || 4) < (BP_SELL_PRICE[b.lvl] || 4) ? a : b));
-        sellBpFromHand(state, p, bp, false); did = true;
-      } else if (activeBiz(p).length) {
-        sellCompany(p, worstRoiBusiness(p, state.pm, state.quarter, 0), false); did = true;
-      }
-      if (did) continue;
+/* What a Megacorp headquarters costs its owner every quarter. It has no Blueprint and
+   therefore no OPEX, but it still stands on somebody's land, and the owner pays that rent
+   out of pocket - $3 for every level standing on a plot, exactly as any other building
+   pays it. Land the owner holds themselves costs nothing: the money would only go round
+   in a circle. */
+function hqRentDue(state, p) {
+  let due = 0;
+  for (const hq of megacorpHQs(p)) {
+    for (const plot of hq.footprint) {
+      const ownerId = state.board.owner[plot];
+      if (ownerId === undefined || ownerId === p.id) continue;
+      due += 3 * levelsOn(hq, plot);
     }
-    if (p.archetype === "vest_rebuild") {
-      const year = state.quarter <= 4 ? 1 : state.quarter <= 8 ? 2 : 3;
-      if (year === 2) for (const b of activeBiz(p)) if (!b.upgraded && doUpgrade(state, p, b, rng, log)) { did = true; break; }
+  }
+  return due;
+}
+function payHqRent(state, p, log) {
+  for (const hq of megacorpHQs(p)) {
+    for (const plot of hq.footprint) {
+      const ownerId = state.board.owner[plot];
+      if (ownerId === undefined || ownerId === p.id) continue;
+      const owner = state.players.find((pl) => pl.id === ownerId);
+      if (!owner) continue;
+      const due = Math.min(Math.max(0, p.cash), 3 * levelsOn(hq, plot));
+      if (due <= 0) continue;
+      p.cash -= due;
+      owner.cash += due;
+      if (log) log(`${p.name} pays $${due} ground rent on Megacorp "${hq.megacorpName}" to ${owner.name}.`, p.id);
     }
-    if (!did && p.archetype === "upgrade_focus") {
-      for (const b of activeBiz(p)) if (!b.upgraded && doUpgrade(state, p, b, rng, log)) { did = true; break; }
-    }
-    if (!did && canLaunchMore(p)) {
-      const bp = pickLaunchCandidate(p, p.archetype, state.pm, undefined, undefined, state);
-      if (bp && doLaunch(state, p, bp, rng, log)) did = true;
-    }
-    if (!did && p.hand.length < 4 && state.drawPile.length) { p.hand.push(state.drawPile.pop()); did = true; }
-    if (!did && p.discsInBank > 0 && p.cash - 20 >= committedOpex(p) * 1.5) { p.cash -= 20; p.discsInBank -= 1; did = true; }
-    if (!did && activeBiz(p).length) {
-      const worst = worstRoiBusiness(p, state.pm, state.quarter, 1);
-      if (worst) {
-        const roi = bizProd(worst) * price(state.pm, bizInd(worst)) - bizOpex(worst) - 3 * worst.level;
-        if (roi < -3) { sellCompany(p, worst, false); did = true; }
-      }
-    }
-    if (!did) { p.cash += 20; p.discsInBank += 1; did = true; }
   }
 }
-
 function runProduction(state, log) {
   const { players, board, pm } = state;
   for (const p of players) {
-    let bill = committedOpex(p);
+    let bill = committedOpex(p) + hqRentDue(state, p);
     while (p.cash < bill && p.hand.length) {
       const bp = p.hand.reduce((a, b) => ((BP_SELL_PRICE[a.lvl] || 4) < (BP_SELL_PRICE[b.lvl] || 4) ? a : b));
       sellBpFromHand(state, p, bp, false);
@@ -1221,16 +1503,17 @@ function runProduction(state, log) {
       const cheapPlot = cheapestOwnedPlot(state, p);
       if (!cheapPlot) break;
       doSellPlot(state, p, cheapPlot, log, false);
-      bill = committedOpex(p);
+      bill = committedOpex(p) + hqRentDue(state, p);
     }
     while (p.cash < bill) {
       const worst = worstRoiBusiness(p, pm, state.quarter, 0);
       if (!worst) break;
       sellCompany(p, worst, false);
-      bill = committedOpex(p);
+      bill = committedOpex(p) + hqRentDue(state, p);
     }
     if (p.cash < bill) { p.cash += 20; p.discsInBank += 1; }
   }
+  for (const p of players) payHqRent(state, p, log);
   for (const p of players) {
     for (const b of activeBiz(p)) {
       const cost = bizOpex(b);
@@ -1254,18 +1537,31 @@ function runProduction(state, log) {
       }
       p.cash -= cost;
       const rentTotal = 3 * b.level;
-      const nPlots = b.footprint.length;
-      const perPlot = nPlots ? rentTotal / nPlots : 0;
+      /* $3 for every level standing on a plot, paid to whoever owns that plot. A
+         two-storey corner pays its landlord $6 while the single-storey neighbour
+         collects $3, and the total still comes to $3 x level. */
       for (const plot of b.footprint) {
+        const due = 3 * levelsOn(b, plot);
         const ownerId = board.owner[plot];
-        if (ownerId !== undefined) { const owner = players.find((pl) => pl.id === ownerId); if (owner) owner.cash += perPlot; }
+        if (ownerId !== undefined) { const owner = players.find((pl) => pl.id === ownerId); if (owner) owner.cash += due; }
       }
-      // whatever survives rent flows into each supplier's industry pot, split in
-      // proportion to what this business owes them
+      /* Whatever survives rent flows into each supplier's industry pot, split in
+         proportion to what this business owes them. Whole dollars only: each supplier
+         takes its share rounded down, and the odd dollars go to the largest dependency
+         first, so the company's whole bill still leaves its hands. Pots used to hold
+         fractions of a dollar, which no table can pay and which then leaked out through
+         the Megacorp siphon. */
       if (!state.pots) state.pots = Object.fromEntries(INDUSTRIES.map((i) => [i, 0]));
       const toPots = Math.max(0, cost - rentTotal);
-      const depTotal = b.bp.deps.reduce((s2, d) => s2 + d.val, 0) || 1;
-      b.bp.deps.forEach((d) => { state.pots[d.ind] += toPots * (d.val / depTotal); });
+      const deps = b.bp.deps;
+      if (deps.length && toPots > 0) {
+        const depTotal = deps.reduce((s2, d) => s2 + d.val, 0) || 1;
+        const shares = deps.map((d) => Math.floor((toPots * d.val) / depTotal));
+        let rest = toPots - shares.reduce((s2, v) => s2 + v, 0);
+        const biggestFirst = deps.map((d, i) => i).sort((x, y) => deps[y].val - deps[x].val);
+        for (let k = 0; rest > 0; k = (k + 1) % biggestFirst.length) { shares[biggestFirst[k]] += 1; rest--; }
+        deps.forEach((d, i) => { state.pots[d.ind] += shares[i]; });
+      }
     }
   }
 }
@@ -1290,14 +1586,44 @@ function applySupplyChainBump(state, log) {
     if (log) log(`${p.name} works the supply chain: ${pick} demand rises, and Retail reaches one extra district this quarter.`, p.id);
   }
 }
+/* A Megacorp headquarters is a standing asset, not a business. It produces nothing, but
+   the sector still pays it - a full share of its industry's pot - and its name is worth
+   points every quarter: EP equal to what one unit of its industry currently sells for.
+   An industry climbing while nobody serves it makes an old headquarters quietly
+   valuable, and forming one early is worth more than forming one late.
+
+   Both of those depend on the ground it stands on. Sell a plot out from under a
+   headquarters and it collects nothing at all - no pot share, no points - until the land
+   is bought back, exactly as a company stops producing. */
+function runMegacorpDividend(state, log) {
+  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      if (!businessCanProduce(state, hq)) {
+        if (log) log(`Megacorp "${hq.megacorpName}" stands on land ${p.name} no longer owns \u2014 it collects nothing this quarter.`, p.id);
+        continue;
+      }
+      const ep = price(state.pm, bizInd(hq));
+      addEP(p, ep, `Megacorp brand: ${hq.megacorpName}`, state.quarter);
+      if (log) log(`Megacorp "${hq.megacorpName}" banks ${ep} EP \u2014 ${bizInd(hq)} sells at $${ep}.`, p.id);
+    }
+  }
+}
 function runB2B(state, log) {
   if (!state.pots) return;
-  runMegacorpSyphon(state, log);
   for (const ind of INDUSTRIES) {
     const pot = state.pots[ind];
     if (pot <= 0.005) continue;
+    /* A headquarters keeps its seat at the table. It produces nothing and pays no
+       OPEX, but the sector still pays it: one equal share of its industry's pot, the
+       same as any company standing in that industry. That is what makes WHICH company
+       becomes the HQ a decision worth making - it used to siphon $5 out of every
+       neighbouring industry instead, which took money from the board rather than
+       earning it, and paid in fractions of a dollar no table could hand over. */
     const recipients = [];
-    state.players.forEach((p) => activeBiz(p).forEach((b) => { if (bizInd(b) === ind) recipients.push({ p, b }); }));
+    state.players.forEach((p) => {
+      activeBiz(p).forEach((b) => { if (bizInd(b) === ind) recipients.push({ p, b }); });
+      megacorpHQs(p).forEach((b) => { if (bizInd(b) === ind && businessCanProduce(state, b)) recipients.push({ p, b }); });
+    });
     if (!recipients.length) continue;                    // nobody to pay: carries over
     /* One equal share each, whatever size the companies are, and whatever will not
        divide cleanly rides forward in the pot. A big company draws no more from the
@@ -1311,7 +1637,8 @@ function runB2B(state, log) {
 }
 function potRecipients(state, ind) {
   let n = 0, levels = 0;
-  state.players.forEach((p) => activeBiz(p).forEach((b) => { if (bizInd(b) === ind) { n++; levels += b.level; } }));
+  const count = (b) => { if (bizInd(b) === ind) { n++; levels += b.level; } };
+  state.players.forEach((p) => { activeBiz(p).forEach(count); megacorpHQs(p).forEach(count); });
   return { n, levels };
 }
 
@@ -1388,11 +1715,11 @@ function runClosingRest(state, log) {
   if ([4, 8, 12].includes(quarter)) {
     for (const p of players) {
       for (const b of activeBiz(p)) if (!b.scored) { b.epOnCard = b.level * levelEP(state); b.scored = true; }
-      // Each industry pays its 5 EP once per game, the first year a company of that
+      // Each industry pays its entry bonus once per game, the first year a company of that
       // type is active. Entering a new industry is what scores, not holding one.
       // (industry bonuses are awarded on construction, see claimIndustryBonus)
       // NOTE: previously a player at the 5-company cap sold its worst company here
-      // every year end. That threw away 1 EP/level plus possibly 5 EP for the industry,
+      // every year end. That threw away the level EP plus possibly the entry bonus,
       // for no gain - being full is the goal, not a problem. Removed.
     }
     /* The two land awards are handed out at every year end, so holding the most land
@@ -1409,22 +1736,27 @@ function runClosingRest(state, log) {
     for (const p of players) if (!p.isHuman) botRepayLoans(state, p, quarter, log);
   }
 }
+/* A land award goes to first place and nobody else, and it shrinks hard when it is
+   shared: 5 EP outright, 2 each if two players tie, 1 each if three or more do. Second
+   place gets nothing.
+
+   It used to pay 10 and 5 and split the pot between ties, which made land the quietest
+   reliable points on the board - everybody collected something, so holding land was
+   never really a contest. Paying only the outright leader, and paying badly for a draw,
+   turns it back into a race worth winning rather than a dividend. */
+const LAND_AWARD = { sole: 5, two: 2, many: 1 };
 function awardRanked(state, scoreFn, label, log) {
   const scores = state.players.map((p) => ({ p, s: scoreFn(p) })).filter((x) => x.s > 0);
   if (!scores.length) return;
-  scores.sort((a, b) => b.s - a.s);
-  const values = [10, 5];
-  let i = 0;
-  while (i < scores.length && i < values.length) {
-    let j = i;
-    while (j + 1 < scores.length && scores[j + 1].s === scores[i].s) j++;
-    const tiedCount = j - i + 1;
-    const pot = values.slice(i, Math.min(j + 1, values.length)).reduce((a, b) => a + b, 0);
-    const share = pot / tiedCount;
-    // stamp the quarter it was actually awarded in - under the yearly-land variant this
-    // runs at Q4 and Q8 too, and hardcoding 12 made the scoring log claim otherwise
-    for (let k = i; k <= j; k++) { addEP(scores[k].p, share, label, state.quarter); if (log) log(`${scores[k].p.name} earns ${label} (+${share.toFixed(1)} EP).`, scores[k].p.id); }
-    i = j + 1;
+  const top = Math.max(...scores.map((x) => x.s));
+  const leaders = scores.filter((x) => x.s === top);
+  const share = leaders.length === 1 ? LAND_AWARD.sole
+    : leaders.length === 2 ? LAND_AWARD.two : LAND_AWARD.many;
+  for (const { p } of leaders) {
+    // stamp the quarter it was actually awarded in - the land awards pay at every year
+    // end, and hardcoding 12 made the scoring log claim otherwise
+    addEP(p, share, label, state.quarter);
+    if (log) log(`${p.name} earns ${label} (+${share} EP).`, p.id);
   }
 }
 /* The two endgame land awards, exposed so the standings can show the same running
@@ -1446,9 +1778,38 @@ function districtCount(state, p) {
 function finalRank(a, b) {
   return epTotal(b) - epTotal(a) || b.cash - a.cash || a.discsInBank - b.discsInBank;
 }
+/* A headquarters is a monument, not a business, and the city grows up around it. At the
+   end of the game it scores for every OTHER company standing orthogonally beside it -
+   one company level's worth of points each, so the number reads the same way as every
+   other building on the board.
+
+   Counted at the END rather than when the Megacorp forms, which is what makes it a bet
+   rather than a snapshot: you pick the corner you think the district will fill in, and
+   you can still improve it yourself, or watch nobody build there. */
+const MEGACORP_NEIGHBOUR_EP = 3;
+function hqNeighbours(state, hq) {
+  const seen = new Set();
+  hq.footprint.forEach((pk) => orthOf(state.board, pk).forEach((n) => {
+    if (hq.footprint.includes(n)) return;
+    const id = state.board.occupiedBy[n];
+    if (id === undefined || id === hq.id) return;
+    // a distressed shell belongs to the bank, not to anybody's skyline
+    for (const q of state.players) {
+      const b = q.businesses.find((x) => x.id === id);
+      if (b && !b.distressed) { seen.add(id); return; }
+    }
+  }));
+  return seen.size;
+}
 function finalizeGame(state) {
   awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", null);
   awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", null);
+  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      const n = hqNeighbours(state, hq);
+      if (n) addEP(p, MEGACORP_NEIGHBOUR_EP * n, `Megacorp district: ${hq.megacorpName}`, 12);
+    }
+  }
   for (const p of state.players) {
     if (p.discsInBank) addEP(p, -5 * p.discsInBank, `Unpaid loans (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"})`, 12);
     const cashEP = Math.floor(p.cash / 10);
@@ -1493,9 +1854,7 @@ function claimMegacorp(state, p, log, hqChoice) {
   // One of the merged companies becomes the Megacorp HQ: it keeps its building and the
   // owner's disc, gains a Megacorp block, and its BP returns to its industry deck.
   // Bots take the highest-level company; the human is asked to choose.
-  const hq = hqChoice && match.have.includes(hqChoice)
-    ? hqChoice
-    : match.have.reduce((a, b) => (b.level > a.level ? b : a));
+  const hq = hqChoice && match.have.includes(hqChoice) ? hqChoice : pickHQ(state, p, match.have);
   match.have.forEach((b) => {
     vest(p, b, state.quarter);
     if (b === hq) return;
@@ -1504,6 +1863,8 @@ function claimMegacorp(state, p, log, hqChoice) {
   hq.isHQ = true;
   hq.distressed = false;
   hq.megacorpName = name;
+  // it joins the Logistic Hub network as a piece of it, for everyone
+  (state.board.hqFootprints = state.board.hqFootprints || []).push([...hq.footprint]);
   if (state.decks && state.decks[hq.bp.ind]) state.decks[hq.bp.ind].push(hq.bp);   // BP back to its deck
   addEP(p, ep, `Megacorp: ${name}`, state.quarter);
   state.megacorpPool = state.megacorpPool.filter((t) => t !== match.tile);
@@ -1511,48 +1872,11 @@ function claimMegacorp(state, p, log, hqChoice) {
   // first Megacorp of the game also takes the IPO tile, which opens Board Meeting's second seat
   if (!state.ipoTileClaimed) {
     state.ipoTileClaimed = true;
-    addEP(p, 5, "IPO tile", state.quarter);
-    log(`${p.name} was first to go public and takes the IPO tile (+5 EP) \u2014 Board Meeting's second seat is now open.`, p.id);
+    state.ipoOwner = p.id;
+    p.ipoTile = true;
+    log(`${p.name} was first to go public and takes the IPO tile \u2014 a sixth company bay, and Board Meeting's second seat is now open.`, p.id);
   }
   return true;
-}
-
-/* Revenue - B2B, step 1: every Megacorp HQ siphons $5 out of the industry pot that each
-   adjacent active business draws from, before the pots are shared out. */
-function runMegacorpSyphon(state, log) {
-  if (!state.pots) return;
-  for (const p of state.players) {
-    for (const hq of p.businesses.filter((b) => b.isHQ)) {
-      const neighbourIds = new Set();
-      hq.footprint.forEach((pk) => {
-        (state.board.graph[pk] || []).forEach((n) => {
-          const id = state.board.occupiedBy[n];
-          if (id !== undefined && id !== hq.id) neighbourIds.add(id);
-        });
-      });
-      /* $5 out of the pot of every INDUSTRY the headquarters touches - not $5 per
-         neighbouring building. Two neighbours in the same industry are still one pot,
-         and it can only be tapped once. */
-      const industries = new Set();
-      neighbourIds.forEach((id) => {
-        for (const q of state.players) {
-          const b = q.businesses.find((x) => x.id === id);
-          if (!b || b.distressed || b.isHQ) continue;
-          industries.add(bizInd(b));
-        }
-      });
-      let taken = 0;
-      industries.forEach((ind) => {
-        const take = Math.min(5, state.pots[ind] || 0);
-        state.pots[ind] -= take;
-        taken += take;
-      });
-      if (taken > 0) {
-        p.cash += taken;
-        log(`Megacorp "${hq.megacorpName}" siphons $${taken.toFixed(0)} from neighbouring industries' pots.`, p.id);
-      }
-    }
-  }
 }
 
 /* ---------------- Renovation & plot market ---------------- */
@@ -1577,7 +1901,7 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   // renovating brings a structure back online, so it counts against the active-company cap
   if (!p.businesses.includes(distressedBiz) && !canLaunchMore(p)) return false;
   if (!p.businesses.includes(distressedBiz) && discsFree(state, p) <= 0) return false;
-  if (p.businesses.includes(distressedBiz) && companySlotsUsed(p) >= COMPANY_SLOTS) return false;
+  if (p.businesses.includes(distressedBiz) && companySlotsUsed(p) >= companySlotsFor(p)) return false;
   // A distressed structure still sits in its previous owner's ledger. Detach it there
   // first, otherwise the same business object ends up listed under both players.
   const prev = state.players.find((pl) => pl.businesses.includes(distressedBiz));
@@ -1700,9 +2024,9 @@ const TRACK_LABEL = { raise_capital: "Raise Capital", ma: "M&A", rd: "R&D", boar
    placement buttons, so a new player never has to guess what a track does. */
 const TRACK_HELP = {
   raise_capital: "Turn assets into cash. LOAN takes $20 from the bank for one of your discs (buy it back later or lose 5 EP). SELL turns a plot, an unbuilt Blueprint, or a whole company into money at market value.",
-  ma: "Grow your footprint. BUY takes an unowned plot, or renovates a distressed company for half its Blueprint's setup cost. LAUNCH builds a Blueprint from your hand onto plots you own \u2014 and pays you 5 EP the first time you enter each industry.",
+  ma: "Grow your footprint. BUY takes an unowned plot, or renovates a distressed company for half its Blueprint's setup cost. LAUNCH builds a Blueprint from your hand onto plots you own \u2014 and pays you 3 EP the first time you enter each industry.",
   rd: "Improve what you have. RESEARCH draws the face-up top card of any industry deck. UPGRADE pays a company's setup cost again to double its production and OPEX, and raise its level by one.",
-  board_meeting: "The power track. Both your workers go here together. GO PUBLIC merges companies into a Megacorp tile for big EP \u2014 you need the exact combination one of the tiles asks for. Whoever does it first also takes the IPO tile (+5 EP), which opens this track's second seat. REPOSITION moves you to first in turn order.",
+  board_meeting: "The power track. Both your workers go here together. GO PUBLIC merges companies into a Megacorp tile for big EP \u2014 you need the exact combination one of the tiles asks for. Whoever does it first also takes the IPO tile \u2014 a sixth company bay \u2014 which opens this track's second seat. REPOSITION moves you to first in turn order.",
 };
 
 /* How much does this bot want the Board Meeting track this quarter?
@@ -1719,7 +2043,52 @@ function megacorpWorthIt(state, p, match) {
   // refused almost every worthwhile merger.
   const ep = match.tile[2];
   const forgone = match.have.reduce((s, b) => s + (b.scored ? 0 : b.level * levelEP(state)), 0);
-  return ep >= forgone;
+
+  /* What merging really costs is the trade of every company in the set: the ones that go
+     distressed stop earning, and so does the headquarters. Against that the tile pays,
+     the headquarters keeps drawing its industry's pot, and the district that grows around
+     it scores at the end - so the company with the most neighbours already standing is
+     the one to keep. */
+  const qLeft = Math.max(1, 13 - (state.quarter || 1));
+  const hq = pickHQ(state, p, match.have);
+  let lostPerQuarter = 0;
+  for (const b of match.have) {
+    const units = Math.min(bizProd(b), sellableForBiz(state, p, b));
+    const trade = units * price(state.pm, bizInd(b))
+      + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - 3 * b.level;
+    lostPerQuarter += Math.max(0, trade);
+  }
+  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);
+  /* The headquarters banks EP equal to its industry's price every quarter it stands, so
+     merging early is worth far more than merging late - and it pays ground rent for the
+     privilege if the land under it is somebody else's. */
+  const brandEP = price(state.pm, bizInd(hq)) * qLeft;
+  const rentEP = (hqGroundRent(state, p, hq) * qLeft) / CASH_PER_EP;
+  return ep + districtEP + brandEP - rentEP - forgone - (lostPerQuarter * qLeft) / CASH_PER_EP > 0;
+}
+/* What this building would cost in ground rent if it became the headquarters. */
+function hqGroundRent(state, p, b) {
+  let due = 0;
+  for (const plot of b.footprint) {
+    const ownerId = state.board.owner[plot];
+    if (ownerId === undefined || ownerId === p.id) continue;
+    due += 3 * levelsOn(b, plot);
+  }
+  return due;
+}
+/* Which company keeps standing as the headquarters. It scores for the companies around
+   it at the end of the game, so the one already in a built-up corner is worth more than
+   the biggest one - which is what bots used to take. */
+function pickHQ(state, p, have) {
+  const qLeft = Math.max(1, 13 - (state.quarter || 1));
+  /* Two things now decide which building to keep: the industry it sits in, because the
+     headquarters banks that industry's price in EP every quarter, and what stands around
+     it, because the district it ends up in scores at the end. Ground rent on somebody
+     else's land comes off the top. */
+  const worth = (b) => price(state.pm, bizInd(b)) * qLeft
+    + MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, b)
+    - (hqGroundRent(state, p, b) * qLeft) / CASH_PER_EP;
+  return have.reduce((a, b) => (worth(b) > worth(a) ? b : a));
 }
 
 /* Going public is only a legal choice when it can actually do something: form a
@@ -1797,13 +2166,27 @@ function botChoosePlanningTrack(state, p) {
   const cheapestHandSetup = p.hand.length ? Math.min(...p.hand.map((bp) => bp.setup)) : Infinity;
   const nothingAffordable = p.cash < cheapestHandSetup && p.hand.length > 0;
   const outOfCards = p.hand.length === 0;
+
+  /* M&A sells new companies and R&D grows the ones you have. Both are purchases, and
+     which track to take is simply the question of which purchase is worth more - so ask,
+     rather than following a fixed list. The old order put M&A ahead of R&D for every
+     archetype but one, which is most of why Utilities, Manufacturing and Technology
+     spent whole games at level 1: those three can only grow sideways, and the bot never
+     visited the track that lets them. */
+  const buildable = canLaunchMore(p) && discsFree(state, p) > 0 ? bestLaunch(state, p, p.archetype) : null;
+  const growable = bestUpgrade(state, p);
+  const upTilt = p.archetype === "upgrade_focus" ? 2
+               : p.archetype === "vest_rebuild" && state.quarter > 4 && state.quarter <= 8 ? 1 : 0;
+  const buildValue = buildable ? buildable.score : -Infinity;
+  const growValue = growable && safeToSpend(p, bizSetup(growable.biz), bizOpex(growable.biz))
+    ? growable.score + upTilt : -Infinity;
+  const growFirst = growValue > buildValue;
+
   let order;
   if (outOfCards) order = ["rd", "ma", "raise_capital"];        // nothing to build without Blueprints
   else if (nothingAffordable) order = ["raise_capital", "rd", "ma"];
-  else if (p.archetype === "upgrade_focus") order = activeBiz(p).length ? ["rd", "ma", "raise_capital"] : ["ma", "rd", "raise_capital"];
-  else if (p.archetype === "rush_cheap") order = ["ma", "rd", "raise_capital"];
-  else if (p.archetype === "tech_heavy") order = ["ma", "rd", "raise_capital"];
-  else order = committedOpex(p) > p.cash * 0.7 ? ["raise_capital", "ma", "rd"] : ["ma", "rd", "raise_capital"];
+  else if (committedOpex(p) > p.cash * 0.7 && p.archetype !== "rush_cheap") order = ["raise_capital", "ma", "rd"];
+  else order = growFirst ? ["rd", "ma", "raise_capital"] : ["ma", "rd", "raise_capital"];
   // Skip a track that cannot achieve anything for this player right now: an empty hand
   // makes M&A pointless, a full company slate and a full hand make R&D pointless.
   const useful = (t) =>
@@ -1923,22 +2306,67 @@ function botResolveOneAction(state, p, track, rng, log) {
     const renoOpt = distressed.map((db) => ({ db, bp: p.hand.find((bp) => renovationEligible(db, bp)) })).find((o) => o.bp);
     if (renoOpt && p.cash >= Math.floor(renoOpt.bp.setup / 2) && doRenovate(state, p, renoOpt.db, renoOpt.bp, log)) return;
     // buying a distressed company as it stands is often the cheapest company on the
-    // board: half setup, already built, and it may open a new industry worth 5 EP
+    // board: half setup, already built, and it may open an industry never entered
     const reclaimOpt = distressed
       .filter((db) => canReclaim(state, p, db))
       .map((db) => {
         const px = price(state.pm, bizInd(db));
         const value = bizProd(db) * px - bizOpex(db) - 3 * db.level;
-        const fresh = missingIndustries(p).has(bizInd(db)) ? 5 : 0;
+        const fresh = missingIndustries(p).has(bizInd(db)) ? INDUSTRY_DEBUT_EP : 0;
         return { db, score: value + fresh - reclaimCost(db) * 0.25 };
       })
       .sort((a, b) => b.score - a.score)[0];
     if (reclaimOpt && reclaimOpt.score > 0 && doReclaim(state, p, reclaimOpt.db, log)) return;
-    if (canLaunchMore(p) && discsFree(state, p) > 0) {
+    const maxNeeded = p.hand.length ? Math.max(...p.hand.map((bp) => (SCALING[bp.ind] === "H" ? bp.lvl : 1))) : 0;
+    const freeOwnedByMe = Object.entries(state.board.owner)
+      .filter(([k, v]) => v === p.id && !(k in state.board.occupiedBy)).length;
+    const unowned = Object.keys(state.board.graph).filter((k) => !(k in state.board.owner));
+    // Always keep discs in hand for future companies: each active company is worth
+    // its level in EP plus the entry bonus for a new industry, usually more than a spare plot.
+    /* Only hold discs back for a company that could actually be built. Reserving two
+       against an empty hand, or against cards there is no money for, is how bots ended
+       games sitting on both spare discs and spare cash - the one combination that
+       converts to nothing at all. */
+    const companySlotsLeft = Math.max(0, 5 - activeBiz(p).length);
+    const buildableNow = p.hand.filter((bp) => p.cash >= bp.setup).length;
+    const reserveForCompanies = Math.min(companySlotsLeft, buildableNow, 2);
+    const mayBuyLand = discsFree(state, p) > reserveForCompanies;
+
+    /* Land that unblocks an upgrade is a category of its own. A horizontal company grows
+       only onto an empty plot somebody already owns, and 95% of every Utilities and
+       Manufacturing upgrade the bots ever weighed was refused for exactly that reason -
+       which is why those industries spent whole games at level 1 with their level 2 and
+       3 cards unplayed. Price the plot at what the upgrade it unlocks is worth, and it
+       stops being luck whether the company can ever grow. */
+    const growthValue = new Map();
+    for (const b of activeBiz(p)) {
+      if (b.upgraded || b.isHQ) continue;
+      if (upgradeScaling(p, b) !== "H") continue;
+      if (adjacentOwnedFreePlots(state.board, b.footprint).length) continue;   // already able to grow
+      for (const pk of unowned) {
+        if (!orthOf(state.board, pk).some((n) => b.footprint.includes(n))) continue;
+        const worth = upgradeScore(state, p, b, pk);
+        if (worth > 0 && worth > (growthValue.get(pk) || 0)) growthValue.set(pk, worth);
+      }
+    }
+    // a plot bought to grow a company is not a spare disc for long, so it may dip into
+    // the reserve the bot otherwise keeps for future companies
+    const mayBuyGrowth = growthValue.size > 0 && discsFree(state, p) > 0;
+    const growable = activeBiz(p).filter((b) => !b.upgraded && !b.isHQ && upgradeScaling(p, b) === "H");
+    const minUpgradeCost = growable.length ? Math.min(...growable.map((b) => bizSetup(b))) : 0;
+
+    /* Build, or buy the plot that lets a company already standing grow? Both are
+       measured in endgame points, so ask rather than always building. The launch branch
+       used to return unconditionally whenever anything at all was buildable, which meant
+       the land branch below was only ever reached by a bot with nothing to build - and a
+       Manufacturing company boxed in on all four sides never got its second plot. */
+    const bestGrowth = growthValue.size ? Math.max(...growthValue.values()) : -Infinity;
+    const launchNow = canLaunchMore(p) && discsFree(state, p) > 0
+      ? bestLaunch(state, p, p.archetype) : null;
+    if (launchNow && launchNow.score >= bestGrowth) {
       // 5 EP per distinct industry makes breadth worth far more than a marginally
       // better card in an industry already covered
-      const bp = pickLaunchCandidate(p, p.archetype, state.pm, missingIndustries(p), undefined, state);
-      if (bp && doLaunch(state, p, bp, rng, log)) return;
+      if (doLaunch(state, p, launchNow.bp, rng, log)) return;
     }
     /* Nothing was worth building. Buy land instead - for two different reasons, and the
        bot has to tell them apart.
@@ -1953,20 +2381,6 @@ function botResolveOneAction(state, p, track, rng, log) {
        under the yearly variant they are paid three times - up to 90 EP across a game,
        which no amount of company income matches. That is worth buying for its own sake
        once the discs are not needed for companies. */
-    const maxNeeded = p.hand.length ? Math.max(...p.hand.map((bp) => (SCALING[bp.ind] === "H" ? bp.lvl : 1))) : 0;
-    const freeOwnedByMe = Object.entries(state.board.owner)
-      .filter(([k, v]) => v === p.id && !(k in state.board.occupiedBy)).length;
-    const unowned = Object.keys(state.board.graph).filter((k) => !(k in state.board.owner));
-    // Always keep discs in hand for future companies: each active company is worth
-    // its level in EP plus 5 EP for a new industry, usually more than a spare plot.
-    /* Only hold discs back for a company that could actually be built. Reserving two
-       against an empty hand, or against cards there is no money for, is how bots ended
-       games sitting on both spare discs and spare cash - the one combination that
-       converts to nothing at all. */
-    const companySlotsLeft = Math.max(0, 5 - activeBiz(p).length);
-    const buildableNow = p.hand.filter((bp) => p.cash >= bp.setup).length;
-    const reserveForCompanies = Math.min(companySlotsLeft, buildableNow, 2);
-    const mayBuyLand = discsFree(state, p) > reserveForCompanies;
 
     /* Is land worth chasing for the awards? Only once there is spare capacity and the
        payout is close enough to be worth the disc. Weighted by how many times the
@@ -1976,8 +2390,8 @@ function botResolveOneAction(state, p, track, rng, log) {
       && p.cash > committedOpex(p) * 1.5 + 10
       // either the awards pay often enough to chase all game, or it is late and the
       // money is otherwise going to convert at a flat $10 per EP
-      && (landEPWeight(state) >= 3 || endgameSpendMode(state, p));
-    if (unowned.length && mayBuyLand && (freeOwnedByMe < maxNeeded || landIsPoints)) {
+      && (landEPWeight(state, p) >= 3 || endgameSpendMode(state, p));
+    if (unowned.length && ((mayBuyLand && (freeOwnedByMe < maxNeeded || landIsPoints)) || mayBuyGrowth)) {
       const ownedByMe = Object.entries(state.board.owner).filter(([k, v]) => v === p.id).map(([k]) => k);
       const adjacentCandidates = new Set();
       ownedByMe.forEach((owned) => { [...state.board.graph[owned]].forEach((n) => { if (unowned.includes(n)) adjacentCandidates.add(n); }); });
@@ -1987,8 +2401,8 @@ function botResolveOneAction(state, p, track, rng, log) {
       const wantInds = p.hand.length ? [...new Set(p.hand.map((bp) => bp.ind))] : INDUSTRIES;
       // when land is being bought for points rather than for a build, look at the whole
       // board: a plot in a district we are not in yet also feeds The Omnipresent
-      const pool = adjacentCandidates.size && !landIsPoints ? [...adjacentCandidates]
-        : [...new Set([...adjacentCandidates, ...unowned])];
+      const pool = adjacentCandidates.size && !landIsPoints ? [...new Set([...adjacentCandidates, ...growthValue.keys()])]
+        : [...new Set([...adjacentCandidates, ...growthValue.keys(), ...unowned])];
       const myDistricts = new Set(ownedByMe.map((k) => {
         const c = state.board.cellOf[k];
         return `${c.r},${c.c}`;
@@ -1998,12 +2412,22 @@ function botResolveOneAction(state, p, track, rng, log) {
         const demand = Math.max(...wantInds.map((ind) => plotDemandScore(state, ind, k)));
         const c = state.board.cellOf[k];
         const newDistrict = myDistricts.has(`${c.r},${c.c}`) ? 0 : 1;
-        return { k, cost, score: demand * 3 + (landIsPoints ? landEPWeight(state) * (1 + newDistrict) : 0) - cost };
+        // the upgrade this plot unlocks is worth points; points are worth $10 each, so
+        // that is the number that belongs beside a plot price in dollars
+        const growth = (growthValue.get(k) || 0) * CASH_PER_EP;
+        return { k, cost, growth, score: demand * 3 + growth + (landIsPoints ? landEPWeight(state, p) * (1 + newDistrict) : 0) - cost };
       }).sort((a, b) => b.score - a.score);
       /* Buying to unblock a build takes the best affordable plot even if the score is
          negative - a plot that lets a company exist beats no company. Buying for points
          is optional, so it has to actually be worth the disc. */
-      const pick = ranked.find((r) => p.cash >= r.cost && (freeOwnedByMe < maxNeeded || r.score > 0));
+      /* Buying to unblock a build takes the best affordable plot even if the score is
+         negative - a plot that lets a company exist beats no company. Buying for points,
+         or to grow a company, is optional, so it has to actually be worth the disc. But
+         a growth plot must also leave enough cash to pay for the upgrade it unlocks,
+         otherwise the bot buys the land and then cannot build on it. */
+      const pick = ranked.find((r) => p.cash >= r.cost
+        && (freeOwnedByMe < maxNeeded || r.score > 0)
+        && (!r.growth || p.cash - r.cost >= minUpgradeCost));
       if (pick && doBuyPlot(state, p, pick.k, log)) return;
     }
     log(`${p.name} finds nothing worth building right now.`, p.id);
@@ -2019,15 +2443,10 @@ function botResolveOneAction(state, p, track, rng, log) {
       && safeToSpend(p, bizSetup(b), bizOpex(b)) && !upgradeBlockedReason(state, p, b));
     let upgradable = null, bestGain = -Infinity;
     for (const b of candidates) {
-      const now = eligibleSlotsFor(state, b, p).filter((s) => !s.cross).length;
-      const after = eligibleSlotsFor(state, { ...b, level: b.level + 1 }, p).filter((s) => !s.cross).length;
-      const extraSold = Math.max(0, Math.min(after, bizProd({ ...b, level: b.level + 1 }))
-        - Math.min(now, bizProd(b)));
-      // one level of EP, plus the cash the extra sales bring, against what it costs
-      const gain = (levelEP(state) + extraSold * price(state.pm, bizInd(b)) / 10) / Math.max(1, bizSetup(b));
+      const gain = upgradeScore(state, p, b);   // endgame points, same scale as a build
       if (gain > bestGain) { bestGain = gain; upgradable = b; }
     }
-    if (upgradable) doUpgrade(state, p, upgradable, rng, log);
+    if (upgradable && bestGain > 0) doUpgrade(state, p, upgradable, rng, log);
     else {
       const openDecks = INDUSTRIES.filter((ind) => state.decks[ind] && state.decks[ind].length);
       if (openDecks.length) {
@@ -2166,17 +2585,13 @@ function startDeliveryFor(state, playerId, log) {
   {
     state.phase = "delivering";
     state.awaitingPlayerId = playerId;
+    /* The Hospitality neighbour trade is no longer taken off the top. Icons are
+       contested and neighbours are not, so it is applied to whatever is left when the
+       player is done delivering - which is both the better play and their choice. */
     pending.forEach((b) => {
-      let prod = bizProd(b);
-      const bonus = Math.min(prod, hoBonusUnits(state, b));
-      if (bonus > 0) {
-        human.cash += bonus * unitPrice(state, human, b);   // via unitPrice so personas apply here too
-        prod -= bonus;
-        state.hoBonusPaid[b.id] = bonus;
-        log(`${b.bp.name} moves ${bonus} unit${bonus === 1 ? "" : "s"} to neighbouring businesses/hubs for $${bonus * price(state.pm, bizInd(b))}.`, human.id);
-      }
-      state.deliveryRemaining[b.id] = prod;
+      state.deliveryRemaining[b.id] = bizProd(b);
       state.crossSellRemaining[b.id] = bizInd(b) === "MA" ? b.level : 0;
+      state.hoBonusPaid[b.id] = 0;
     });
     state.deliveringBizId = pending[0].id;
   }
@@ -2192,10 +2607,23 @@ function humanLiquidationDone(state, rng, log) {
 function nextDeliveryTarget(state) {
   const human = byId(state, state.awaitingPlayerId);
   if (!human) return null;
-  return activeBiz(human).find((b) => (state.deliveryRemaining[b.id] || 0) > 0 || (state.crossSellRemaining[b.id] || 0) > 0) || null;
+  return activeBiz(human).find((b) => (state.deliveryRemaining[b.id] || 0) > 0) || null;
 }
 function skipDelivery(state, human, bizId, log) {
-  const remaining = (state.deliveryRemaining[bizId] || 0) + (state.crossSellRemaining[bizId] || 0);
+  let remaining = state.deliveryRemaining[bizId] || 0;
+  const biz = human.businesses.find((b) => b.id === bizId);
+  /* Hospitality sends what the icons could not take to the businesses and hubs around
+     it, at the full market price. Only what is left after THAT is recycled at $1. */
+  if (biz && remaining > 0) {
+    const bonus = Math.min(remaining, hoBonusUnits(state, biz, human));
+    if (bonus > 0) {
+      const paid = bonus * unitPrice(state, human, biz);
+      human.cash += paid;
+      remaining -= bonus;
+      state.hoBonusPaid[bizId] = (state.hoBonusPaid[bizId] || 0) + bonus;
+      log(`${biz.bp.name} moves ${bonus} unit${bonus === 1 ? "" : "s"} to neighbouring businesses/hubs for $${paid}.`, human.id);
+    }
+  }
   if (remaining > 0) { human.cash += remaining; log(`Unsold production recycled for $${remaining}.`, human.id); }
   state.deliveryRemaining[bizId] = 0;
   state.crossSellRemaining[bizId] = 0;
@@ -2210,6 +2638,7 @@ function finishDelivery(state, log, rng) {
 }
 function finishQuarter(state, log, rng) {
   state.phase = "production";
+  runMegacorpDividend(state, log);   // Revenue - B2B: headquarters bank their brand EP first
   runB2B(state, log);            // Revenue - B2B: share out the industry pots
   runClosing(state, log, rng);
   if (state.phase === "placingLH") return; // paused for human's LH choice; UI resumes via finishQuarterAfterLH
@@ -2409,7 +2838,10 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
     const deal = shuffle(PERSONA_KEYS, rng);
     players.forEach((pl, i) => { pl.persona = deal[i % deal.length]; });
   }
-  const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers + 1);
+  /* Twice as many tiles as players. At (players + 1) only a third of seats ever formed
+     a Megacorp and the first one arrived in Quarter 7; at 2n it is half the seats and
+     Quarter 6.7, and being first to go public stops being a near-decisive edge. */
+  const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers * 2);
   const state = {
     board, demand, pm, players, decks, variants: V, quarter: 1, solvencyEvents: 0, rngSeed: seedNum, rngCalls: 0,
     turnOrder: seats,                      // randomised seating
@@ -3384,16 +3816,15 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
           </div>
           <div className="text-[10px] text-gray-400">
             The company you pick keeps its building and your disc, gains a Megacorp block, and returns its
-            BP to its industry deck. It will siphon $5 from each neighbouring business's industry pot every
-            B2B. The other {megacorpMatch.have.length - 1} go to the bank as Distressed Assets.
+            BP to its industry deck. It stops trading but keeps drawing its industry&rsquo;s pot share, banks EP
+            equal to that industry&rsquo;s price every quarter, and at the end scores 3 EP for every other company
+            standing beside it. It also counts as a Logistic Hub for anything built beside it, whoever owns it.
+            You pay its ground rent from pocket, and it collects nothing at all if you sell the land under it.
+            The other {megacorpMatch.have.length - 1} go to the bank as Distressed Assets.
           </div>
           <div className="flex flex-wrap gap-2">
             {megacorpMatch.have.map((b) => {
-              const nbrs = new Set();
-              b.footprint.forEach((pk) => (state.board.graph[pk] || []).forEach((n) => {
-                const id = state.board.occupiedBy[n];
-                if (id !== undefined && id !== b.id) nbrs.add(id);
-              }));
+              const nbrs = hqNeighbours(state, b);
               return (
                 <button key={b.id} onClick={() => { if (NET) return NET.send("act", { type: "megacorp", hqId: b.id }); claimMegacorp(state, human, log, b); finish(); }}
                   className="text-left rounded-md p-2" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}77`, width: 150 }}>
@@ -3402,8 +3833,8 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                     <span className="text-[10px] font-mono text-gray-400">L{b.level}</span>
                   </div>
                   <div className="text-[10px] font-semibold text-gray-100 leading-tight">{b.bp.name}</div>
-                  <div className="text-[9px] font-mono mt-0.5" style={{ color: nbrs.size ? "#8fd3b6" : "#6b7280" }}>
-                    {nbrs.size} neighbour{nbrs.size === 1 ? "" : "s"} to siphon
+                  <div className="text-[9px] font-mono mt-0.5" style={{ color: "#8fd3b6" }}>
+                    {price(state.pm, b.bp.ind)} EP/quarter &middot; {nbrs} neighbour{nbrs === 1 ? "" : "s"} (+{nbrs * MEGACORP_NEIGHBOUR_EP} EP)
                   </div>
                 </button>
               );
@@ -4514,7 +4945,7 @@ function GameScreens({ online }) {
                 keeps a single, full-width block instead of two stubby ones. */}
             <div className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
 
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc, stops trading, and siphons $5 from the pot of every industry it touches. The rest go distressed. Each Megacorp permanently locks one of your five company slots." /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks EP equal to that industry's price every quarter, counts as a Logistic Hub for anything built beside it, and at the end scores 3 EP for every other company standing beside it. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots - unless you were first to go public, which wins the IPO tile and a sixth bay." /></div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
                 {state.megacorpPool.map(([name, combo, ep], i) => (
                   <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>

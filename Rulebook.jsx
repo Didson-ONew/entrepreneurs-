@@ -6,6 +6,7 @@ import { RULEBOOK as BOOK_ALL, EDITION, forEdition } from "./rulebook.data.mjs";
    anything written only for a physical table. */
 const RULEBOOK = forEdition(BOOK_ALL, "digital");
 import Records from "./Records.jsx";
+import { FeedbackPanel, useFeedbackAccess } from "./Feedback.jsx";
 
 /* ============================================================================
    Site chrome: the rulebook and the live table counters.
@@ -274,10 +275,15 @@ export function LiveCounts({ counts }) {
 
 /* ------------------------------------------------------------ the chrome */
 
-/* Mounted once per app, at the root, so it survives every screen change. */
-export default function SiteChrome() {
-  const [open, setOpen] = useState(null);        // "rules" | "records" | null
+/* Mounted once per app, at the root, so it survives every screen change.
+
+   `table` is whatever the app knows about where the player currently is - the room
+   code and the quarter - so a note written mid-game arrives already saying which
+   game it was about. Nothing here needs it; it is passed straight through. */
+export default function SiteChrome({ table }) {
+  const [open, setOpen] = useState(null);        // "rules" | "records" | "feedback" | null
   const counts = useLiveCounts();
+  const access = useFeedbackAccess();
 
   const pill = (bg, edge, fg) => ({
     display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700,
@@ -297,10 +303,20 @@ export default function SiteChrome() {
           style={pill("#231f14", "#7a6a3f", "#f5d76e")}>
           <span aria-hidden="true">&#9733;</span> Records
         </button>
+        {access.server && (
+          <button onClick={() => setOpen("feedback")}
+            title={access.admin ? "Write in, read what came in, and see who is playing" : "Tell the designer how it played (Esc closes)"}
+            style={pill("#241d14", "#7a6a3f", "#f0a868")}>
+            <span aria-hidden="true">&#9998;</span> {access.admin ? "Playtest" : "Feedback"}
+          </button>
+        )}
         <LiveCounts counts={counts} />
       </div>
       {open === "rules" && <Rulebook onClose={() => setOpen(null)} />}
       {open === "records" && <Records onClose={() => setOpen(null)} />}
+      {open === "feedback" && (
+        <FeedbackPanel admin={access.admin} context={table || {}} onClose={() => setOpen(null)} />
+      )}
     </>
   );
 }
