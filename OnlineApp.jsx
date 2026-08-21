@@ -840,15 +840,19 @@ function TablePanel({ me, chat, onSend }) {
    are on screen on every one of its screens - joining, waiting, drafting, playing
    and the results - instead of only inside the game. */
 export default function OnlineApp() {
+  /* The chrome sits above the table so it survives every screen change, which means
+     it cannot see which table the player is at. The table reports it up, so a note
+     written mid-game arrives already saying which game and which quarter. */
+  const [table, setTable] = useState(null);
   return (
     <>
-      <SiteChrome />
-      <OnlineTable />
+      <SiteChrome table={table} />
+      <OnlineTable onTable={setTable} />
     </>
   );
 }
 
-function OnlineTable() {
+function OnlineTable({ onTable }) {
   const [me, setMe] = useState(null);
   const [lobby, setLobby] = useState(null);
   const [state, setState] = useState(null);
@@ -863,6 +867,15 @@ function OnlineTable() {
   const wasMyTurn = useRef(false);
 
   const enter = (m) => { store.set(m); setMe(m); };
+
+  /* Tell the chrome where we are, so the feedback box can stamp a note with the
+     table and the quarter without the player having to say so. */
+  useEffect(() => {
+    if (!onTable) return;
+    onTable(me ? { room: me.code, quarter: state ? state.quarter : null,
+      where: state ? state.phase : "waiting room" } : null);
+  }, [onTable, me, state && state.quarter, state && state.phase]);
+
   const mutedRef = useRef(muted);
   useEffect(() => {
     mutedRef.current = muted;

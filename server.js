@@ -12,6 +12,7 @@ const crypto = require("crypto");
 const vm = require("vm");
 const matchlog = require("./matchlog.js");
 const accounts = require("./accounts.js");
+const feedback = require("./feedback.js");
 const mailer = require("./mailer.js");
 
 const PORT = process.env.PORT || 8080;
@@ -409,8 +410,25 @@ function rememberName(req, name) {
    guests play exactly as before - but a name that HAS been registered can only be
    played by whoever holds its password. That is the whole point of the feature. */
 const ACCOUNTS = accounts.load();
+const FEEDBACK = feedback.load();
 const SESSION_COOKIE = "ent_session";
+
+/* Who may read what players have written in, and who is sitting in which match.
+
+   Deliberately a list of account NAMES rather than a role on the account: this is
+   one person's playtest, and a flag in the store would be one more thing to get
+   wrong. A name only counts if that account is signed in, so it cannot be had by
+   typing it at the join screen. */
+const ADMINS = new Set(String(process.env.ENT_ADMINS || "Dids,Didson")
+  .split(",").map((n) => n.trim().toLowerCase()).filter(Boolean));
+const isAdmin = (user) => !!user && ADMINS.has(String(user.name || "").toLowerCase());
 const MAIL = mailer.config();
+
+let feedbackDirty = false;
+const saveFeedback = () => {
+  try { feedback.save(FEEDBACK); feedbackDirty = false; }
+  catch (e) { feedbackDirty = true; console.error("could not save feedback:", e.message); }
+};
 
 let accountsDirty = false;
 const saveAccounts = () => { try { accounts.save(ACCOUNTS); accountsDirty = false; } catch (e) { accountsDirty = true; console.error("could not save accounts:", e.message); } };
@@ -522,7 +540,91 @@ const server = http.createServer(async (req, res) => {
   /* Everything the sign-in box needs to draw itself: who you are, if anyone. */
   if (p === "/api/account" && req.method === "GET") {
     const me = accountOf(req);
-    return json(res, { user: accounts.publicUser(me), minPassword: accounts.MIN_PASSWORD });
+    return json(res, { user: accounts.publicUser(me), minPassword: accounts.MIN_PASSWORD,
+      admin: isAdmin(me) });
+  }
+
+  /* ---------------------------------------------------------- playtest notes */
+
+  /* Anyone may write in, signed in or not - the people whose opinion is most worth
+     having are often the friend who sat down for one game and never registered.
+     Rate limited by source address like the sign-in endpoints, because an open POST
+     that writes to disk is an open POST that writes to disk. */
+  if (p === "/api/feedback" && req.method === "POST") {
+    const gate = `feedback:${whoFrom(req)}`;
+    const wait = attemptDelay(gate);
+    if (wait) await pause(wait);
+    const b = await body(req);
+    const me = accountOf(req);
+    const who = identityOf(req);
+    const r = feedback.add(FEEDBACK, {
+      kind: b.kind,
+      text: b.text,
+      rating: b.rating === null || b.rating === undefined || b.rating === "" ? null : Number(b.rating),
+      account: me ? me.name : null,
+      name: who && who.name ? who.name : null,
+      room: b.room,
+      quarter: Number.isFinite(Number(b.quarter)) ? Number(b.quarter) : null,
+      where: b.where,
+      engine: E.ENGINE_VERSION,
+    });
+    /* A refused note is the sender's mistake, not an attack: only count the ones
+       that were malformed, so a chatty playtester is never slowed down. */
+    noteAttempt(gate, !r.ok);
+    if (!r.ok) return json(res, { error: r.error }, 400);
+    saveFeedback();
+    return json(res, { ok: true });
+  }
+
+  /* Everything players have written in. Signed-in admins only. */
+  if (p === "/api/feedback" && req.method === "GET") {
+    const me = accountOf(req);
+    if (!isAdmin(me)) return json(res, { error: "Not for you." }, 403);
+    return json(res, {
+      summary: feedback.summary(FEEDBACK),
+      entries: feedback.list(FEEDBACK, { limit: 400 }),
+    });
+  }
+
+  /* Who is playing right now, by name. Signed-in admins only: a player's name and
+     what table they are at is theirs, and the public counters on /api/presence
+     deliberately give numbers and nothing else. */
+  if (p === "/api/matches" && req.method === "GET") {
+    const me = accountOf(req);
+    if (!isAdmin(me)) return json(res, { error: "Not for you." }, 403);
+    const out = [];
+    for (const room of rooms.values()) {
+      const st = room.state;
+      out.push({
+        code: room.code,
+        phase: st ? st.phase : "lobby",
+        quarter: st ? st.quarter : null,
+        startedAt: room.startedAt,
+        bots: room.bots,
+        personas: room.personas,
+        /* Every seat, in seat order, saying which are people and which the server
+           is playing. Once a game is running the state is the truth - a player who
+           dropped out and was taken over shows as a bot under the name they sat
+           down as, which is exactly what you want to see. Before it starts there is
+           no state, so the room's own member list is all there is. */
+        seats: st
+          ? st.players.map((pl) => ({
+              name: pl.name, seat: pl.id, human: !!pl.isHuman,
+              host: (room.members.find((m) => m.seat === pl.id) || {}).host === true,
+            }))
+          : room.members.map((m) => ({ name: m.name, seat: m.seat, human: true, host: !!m.host })),
+        watchers: (room.spectators || []).map((m) => m.name),
+        awaiting: (() => {
+          if (!st) return null;
+          const id = whoIsAwaited(st);
+          if (id === null || id === undefined) return null;
+          const pl = st.players.find((q) => q.id === id);
+          return pl ? pl.name : null;
+        })(),
+      });
+    }
+    out.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+    return json(res, { matches: out, engine: E.ENGINE_VERSION });
   }
 
   if (p === "/api/register" && req.method === "POST") {
