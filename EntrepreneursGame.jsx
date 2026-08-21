@@ -223,8 +223,24 @@ function lhDistricts(board) {
   return out;
 }
 const lhCount = (board) => (board.lhOnPlots ? (board.lhPlots || []).length : board.lhEdges.length);
-/* A hub standing on a plot fills it: nothing can be built there afterwards. */
+/* What a plot will and will not take. Three questions, asked in one place, because
+   they used to be asked in several and had quietly drifted apart - the board's picker
+   kept its own idea of an empty plot and was offering ground the engine would refuse.
+
+   plotFree      nothing is standing here. A hub fills a plot; so does a building,
+                 including a Megacorp headquarters and a distressed shell, both of
+                 which stay on the board and stay in the way.
+   plotBuildable somewhere a company may be launched: empty, and owned by somebody.
+                 A headquarters occupies its plot, so nothing can be built over one.
+   plotBuyable   somewhere land may be bought: empty of a HUB and unowned. A
+                 headquarters' ground IS for sale - selling it out from under one is a
+                 real move - but a hub's plot never is; the hub is the plot now.
+   lhPlaceable   somewhere a new hub may open: empty and unowned. A hub cannot be
+                 dropped onto land somebody has already paid for. */
 const plotFree = (board, plot) => !(plot in board.occupiedBy) && !plotIsLH(board, plot);
+const plotBuildable = (board, plot) => plot in board.owner && plotFree(board, plot);
+const plotBuyable = (board, plot) => !(plot in board.owner) && !plotIsLH(board, plot);
+const lhPlaceable = (board, plot) => !(plot in board.owner) && plotFree(board, plot);
 const LOCAL5 = { NW: [0, 0], N: [0, 2], NE: [0, 4], W: [2, 0], E: [2, 4], SW: [4, 0], S: [4, 2], SE: [4, 4] };
 function isCCDistrict0(dr, dc) { return CENTER_CELLS.some(([cr, cc]) => cr - 1 === dr && cc - 1 === dc); }
 
@@ -288,7 +304,7 @@ function isCrossDistrictEdge(board, a, b) {
    that is any plot with nothing standing on it; otherwise it is any road between
    two districts that has no hub yet. */
 function lhPlotOptions(state) {
-  return Object.keys(state.board.graph).filter((p) => plotFree(state.board, p));
+  return Object.keys(state.board.graph).filter((p) => lhPlaceable(state.board, p));
 }
 function lhEdgeOptions(state) {
   const out = [], seen = new Set();
@@ -1428,7 +1444,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "ba0049c9";
+const ENGINE_VERSION = "9e3e12ee";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1657,7 +1673,7 @@ function humanDeliveryQueue(state, human) {
    stand on plots - there the whole placement is the single plot `a`. */
 function doPlaceLH(state, a, b, log) {
   if (state.board.lhOnPlots) {
-    if (!state.board.graph[a] || !plotFree(state.board, a)) return false;
+    if (!state.board.graph[a] || !lhPlaceable(state.board, a)) return false;
     state.board.lhPlots.push(a);
     logNewLH(state, [districtOf(state.board, a)], log);
     return true;
@@ -1970,7 +1986,7 @@ function cheapestOwnedPlot(state, p) {
   return pool.map((k) => [k, plotValue(state, k)]).sort((a, b) => a[1] - b[1])[0][0];
 }
 function doBuyPlot(state, p, plotKeyStr, log) {
-  if (plotKeyStr in state.board.owner) return false;
+  if (!plotBuyable(state.board, plotKeyStr)) return false;   // a hub's plot is the hub now
   if (discsFree(state, p) <= 0) return false;   // no disc left to mark ownership
   const cost = plotValue(state, plotKeyStr);
   if (p.cash < cost) return false;
@@ -2241,7 +2257,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     // late game with money doing nothing: land is 10 EP for the most plots and 10 more
     // for the most districts, so buying beats holding
     if (endgameSpendMode(state, p) && discsFree(state, p) > 0) {
-      const unowned = Object.keys(state.board.graph).filter((k) => !(k in state.board.owner));
+      const unowned = Object.keys(state.board.graph).filter((k) => plotBuyable(state.board, k));
       if (unowned.length) {
         const districtsMine = new Set(Object.entries(state.board.owner)
           .filter(([, v]) => v === p.id)
@@ -2320,7 +2336,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     const maxNeeded = p.hand.length ? Math.max(...p.hand.map((bp) => (SCALING[bp.ind] === "H" ? bp.lvl : 1))) : 0;
     const freeOwnedByMe = Object.entries(state.board.owner)
       .filter(([k, v]) => v === p.id && !(k in state.board.occupiedBy)).length;
-    const unowned = Object.keys(state.board.graph).filter((k) => !(k in state.board.owner));
+    const unowned = Object.keys(state.board.graph).filter((k) => plotBuyable(state.board, k));
     // Always keep discs in hand for future companies: each active company is worth
     // its level in EP plus the entry bonus for a new industry, usually more than a spare plot.
     /* Only hold discs back for a company that could actually be built. Reserving two
@@ -2961,13 +2977,13 @@ function computeEligiblePlots(board, selectMode, ctx) {
     // only offer plots this player can actually afford right now; anything else
     // would just be refused (server-side, as a toast) when confirmed
     const canPay = (k) => !ctx || plotValue(ctx.state, k) <= ctx.player.cash;
-    return new Set(Object.keys(board.graph).filter((k) => !(k in board.owner) && canPay(k)));
+    return new Set(Object.keys(board.graph).filter((k) => plotBuyable(board, k) && canPay(k)));
   }
   if (selectMode.kind === "lh") {
     // hubs on plots: pick one empty plot and that is the whole placement
     if (board.lhOnPlots) {
       if (selectMode.selected.length >= 1) return new Set();
-      return new Set(Object.keys(board.graph).filter((k) => plotFree(board, k)));
+      return new Set(Object.keys(board.graph).filter((k) => lhPlaceable(board, k)));
     }
     if (selectMode.selected.length >= 2) return new Set();
     const hasLH = (x, y) => board.lhEdges.some((e) => edgeKey(e[0], e[1]) === edgeKey(x, y));
@@ -2981,7 +2997,7 @@ function computeEligiblePlots(board, selectMode, ctx) {
   }
   const { selected, nPlots } = selectMode;
   if (selected.length >= nPlots) return new Set();
-  const ownedFree = (k) => k in board.owner && !(k in board.occupiedBy);
+  const ownedFree = (k) => plotBuildable(board, k);
   if (!selected.length) return new Set(Object.keys(board.graph).filter(ownedFree));
   // a footprint grows orthogonally only - the same rule the engine enforces, so the
   // picker can never offer a plot the build would refuse

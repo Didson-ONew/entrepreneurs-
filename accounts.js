@@ -26,6 +26,28 @@ const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
 const SESSION_DAYS = 30;
 const RESET_MINUTES = 60;
 
+/* ---------- the secret question ----------
+   Email reset needs a mail account the host may not have, and a link the player may
+   never receive. A question they answered when they registered needs neither.
+
+   Three to choose from, deliberately. More would be a menu nobody reads; the classics
+   - mother's maiden name, first pet - are worth avoiding because they are the ones
+   strangers can look up. These are personal, stable, and not on anybody's profile. */
+const QUESTIONS = [
+  { key: "street", text: "What was the name of the street you grew up on?" },
+  { key: "first_bought", text: "What is the first record, film or book you bought with your own money?" },
+  { key: "lazy_dish", text: "What do you cook when you cannot be bothered to cook?" },
+];
+const questionText = (key) => (QUESTIONS.find((q) => q.key === key) || {}).text || null;
+
+/* An answer is typed twice months apart, so it is compared loosely: case, outer
+   spacing, runs of spaces and a trailing full stop must not be the difference between
+   getting back in and not. What survives is hashed exactly like a password, because a
+   stolen store must not hand over the answers either. */
+const answerKey = (s) => String(s == null ? "" : s)
+  .trim().toLowerCase().replace(/\s+/g, " ").replace(/[.!?]+$/, "");
+const MIN_ANSWER = 2;
+
 const MIN_PASSWORD = 8;
 /* scrypt hashes whatever it is handed, so an unbounded password is a way to make the
    server do unbounded work. Nobody has a 200-character password they typed on purpose. */
@@ -142,18 +164,21 @@ const byName = (store, name) => store.users.find((u) => u.nameKey === nameKey(na
 const byEmail = (store, email) => store.users.find((u) => u.emailKey === emailKey(email)) || null;
 
 /* What the browser is allowed to know about an account: its own. */
-const publicUser = (u) => (u ? { id: u.id, name: u.name, email: u.email } : null);
+const publicUser = (u) => (u ? { id: u.id, name: u.name, email: u.email,
+  question: u.question || null, questionText: questionText(u.question) } : null);
 
 /* ---------- registering ----------
    `heldBy` is the set of browser ids that have already finished games under this
    name, from the match records. Someone who has been playing as "Dids" all along
    can claim it; a stranger cannot walk in and take it. */
-async function register(store, { name, email, password, pid, heldBy }) {
+async function register(store, { name, email, password, pid, heldBy, question, answer }) {
   const nm = cleanName(name);
   if (nm.length < 2) return { error: "Pick a name of at least 2 characters." };
   if (!looksLikeEmail(email)) return { error: "That does not look like an email address." };
   const pwProblem = passwordProblem(password);
   if (pwProblem) return { error: pwProblem };
+  if (!questionText(question)) return { error: "Choose one of the questions." };
+  if (answerKey(answer).length < MIN_ANSWER) return { error: "Answer the question you chose." };
 
   if (byName(store, nm)) return { error: `${nm} is already registered. Sign in instead, or pick another name.` };
   if (byEmail(store, email)) return { error: "There is already an account with that email address." };
@@ -173,6 +198,8 @@ async function register(store, { name, email, password, pid, heldBy }) {
     email: emailKey(email),
     emailKey: emailKey(email),
     pw,
+    question,
+    answer: await hashPassword(answerKey(answer)),
     createdAt: Date.now(),
     lastLoginAt: Date.now(),
     reset: null,
@@ -232,6 +259,59 @@ async function finishReset(store, token, password) {
   return { user: u };
 }
 
+/* ---------- the secret question ----------
+   Two steps, because the player has to be shown the question before they can answer
+   it. Step one names the account and gets its question back; step two answers it and
+   sets a new password in the same breath.
+
+   Asking for the question does say whether a name is registered - but so does the
+   join screen, which already warns a player when the name they typed belongs to
+   somebody. This gives away nothing that was not public.
+
+   What it cannot do is SHOW the old password. Passwords are stored as scrypt hashes
+   and there is no way back from one; that is the entire reason a stolen accounts.json
+   is not a list of passwords. Setting a new one is the only thing on offer. */
+function questionFor(store, name) {
+  const u = byName(store, name);
+  if (!u) return { error: "No account with that name." };
+  if (!u.question) {
+    return { error: `${u.name} was registered before secret questions existed. Use the email link instead, ` +
+      `and set a question once you are back in.` };
+  }
+  return { name: u.name, question: questionText(u.question) };
+}
+
+const WRONG_ANSWER = "That is not the answer on the account.";
+
+async function recoverWithAnswer(store, { name, answer, password }) {
+  const u = byName(store, name);
+  if (!u || !u.answer) {
+    /* Spend the time anyway. An instant "no" is how somebody finds out which names
+       have a question set without ever answering one. */
+    await checkPassword(answerKey(answer), { salt: crypto.randomBytes(16).toString("hex"), hash: "00".repeat(64) });
+    return { error: WRONG_ANSWER };
+  }
+  if (!(await checkPassword(answerKey(answer), u.answer))) return { error: WRONG_ANSWER };
+  const problem = passwordProblem(password);
+  if (problem) return { error: problem };
+  u.pw = await hashPassword(password);
+  u.reset = null;             // any link that was out there is now void
+  u.lastLoginAt = Date.now();
+  return { user: u };
+}
+
+/* Setting or changing the question, from inside the account. Needs the current
+   password: otherwise a borrowed session could quietly swap the answer and take the
+   account for good. */
+async function setQuestion(store, user, { current, question, answer }) {
+  if (!(await checkPassword(String(current || ""), user.pw))) return { error: "Your current password is not right." };
+  if (!questionText(question)) return { error: "Choose one of the questions." };
+  if (answerKey(answer).length < MIN_ANSWER) return { error: "Answer the question you chose." };
+  user.question = question;
+  user.answer = await hashPassword(answerKey(answer));
+  return { user };
+}
+
 async function changePassword(store, user, current, next) {
   if (!(await checkPassword(String(current || ""), user.pw))) return { error: "Your current password is not right." };
   const problem = passwordProblem(next);
@@ -242,6 +322,8 @@ async function changePassword(store, user, current, next) {
 
 module.exports = {
   DEFAULT_FILE, SESSION_DAYS, RESET_MINUTES, MIN_PASSWORD,
+  QUESTIONS, questionText, answerKey, MIN_ANSWER,
+  questionFor, recoverWithAnswer, setQuestion,
   load, save, emptyStore,
   hashPassword, checkPassword, passwordProblem,
   signSession, readSession,
