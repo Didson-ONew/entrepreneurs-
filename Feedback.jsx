@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 
 /* ============================================================================
@@ -222,6 +222,100 @@ function Notes() {
 
 /* ------------------------------------------------------------ who is playing */
 
+/* Take a copy, put a copy back.
+
+   On hosting with no permanent disk the server's files are wiped by every deploy,
+   and nothing in the game can prevent that. What it can do is make the copy one
+   click and the restore one click, so the hall of fame is a file you keep rather
+   than something the hosting decides to keep for you. */
+function Backup() {
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState("");
+  const [err, setErr] = useState("");
+  const input = useRef(null);
+
+  /* Named `action` rather than `btn`: there is already a btn() in this file and a
+     second one with a different signature is how a wrong style ends up somewhere. */
+  const action = (primary) => ({
+    fontSize: 12, fontWeight: 700, padding: "8px 14px", borderRadius: 7, cursor: "pointer",
+    border: `1px solid ${primary ? "#2c5f4f" : INK.edge}`,
+    backgroundColor: primary ? INK.accentBg : "transparent",
+    color: primary ? INK.accent : INK.text,
+  });
+
+  async function restore(file) {
+    setBusy(true); setErr(""); setSaid("");
+    try {
+      const text = await file.text();
+      let parsed;
+      try { parsed = JSON.parse(text); }
+      catch (_) { setErr("That file is not a backup - it is not even JSON."); setBusy(false); return; }
+      const r = await fetch("/api/restore", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) setErr(j.error || "The server would not take that file.");
+      else setSaid(j.message || "Done.");
+    } catch (_) {
+      setErr("Could not reach the server.");
+    }
+    setBusy(false);
+    if (input.current) input.current.value = "";     // so the same file can be chosen twice
+  }
+
+  return (
+    <div style={{ padding: "14px 16px", fontSize: 12.5, color: INK.text, lineHeight: 1.6 }}>
+      <div style={{ marginBottom: 14 }}>
+        Everything the server remembers between games &mdash; the hall of fame, the
+        registered names, and the notes people have written in &mdash; in one file.
+      </div>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+        <a href="/api/backup" style={{ ...action(true), textDecoration: "none", display: "inline-block" }}>
+          Download a copy
+        </a>
+        <button style={action(false)} disabled={busy}
+          onClick={() => input.current && input.current.click()}>
+          {busy ? "Reading…" : "Put a copy back"}
+        </button>
+        <input ref={input} type="file" accept="application/json,.json" style={{ display: "none" }}
+          onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) restore(f); }} />
+      </div>
+
+      {said && (
+        <div style={{ padding: "9px 11px", borderRadius: 7, marginBottom: 12,
+          backgroundColor: INK.accentBg, border: "1px solid #2c5f4f", color: INK.accent }}>
+          {said}
+        </div>
+      )}
+      {err && (
+        <div style={{ padding: "9px 11px", borderRadius: 7, marginBottom: 12,
+          backgroundColor: "#241618", border: "1px solid #7a3f3f", color: "#ff8f8f" }}>
+          {err}
+        </div>
+      )}
+
+      <div style={{ color: INK.dim, fontSize: 11.5, lineHeight: 1.65 }}>
+        <div style={{ marginBottom: 8 }}>
+          <b style={{ color: INK.text }}>Putting a copy back never deletes anything.</b> It adds
+          games and notes the server has not seen, and adds names that are not registered here.
+          A name that <i>is</i> registered is left exactly as it is, so an old copy can never undo
+          somebody&rsquo;s new password. The worst a wrong file can do is add games that already
+          happened.
+        </div>
+        <div style={{ padding: "8px 10px", borderRadius: 7,
+          backgroundColor: INK.warnBg, border: `1px solid ${INK.warn}55`, color: INK.warn }}>
+          The file holds password hashes and the email addresses people gave. Keep it as
+          carefully as you would keep a password list &mdash; don&rsquo;t put it in a shared
+          folder or a public repository.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Matches() {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
@@ -303,7 +397,7 @@ export function FeedbackPanel({ admin, context, onClose, onOpened }) {
   useEffect(() => { if (onOpened) onOpened(); }, [onOpened]);
 
   const tabs = admin
-    ? [["write", "Write in"], ["notes", "What came in"], ["matches", "Who is playing"]]
+    ? [["write", "Write in"], ["notes", "What came in"], ["matches", "Who is playing"], ["backup", "Backup"]]
     : [["write", "Write in"]];
 
   return (
@@ -345,6 +439,7 @@ export function FeedbackPanel({ admin, context, onClose, onOpened }) {
           {tab === "write" && <WriteIn context={context} onClose={onClose} />}
           {tab === "notes" && <Notes />}
           {tab === "matches" && <Matches />}
+          {tab === "backup" && <Backup />}
         </div>
       </div>
     </Portal>

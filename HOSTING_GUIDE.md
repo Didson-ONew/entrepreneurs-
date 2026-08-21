@@ -203,23 +203,22 @@ The repository carries a **`render.yaml`**, so Render can read the settings from
 code instead of from a form somebody filled in once. Merging to `main` then deploys on
 its own.
 
-### Read this first: the free tier forgets everything
+### Read this first: the free tier has no permanent storage
 
 Render's free tier has **no persistent storage**. Its filesystem is rebuilt on every
 deploy *and* every time the service wakes from sleep, so `accounts.json`,
 `matches.jsonl` and `feedback.json` are erased over and over. That is what empties the
 hall of fame and lets a reserved name be reserved a second time by somebody else.
 
-There is no free way around it — a disk needs a paid instance type (Starter and up).
-So there is a decision to make before you set it up:
+A disk needs a paid instance type (Starter and up). But you do **not** have to pay to
+keep your records — there is a **Backup** button that saves everything to a file on
+your own computer, and puts it back afterwards. See *Keeping your records without
+paying* below.
 
-| | Costs | Accounts and hall of fame |
+| | Costs | What you do |
 |---|---|---|
-| **Free instance** | nothing | wiped on every deploy and every wake from sleep |
-| **Instance with a disk** | Render's Starter price | kept, permanently |
-
-If you stay on free, that is a fine choice for a game night — just know that the
-records are for the evening, not for keeps.
+| **Free instance** | nothing | press **Download a copy** before a deploy, **Put a copy back** after |
+| **Instance with a disk** | Render's Starter price | nothing — it just stays |
 
 ### Setting it up with the blueprint
 
@@ -279,6 +278,49 @@ Three things to read in that block:
 Files left over from an older version beside `server.js` are moved onto the disk
 automatically the first time the new server starts, so switching to a disk does not
 cost you the records you already have.
+
+### Keeping your records without paying
+
+Sign in, open the **Playtest** button at the bottom of the screen, and go to the
+**Backup** tab. Two buttons:
+
+- **Download a copy** — saves one file to your computer with everything in it: the
+  hall of fame, the registered names, and the notes people have written in.
+- **Put a copy back** — pick that file again and everything comes back.
+
+Do the first before you deploy, the second after. That is the whole routine.
+
+**Putting a copy back can never cost you anything.** It only *adds*: games the server
+has not seen, notes it has not seen, and names that are not registered on it. A name
+that *is* registered is left exactly as it is, so an old copy can never undo somebody's
+new password. The worst a wrong file can do is add games that already happened, and
+doing it twice changes nothing the second time.
+
+Keep the file somewhere private — it holds password hashes and the email addresses
+people gave, so treat it like a password list.
+
+### Games in progress are not lost any more
+
+A game used to live only in the server's memory, so restarting it — a deploy, or the
+free tier going to sleep after fifteen idle minutes — ended every game on the board.
+A three-bot game waiting days for one player's move simply stopped existing.
+
+Games are now written down as they are played and picked up again when the server
+starts. Nobody has to do anything: the link and the table code still work, everyone
+rejoins where they were, and the board is exactly as they left it. The server says so
+when it starts:
+
+```
+Resumed 1 room (1 game in progress). Players rejoin with the link they already have.
+  8F3652  Q6  Ana, Bruno
+```
+
+A game that has finished is not carried forward — it is already in the hall of fame —
+and neither is a table nobody has touched in a fortnight.
+
+One caveat on the free tier: this survives *restarts*, but the games are saved into the
+same folder as everything else, so a **deploy** that replaces that folder takes them
+too. A disk keeps them through both.
 
 One quirk of the free tier: if nobody has opened the link for ~15 minutes, the first
 visit takes ~30 seconds to wake up. After that it's instant. **Don't create the room
