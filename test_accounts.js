@@ -84,7 +84,7 @@ section("Passwords");
 
   section("Sessions are signed");
   const store = accounts.emptyStore();
-  const r = await accounts.register(store, { name: "Dids", email: "d@example.com", password: "eight is enough", pid: "p1", heldBy: [] });
+  const r = await accounts.register(store, { name: "Dids", email: "d@example.com", password: "eight is enough", pid: "p1", heldBy: [], question: "street", answer: "Baker Street" });
   check("registering works", !!r.user, r.error);
   const tok = accounts.signSession(store, r.user.id);
   check("a real session reads back", accounts.readSession(store, tok) === r.user.id);
@@ -97,15 +97,15 @@ section("Passwords");
   check("junk is refused rather than throwing", accounts.readSession(store, "nonsense") === null);
 
   section("Claiming a name");
-  const dup = await accounts.register(store, { name: "dids", email: "other@example.com", password: "eight is enough", pid: "p2", heldBy: [] });
+  const dup = await accounts.register(store, { name: "dids", email: "other@example.com", password: "eight is enough", pid: "p2", heldBy: [], question: "street", answer: "Baker Street" });
   check("the same name cannot be registered twice", !!dup.error, dup.error);
-  const dupMail = await accounts.register(store, { name: "Someone", email: "D@Example.com", password: "eight is enough", pid: "p2", heldBy: [] });
+  const dupMail = await accounts.register(store, { name: "Someone", email: "D@Example.com", password: "eight is enough", pid: "p2", heldBy: [], question: "street", answer: "Baker Street" });
   check("nor the same email", !!dupMail.error, dupMail.error);
 
   /* The interesting case: a name that is not registered but IS in the records. */
-  const grab = await accounts.register(store, { name: "Mara", email: "m@example.com", password: "eight is enough", pid: "stranger", heldBy: ["someone-else"] });
+  const grab = await accounts.register(store, { name: "Mara", email: "m@example.com", password: "eight is enough", pid: "stranger", heldBy: ["someone-else"], question: "street", answer: "Baker Street" });
   check("a stranger cannot claim a name others have played under", !!grab.error, grab.error);
-  const rightful = await accounts.register(store, { name: "Mara", email: "m@example.com", password: "eight is enough", pid: "mara-browser", heldBy: ["mara-browser"] });
+  const rightful = await accounts.register(store, { name: "Mara", email: "m@example.com", password: "eight is enough", pid: "mara-browser", heldBy: ["mara-browser"], question: "street", answer: "Baker Street" });
   check("but the player who has been using it can", !!rightful.user);
 
   section("Signing in");
@@ -157,15 +157,18 @@ section("Passwords");
   section("The server enforces it");
   const owner = jar();
   const nm = `Owner${uniq()}`;
-  const reg = await owner.post("/api/register", { name: nm, email: `${nm}@example.com`, password: "eight is enough" });
+  const reg = await owner.post("/api/register", { name: nm, email: `${nm}@example.com`, password: "eight is enough",
+    question: "street", answer: "Baker Street" });
   check("an account can be registered", !!reg.body.user, reg.body.error);
   check("registering signs you in", !!owner.get("ent_session"));
   const who = await owner.call("/api/account");
   check("and the server agrees", who.body.user && who.body.user.name === nm);
 
-  const weak = await jar().post("/api/register", { name: `W${uniq()}`, email: `w${uniq()}@example.com`, password: "short" });
+  const weak = await jar().post("/api/register", { name: `W${uniq()}`, email: `w${uniq()}@example.com`, password: "short",
+    question: "street", answer: "Baker Street" });
   check("a weak password is refused", !!weak.body.error, weak.body.error);
-  const noMail = await jar().post("/api/register", { name: `M${uniq()}`, email: "not-an-address", password: "eight is enough" });
+  const noMail = await jar().post("/api/register", { name: `M${uniq()}`, email: "not-an-address", password: "eight is enough",
+    question: "street", answer: "Baker Street" });
   check("a nonsense email is refused", !!noMail.body.error, noMail.body.error);
 
   const stranger = jar();
@@ -309,6 +312,9 @@ section("Passwords");
   await page.locator('input[placeholder="Your name"]').first().fill(newName);
   await page.locator('input[placeholder*="Email"]').fill(`${newName}@example.com`);
   await page.locator('input[placeholder*="Password"]').fill("eight is enough");
+  // registering now also picks a secret question, which is the way back in without email
+  await page.locator("select").selectOption("street");
+  await page.locator('input[placeholder="Your answer"]').fill("Baker Street");
   await page.getByRole("button", { name: "Create account" }).click();
   await sleep(1200);
   check("registering from the lobby signs you in", new RegExp(`Signed in as\\s*${newName}`).test(await txt()), newName);

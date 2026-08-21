@@ -39,7 +39,10 @@ function jar() {
    accounts file is a test nobody runs twice, so sign in instead when the name is
    already taken. */
 async function beSomebody(c, name, password) {
-  const reg = await c.post("/api/register", { name, password, email: `${name.toLowerCase()}@example.com` });
+  const reg = await c.post("/api/register", {
+    name, password, email: `${name.toLowerCase()}@example.com`,
+    question: "street", answer: "Baker Street",
+  });
   if (reg.status === 200) return reg;
   return c.post("/api/login", { name, password });
 }

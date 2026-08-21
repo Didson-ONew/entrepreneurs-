@@ -632,6 +632,7 @@ const server = http.createServer(async (req, res) => {
     const who = identityOf(req);
     const r = await accounts.register(ACCOUNTS, {
       name: b.name, email: b.email, password: b.password,
+      question: b.question, answer: b.answer,
       pid: who.id, heldBy: holdersOf(b.name),
     });
     if (r.error) return json(res, { error: r.error }, 400);
@@ -641,6 +642,64 @@ const server = http.createServer(async (req, res) => {
     return json(res, { user: accounts.publicUser(r.user) }, 200, {
       "Set-Cookie": [signInHeader(req, r.user)["Set-Cookie"], identityCookie(req, who.id, r.user.name)],
     });
+  }
+
+  /* The three questions a player may pick from when they register. */
+  if (p === "/api/questions" && req.method === "GET") {
+    return json(res, { questions: accounts.QUESTIONS });
+  }
+
+  /* Forgotten password, step one: name the account and get its question back.
+
+     This does say whether a name is registered - but the join screen already warns a
+     player when the name they typed belongs to somebody, so nothing new is given away.
+     Slowed per source address anyway, so it cannot be walked through a word list. */
+  if (p === "/api/question" && req.method === "POST") {
+    const gate = `question:${whoFrom(req)}`;
+    const wait = attemptDelay(gate);
+    if (wait) await pause(wait);
+    const b = await body(req);
+    const r = accounts.questionFor(ACCOUNTS, b.name);
+    noteAttempt(gate, !!r.error);
+    if (r.error) return json(res, { error: r.error }, 404);
+    return json(res, r);
+  }
+
+  /* Step two: answer it, and set a new password in the same breath.
+
+     There is no third option where the old password is shown. It is stored as a scrypt
+     hash and there is no way back from one - which is exactly why a stolen accounts
+     file is not a list of passwords. */
+  if (p === "/api/recover" && req.method === "POST") {
+    const gate = `recover:${whoFrom(req)}`;
+    const wait = attemptDelay(gate);
+    if (wait) await pause(wait);
+    const b = await body(req);
+    const r = await accounts.recoverWithAnswer(ACCOUNTS, {
+      name: b.name, answer: b.answer, password: b.password,
+    });
+    noteAttempt(gate, !!r.error);
+    if (r.error) return json(res, { error: r.error }, 400);
+    saveAccounts();
+    console.log(`password recovered by secret question: ${r.user.name}`);
+    const who = identityOf(req);
+    return json(res, { user: accounts.publicUser(r.user) }, 200, {
+      "Set-Cookie": [signInHeader(req, r.user)["Set-Cookie"], identityCookie(req, who.id, r.user.name)],
+    });
+  }
+
+  /* Setting or changing the question from inside the account - and the way an account
+     registered before questions existed gets one. */
+  if (p === "/api/question" && req.method === "PUT") {
+    const me = accountOf(req);
+    if (!me) return json(res, { error: "Sign in first." }, 401);
+    const b = await body(req);
+    const r = await accounts.setQuestion(ACCOUNTS, me, {
+      current: b.current, question: b.question, answer: b.answer,
+    });
+    if (r.error) return json(res, { error: r.error }, 400);
+    saveAccounts();
+    return json(res, { user: accounts.publicUser(r.user) });
   }
 
   if (p === "/api/login" && req.method === "POST") {

@@ -347,6 +347,46 @@ purpose: this is one person's playtest, not a permissions system.
 ENT_ADMINS=Dids,Didson FEEDBACK_FILE=/data/feedback.json node server.js
 ```
 
+### Forgotten passwords: the secret question
+
+Registering asks for one of three questions and an answer. If a player forgets their
+password, *Forgot password* asks for their name, shows them **their** question, and a
+right answer sets a new password on the spot and signs them in. No mail account, no
+link that might never arrive.
+
+The answer is hashed with scrypt exactly like a password, so a stolen `accounts.json`
+does not hand over the answers either. It is compared loosely — case, outer spacing,
+runs of spaces and a trailing full stop are ignored — because it is typed twice months
+apart and none of those should be the difference between getting back in and not.
+
+Two things it deliberately does not do:
+
+- **It cannot show the old password.** Passwords are one-way scrypt hashes; that is the
+  whole reason the file is safe if it is stolen. Setting a new one is the only way back.
+- **Asking for the question does reveal that a name is registered.** The join screen
+  already warns a player when the name they typed belongs to somebody, so this gives
+  away nothing new — and it is slowed per source address like every other guess.
+
+Accounts made before questions existed keep the email route, and can set a question
+from inside the account once they are back in.
+
+### Locked out entirely?
+
+`ENT_ADMINS` names which accounts *count* as admins. **It does not create them** — if
+nobody has registered that name on that server, there is nothing to sign in as. From
+the server's own terminal:
+
+```bash
+node account_tool.js list                      # who is registered, on this file
+node account_tool.js add Dids you@example.com "a good password"
+node account_tool.js reset Dids "a new password"
+node account_tool.js remove Dids
+```
+
+Stop the server before writing, or the running copy will overwrite the change the next
+time it saves. Pass the same `ACCOUNTS_FILE` the server runs with, or the tool will
+cheerfully report on the wrong file.
+
 ### Sending the reset email
 
 This is the one part a game server cannot do by itself — it needs a mail account, and

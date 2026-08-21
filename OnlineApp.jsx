@@ -30,9 +30,20 @@ function AccountPanel({ account, setAccount, onName }) {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [resetToken, setResetToken] = useState("");
+  const [questions, setQuestions] = useState([]);
+  const [question, setQuestion] = useState("");
+
+  /* The three a player may pick from. Read from the server so there is one list,
+     not one here and another in accounts.js. */
+  useEffect(() => {
+    fetch("/api/questions", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((r) => { if (r && Array.isArray(r.questions)) setQuestions(r.questions); })
+      .catch(() => {});
+  }, []);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  const open = (which) => { setPane(which); setErr(""); setNote(""); setForm({}); };
+  const open = (which) => { setPane(which); setErr(""); setNote(""); setForm({}); setQuestion(""); };
 
   /* Arriving from a reset email. The link is checked before the form is offered, so
      an expired one says so now rather than after they have typed a new password. */
@@ -105,8 +116,18 @@ function AccountPanel({ account, setAccount, onName }) {
           value={form.email || ""} onChange={set("email")} />
         <input style={field} type="password" placeholder="Password (8 characters or more)"
           value={form.password || ""} onChange={set("password")} />
+        <div className="text-[10px] text-gray-500 mt-1 mb-1">
+          Pick a question. If you forget your password, answering it lets you set a new one straight away
+          &mdash; no email needed.
+        </div>
+        <select style={{ ...field, cursor: "pointer" }} value={form.question || ""} onChange={set("question")}>
+          <option value="">Choose a question&hellip;</option>
+          {questions.map((q) => <option key={q.key} value={q.key}>{q.text}</option>)}
+        </select>
+        <input style={field} placeholder="Your answer" value={form.answer || ""} onChange={set("answer")} maxLength={120} />
         <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
-          onClick={() => send("/api/register", { name: form.name, email: form.email, password: form.password }, done)}>
+          onClick={() => send("/api/register", { name: form.name, email: form.email, password: form.password,
+            question: form.question, answer: form.answer }, done)}>
           Create account
         </button>
         <div className="mt-2 text-[10px]">
@@ -116,14 +137,55 @@ function AccountPanel({ account, setAccount, onName }) {
 
       {pane === "forgot" && (<>
         <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Forgot your password</div>
-        <div className="text-[10px] text-gray-500 mb-2">Your name or your email address &mdash; either will do.</div>
+        <div className="text-[10px] text-gray-500 mb-2">
+          Type your name and answer the question you chose when you registered.
+        </div>
+        <input style={field} placeholder="Your name" value={form.name || ""} onChange={set("name")} maxLength={24} />
+        <button disabled={busy} style={btn("#20232c", "#e5e7eb")}
+          onClick={() => send("/api/question", { name: form.name }, (b) => {
+            setForm((f) => ({ ...f, name: b.name }));
+            setQuestion(b.question);
+            setPane("answer");
+          })}>
+          Continue
+        </button>
+        <div className="flex justify-between mt-2 text-[10px]">
+          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("signin")}>Back to sign in</button>
+          <button style={{ ...link, color: "#6b7280" }} onClick={() => open("email")}>Send me an email instead</button>
+        </div>
+      </>)}
+
+      {pane === "answer" && (<>
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Your question</div>
+        <div className="text-[11px] mb-2" style={{ color: "#8fd3b6" }}>{question}</div>
+        <input style={field} placeholder="Your answer" value={form.answer || ""} onChange={set("answer")} maxLength={120} />
+        <input style={field} type="password" placeholder="New password (8 characters or more)"
+          value={form.password || ""} onChange={set("password")} />
+        <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
+          onClick={() => send("/api/recover", { name: form.name, answer: form.answer, password: form.password }, done)}>
+          Set password and sign in
+        </button>
+        <div className="text-[10px] text-gray-500 mt-2">
+          Your old password cannot be shown to you &mdash; it is stored scrambled, which is what keeps it safe
+          even if the file is stolen. Setting a new one is the way back in.
+        </div>
+        <div className="mt-2 text-[10px]">
+          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("forgot")}>Wrong name</button>
+        </div>
+      </>)}
+
+      {pane === "email" && (<>
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Reset by email</div>
+        <div className="text-[10px] text-gray-500 mb-2">
+          For accounts made before the question existed. Your name or your email address &mdash; either will do.
+        </div>
         <input style={field} placeholder="Name or email" value={form.who || ""} onChange={set("who")} />
         <button disabled={busy} style={btn("#20232c", "#e5e7eb")}
           onClick={() => send("/api/forgot", { who: form.who }, (b) => { setNote(b.sent); setForm({}); })}>
           Send a reset link
         </button>
         <div className="mt-2 text-[10px]">
-          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("signin")}>Back to sign in</button>
+          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("forgot")}>Use my question instead</button>
         </div>
       </>)}
 
@@ -139,7 +201,7 @@ function AccountPanel({ account, setAccount, onName }) {
 
       {err && <div className="text-[10px] mt-2" style={{ color: "#fca5a5" }}>{err}</div>}
       {note && <div className="text-[10px] mt-2" style={{ color: "#8fd3b6" }}>{note}</div>}
-      {pane !== "reset" && (
+      {pane !== "reset" && pane !== "answer" && (
         <div className="mt-2 text-[10px]">
           <button style={{ ...link, color: "#6b7280" }} onClick={() => setPane(null)}>Not now &mdash; play as a guest</button>
         </div>
