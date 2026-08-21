@@ -368,6 +368,44 @@ never be older than the rules the server loaded, so the mismatch the lobby warns
 is unreachable in that setup.
 
 
+## Backup, and games that outlive the server
+
+Two answers to the same problem - hosting whose disk does not survive a deploy.
+
+**One file with everything in it.** `GET /api/backup` (admin) returns accounts,
+matches and feedback as one JSON attachment; `POST /api/restore` (admin) takes it
+back. The Playtest panel has a Backup tab with a button each way.
+
+Restoring **only ever adds**, which is what makes the button safe to press when you
+are not sure which file you are holding: matches and notes join by id, accounts join
+by name, and a name that is already registered here is left alone rather than
+overwritten - so an old copy can never undo somebody's password change. Restoring the
+same file twice is a no-op. `backup.js` holds the merge and `test_backup.js` pins all
+of it down, including that an old copy cannot roll a password back.
+
+The restore endpoint is the one request that is legitimately large, so `body()` grew a
+size limit: 256 KB by default across every endpoint - a real move is a few hundred
+bytes - and 64 MB for the restore. It used to gather whatever arrived, however much,
+into one string.
+
+**Games in progress are written down.** `livegames.js` saves every room to
+`games.json` in the data directory, debounced two seconds behind `broadcast`, and on
+SIGTERM before the process goes. `server.js` reads them at boot and puts them back in
+the `rooms` map; players rejoin with the token their browser already holds.
+
+The part that has to be right is the random number generator. `mulberry32` is a pure
+function of its seed and its call count, so the room's generator is wrapped to count
+draws, and both numbers are saved. Winding a fresh one forward by that count lands it
+exactly where the old one stood - saving the seed alone would rewind the game and
+re-deal cards it had already dealt, which nobody would notice until the same Blueprint
+turned up twice. `test_survives_restart.js` plays a real game against three bots,
+stops the server with SIGTERM, starts another on the same directory and checks the
+board came back byte-identical and still plays; it also pins the winding property on a
+generator of its own.
+
+Rooms are dropped rather than kept once the game is over - it is in the record book by
+then - or after a fortnight of silence.
+
 ## Playtest feedback
 
 A **Feedback** pill sits with the Rulebook and Records buttons, on every screen. Anyone

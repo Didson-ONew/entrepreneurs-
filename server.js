@@ -14,6 +14,8 @@ const datadir = require("./datadir.js");
 const matchlog = require("./matchlog.js");
 const accounts = require("./accounts.js");
 const feedback = require("./feedback.js");
+const backup = require("./backup.js");
+const livegames = require("./livegames.js");
 const mailer = require("./mailer.js");
 
 const PORT = process.env.PORT || 8080;
@@ -45,11 +47,11 @@ function loadEngine() {
 const E = loadEngine();
 
 /* ---------- state <-> wire (board.graph holds Sets, which JSON drops) ---------- */
-function encodeState(st) {
-  const graph = {};
-  for (const k of Object.keys(st.board.graph)) graph[k] = [...st.board.graph[k]];
-  return JSON.stringify({ ...st, board: { ...st.board, graph } });
-}
+const encodeState = (st) => JSON.stringify(livegames.plainState(st));
+
+/* The game's random generator, with a count of how many numbers have been drawn -
+   which is what lets a game in progress survive a restart. See livegames.js. */
+const seededRng = livegames.rngFactory(E.mulberry32);
 
 /* ---------- rooms ---------- */
 /* Every match ever recorded, read once at boot and appended to as games end.
@@ -133,8 +135,26 @@ function recordIfFinished(room) {
     console.error(`could not build the match record: ${e.message}`);
   }
 }
+/* Games in progress, written to the data directory so a restart does not end them.
+
+   Saving is debounced: a quarter resolving fires broadcast several times in a row,
+   and writing the whole file each time would be wasteful for no gain. Two seconds
+   of quiet, or a shutdown, and it goes down. */
+const GAMES_FILE = datadir.resolve("games.json", "GAMES_FILE");
+let saveTimer = null;
+function saveGamesSoon() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => { saveTimer = null; livegames.save(rooms, GAMES_FILE); }, 2000);
+}
+function saveGamesNow() {
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  return livegames.save(rooms, GAMES_FILE);
+}
+
 function broadcast(room) {
   recordIfFinished(room);
+  room.touchedAt = Date.now();
+  saveGamesSoon();
   room.version = (room.version || 0) + 1;
   const payload = payloadFor(room);
   for (const res of room.clients) {
@@ -344,8 +364,31 @@ function applyAction(room, seat, action, data) {
 }
 
 /* ---------- http plumbing ---------- */
-function body(req) {
-  return new Promise((res) => { let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => { try { res(JSON.parse(b || "{}")); } catch { res({}); } }); });
+/* Read a request body, with a ceiling on it.
+
+   This used to gather whatever arrived, however much of it, into one string - so a
+   single request could grow the server's memory until it fell over. Every real move
+   in this game is a few hundred bytes; the ceiling is generous by four orders of
+   magnitude and still stops that. Restoring a backup is the one thing that is
+   legitimately large, and it asks for its own limit. */
+const BODY_LIMIT = 256 * 1024;
+function body(req, limit = BODY_LIMIT) {
+  return new Promise((resolve) => {
+    let b = "", size = 0, over = false;
+    req.on("data", (c) => {
+      if (over) return;
+      size += c.length;
+      if (size > limit) {
+        over = true; b = "";
+        resolve({ __tooBig: true });          // a promise settles once; the rest is cleanup
+        try { req.destroy(); } catch (_) { /* already gone */ }
+        return;
+      }
+      b += c;
+    });
+    req.on("end", () => { if (over) return; try { resolve(JSON.parse(b || "{}")); } catch { resolve({}); } });
+    req.on("error", () => resolve({}));
+  });
 }
 const json = (res, obj, sc = 200, extra) => {
   res.writeHead(sc, { "Content-Type": "application/json", "Cache-Control": "no-store", ...(extra || {}) });
@@ -602,6 +645,47 @@ const server = http.createServer(async (req, res) => {
       summary: feedback.summary(FEEDBACK),
       entries: feedback.list(FEEDBACK, { limit: 400 }),
     });
+  }
+
+  /* Everything worth keeping, in one file, so it can be taken off a server whose
+     disk does not survive a deploy and put back afterwards. Admins only - it holds
+     password hashes and the email addresses people gave. */
+  if (p === "/api/backup" && req.method === "GET") {
+    const me = accountOf(req);
+    if (!isAdmin(me)) return json(res, { error: "Not for you." }, 403);
+    const file = backup.build({
+      accounts: ACCOUNTS, matches: MATCHES, feedback: FEEDBACK, engine: E.ENGINE_VERSION,
+    });
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Content-Disposition": `attachment; filename="${backup.filename()}"`,
+      "Cache-Control": "no-store",
+    });
+    return res.end(JSON.stringify(file, null, 2));
+  }
+
+  /* Putting one back. Adds what is missing and never overwrites what is here, so
+     pressing it with the wrong file cannot cost anything. */
+  if (p === "/api/restore" && req.method === "POST") {
+    const me = accountOf(req);
+    if (!isAdmin(me)) return json(res, { error: "Not for you." }, 403);
+    const file = await body(req, 64 * 1024 * 1024);
+    if (file.__tooBig) return json(res, { error: "That file is larger than this server will accept (64 MB)." }, 413);
+    const result = backup.apply(file, { accounts: ACCOUNTS, matches: MATCHES, feedback: FEEDBACK });
+    if (result.error) return json(res, { error: result.error }, 400);
+
+    /* Matches live in an append-only file, so the new ones are appended rather than
+       the whole book rewritten - a half-written line can then only ever cost the
+       last one. */
+    for (const m of result.newMatches) { if (matchlog.append(m)) MATCHES.push(m); }
+    if (result.added.accounts) accounts.save(ACCOUNTS);
+    if (result.added.feedback) saveFeedback();
+    if (result.newMatches.length) STATS_CACHE = null;
+
+    const said = backup.describe(result);
+    console.log(`restore by ${me.name}: ${said}`);
+    return json(res, { ok: true, message: said, added: result.added, skipped: result.skipped,
+      takenAt: result.takenAt });
   }
 
   /* Who is playing right now, by name. Signed-in admins only: a player's name and
@@ -1024,7 +1108,7 @@ const server = http.createServer(async (req, res) => {
     if (room.members.length + room.bots < 2) return json(res, { error: "Need at least 2 players (add a bot or another human)." }, 400);
     const seed = Math.floor(Math.random() * 1e9);
     room.state = E.initGame(room.bots, seed, room.members.map((m) => m.name), undefined, room.personas, room.variants);
-    room.rng = E.mulberry32(seed + 777);
+    room.rng = seededRng(seed + 777);
     room.startedAt = Date.now();
     room.recorded = false;
     room.logs = [{ msg: `Game started: ${room.members.length} human${room.members.length > 1 ? "s" : ""}, ${room.bots} bot${room.bots === 1 ? "" : "s"}.`, pid: null }];
@@ -1118,5 +1202,35 @@ server.listen(PORT, () => {
     accounts: [accounts.DEFAULT_FILE, ACCOUNTS.users.length],
     matches: [matchlog.DEFAULT_FILE, MATCHES.length],
     feedback: [feedback.DEFAULT_FILE, (FEEDBACK.entries || []).length],
+    games: [GAMES_FILE, rooms.size],
   });
+
+  /* Games in progress, picked up where the last run left them. */
+  const resumed = livegames.load(GAMES_FILE, seededRng);
+  for (const room of resumed) rooms.set(room.code, room);
+  if (resumed.length) {
+    const live = resumed.filter((r) => r.state).length;
+    console.log(`Resumed ${resumed.length} room${resumed.length === 1 ? "" : "s"} `
+      + `(${live} game${live === 1 ? "" : "s"} in progress). Players rejoin with the link they already have.`);
+    for (const room of resumed) {
+      const seats = room.members.map((m) => m.name).join(", ");
+      console.log(`  ${room.code}  ${room.state ? `Q${room.state.quarter}` : "lobby"}  ${seats}`);
+    }
+    console.log("");
+  }
 });
+
+/* A deploy stops the process with SIGTERM. Write the games down before going, so
+   the last few seconds of play are not the ones that get lost. */
+let leaving = false;
+function shutdown(signal) {
+  if (leaving) return;
+  leaving = true;
+  const n = saveGamesNow();
+  console.log(`\n${signal}: saved ${n < 0 ? "no" : n} room${n === 1 ? "" : "s"} in progress. Stopping.`);
+  server.close(() => process.exit(0));
+  /* Open SSE connections never end on their own, so do not wait on them forever. */
+  setTimeout(() => process.exit(0), 3000).unref();
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
