@@ -1,47 +1,52 @@
 # =============================================================================
-# Entrepreneurs on Render.
+# Entrepreneurs on Render — free instance.
 #
-# With this file in the repository, Render can build the service from the
-# blueprint instead of from a form somebody filled in once and forgot. A merge
-# to main then deploys, and the settings that matter live in version control
-# where you can see them.
+# With this file in the repository, Render builds the service from the blueprint
+# instead of from a form somebody filled in once and forgot. A merge to main
+# then deploys on its own.
 #
-#   Render dashboard -> New -> Blueprint -> pick this repository
+#   Render dashboard -> New -> Blueprint -> pick this repository -> Apply
 #
-# READ THIS BEFORE APPLYING IT
+# WHAT "FREE" MEANS HERE
 #
-# The `disk` block below is the whole reason this file exists, and **a disk
-# needs a paid instance type**. Render's free tier has no persistent storage
-# at all: the filesystem is rebuilt on every deploy AND on every wake from
-# sleep, so accounts.json, matches.jsonl and feedback.json are erased over and
-# over. That is what emptied the hall of fame and let a registered name be
-# registered a second time.
+# A free instance has no permanent storage. Its filesystem is rebuilt from the
+# deploy every time the service restarts - which includes waking from the sleep
+# it drops into after fifteen idle minutes. So everything the server remembers
+# between games is erased, over and over:
 #
-# There is no free way around it. Either:
+#   accounts.json   everyone has to register again
+#   matches.jsonl   the hall of fame starts from nothing
+#   feedback.json   the playtest notes are gone
+#   games.json      a game in progress ends
 #
-#   Keep the disk       an instance type that supports one (Starter and up).
-#                       Accounts and the record book survive deploys, restarts
-#                       and sleep. This is what the file is set up for.
+# That is not a fault to be fixed in configuration; it is what the tier is. The
+# answer is the Backup tab in the Playtest panel: Download a copy, and Put a
+# copy back afterwards. It restores the accounts, the hall of fame and the notes
+# in one go. A game in progress is the one thing it cannot bring back.
 #
-#   Stay on free        delete the `plan:` line and the whole `disk:` block,
-#                       and change ENT_DATA_DIR to /opt/render/project/src/data.
-#                       Everything then works exactly as it does now, including
-#                       losing the accounts and the record book on every deploy.
-#                       Take a copy of the data before each deploy if you care
-#                       about it.
+# TO STOP THE WIPES ENTIRELY, an instance type that supports a disk is the only
+# way. Then add, and nothing else changes:
 #
-# Applying a blueprint matches services BY NAME. If your existing service is
-# not called `entrepreneurs`, either rename it in the Render dashboard first or
-# change the name here - otherwise Render creates a SECOND service on a new URL
-# and the link you have given people keeps pointing at the old one.
+#   plan: starter
+#   disk:
+#     name: entrepreneurs-data
+#     mountPath: /var/lib/entrepreneurs
+#     sizeGB: 1
+#
+#   ...and set ENT_DATA_DIR to /var/lib/entrepreneurs so it matches the mount.
+#
+# APPLYING THIS TO A SERVICE THAT ALREADY EXISTS: a blueprint matches services
+# BY NAME. If yours is not called `entrepreneurs`, either rename it in the
+# Render dashboard first or change the name here - otherwise Render creates a
+# SECOND service on a new URL, and the link you have given people keeps pointing
+# at the old one.
 # =============================================================================
 
 services:
   - type: web
     name: entrepreneurs
     runtime: node
-    # A disk cannot be attached to a free instance. See the note above.
-    plan: starter
+    plan: free
     autoDeploy: true
 
     # esbuild is a devDependency, so the install has to include them. Building
@@ -54,17 +59,12 @@ services:
     # Cheap, no side effects, and 200 only once the server is actually serving.
     healthCheckPath: /api/presence
 
-    # The one thing that must outlive a deploy.
-    disk:
-      name: entrepreneurs-data
-      mountPath: /var/lib/entrepreneurs
-      sizeGB: 1
-
     envVars:
-      # Must match the disk's mountPath above, or the data goes back on the
-      # ephemeral filesystem and is silently erased again.
+      # On a free instance this is inside the application folder, which is the
+      # folder every deploy replaces. The server says so at boot, in those words,
+      # so the warning in the log is expected here rather than a mistake.
       - key: ENT_DATA_DIR
-        value: /var/lib/entrepreneurs
+        value: /opt/render/project/src/data
 
       # Render terminates TLS in front of the service, so every request arrives
       # from the same internal address. Without this the rate limiter counts the
@@ -73,9 +73,10 @@ services:
       - key: TRUST_PROXY
         value: "1"
 
-      # Which accounts may read the playtest notes and see who is at which
-      # table. This names them; it does not create them - those accounts still
-      # have to be registered through the site.
+      # Which accounts may read the playtest notes and see who is at which table.
+      # This names them; it does not create them - those accounts still have to
+      # be registered through the site, and on a free instance that has to be
+      # done again after every wipe (or restored from a backup file).
       - key: ENT_ADMINS
         value: Dids,Didson
 

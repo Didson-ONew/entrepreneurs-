@@ -225,10 +225,9 @@ paying* below.
 1. Push the game to GitHub if it is not there already.
 2. Make an account at **https://render.com** (sign in *with GitHub* — easiest).
 3. **New → Blueprint** → pick your repository. Render reads `render.yaml`.
-4. Check the instance type it offers. `render.yaml` asks for one that supports a disk;
-   if you would rather stay free, edit `render.yaml` first — delete the `plan:` line
-   and the whole `disk:` block, and change `ENT_DATA_DIR` to
-   `/opt/render/project/src/data`.
+4. Check what it offers. `render.yaml` asks for a **free** instance, so this costs
+   nothing. If you later want the wipes to stop, the file's header comment says the
+   three lines to add for a disk.
 5. **Apply**. Two minutes later your permanent link is at the top of the page, like
    `https://entrepreneurs.onrender.com`.
 
