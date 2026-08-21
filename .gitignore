@@ -3,6 +3,11 @@ node_modules/
 # screenshots test_browsers.js drops in the working directory
 shot_online_*.png
 
+# everything a running server must not lose: accounts, the hall of fame, the
+# playtest notes. One directory so it is one thing to mount and one thing to back
+# up - see datadir.js and ENT_DATA_DIR.
+data/
+
 # the match history a running server writes: real data, not source
 matches.jsonl
 

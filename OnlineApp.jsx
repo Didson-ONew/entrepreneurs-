@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Game, { setNet, getEngineVersion, Floating } from "./EntrepreneursGame.jsx";
 import SiteChrome from "./Rulebook.jsx";
+import { accountChanged } from "./Feedback.jsx";
 
 const api = async (path, body) => {
   const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -73,6 +74,9 @@ function AccountPanel({ account, setAccount, onName }) {
   const done = (b) => {
     setAccount(b.user);
     if (b.user) onName(b.user.name);
+    /* Anything else on the page that depends on WHO this is - the playtest panel, which
+       shows the designer three tabs and everyone else one - has to be told. */
+    accountChanged();
     setPane(null); setForm({});
     // take the used token out of the address bar so a refresh is not a dead link
     if (window.history.replaceState) window.history.replaceState({}, "", window.location.pathname);
@@ -87,7 +91,7 @@ function AccountPanel({ account, setAccount, onName }) {
           <div className="text-[10px]" style={{ color: "#6b7280" }}>Only you can play under this name.</div>
         </div>
         <button style={{ ...link, color: "#9ca3af", fontSize: 11 }}
-          onClick={() => send("/api/logout", {}, () => setAccount(null))} disabled={busy}>Sign out</button>
+          onClick={() => send("/api/logout", {}, () => { setAccount(null); accountChanged(); })} disabled={busy}>Sign out</button>
       </div>
     );
   }

@@ -49,22 +49,50 @@ Closing it ends the server (nobody can play). To stop it on purpose: press Ctrl+
 
 ---
 
-## A note on the hall of fame
+## Where the server keeps what it must not lose
 
-The server writes every finished game to a file called `matches.jsonl`, next to
-`server.js`. That file **is** the hall of fame and the statistics — nothing else
-remembers them.
+Three things outlive any single game, and all three live in **one folder** called
+`data`, next to `server.js`:
 
-- Running on your own computer (Options A and B below): it just works, and it
-  survives closing the terminal. Copy the file if you ever move the folder.
-- Hosting it somewhere free (Option C): most free tiers give you a **temporary**
-  disk that is wiped on every restart or redeploy, which would quietly reset the
-  hall of fame every few days. If you want the records to last, attach a persistent
-  disk and point the server at it:
-  `MATCHES_FILE=/data/matches.jsonl node server.js`
+| File | What it is |
+|---|---|
+| `accounts.json` | reserved names and password hashes — **treat it like a password list** |
+| `matches.jsonl` | every finished game: this *is* the hall of fame and the statistics |
+| `feedback.json` | playtest notes people wrote in |
 
-Nothing else in the game needs saving — a game in progress lives in memory and ends
-when the server stops either way.
+**Read this bit if you host it anywhere but your own computer.** Most free hosting
+replaces the whole application folder on every deploy, and `data` is inside it — so a
+redeploy silently takes the accounts, the hall of fame and the notes with it. Everyone
+has to register again and the record book starts from nothing. Put the folder somewhere
+a deploy cannot reach:
+
+```bash
+ENT_DATA_DIR=/var/lib/entrepreneurs node server.js
+```
+
+Point it at a mounted disk your host promises to keep. That one variable moves all
+three files together.
+
+The server tells you where the data is every time it starts, and how much of it there
+is. If it says `accounts 0` when you know there were twelve, the disk was wiped — and
+it warns you outright when the folder is somewhere a deploy can delete:
+
+```
+Data directory: /var/lib/entrepreneurs
+  accounts     12  /var/lib/entrepreneurs/accounts.json
+  matches      87  /var/lib/entrepreneurs/matches.jsonl
+  feedback      5  /var/lib/entrepreneurs/feedback.json
+```
+
+Files from an older version sitting loose next to `server.js` are moved into the folder
+automatically the first time you start it, so upgrading never costs you the hall of
+fame. The old single-file variables still work and still win if you set them:
+`ACCOUNTS_FILE`, `MATCHES_FILE`, `FEEDBACK_FILE`.
+
+To back it up, copy the folder. To move the game to another machine, copy the folder.
+
+A game in progress is not saved — it lives in memory and ends when the server stops,
+either way.
 
 ---
 
@@ -81,14 +109,13 @@ reserved.
 
 Two things to know if you host it:
 
-**1. Accounts live in a file called `accounts.json`**, next to `server.js`. Treat it
-like a password list, because that is what it is (scrambled, but still). Never put it
-in a shared folder or a public repository. On free hosting with a temporary disk, put
-it on the same persistent disk as the records:
+**1. Accounts live in `data/accounts.json`.** Treat it like a password list, because
+that is what it is (scrambled, but still). Never put it in a shared folder or a public
+repository, and put the `data` folder on a disk a deploy cannot wipe — see *Where the
+server keeps what it must not lose* above:
 
 ```bash
-MATCHES_FILE=/data/matches.jsonl ACCOUNTS_FILE=/data/accounts.json \
-  FEEDBACK_FILE=/data/feedback.json ENT_ADMINS=Dids,Didson node server.js
+ENT_DATA_DIR=/var/lib/entrepreneurs ENT_ADMINS=Dids,Didson node server.js
 ```
 
 **2. "Forgot my password" needs a way to send email**, and a game server has no mail

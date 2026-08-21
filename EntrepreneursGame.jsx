@@ -664,33 +664,58 @@ function exchangeRate(state, biz) {
   if (bizInd(biz) === "TE") return 2;   // Technology is the only doubler
   return 1;
 }
-/* Hospitality sells one unit per demand icon like everyone else, but additionally moves
-   one extra unit for every business or Logistic Hub within `level` plots of its footprint.
-   Those extra units are sold straight at the industry price - they need no demand icon. */
-function hoBonusUnits(state, biz, owner) {
-  if (bizInd(biz) !== "HO") return 0;
-  const board = state.board;
-  const foot = new Set(biz.footprint);
-  const seen = new Set(biz.footprint);
-  let frontier = [...biz.footprint];
-  const countedBiz = new Set();
-  let hubs = 0;
-  for (let step = 0; step < biz.level; step++) {
+/* Every plot within `level` steps of this company's footprint, the footprint itself
+   excluded. Walked breadth-first over the plot graph, so "within 3" means three plots
+   away by road, not three plots as the crow flies. */
+function plotsWithinReach(board, footprint, level) {
+  const foot = new Set(footprint);
+  const seen = new Set(footprint);
+  let frontier = [...footprint];
+  const out = [];
+  for (let step = 0; step < level; step++) {
     const next = [];
     for (const plot of frontier) {
       for (const n of (board.graph[plot] || [])) {
         if (seen.has(n)) continue;
         seen.add(n);
         next.push(n);
-        const id = board.occupiedBy[n];
-        if (id !== undefined && !foot.has(n)) countedBiz.add(id);
-        if (plotIsLH(board, n) || plotHasLH(board, n)) hubs++;
+        if (!foot.has(n)) out.push(n);
       }
     }
     frontier = next;
     if (!frontier.length) break;
   }
-  return countedBiz.size + hubs;
+  return out;
+}
+/* Hospitality sells one unit per demand icon like everyone else, but additionally moves
+   one extra unit for every business or Logistic Hub within `level` plots of its footprint.
+   Those extra units are sold straight at the industry price - they need no demand icon.
+
+   Count each thing ONCE. This used to ask plotHasLH of every plot in reach, and
+   plotHasLH answers a different question - "would a company standing here be on the
+   network?" - which is true of every plot ADJACENT to a hub as well as the hub itself.
+   A single hub was therefore counted once for its own plot and again for each of the
+   plots around it, so two hubs beside a level-3 casino paid for five units. A Megacorp
+   headquarters is counted as the business it is, not a second time as the hub it also
+   acts as. */
+function hoBonusUnits(state, biz, owner) {
+  if (bizInd(biz) !== "HO") return 0;
+  const board = state.board;
+  const inReach = plotsWithinReach(board, biz.footprint, biz.level);
+  const businesses = new Set();
+  for (const k of inReach) {
+    const id = board.occupiedBy[k];
+    if (id !== undefined && id !== biz.id) businesses.add(id);
+  }
+  let hubs;
+  if (board.lhOnPlots) {
+    hubs = inReach.filter((k) => plotIsLH(board, k)).length;
+  } else {
+    /* Hubs on roads: one hub is one edge, however many of its two plots are in reach. */
+    const touch = new Set(inReach);
+    hubs = (board.lhEdges || []).filter((e) => touch.has(e[0]) || touch.has(e[1])).length;
+  }
+  return businesses.size + hubs;
 }
 function ownerOf(state, biz) {
   return state.players.find((pl) => pl.businesses.includes(biz)) || null;
@@ -808,6 +833,11 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
   const bizId = state.deliveringBizId;
   const biz = human.businesses.find((b) => b.id === bizId);
   if (!biz) return false;
+  /* The cross-sell cap is a rule, not a hint. It used to live only in the demand grid,
+     which stops highlighting cross cells once the allowance is spent - so the cap held
+     for anyone clicking the grid and not for anyone reaching the endpoint another way. */
+  if (cross && (state.crossSellRemaining[bizId] || 0) <= 0) return false;
+  if ((state.deliveryRemaining[bizId] || 0) <= 0) return false;
   const got = deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross);
   if (got <= 0) return false;
   /* Pay through unitPrice, the same as the bots. This used to charge the plain market
@@ -1444,10 +1474,17 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "c86d98ff";
-const DISCS_PER_PLAYER = 10;
+const ENGINE_VERSION = "60bba388";
+const DISCS_PER_PLAYER = 12;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
-   business, or sitting in the bank against a loan. Ten discs, no more. */
+   business, or sitting in the bank against a loan. Twelve discs, no more.
+
+   It was ten. Ten refused roughly a quarter of every sideways company's attempts to
+   grow - "no disc for the plot" - which is most of why Manufacturing, Utilities and
+   Technology spent whole games at level 1. Twelve takes that down to 18% and buys a
+   whole extra company on the board. Fifteen was measured too and mostly bought land
+   sprawl: five more plots a table, 0.2 more upgrades, and nearly four discs left idle
+   at the end. See audit_discs.js. */
 function plotsOwned(state, p) {
   return Object.values(state.board.owner).filter((v) => v === p.id).length;
 }
@@ -3990,8 +4027,8 @@ const TUTORIAL = [
              "Anything you cannot sell recycles for just $1 a unit"] },
 
   { title: "Your ledger", target: "ledger", art: null,
-    body: "Everything you own lives here: cash, running costs, your ten discs, your hand and your companies.",
-    points: ["Ten discs total \u2014 one per plot, one per company, one per loan",
+    body: "Everything you own lives here: cash, running costs, your twelve discs, your hand and your companies.",
+    points: ["Twelve discs total \u2014 one per plot, one per company, one per loan",
              "Run out and you cannot buy, build or borrow",
              "The industry strip fills in as you enter each industry"] },
 
@@ -4552,12 +4589,33 @@ function GameScreens({ online }) {
                   </div>
                 )}
                 {(() => {
-                  const slots = eligibleSlotsFor(state, deliveringBiz).length;
+                  /* What this company can actually place, counted the way the engine will
+                     settle it: demand icons in reach, plus Manufacturing's cross-sell up to
+                     what is LEFT of its allowance, plus the neighbours Hospitality can trade
+                     with when you move on. The neighbour trade used to be missing from this
+                     sum, so a casino with more production than icons was told it would have
+                     to recycle units the engine was about to buy at full price. */
+                  const all = eligibleSlotsFor(state, deliveringBiz, human);
                   const rate = exchangeRate(state, deliveringBiz);
-                  const capacity = slots * rate;
+                  const crossLeft = state.crossSellRemaining[deliveringBiz.id] || 0;
+                  const direct = all.filter((s) => !s.cross).length * rate;
+                  const crossable = Math.min(crossLeft, all.filter((s) => s.cross).length);
+                  const nbrs = hoBonusUnits(state, deliveringBiz, human);
                   const left = state.deliveryRemaining[deliveringBiz.id] || 0;
-                  if (capacity >= left) return null;
+                  const nbrsUsed = Math.min(nbrs, Math.max(0, left - direct - crossable));
+                  const capacity = direct + crossable + nbrsUsed;
                   const ind = bizInd(deliveringBiz);
+                  const unit = unitPrice(state, human, deliveringBiz);
+                  if (capacity >= left) {
+                    if (!nbrsUsed) return null;
+                    return (
+                      <div className="rounded p-1.5 mb-2" style={{ backgroundColor: "#16261f", border: "1px solid #2c5f4f" }}>
+                        <div className="text-[10px]" style={{ color: "#8fd3b6" }}>
+                          Whatever the icons cannot take, your neighbours will: {nbrs} business{nbrs === 1 ? "" : "es"} and hub{nbrs === 1 ? "" : "s"} within {deliveringBiz.level} plot{deliveringBiz.level === 1 ? "" : "s"} take a unit each at ${unit}. Nothing here has to be recycled.
+                        </div>
+                      </div>
+                    );
+                  }
                   const vertical = SCALING[ind] === "V";
                   const onLH = deliveringBiz.footprint.some((pk) => plotHasLH(state.board, pk));
                   const canLH = ind !== "UT" && ind !== "RE";
@@ -4568,10 +4626,13 @@ function GameScreens({ online }) {
                   return (
                     <div className="rounded p-1.5 mb-2" style={{ backgroundColor: "#2a2415", border: "1px solid #7a6a3f" }}>
                       <div className="text-[10px]" style={{ color: "#f5d76e" }}>
-                        Only {capacity} of {left} unit{left === 1 ? "" : "s"} can be sold: {slots} open demand icon{slots === 1 ? "" : "s"} in reach{rate > 1 ? ` × ${rate} per icon` : ""}.
+                        {capacity} of {left} unit{left === 1 ? "" : "s"} can be sold:
+                        {" "}{direct / rate} open demand icon{direct / rate === 1 ? "" : "s"} in reach{rate > 1 ? ` × ${rate} per icon` : ""}
+                        {crossable > 0 ? `, ${crossable} cross-sell unit${crossable === 1 ? "" : "s"}` : ""}
+                        {nbrsUsed > 0 ? `, ${nbrsUsed} to neighbouring businesses and hubs at $${unit}` : ""}.
                       </div>
                       <div className="text-[9px] text-gray-400 mt-0.5">
-                        {why}{vertical ? " Single-plot industries stay in one district unless a hub links them out." : ""} The rest recycles at $1/unit.
+                        {why}{vertical ? " Single-plot industries stay in one district unless a hub links them out." : ""} The other {left - capacity} recycle{left - capacity === 1 ? "s" : ""} at $1/unit.
                       </div>
                     </div>
                   );
@@ -4579,10 +4640,12 @@ function GameScreens({ online }) {
                 <div className="text-[10px] text-gray-400 mb-2">
                   Click a highlighted demand cell (white border) to sell there.
                   {bizInd(deliveringBiz) === "MA" && <span> Amber-bordered cells are cross-sell slots — Manufacturing may fill another industry's demand within its own footprint.</span>}
-                  {" "}Leftover recycles at $1/unit.
+                  {bizInd(deliveringBiz) === "HO" && <span> Hospitality trades whatever the icons cannot take to the businesses and hubs around it, at full price, when you move on.</span>}
                 </div>
                 <button onClick={handleSkipDelivery} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
-                  Recycle remainder &amp; move on
+                  {hoBonusUnits(state, deliveringBiz, human) > 0 && (state.deliveryRemaining[deliveringBiz.id] || 0) > 0
+                    ? <>Sell to neighbours &amp; move on</>
+                    : <>Recycle remainder &amp; move on</>}
                 </button>
               </div>
             )}
@@ -4665,7 +4728,7 @@ function GameScreens({ online }) {
 
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
               <div className="flex items-center justify-between mb-2">
-                <span data-tut="ledger" className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">Your player board <Help text="Your ten discs are your whole footprint: one per plot you own, one per company (a Megacorp HQ still holds its own), and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up." /></span>
+                <span data-tut="ledger" className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">Your player board <Help text="Your twelve discs are your whole footprint: one per plot you own, one per company (a Megacorp HQ still holds its own), and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up." /></span>
                 <span className="text-[9px] font-mono text-gray-600">{human.name}</span>
               </div>
 

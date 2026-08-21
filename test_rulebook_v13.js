@@ -409,7 +409,7 @@ section("Scoring - tiebreak");
 
 /* --------------------------------------------------------------- constants */
 section("Other constants");
-check("10 discs each", E.DISCS_PER_PLAYER === 10);
+check("12 discs each", E.DISCS_PER_PLAYER === 12);
 check("5 company slots", E.COMPANY_SLOTS === 5);
 check("loan buy-back $30 / $35 / $40 at year ends",
   E.LOAN_REPAY_RATE[4] === 30 && E.LOAN_REPAY_RATE[8] === 35 && E.LOAN_REPAY_RATE[12] === 40);

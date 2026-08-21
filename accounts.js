@@ -15,7 +15,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-const DEFAULT_FILE = process.env.ACCOUNTS_FILE || path.join(__dirname, "accounts.json");
+const DEFAULT_FILE = require("./datadir.js").resolve("accounts.json", "ACCOUNTS_FILE");
 
 /* Passwords are hashed with scrypt, which is deliberately slow and memory-hard, so
    a stolen accounts.json is not a list of passwords. These parameters cost roughly

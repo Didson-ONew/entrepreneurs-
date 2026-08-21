@@ -111,7 +111,7 @@ All endpoints are JSON over POST except the event stream.
 | `GET /api/stream?code=&token=` | SSE: pushes `{type:"state", state, logs}` on every change |
 | `POST /api/action` `{code, token, action, data}` | submit a move |
 | `GET /api/presence?id=` | heartbeat → `{online, matches, waiting, seated}` for the live counters |
-| `GET /api/stats` | the hall of fame and match statistics, drawn from `matches.jsonl` |
+| `GET /api/stats` | the hall of fame and match statistics; `?engine=` `?standard=1` `?people=1` narrow it |
 | `GET /api/variants` | the optional-rule catalogue the lobby renders its toggles from |
 | `GET /api/whoami` | who this browser is, from its cookie → `{id, name, returning}` |
 | `POST /api/whoami` `{name}` | remember a name for next time |
@@ -256,9 +256,15 @@ A few things worth knowing:
   returning player apart from a stranger; nothing is scored on it.
 - **Bots never enter the hall of fame**, and a seat handed to a bot part-way through
   earns its player nothing for that game.
-- **`matches.jsonl` is your data, not source** — it is gitignored. Back it up if you
-  care about it, and see HOSTING_GUIDE.md before hosting somewhere with a disk that
-  does not survive a restart. `MATCHES_FILE=/some/path` moves it.
+- **The record book spans every ruleset the game has ever had.** Each record carries
+  the `ENGINE_VERSION` that played it, so `GET /api/stats` can be asked for one edition
+  at a time — `?engine=`, plus `?standard=1` for games with no optional rules on and
+  `?people=1` for games with more than one human. The Records dialog puts those on a
+  filter bar. It matters because a scoring change makes two editions' scores
+  incomparable, and the hall of fame would otherwise quietly add them together.
+- **`matches.jsonl` is your data, not source** — it lives in `data/` and is gitignored.
+  See *The data directory* below before hosting it anywhere with a disk that does not
+  survive a restart.
 
 ## Remembering who you are
 
@@ -314,6 +320,36 @@ join rooms under any unregistered name, and nothing about the game changes.
   Without it that header is ignored, since otherwise anyone could forge it and walk
   past the rate limit.
 
+## The data directory
+
+Three files outlive any single game, and all three live in one folder — `data`, beside
+`server.js`, or wherever `ENT_DATA_DIR` points:
+
+| File | What it holds | If it is lost |
+|---|---|---|
+| `accounts.json` | reserved names, password hashes, the session signing secret | everyone registers again |
+| `matches.jsonl` | every finished game | the hall of fame starts from zero |
+| `feedback.json` | playtest notes | the notes are gone |
+
+They used to default to sitting loose beside `server.js`, which is the one place a
+deployment replaces. That is not hypothetical: a redeploy emptied all three, and the
+first anybody knew of it was a player finding their account gone and the hall of fame
+showing one game.
+
+So: **`ENT_DATA_DIR` moves all three together**, the server prints where the data is
+and how much of it there is every time it starts, and it says so outright when the
+folder is somewhere a deploy can delete. Files left over from an older version beside
+`server.js` are moved in automatically on first start, so upgrading never costs the
+record book. `ACCOUNTS_FILE`, `MATCHES_FILE` and `FEEDBACK_FILE` still work per-file
+and still win.
+
+```
+Data directory: /var/lib/entrepreneurs
+  accounts     12  /var/lib/entrepreneurs/accounts.json
+  matches      87  /var/lib/entrepreneurs/matches.jsonl
+  feedback      5  /var/lib/entrepreneurs/feedback.json
+```
+
 ## Playtest feedback
 
 A **Feedback** pill sits with the Rulebook and Records buttons, on every screen. Anyone
@@ -344,7 +380,7 @@ screen proves nothing. It is a list of names rather than a flag on the account o
 purpose: this is one person's playtest, not a permissions system.
 
 ```bash
-ENT_ADMINS=Dids,Didson FEEDBACK_FILE=/data/feedback.json node server.js
+ENT_ADMINS=Dids,Didson ENT_DATA_DIR=/var/lib/entrepreneurs node server.js
 ```
 
 ### Forgotten passwords: the secret question

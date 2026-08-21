@@ -78,7 +78,7 @@ export const RULEBOOK = [
     { note: "Shuffling the decks whole is what puts a big company within reach early, for a player willing to take the loan or sell hard to afford it. It also means the draft cannot be planned in advance: what is on top is luck, and what you do about it is not." },
     { h: "The rest" },
     { ul: [
-      "Ten discs each. Nothing else marks what you own.",
+      "Twelve discs each. Nothing else marks what you own.",
       "Megacorp tiles: sixteen exist, and twice the number of players are shuffled into the game.",
       "Personas are dealt to everyone by default - one each, drawn from six. Leave them out for a first game if you like.",
     ] },
@@ -89,9 +89,9 @@ export const RULEBOOK = [
 /* ------------------------------------------------------------------ */
 {
   id: "discs",
-  title: "Your ten discs",
+  title: "Your twelve discs",
   blocks: [
-    { p: "Your discs are your entire footprint in the world. You have ten, and every one of them is committed somewhere:" },
+    { p: "Your discs are your entire footprint in the world. You have twelve, and every one of them is committed somewhere:" },
     { ul: [
       "one disc on each plot of land you own,",
       "one disc on each active company you run,",
@@ -99,7 +99,7 @@ export const RULEBOOK = [
     ] },
     { p: "If you have no free disc you cannot buy land, launch a company, take over a distressed structure, or take a loan - no matter how much cash you are holding. You free a disc by selling a plot, selling a company, or repaying a loan." },
     { p: "Separately, you have five company slots. Every active company fills one, and so does every Megacorp headquarters you have formed - a headquarters no longer trades, but it still stands on the board and still holds its disc." },
-    { note: "The disc limit is the real brake on the game, not money. Cash arrives in floods once your pots start paying, and without a hard cap on presence the leader would simply buy the map. Ten discs also makes selling land a genuine decision rather than a pure loss." },
+    { note: "The disc limit is the real brake on the game, not money. Cash arrives in floods once your pots start paying, and without a hard cap on presence the leader would simply buy the map. Twelve discs also makes selling land a genuine decision rather than a pure loss. It was ten until the count was measured: ten refused about a quarter of every sideways company's attempts to grow for want of a disc, which is most of why Manufacturing, Utilities and Technology spent whole games at level 1. Twelve takes that to 18%. Fifteen was tried and mostly bought land sprawl." },
   ],
 },
 
