@@ -58,7 +58,7 @@ section("Defaults - a table that touches nothing plays Rulebook v13");
   check("hubs stand on plots", st.board.lhOnPlots === true);
   const lv = st.decks.UT.map((c) => c.lvl);
   check("the decks are shuffled whole", JSON.stringify(lv) !== JSON.stringify([...lv].sort()), lv.join(""));
-  check("a company is worth 1 EP per level", E.levelEP(st) === 1);
+  check("a company is worth 2 EP per level", E.levelEP(st) === 2);
   check("and the land awards pay at every year end", E.landPayouts(st) === 3, `${E.landPayouts(st)} payouts`);
   check("junk off the wire cannot invent a variant",
     E.normaliseVariants({ nonsense: true, roadHubs: "yes" }).nonsense === undefined
@@ -138,13 +138,13 @@ section("1. Score at the year end");
   check("building scores nothing yet", biz.epOnCard === 0 && biz.scored === false);
   st.quarter = 4;
   E.runClosingRest(st, () => {});
-  check("the year end pays it", biz.epOnCard === 2 && biz.scored === true, `${biz.epOnCard} EP`);
+  check("the year end pays it", biz.epOnCard === 4 && biz.scored === true, `${biz.epOnCard} EP`);
 
   const std = game(undefined);
   const me2 = E.byId(std, 0);
   Object.keys(std.board.graph).slice(0, 4).forEach((p) => { std.board.owner[p] = me2.id; });
   const b2 = plant(std, me2, "HC", Object.keys(std.board.owner).find((k) => std.board.owner[k] === me2.id), 2);
-  check("whereas standard pays it on the spot", b2.epOnCard === 2 && b2.scored === true);
+  check("whereas standard pays it on the spot", b2.epOnCard === 4 && b2.scored === true);
 }
 
 section("2. Levels score single");
@@ -156,9 +156,9 @@ section("2. Levels score single");
     const plot = Object.keys(st.board.owner).find((k) => st.board.owner[k] === me.id);
     return plant(st, me, "HC", plot, 2).epOnCard;
   };
-  check("a level 2 company scores 2 as standard", mk(undefined) === 2, `${mk(undefined)} EP`);
-  check("and 6 under the variant", mk({ tripleLevelEP: true }) === 6, `${mk({ tripleLevelEP: true })} EP`);
-  check("levelEP says the same", E.levelEP(game(undefined)) === 1 && E.levelEP(game({ tripleLevelEP: true })) === 3);
+  check("a level 2 company scores 4 as standard", mk(undefined) === 4, `${mk(undefined)} EP`);
+  check("and 6 under the variant", mk({ heavyLevelEP: true }) === 6, `${mk({ heavyLevelEP: true })} EP`);
+  check("levelEP says the same", E.levelEP(game(undefined)) === 2 && E.levelEP(game({ heavyLevelEP: true })) === 3);
 }
 
 section("3. Ordered decks");
@@ -246,8 +246,8 @@ section("The bots read the variants too");
     return E.launchScore(st, me, bp, "balanced");
   };
   check("a building is worth less to a bot when levels score single",
-    scoreOf({ tripleLevelEP: true }) > scoreOf(undefined),
-    `${scoreOf(undefined).toFixed(3)} -> ${scoreOf({ tripleLevelEP: true }).toFixed(3)}`);
+    scoreOf({ heavyLevelEP: true }) > scoreOf(undefined),
+    `${scoreOf(undefined).toFixed(3)} -> ${scoreOf({ heavyLevelEP: true }).toFixed(3)}`);
 }
 
 /* -------------------------------------------------- the award log's quarter */
@@ -280,7 +280,7 @@ section("All five on at once - which is very nearly v12");
   const st = game(all);
   check("a game starts with every variant on", !!st.board && st.quarter === 1);
   check("hubs go back on the road", st.board.lhOnPlots === false);
-  check("a level is worth 3 EP with the triple variant on", E.levelEP(st) === 3);
+  check("a level is worth 3 EP with the heavy variant on", E.levelEP(st) === 3);
   check("the land awards pay once again", E.landPayouts(st) === 1);
   const lv = st.decks.UT.map((c) => c.lvl);
   check("and the decks are ordered again", JSON.stringify(lv) === JSON.stringify([...lv].sort()), lv.join(""));

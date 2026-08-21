@@ -25,7 +25,8 @@ function loadEngine() {
       renovationEligible, bizInd,
       byId, BP_DATA, MEGACORP_TILES, STARTING, INDUSTRIES, BASE_PRICE, SCALING,
       LOAN_REPAY_RATE, BP_SELL_PRICE, DISCS_PER_PLAYER, COMPANY_SLOTS, PERSONAS,
-      levelEP, landPayouts, VARIANT_KEYS, scoreCompanyOnCompletion, runClosingRest };
+      levelEP, landPayouts, VARIANT_KEYS, scoreCompanyOnCompletion, runClosingRest,
+      INDUSTRY_DEBUT_EP, LAND_AWARD, awardRanked, claimIndustryBonus, finalizeGame };
   `, sandbox);
   return box.exports;
 }
@@ -175,6 +176,57 @@ section("A headquarters keeps its share of its industry's pot");
     a.cash === 10, `HQ took $${a.cash}`);
   check("and the company that is still trading draws the same", b.cash === 10, `$${b.cash}`);
   check("the pot is emptied cleanly", st.pots.RE === 0, `$${st.pots.RE} left`);
+}
+
+section("What the scoreboard pays");
+{
+  const st = E.initGame(0, 51, ["A", "B", "C"], undefined, false);
+  check("a company level is worth 2 EP", E.levelEP(st) === 2);
+  check("entering an industry is worth 3 EP", E.INDUSTRY_DEBUT_EP === 3,
+    `${E.INDUSTRY_DEBUT_EP} EP`);
+  check("so breadth is worth about a level-2 company, not five levels",
+    E.INDUSTRY_DEBUT_EP < 2 * E.levelEP(st) + 1);
+
+  const [a] = st.players;
+  const before = a.epBank;
+  E.claimIndustryBonus(st, a, "TE", () => {});
+  check("and it is banked at once", a.epBank - before === 3, `+${a.epBank - before} EP`);
+  E.claimIndustryBonus(st, a, "TE", () => {});
+  check("once per industry, ever", a.epBank - before === 3, `+${a.epBank - before} EP`);
+}
+
+section("A land award goes to the leader alone, and a draw pays badly");
+{
+  const st = E.initGame(0, 53, ["A", "B", "C"], undefined, false);
+  const [a, b, c] = st.players;
+  check("5 EP outright, 2 each for two, 1 each for three or more",
+    E.LAND_AWARD.sole === 5 && E.LAND_AWARD.two === 2 && E.LAND_AWARD.many === 1);
+
+  const holdings = new Map();
+  const run = (label) => {
+    st.players.forEach((p) => { p.epBank = 0; p.epLog = []; });
+    E.awardRanked(st, (p) => holdings.get(p.id) || 0, label, null);
+    return st.players.map((p) => p.epBank);
+  };
+
+  holdings.set(a.id, 5); holdings.set(b.id, 3); holdings.set(c.id, 1);
+  check("an outright leader takes 5, and second takes nothing",
+    JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([5, 0, 0]),
+    run("The Real-Estate Mogul").join(","));
+
+  holdings.set(b.id, 5);
+  check("two tied for the lead take 2 each",
+    JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([2, 2, 0]),
+    run("The Real-Estate Mogul").join(","));
+
+  holdings.set(c.id, 5);
+  check("three or more take 1 each",
+    JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([1, 1, 1]),
+    run("The Real-Estate Mogul").join(","));
+
+  holdings.set(a.id, 0); holdings.set(b.id, 0); holdings.set(c.id, 0);
+  check("nobody holding anything is awarded nothing",
+    JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([0, 0, 0]));
 }
 
 section("A headquarters is public infrastructure");
@@ -429,8 +481,8 @@ section("v13: the rules that used to be variants");
   check("every optional rule is off by default", E.VARIANT_KEYS.every((k) => st.variants[k] === false),
     E.VARIANT_KEYS.join(", "));
 
-  // "The moment a company is built it takes 1 EP per level, placed on its card."
-  check("a company level is worth 1 EP", E.levelEP(st) === 1);
+  // "The moment a company is built it takes 2 EP per level, placed on its card."
+  check("a company level is worth 2 EP", E.levelEP(st) === 2);
   const me = E.byId(st, 0);
   Object.keys(st.board.graph).slice(0, 4).forEach((k) => { st.board.owner[k] = me.id; });
   const plot = Object.keys(st.board.owner).find((k) => st.board.owner[k] === me.id);
@@ -441,7 +493,7 @@ section("v13: the rules that used to be variants");
   st.board.occupiedBy[plot] = biz.id;
   E.scoreCompanyOnCompletion(st, biz);
   check("and it scores the moment it is built, not at a year end",
-    biz.epOnCard === 2 && biz.scored === true, `${biz.epOnCard} EP on the card`);
+    biz.epOnCard === 4 && biz.scored === true, `${biz.epOnCard} EP on the card`);
 
   // "The Real-Estate Mogul and The Omnipresent are awarded [at every year end]"
   check("the land awards pay at every year end", E.landPayouts(st) === 3, `${E.landPayouts(st)} payouts`);

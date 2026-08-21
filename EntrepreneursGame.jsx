@@ -833,7 +833,7 @@ const BP_SOLVENCY_PRICE = { 1: 2, 2: 4, 3: 6 };
 /* ============================== PERSONAS ==============================
    Optional asymmetric powers, one per industry. Off unless a game is created with
    personas enabled, so the base game is unchanged. Each is a tilt, not a cage: the
-   5 EP-per-industry bonus still pushes everyone toward breadth. */
+   industry entry bonus still pushes everyone toward breadth. */
 const PERSONAS = {
   tech_savvy:  { ind: "TE", name: "Systems Architect",
     blurb: "Your Technology companies upgrade vertically, stacking on one plot instead of needing a free neighbour." },
@@ -866,8 +866,8 @@ const PERSONAS = {
 const VARIANTS = [
   { key: "classicScoring", name: "Score at the year end",
     blurb: "A company waits for the next year end to take its EP, instead of scoring the moment it is built or upgraded." },
-  { key: "tripleLevelEP", name: "Levels score triple",
-    blurb: "A company level is worth 3 EP instead of 1, which puts far more of the game's weight on how tall you build." },
+  { key: "heavyLevelEP", name: "Levels score heavy",
+    blurb: "A company level is worth 3 EP instead of 2, which puts far more of the game's weight on how tall you build and pushes land, cash and the entry bonuses into the background." },
   { key: "orderedDecks", name: "Ordered decks",
     blurb: "Each industry deck runs level 1 down to level 3, instead of being shuffled whole. The early game holds no surprises and no level 3 can be drafted." },
   { key: "roadHubs", name: "Hubs on the road",
@@ -884,9 +884,19 @@ function normaliseVariants(v) {
   return out;
 }
 const hasVariant = (state, key) => !!(state && state.variants && state.variants[key]);
-/* Company EP per level. Three is the standard: building and upgrading is the
-   essence of the game, and at 1 EP a level it lost to land and cash. */
-const levelEP = (state) => (hasVariant(state, "tripleLevelEP") ? 3 : 1);
+/* The two dials the whole scoreboard hangs off, kept together because they are only
+   meaningful against each other.
+
+   A company level is worth 2 EP, at build and at upgrade. One was too little: measured
+   over 300 games an upgrade stopped being worth the setup cost paid twice, and upgraded
+   companies fell from 5.1 a game to 3.1. Three was too much the other way - building
+   became 32% of a seat's score and everything else faded behind it.
+
+   Entering an industry you have never built in pays 3 EP, so breadth is worth about a
+   level-2 company. At 5 it was the largest bucket on the board once levels came down:
+   27% of a seat's score for a decision that is barely a decision - build one of each. */
+const levelEP = (state) => (hasVariant(state, "heavyLevelEP") ? 3 : 2);
+const INDUSTRY_DEBUT_EP = 3;
 
 const PERSONA_KEYS = Object.keys(PERSONAS);
 const hasPersona = (p, key) => !!p && p.persona === key;
@@ -979,12 +989,12 @@ function expansionBuffer(state) {
   return state.quarter >= 9 ? 0.15 : state.quarter >= 5 ? 0.28 : 0.4;
 }
 /* $10 of cash is worth 1 EP at the end; a company is worth its level once, plus its level
-   again on every upgrade, plus 5 EP if it opens a new industry. Sitting on money is close to the worst thing a bot
+   again on every upgrade, plus the entry bonus if it opens a new industry. Sitting on money is close to the worst thing a bot
    can do, so the safety buffer relaxes hard once the game is nearly over. */
 function endgameSpendMode(state, p) {
   return state.quarter >= 9 && p.cash > 60;
 }
-/* Scoring rewards breadth (5 EP per distinct active industry) and endgame bonuses
+/* Scoring rewards breadth (an entry bonus per distinct industry) and endgame bonuses
    reward land and district spread. Bots were hoarding cash and finishing with ~1.6
    companies of a possible 5, so expansion is weighted much more aggressively. */
 function missingIndustries(p) {
@@ -1169,10 +1179,10 @@ function launchScore(state, p, bp, archetype) {
   // --- add it up, in points ---
   const cashEP = (perQuarter * qLeft + potNow) / CASH_PER_EP;
   const buildEP = bp.lvl * levelEP(state);
-  /* The 5 EP for entering an industry is owed once per game, ever. Reading the live
-     ledger rather than "do I have one standing right now" stops a bot rebuilding an
-     industry it already scored and calling it 5 free points. */
-  const debutEP = (p.industriesScored || []).includes(bp.ind) ? 0 : 5;
+  /* Entering an industry is owed once per game, ever. Reading the live ledger rather
+     than "do I have one standing right now" stops a bot rebuilding an industry it has
+     already scored and calling it free points. */
+  const debutEP = (p.industriesScored || []).includes(bp.ind) ? 0 : INDUSTRY_DEBUT_EP;
   const costEP = totalOutlay / CASH_PER_EP;
   let s = cashEP + buildEP + debutEP - costEP;
 
@@ -1318,15 +1328,16 @@ function bestLaunch(state, p, archetype, buffer) {
   return { bp, score: launchScore(state, p, bp, archetype) };
 }
 
-/* Entering an industry pays 5 EP straight away, the moment the first company of that
+/* Entering an industry you have never built in before. Paid straight away, the moment the
+   first company of that
    type is built, rather than waiting for a year-end. It is banked immediately and can
    never be earned twice, so it is not placed on a card and does not need vesting. */
 function claimIndustryBonus(state, p, ind, log) {
   p.industriesScored = p.industriesScored || [];
   if (p.industriesScored.includes(ind)) return;
   p.industriesScored.push(ind);
-  addEP(p, 5, `Entered ${ind}`, state.quarter);
-  if (log) log(`${p.name} enters ${ind} for the first time (+5 EP).`, p.id);
+  addEP(p, INDUSTRY_DEBUT_EP, `Entered ${ind}`, state.quarter);
+  if (log) log(`${p.name} enters ${ind} for the first time (+${INDUSTRY_DEBUT_EP} EP).`, p.id);
 }
 function doLaunch(state, p, bp, rng, log, manualFootprint) {
   const nPlots = SCALING[bp.ind] === "H" ? bp.lvl : 1;
@@ -1417,7 +1428,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "452bcb83";
+const ENGINE_VERSION = "ba0049c9";
 const DISCS_PER_PLAYER = 10;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Ten discs, no more. */
@@ -1704,11 +1715,11 @@ function runClosingRest(state, log) {
   if ([4, 8, 12].includes(quarter)) {
     for (const p of players) {
       for (const b of activeBiz(p)) if (!b.scored) { b.epOnCard = b.level * levelEP(state); b.scored = true; }
-      // Each industry pays its 5 EP once per game, the first year a company of that
+      // Each industry pays its entry bonus once per game, the first year a company of that
       // type is active. Entering a new industry is what scores, not holding one.
       // (industry bonuses are awarded on construction, see claimIndustryBonus)
       // NOTE: previously a player at the 5-company cap sold its worst company here
-      // every year end. That threw away 1 EP/level plus possibly 5 EP for the industry,
+      // every year end. That threw away the level EP plus possibly the entry bonus,
       // for no gain - being full is the goal, not a problem. Removed.
     }
     /* The two land awards are handed out at every year end, so holding the most land
@@ -2013,9 +2024,9 @@ const TRACK_LABEL = { raise_capital: "Raise Capital", ma: "M&A", rd: "R&D", boar
    placement buttons, so a new player never has to guess what a track does. */
 const TRACK_HELP = {
   raise_capital: "Turn assets into cash. LOAN takes $20 from the bank for one of your discs (buy it back later or lose 5 EP). SELL turns a plot, an unbuilt Blueprint, or a whole company into money at market value.",
-  ma: "Grow your footprint. BUY takes an unowned plot, or renovates a distressed company for half its Blueprint's setup cost. LAUNCH builds a Blueprint from your hand onto plots you own \u2014 and pays you 5 EP the first time you enter each industry.",
+  ma: "Grow your footprint. BUY takes an unowned plot, or renovates a distressed company for half its Blueprint's setup cost. LAUNCH builds a Blueprint from your hand onto plots you own \u2014 and pays you 3 EP the first time you enter each industry.",
   rd: "Improve what you have. RESEARCH draws the face-up top card of any industry deck. UPGRADE pays a company's setup cost again to double its production and OPEX, and raise its level by one.",
-  board_meeting: "The power track. Both your workers go here together. GO PUBLIC merges companies into a Megacorp tile for big EP \u2014 you need the exact combination one of the tiles asks for. Whoever does it first also takes the IPO tile (+5 EP), which opens this track's second seat. REPOSITION moves you to first in turn order.",
+  board_meeting: "The power track. Both your workers go here together. GO PUBLIC merges companies into a Megacorp tile for big EP \u2014 you need the exact combination one of the tiles asks for. Whoever does it first also takes the IPO tile \u2014 a sixth company bay \u2014 which opens this track's second seat. REPOSITION moves you to first in turn order.",
 };
 
 /* How much does this bot want the Board Meeting track this quarter?
@@ -2295,13 +2306,13 @@ function botResolveOneAction(state, p, track, rng, log) {
     const renoOpt = distressed.map((db) => ({ db, bp: p.hand.find((bp) => renovationEligible(db, bp)) })).find((o) => o.bp);
     if (renoOpt && p.cash >= Math.floor(renoOpt.bp.setup / 2) && doRenovate(state, p, renoOpt.db, renoOpt.bp, log)) return;
     // buying a distressed company as it stands is often the cheapest company on the
-    // board: half setup, already built, and it may open a new industry worth 5 EP
+    // board: half setup, already built, and it may open an industry never entered
     const reclaimOpt = distressed
       .filter((db) => canReclaim(state, p, db))
       .map((db) => {
         const px = price(state.pm, bizInd(db));
         const value = bizProd(db) * px - bizOpex(db) - 3 * db.level;
-        const fresh = missingIndustries(p).has(bizInd(db)) ? 5 : 0;
+        const fresh = missingIndustries(p).has(bizInd(db)) ? INDUSTRY_DEBUT_EP : 0;
         return { db, score: value + fresh - reclaimCost(db) * 0.25 };
       })
       .sort((a, b) => b.score - a.score)[0];
@@ -2311,7 +2322,7 @@ function botResolveOneAction(state, p, track, rng, log) {
       .filter(([k, v]) => v === p.id && !(k in state.board.occupiedBy)).length;
     const unowned = Object.keys(state.board.graph).filter((k) => !(k in state.board.owner));
     // Always keep discs in hand for future companies: each active company is worth
-    // its level in EP plus 5 EP for a new industry, usually more than a spare plot.
+    // its level in EP plus the entry bonus for a new industry, usually more than a spare plot.
     /* Only hold discs back for a company that could actually be built. Reserving two
        against an empty hand, or against cards there is no money for, is how bots ended
        games sitting on both spare discs and spare cash - the one combination that
