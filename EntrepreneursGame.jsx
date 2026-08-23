@@ -588,6 +588,70 @@ function bestExtraDistrictsForRE(state, biz, count, home) {
   others.sort((a, b) => openCount(b) - openCount(a) || tileGridDist([...home][0], a) - tileGridDist([...home][0], b));
   return others.slice(0, count);
 }
+/* A level-N Utility reads demand across an N x N block of districts that also
+   encompasses its whole footprint. The old test (distance < level from ANY home
+   district) actually described a (2N-1) x (2N-1) block, so a level-3 Utility could
+   see the entire city instead of nine districts.
+
+   Where the footprint sits inside the block is a choice - a company straddling two
+   districts can usually place its block several ways - and the game makes that choice
+   by taking the one with the most open demand in it.
+
+   THE BLOCK IS THEN HELD FOR THE QUARTER. It used to be recomputed on every single
+   call, and the score it was chosen by counts OPEN slots: so selling into the block
+   lowered its score until a rival block overtook it, and the set of districts the
+   company could reach changed underneath the player mid-delivery. It flipped back and
+   forth on 83% of Utilities. Districts appeared and vanished from the grid between one
+   click and the next, which is precisely what it looked like from the other side. */
+function bestUtBlock(state, biz, home) {
+  const board = state.board;
+  const N = biz.level;
+  const rs = [...home].map((h) => +h.split(",")[0]);
+  const cs = [...home].map((h) => +h.split(",")[1]);
+  const minR = Math.min(...rs), maxR = Math.max(...rs);
+  const minC = Math.min(...cs), maxC = Math.max(...cs);
+  const real = allDistrictKeys(board);          // hoisted: this was recomputed per cell
+  // every N x N block that still encompasses the whole footprint
+  const blocks = [];
+  for (let r0 = maxR - N + 1; r0 <= minR; r0++) {
+    for (let c0 = maxC - N + 1; c0 <= minC; c0++) {
+      const cells = [];
+      for (let r = r0; r < r0 + N; r++) for (let c = c0; c < c0 + N; c++) cells.push(`${r},${c}`);
+      blocks.push(cells.filter((d) => real.includes(d)));
+    }
+  }
+  // the owner picks one block, so take the one offering the most open demand
+  const score = (cells) => cells.reduce((acc, d) => {
+    const t = state.demand && state.demand.tiles ? state.demand.tiles[d] : null;
+    if (!t) return acc;
+    let k = 0;
+    t.rows.forEach((rowInd, ri) => {
+      if (rowInd !== "UT") return;
+      if (ri >= 2 && state.quarter <= 4) return;
+      for (let l = 0; l < Math.min(biz.level, 4); l++) if (!t.filled[ri][l]) k++;
+    });
+    return acc + k;
+  }, 0);
+  let best = blocks[0] || [...home];
+  let bestScore = score(best);
+  for (const b of blocks) {
+    const s = score(b);
+    if (s > bestScore) { best = b; bestScore = s; }
+  }
+  return best;
+}
+function utBlock(state, biz, home) {
+  /* A company a bot is only imagining has no identity to remember a block against,
+     and must not be allowed to write one down for a real company to find. */
+  if (!biz || biz.id === undefined || biz.id < 0) return bestUtBlock(state, biz, home);
+  state.utBlocks = state.utBlocks || {};
+  const held = state.utBlocks[biz.id];
+  // an upgrade changes the size of the block, so it is chosen again
+  if (held && held.quarter === state.quarter && held.level === biz.level) return held.cells;
+  const cells = bestUtBlock(state, biz, home);
+  state.utBlocks[biz.id] = { quarter: state.quarter, level: biz.level, cells };
+  return cells;
+}
 function reachableDistricts(state, biz, chosenExtra) {
   const board = state.board;
   const home = footprintDistricts(board, biz.footprint);
@@ -603,41 +667,7 @@ function reachableDistricts(state, biz, chosenExtra) {
     // one shared network: every district any hub reaches becomes reachable
     lhDistricts(board).forEach((d) => out.add(d));
   }
-  if (bizInd(biz) === "UT") {
-    /* A level-N Utility reads demand across an N x N block of districts that also
-       encompasses its whole footprint. The old test (distance < level from ANY home
-       district) actually described a (2N-1) x (2N-1) block, so a level-3 Utility could
-       see the entire city instead of nine districts. */
-    const N = biz.level;
-    const rs = [...home].map((h) => +h.split(",")[0]);
-    const cs = [...home].map((h) => +h.split(",")[1]);
-    const minR = Math.min(...rs), maxR = Math.max(...rs);
-    const minC = Math.min(...cs), maxC = Math.max(...cs);
-    // every N x N block that still encompasses the whole footprint
-    const blocks = [];
-    for (let r0 = maxR - N + 1; r0 <= minR; r0++) {
-      for (let c0 = maxC - N + 1; c0 <= minC; c0++) {
-        const cells = [];
-        for (let r = r0; r < r0 + N; r++) for (let c = c0; c < c0 + N; c++) cells.push(`${r},${c}`);
-        blocks.push(cells.filter((d) => allDistrictKeys(board).includes(d)));
-      }
-    }
-    // the owner picks one block, so take the one offering the most open demand
-    const score = (cells) => cells.reduce((acc, d) => {
-      const t = state.demand && state.demand.tiles ? state.demand.tiles[d] : null;
-      if (!t) return acc;
-      let k = 0;
-      t.rows.forEach((rowInd, ri) => {
-        if (rowInd !== "UT") return;
-        if (ri >= 2 && state.quarter <= 4) return;
-        for (let l = 0; l < Math.min(biz.level, 4); l++) if (!t.filled[ri][l]) k++;
-      });
-      return acc + k;
-    }, 0);
-    let best = blocks[0] || [];
-    blocks.forEach((b2) => { if (score(b2) > score(best)) best = b2; });
-    best.forEach((d) => out.add(d));
-  }
+  if (bizInd(biz) === "UT") utBlock(state, biz, home).forEach((d) => out.add(d));
   if (bizInd(biz) === "RE") {
     // the Supply Chain Expert reaches one district further this quarter
     const owner = ownerOf(state, biz);
@@ -775,6 +805,13 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
     if (!footprintDistricts(state.board, biz.footprint).has(tileKey)) return 0;
   } else if (slotInd !== bizInd(biz)) return 0;
   if (levelIdx >= deliveryColumnCap(state, biz)) return 0;
+  /* Reach is a rule, not a hint. It used to live only in eligibleSlotsFor - the
+     function that decides which cells the grid highlights - so the engine itself would
+     accept a delivery into any district on the board from any company, whether it could
+     see that district or not. The grid was the only thing enforcing it, which means it
+     was enforced for anyone clicking the grid and for nobody reaching the endpoint
+     another way. */
+  if (!reachableDistricts(state, biz).has(tileKey)) return 0;
   state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
   return cross ? 1 : exchangeRate(state, biz);
 }
@@ -1474,7 +1511,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "60bba388";
+const ENGINE_VERSION = "bb395332";
 const DISCS_PER_PLAYER = 12;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Twelve discs, no more.
@@ -1655,9 +1692,15 @@ function runMegacorpDividend(state, log) {
         if (log) log(`Megacorp "${hq.megacorpName}" stands on land ${p.name} no longer owns \u2014 it collects nothing this quarter.`, p.id);
         continue;
       }
-      const ep = price(state.pm, bizInd(hq));
+      const goods = price(state.pm, bizInd(hq));
+      const tier = tierOfHQ(hq);
+      const ep = brandEPFor(goods, tier);
+      if (!ep) {
+        if (log) log(`Megacorp "${hq.megacorpName}" (tier ${tier}) banks nothing \u2014 ${bizInd(hq)} sells at $${goods}, and a tier ${tier} brand needs $${tier}.`, p.id);
+        continue;
+      }
       addEP(p, ep, `Megacorp brand: ${hq.megacorpName}`, state.quarter);
-      if (log) log(`Megacorp "${hq.megacorpName}" banks ${ep} EP \u2014 ${bizInd(hq)} sells at $${ep}.`, p.id);
+      if (log) log(`Megacorp "${hq.megacorpName}" banks ${ep} EP \u2014 ${bizInd(hq)} sells at $${goods}, divided by tier ${tier}.`, p.id);
     }
   }
 }
@@ -1880,6 +1923,46 @@ const MEGACORP_TILES = [
   ["Titan Industries", { 3: 2, 4: 1 }, 17], ["Colossus Group", { 3: 4 }, 19],
   ["Empire Holdings", { 2: 1, 3: 2, 4: 1 }, 20], ["Omnicorp", { 3: 3, 4: 1 }, 22],
 ];
+/* The sixteen tiles are four tiers of four, written easiest first: tier 4 is the four
+   cheapest to assemble, tier 1 the four hardest.
+
+   Two things hang off the tier.
+
+   WHICH TILES ARE IN THE BOX. Two are drawn from each tier that is in play, and the
+   hard tiers only come out at a bigger table: tiers 4 and 3 always, tier 2 from three
+   players, tier 1 only at four. At four players this barely matters - eight random
+   tiles out of sixteen already averages two per tier - but at two players it is the
+   difference between a box half full of tiles nobody can claim and a box of tiles that
+   are actually reachable. Megacorps formed at a two-player table went from 1.00 a game
+   to 1.26 when the hard tiles came out.
+
+   WHAT THE HEADQUARTERS EARNS. The brand dividend is the industry's price divided by
+   the tile's tier, rounded down - so a Local Syndicate built out of three level-1
+   companies no longer earns the same every quarter as an Omnicorp built out of four
+   level-3s. That single division took the Megacorp from 33% of a winning score to 17%,
+   and the winner's lead over last from 58.6 EP to 48.7.
+
+   See audit_megacorp_tiers.js. */
+const MEGACORP_TIERS = 4;
+const MEGACORP_PER_TIER = 4;
+const megacorpTierOf = (i) => MEGACORP_TIERS - Math.floor(i / MEGACORP_PER_TIER);
+const MEGACORP_TIER = {};
+MEGACORP_TILES.forEach((t, i) => { MEGACORP_TIER[t[0]] = megacorpTierOf(i); });
+/* Smallest table each tier appears at. */
+const MEGACORP_TIER_MIN_PLAYERS = { 4: 2, 3: 2, 2: 3, 1: 4 };
+const tierOfTile = (tile) => (tile ? MEGACORP_TIER[tile[0]] || 1 : 1);
+const tierOfHQ = (hq) => (hq && hq.megacorpName ? MEGACORP_TIER[hq.megacorpName] || 1 : 1);
+/* What a headquarters of this tile banks each quarter, at this price. */
+const brandEPFor = (price, tier) => Math.floor(price / tier);
+function drawMegacorpPool(nPlayers, rng) {
+  const out = [];
+  for (let tier = MEGACORP_TIERS; tier >= 1; tier--) {
+    if (nPlayers < MEGACORP_TIER_MIN_PLAYERS[tier]) continue;
+    const from = (MEGACORP_TIERS - tier) * MEGACORP_PER_TIER;
+    out.push(...shuffle(MEGACORP_TILES.slice(from, from + MEGACORP_PER_TIER), rng).slice(0, 2));
+  }
+  return out;
+}
 function tryMatchMegacorp(bizList, combo) {
   const needed = { ...combo };
   const have = [];
@@ -1906,7 +1989,7 @@ function claimMegacorp(state, p, log, hqChoice) {
   // One of the merged companies becomes the Megacorp HQ: it keeps its building and the
   // owner's disc, gains a Megacorp block, and its BP returns to its industry deck.
   // Bots take the highest-level company; the human is asked to choose.
-  const hq = hqChoice && match.have.includes(hqChoice) ? hqChoice : pickHQ(state, p, match.have);
+  const hq = hqChoice && match.have.includes(hqChoice) ? hqChoice : pickHQ(state, p, match.have, tierOfTile(match.tile));
   match.have.forEach((b) => {
     if (b === hq) return;
     b.distressed = true;
@@ -2099,7 +2182,7 @@ function megacorpWorthIt(state, p, match) {
      it scores at the end - so the company with the most neighbours already standing is
      the one to keep. */
   const qLeft = Math.max(1, 13 - (state.quarter || 1));
-  const hq = pickHQ(state, p, match.have);
+  const hq = pickHQ(state, p, match.have, tierOfTile(match.tile));
   let lostPerQuarter = 0;
   for (const b of match.have) {
     const units = Math.min(bizProd(b), sellableForBiz(state, p, b));
@@ -2111,7 +2194,7 @@ function megacorpWorthIt(state, p, match) {
   /* The headquarters banks EP equal to its industry's price every quarter it stands, so
      merging early is worth far more than merging late - and it pays ground rent for the
      privilege if the land under it is somebody else's. */
-  const brandEP = price(state.pm, bizInd(hq)) * qLeft;
+  const brandEP = brandEPFor(price(state.pm, bizInd(hq)), tierOfTile(match.tile)) * qLeft;
   const rentEP = (hqGroundRent(state, p, hq) * qLeft) / CASH_PER_EP;
   return ep + districtEP + brandEP - rentEP - forgone - (lostPerQuarter * qLeft) / CASH_PER_EP > 0;
 }
@@ -2128,13 +2211,17 @@ function hqGroundRent(state, p, b) {
 /* Which company keeps standing as the headquarters. It scores for the companies around
    it at the end of the game, so the one already in a built-up corner is worth more than
    the biggest one - which is what bots used to take. */
-function pickHQ(state, p, have) {
+function pickHQ(state, p, have, tier = 1) {
   const qLeft = Math.max(1, 13 - (state.quarter || 1));
   /* Two things now decide which building to keep: the industry it sits in, because the
-     headquarters banks that industry's price in EP every quarter, and what stands around
-     it, because the district it ends up in scores at the end. Ground rent on somebody
-     else's land comes off the top. */
-  const worth = (b) => price(state.pm, bizInd(b)) * qLeft
+     headquarters banks that industry's price DIVIDED BY THE TILE'S TIER every quarter,
+     and what stands around it, because the district it ends up in scores at the end.
+     Ground rent on somebody else's land comes off the top.
+
+     The tier matters to this choice, not just to the total: on a tier 4 tile the brand
+     rounds to nothing in most industries, so which building to keep stops being a
+     question about price at all and becomes one about neighbours. */
+  const worth = (b) => brandEPFor(price(state.pm, bizInd(b)), tier) * qLeft
     + MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, b)
     - (hqGroundRent(state, p, b) * qLeft) / CASH_PER_EP;
   return have.reduce((a, b) => (worth(b) > worth(a) ? b : a));
@@ -2887,10 +2974,10 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
     const deal = shuffle(PERSONA_KEYS, rng);
     players.forEach((pl, i) => { pl.persona = deal[i % deal.length]; });
   }
-  /* Twice as many tiles as players. At (players + 1) only a third of seats ever formed
-     a Megacorp and the first one arrived in Quarter 7; at 2n it is half the seats and
-     Quarter 6.7, and being first to go public stops being a near-decisive edge. */
-  const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers * 2);
+  /* Two tiles from each tier that is in play - which still comes to twice the number
+     of players, so the count is what it was; it is the MIX that is now deliberate.
+     See MEGACORP_TIER above for why the hard tiers wait for a bigger table. */
+  const megacorpPool = drawMegacorpPool(nPlayers, rng);
   const state = {
     board, demand, pm, players, decks, variants: V, quarter: 1, solvencyEvents: 0, rngSeed: seedNum, rngCalls: 0,
     turnOrder: seats,                      // randomised seating
