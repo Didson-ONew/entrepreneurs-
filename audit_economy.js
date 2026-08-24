@@ -98,9 +98,9 @@ const newTally = () => ({
   cashSamples: [], peakSeat: 0, peakTable: 0,
   payments: [],
   personaWins: {}, personaPlays: {},
-  winnerEP: { industries: 0, companies: 0, megacorps: 0, ipo: 0, land: 0, cash: 0, loans: 0, other: 0 },
+  winnerEP: { industries: 0, companies: 0, megacorps: 0, ipo: 0, land: 0, rent: 0, cash: 0, loans: 0, other: 0 },
   winnerTotal: 0, winnerCompanies: 0, winnerPlots: 0, winnerDistricts: 0,
-  epByBucket: { industries: 0, companies: 0, megacorps: 0, ipo: 0, land: 0, cash: 0, loans: 0, other: 0 },
+  epByBucket: { industries: 0, companies: 0, megacorps: 0, ipo: 0, land: 0, rent: 0, cash: 0, loans: 0, other: 0 },
   seats: 0, loansTaken: 0, solvency: 0, hubsPlaced: 0,
   unitsHome: 0, unitsAway: 0, cashHome: 0, cashAway: 0, reachWhy: {}, reachCash: {}, awayByInd: {},
   rents: 0, rentsFractional: 0, rentSizes: {}, rentShapes: {},
@@ -278,6 +278,7 @@ function bucketOf(label) {
   if (l === "IPO tile") return "ipo";
   if (l === "The Real-Estate Mogul" || l === "The Omnipresent") return "land";
   if (l.startsWith("Cash on hand")) return "cash";
+  if (l.startsWith("Ground rent")) return "rent";
   if (l.startsWith("Unpaid loans")) return "loans";
   return "other";
 }

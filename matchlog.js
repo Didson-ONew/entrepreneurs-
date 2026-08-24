@@ -33,10 +33,11 @@ function epBucket(label) {
   if (l === "IPO tile") return "ipo";
   if (l === "The Real-Estate Mogul" || l === "The Omnipresent") return "land";
   if (l.startsWith("Cash on hand")) return "cash";
+  if (l.startsWith("Ground rent")) return "rent";
   if (l.startsWith("Unpaid loans")) return "loans";
   return "other";
 }
-const BUCKETS = ["industries", "companies", "megacorps", "ipo", "land", "cash", "loans", "other"];
+const BUCKETS = ["industries", "companies", "megacorps", "ipo", "land", "rent", "cash", "loans", "other"];
 
 /* ---------- building a record ---------- */
 

@@ -406,10 +406,13 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Megacorp HQ, at the end | +3 for each other company beside it |
 | The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone |
 | The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone |
+| Net ground rent collected | +1 per full $10, named separately from the rest of your cash |
 | Cash on hand at the end | +1 per full $10 |
 | Each loan disc still in the bank | -5 |
 
 For The Omnipresent, a district counts if you own a plot in it or one of your active companies stands in it.
+
+Ground rent scores at the same $10 rate as the rest of your money - it is not a separate income - but the final tally names it on its own line so you can see what your land actually earned. A plot with somebody else’s building on it pays you every quarter; that is the main thing land does once the table is large.
 
 Only the outright leader scores a land award, and a shared lead pays badly: 5 EP alone, 2 EP each if two players tie, 1 EP each if three or more do. Second place gets nothing.
 

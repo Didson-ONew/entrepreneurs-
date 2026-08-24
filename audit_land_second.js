@@ -159,6 +159,7 @@ function bucketOf(label) {
   const l = String(label || "");
   if (l === "The Real-Estate Mogul" || l === "The Omnipresent") return "land";
   if (l.startsWith("Cash on hand")) return "cash";
+  if (l.startsWith("Ground rent")) return "rent";
   if (l.startsWith("Company:")) return "companies";
   if (l.startsWith("Megacorp")) return "megacorp";
   if (l.startsWith("Entered ")) return "industries";
@@ -184,8 +185,8 @@ for (const sc of SCENARIOS) {
     const T = {
       games: 0, players: 0, winnerEP: 0, spread: 0, gapToSecond: 0,
       plots: 0, winnerPlots: 0, cash: 0, companies: 0,
-      ep: { land: 0, cash: 0, companies: 0, megacorp: 0, industries: 0, other: 0 },
-      winnerEp: { land: 0, cash: 0, companies: 0, megacorp: 0, industries: 0, other: 0 },
+      ep: { land: 0, rent: 0, cash: 0, companies: 0, megacorp: 0, industries: 0, other: 0 },
+      winnerEp: { land: 0, rent: 0, cash: 0, companies: 0, megacorp: 0, industries: 0, other: 0 },
       leaderHeld: 0, leaderGames: 0, landLeaderWon: 0, landGames: 0,
     };
     for (let seed = 1; seed <= SEEDS; seed++) {
@@ -258,7 +259,7 @@ for (const seats of SIZES) {
   row("  companies standing per seat", (T) => T.companies / Math.max(1, T.players), 2);
   console.log("");
   console.log("The winner's score, by source");
-  for (const k of ["companies", "land", "cash", "megacorp", "industries"]) {
+  for (const k of ["companies", "land", "rent", "cash", "megacorp", "industries"]) {
     console.log(pad(`  ${k}`, 38) + cols.map((T) =>
       rp(`${(100 * T.winnerEp[k] / Math.max(1, T.winnerEP)).toFixed(0)}%`, W)).join(""));
   }

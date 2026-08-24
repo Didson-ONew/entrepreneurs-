@@ -1046,7 +1046,15 @@ function humansNeedingRepay(state) {
   });
 }
 function newPlayer(id, name, isHuman, cash, hand, archetype) {
-  return { id, name, isHuman, cash, hand, archetype, persona: null, businesses: [], discsInBank: 0, epBank: 0, epLog: [], industriesScored: [] };
+  return { id, name, isHuman, cash, hand, archetype, persona: null, businesses: [], discsInBank: 0, epBank: 0, epLog: [], industriesScored: [],
+    /* The ground-rent ledger. Rent is the one way an unbuilt plot earns, and at a big
+       table it is most of what land does: at six seats half of every player's plots
+       carry somebody else's building. Without these three counters that income
+       disappears into the cash pile and the score reads as though land did nothing.
+       rentIn  - collected from other players' buildings standing on your land
+       rentOut - paid to other players for standing on theirs
+       rentSaved - rent you did NOT pay because you owned the ground yourself */
+    rentIn: 0, rentOut: 0, rentSaved: 0 };
 }
 const activeBiz = (p) => p.businesses.filter((b) => !b.distressed && !b.isHQ);
 /* A Megacorp headquarters stops trading - no Blueprint, so no production, no OPEX and
@@ -1518,7 +1526,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "c4a6c451";
+const ENGINE_VERSION = "429c0dbe";
 const DISCS_PER_PLAYER = 12;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Twelve discs, no more.
@@ -1584,6 +1592,8 @@ function payHqRent(state, p, log) {
       if (due <= 0) continue;
       p.cash -= due;
       owner.cash += due;
+      owner.rentIn = (owner.rentIn || 0) + due;
+      p.rentOut = (p.rentOut || 0) + due;
       if (log) log(`${p.name} pays $${due} ground rent on Megacorp "${hq.megacorpName}" to ${owner.name}.`, p.id);
     }
   }
@@ -1640,7 +1650,15 @@ function runProduction(state, log) {
       for (const plot of b.footprint) {
         const due = 3 * levelsOn(b, plot);
         const ownerId = board.owner[plot];
-        if (ownerId !== undefined) { const owner = players.find((pl) => pl.id === ownerId); if (owner) owner.cash += due; }
+        if (ownerId === undefined) continue;
+        const owner = players.find((pl) => pl.id === ownerId);
+        if (!owner) continue;
+        owner.cash += due;
+        /* Rent onto your own land is a wash - it left this player's hand a line above
+           and comes straight back - but it is exactly the saving that owning the ground
+           under your own building buys, so it is worth recording as its own thing. */
+        if (owner.id === p.id) p.rentSaved = (p.rentSaved || 0) + due;
+        else { owner.rentIn = (owner.rentIn || 0) + due; p.rentOut = (p.rentOut || 0) + due; }
       }
       /* Whatever survives rent flows into each supplier's industry pot, split in
          proportion to what this business owes them. Whole dollars only: each supplier
@@ -1914,8 +1932,19 @@ function finalizeGame(state) {
   }
   for (const p of state.players) {
     if (p.discsInBank) addEP(p, -5 * p.discsInBank, `Unpaid loans (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"})`, state.quarter);
+    /* Money is fungible, so splitting the cash pile is a convention rather than a fact.
+       The convention is: NET GROUND RENT IS NAMED FIRST, and whatever is left over is
+       trade. It is worth naming because rent is what land pays with once the table gets
+       big - at six seats it moves about $114 a seat over a game against $184 of terminal
+       cash - and folding it into "cash on hand" made the score read as though land had
+       stopped mattering when it had only stopped paying in awards. See audit_idle_land.js. */
     const cashEP = Math.floor(p.cash / 10);
-    if (cashEP) addEP(p, cashEP, `Cash on hand ($${Math.round(p.cash)})`, state.quarter);
+    if (cashEP) {
+      const netRent = (p.rentIn || 0) - (p.rentOut || 0);
+      const rentEP = netRent > 0 ? Math.min(cashEP, Math.floor(netRent / 10)) : 0;
+      if (rentEP) addEP(p, rentEP, `Ground rent (net $${Math.round(netRent)})`, state.quarter);
+      if (cashEP - rentEP) addEP(p, cashEP - rentEP, `Cash on hand ($${Math.round(p.cash)})`, state.quarter);
+    }
   }
 }
 
@@ -3495,6 +3524,30 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
   );
 }
 
+/* The ground-rent ledger, shown wherever a score is broken down. Rent never appears
+   as EP while the game is running - it arrives as cash and scores at the $10 line at
+   the end - so without this the biggest thing land does is invisible until the final
+   tally, and at a big table that is most of what land does at all. */
+function RentLine({ p }) {
+  const inn = p.rentIn || 0, out = p.rentOut || 0, saved = p.rentSaved || 0;
+  if (!inn && !out && !saved) return null;
+  const net = inn - out;
+  return (
+    <div className="mt-1.5 pt-1.5 text-[10px]" style={{ borderTop: "1px solid #262a33" }}>
+      <div className="flex items-center justify-between">
+        <span className="text-gray-500">Ground rent</span>
+        <span className="font-mono" style={{ color: net > 0 ? "#8fd3b6" : net < 0 ? "#fca5a5" : "#8b93a3" }}>
+          {net > 0 ? "+" : ""}${Math.round(net)}
+        </span>
+      </div>
+      <div className="text-[9px] text-gray-600 leading-tight">
+        ${Math.round(inn)} collected &middot; ${Math.round(out)} paid out
+        {saved ? <> &middot; ${Math.round(saved)} saved on your own land</> : null}
+      </div>
+    </div>
+  );
+}
+
 function EPBreakdown({ hover }) {
   if (!hover || !hover.p) return null;
   const p = hover.p;
@@ -3529,6 +3582,7 @@ function EPBreakdown({ hover }) {
               </div>
             ))}
           </div>
+          <RentLine p={p} />
         </>
       )}
     </div></Floating>
@@ -5607,6 +5661,7 @@ function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
                           </div>
                         ))}
                       </div>
+                      <RentLine p={p} />
                       {log.length > 0 && (
                         <div className="flex items-center justify-between mt-1.5 pt-1.5 text-[10px] font-mono" style={{ borderTop: "1px solid #262a33" }}>
                           <span className="text-gray-500">

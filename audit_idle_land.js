@@ -64,16 +64,26 @@
      which moves $9.5 per seat per quarter at six seats against $5.3 at two -
      about $114 over a game, against $184 of terminal cash.
 
-   So land's share of a winning score did not fall from 21% to 9% because land
-   stopped mattering. It fell because land stopped paying in AWARDS and started
-   paying in RENT, and rent arrives as cash, where it scores at the $10 floor and
-   gets counted in the "cash" bucket. Land is roughly as valuable at six seats as
-   at two; the audit page was just reading it under a different name.
+   Part of land's fall from 21% to 9% is therefore a MEASUREMENT artefact: rent
+   arrives as cash, scores at the $10 floor, and used to be counted in the "cash"
+   bucket, so the audit page was reading some of land's work under another name.
 
-   That also explains the cash pile without any of the theories that were tried
-   on it. It is not hoarding, it is not a failed land race, and audit_liquidation
-   already ruled out fire-sales. It is largely rent income sitting where rent
-   income ends up.
+   BUT ONLY PART OF IT, and an earlier draft of this note overstated the case by
+   claiming land was worth about as much at six seats as at two. It is not. Once
+   net ground rent is split into its own bucket (done - see finalizeGame) the
+   winner's score reads:
+
+     two seats    land 22% + rent 5% = 27%
+     six seats    land  9% + rent 5% = 14%
+
+   Rent is worth about 5% of a winning score at EVERY table size. Gross rent does
+   move far more at six seats - $9.5 a seat a quarter against $5.3 - but the
+   winner is paying rent as well as collecting it, and the NET is flat. So land
+   really does contribute roughly half as much at six seats as at two. The rent
+   split narrows the gap from 22-vs-9 to 27-vs-14; it does not close it.
+
+   The cash pile shrinks correspondingly, 31% to 26% at six seats, and what
+   remains of it is genuine trade surplus rather than disguised rent.
 
    Run: node audit_idle_land.js [seeds]
    ========================================================================== */

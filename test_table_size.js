@@ -30,7 +30,7 @@ function loadEngine() {
       advanceDraft, startPlanning, advancePlanning, finishQuarterAfterRepay,
       workingTrackSlots, makeTracks, endgameRushers, MEGACORPS_TO_END,
       drawMegacorpPool, MEGACORP_TIER, MEGACORP_TILES, PLAYER_COLORS, STARTING,
-      DISCS_PER_PLAYER, workersPerPlayer };
+      DISCS_PER_PLAYER, workersPerPlayer, finalizeGame };
   `, sandbox);
   return box.exports;
 }
@@ -190,6 +190,65 @@ for (const n of SIZES) {
   }
   check(`${n} players: 12 games all reach gameover`, done === 12 && !err,
     err ? String(err.message) : `${done}/12, avg last quarter ${(quarters / Math.max(1, done)).toFixed(1)}, ${early} ended early`);
+}
+
+/* ----------------------------------------------------------- rent ledger */
+section("Ground rent is tracked, and named on its own line at the end");
+for (const n of [2, 4, 6]) {
+  const st = E.initGame(n - 1, 909 + n, ["Seat 1"], undefined, true, undefined);
+  st.players[0].isHuman = false;
+  if (st.phase === "drafting") { E.advanceDraft(st, quiet); E.startPlanning(st); }
+  E.advancePlanning(st, E.mulberry32(909 + n + 777), quiet);
+  if (st.phase !== "gameover") { check(`${n} players: game finished`, false); continue; }
+
+  const inn = st.players.reduce((s2, p) => s2 + (p.rentIn || 0), 0);
+  const out = st.players.reduce((s2, p) => s2 + (p.rentOut || 0), 0);
+  check(`${n} players: rent actually changed hands`, inn > 0, `$${inn} collected`);
+  /* every dollar collected came out of somebody's pocket - rent is a transfer,
+     never a faucet, so the two sides must agree exactly */
+  check(`${n} players: rent collected equals rent paid`, inn === out, `in $${inn} vs out $${out}`);
+  check(`${n} players: nobody has negative rent`,
+    st.players.every((p) => (p.rentIn || 0) >= 0 && (p.rentOut || 0) >= 0 && (p.rentSaved || 0) >= 0));
+
+  /* the final tally must name rent separately, and the two cash lines together
+     must still come to exactly floor(cash / 10) - the split renames, never adds */
+  for (const p of st.players) {
+    const rentEP = (p.epLog || []).filter((e) => /^Ground rent/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
+    const cashEP = (p.epLog || []).filter((e) => /^Cash on hand/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
+    const want = Math.floor(p.cash / 10);
+    if (want <= 0) continue;
+    check(`${n}p ${p.name}: rent + cash lines equal the cash EP`, rentEP + cashEP === want,
+      `${rentEP} + ${cashEP} vs ${want}`);
+    const net = (p.rentIn || 0) - (p.rentOut || 0);
+    check(`${n}p ${p.name}: the rent line never exceeds net rent earned`,
+      rentEP <= Math.max(0, Math.floor(net / 10)), `line ${rentEP}, net $${net}`);
+  }
+}
+
+section("A landlord paying no rent still banks what it collects");
+{
+  const st = E.initGame(3, 55, ["You"], undefined, false, undefined);
+  const p = st.players[0];
+  p.rentIn = 90; p.rentOut = 0; p.cash = 100;
+  st.quarter = 12;
+  E.finalizeGame(st);
+  const rentEP = (p.epLog || []).filter((e) => /^Ground rent/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
+  const cashEP = (p.epLog || []).filter((e) => /^Cash on hand/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
+  check("$90 net rent of $100 cash reads as 9 EP rent", rentEP === 9, `got ${rentEP}`);
+  check("and 1 EP of ordinary cash", cashEP === 1, `got ${cashEP}`);
+}
+
+section("A tenant who paid more rent than it collected shows no rent line");
+{
+  const st = E.initGame(3, 56, ["You"], undefined, false, undefined);
+  const p = st.players[0];
+  p.rentIn = 10; p.rentOut = 80; p.cash = 100;
+  st.quarter = 12;
+  E.finalizeGame(st);
+  const rentEP = (p.epLog || []).filter((e) => /^Ground rent/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
+  const cashEP = (p.epLog || []).filter((e) => /^Cash on hand/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
+  check("net rent is negative, so no rent line is claimed", rentEP === 0, `got ${rentEP}`);
+  check("the whole $100 reads as ordinary cash", cashEP === 10, `got ${cashEP}`);
 }
 
 console.log(fails ? `\n${fails} FAILED\n` : "\nall good\n");

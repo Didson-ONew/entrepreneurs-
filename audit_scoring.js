@@ -96,10 +96,11 @@ function bucketOf(label) {
   if (l.startsWith("Megacorp:")) return "megacorp tiles";
   if (l === "The Real-Estate Mogul" || l === "The Omnipresent") return "land";
   if (l.startsWith("Cash on hand")) return "cash";
+  if (l.startsWith("Ground rent")) return "rent";
   if (l.startsWith("Unpaid loans")) return "loans";
   return "other";
 }
-const BUCKETS = ["companies", "cash", "industries", "land", "megacorp tiles", "hq brand", "hq district", "loans", "other"];
+const BUCKETS = ["companies", "rent", "cash", "industries", "land", "megacorp tiles", "hq brand", "hq district", "loans", "other"];
 
 const pad = (s, n) => String(s).padEnd(n);
 const rp = (s, n) => String(s).padStart(n);
