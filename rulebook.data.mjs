@@ -25,7 +25,7 @@
      { note }   designer's note - PLAYERS NEVER SEE THIS
    ========================================================================== */
 
-export const EDITION = "Rulebook v13";
+export const EDITION = "Rulebook v15";
 
 /* Filter the book down to one edition. `edition` is "digital" (the app, which has a
    host, bots and a waiting room) or "table" (a physical game, which has none of them).
@@ -63,13 +63,15 @@ export const RULEBOOK = [
   blocks: [
     { p: "The board is built fresh every game: the four central districts are one each of Financial Centre, Industrial Area, Civic Centre and Landmark, shuffled between the four middle cells, and twelve of the sixteen suburb districts are drawn at random for the ring around them. No two games have the same map." },
     { h: "Seats, capital and starting hand" },
-    { p: "Seating is randomised - you are not automatically first. Your starting money and number of Blueprints follow the seat you drew, not the player you are: later seats get less money but more cards." },
+    { p: "Seating is randomised - you are not automatically first. Your starting money and number of Blueprints follow the seat you drew, not the player you are: later seats get less money but more cards. The table reads as money / Blueprints." },
     { table: {
-      head: ["Players", "Seat 1", "Seat 2", "Seat 3", "Seat 4"],
+      head: ["Players", "Seat 1", "Seat 2", "Seat 3", "Seat 4", "Seat 5", "Seat 6"],
       rows: [
-        ["4", "$25 / 1 card", "$25 / 2 cards", "$20 / 2 cards", "$20 / 3 cards"],
-        ["3", "$25 / 1 card", "$25 / 2 cards", "$20 / 3 cards", "-"],
-        ["2", "$20 / 2 cards", "$20 / 2 cards", "-", "-"],
+        ["6", "$25 / 1", "$25 / 2", "$20 / 2", "$20 / 3", "$20 / 3", "$15 / 4"],
+        ["5", "$25 / 1", "$25 / 2", "$20 / 2", "$20 / 3", "$15 / 4", "-"],
+        ["4", "$25 / 1", "$25 / 2", "$20 / 2", "$20 / 3", "-", "-"],
+        ["3", "$25 / 1", "$25 / 2", "$20 / 3", "-", "-", "-"],
+        ["2", "$20 / 2", "$20 / 2", "-", "-", "-", "-"],
       ],
     } },
     { h: "The draft" },

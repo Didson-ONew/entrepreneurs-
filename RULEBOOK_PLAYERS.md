@@ -1,6 +1,6 @@
 # Entrepreneurs - How to play
 
-*Rulebook v13. Everything you need to play, and nothing you don't.*
+*Rulebook v15. Everything you need to play, and nothing you don't.*
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
@@ -47,13 +47,15 @@ The board is built fresh every game: the four central districts are one each of 
 
 ### Seats, capital and starting hand
 
-Seating is randomised - you are not automatically first. Your starting money and number of Blueprints follow the seat you drew, not the player you are: later seats get less money but more cards.
+Seating is randomised - you are not automatically first. Your starting money and number of Blueprints follow the seat you drew, not the player you are: later seats get less money but more cards. The table reads as money / Blueprints.
 
-| Players | Seat 1 | Seat 2 | Seat 3 | Seat 4 |
-| --- | --- | --- | --- | --- |
-| 4 | $25 / 1 card | $25 / 2 cards | $20 / 2 cards | $20 / 3 cards |
-| 3 | $25 / 1 card | $25 / 2 cards | $20 / 3 cards | - |
-| 2 | $20 / 2 cards | $20 / 2 cards | - | - |
+| Players | Seat 1 | Seat 2 | Seat 3 | Seat 4 | Seat 5 | Seat 6 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 6 | $25 / 1 | $25 / 2 | $20 / 2 | $20 / 3 | $20 / 3 | $15 / 4 |
+| 5 | $25 / 1 | $25 / 2 | $20 / 2 | $20 / 3 | $15 / 4 | - |
+| 4 | $25 / 1 | $25 / 2 | $20 / 2 | $20 / 3 | - | - |
+| 3 | $25 / 1 | $25 / 2 | $20 / 3 | - | - | - |
+| 2 | $20 / 2 | $20 / 2 | - | - | - | - |
 
 ### The draft
 
