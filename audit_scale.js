@@ -64,34 +64,40 @@
    it reports that count alongside what it comes to at several seconds each.
 
    WHAT IT FOUND
+   (Numbers re-measured over 300 games a case against the shipped six-seat rules.
+   The pre-fix figures are kept where they are the point being made.)
 
-   1. SIX PLAYERS WORKS, once STARTING has a row for it. The winning score rises
-      from 92 to 104 and the winner's lead over last from 46.7 to 56.0, which is
-      the ordinary cost of more people rather than a broken game. SHIPPED.
+   1. SIX PLAYERS WORKS. The winning score rises from 90 at four seats to 101 at
+      six, and the winner's lead over last from 45.2 to 58.4 - the ordinary cost
+      of more people rather than a broken game. SHIPPED.
 
-   2. THE WORKER BOARD IS THE REAL CONSTRAINT, and it is smaller than it looks.
-      At six players 7% of placements had only one track left open - no decision
-      at all - against 0% at four, and the average number of tracks to choose
-      between fell from 3.23 to 2.86. Six slots a track instead of four took it
-      straight back to 0% and 3.29. One line, and it is the line that decided
-      whether a sixth seat was playing or queueing. SHIPPED, as one extra slot per
-      player above four rather than a flat six, so nothing changes below five
-      seats.
+   2. THE WORKER BOARD WAS THE REAL CONSTRAINT, and it was smaller than it looked.
+      Before the fix, 7% of placements at six players had only one track left open
+      - no decision at all - against 0% at four, and the average number of tracks
+      to choose between fell from 3.23 to 2.86. SHIPPED as one extra slot per
+      player above four, and it measures out: 0% forced placements at six seats
+      now, with 3.26 tracks open when placing against 3.22 at four. A sixth seat
+      chooses from as much as a fourth does, and nothing below five seats moved.
 
-   3. NOTHING ELSE RUNS OUT. Six players use 49% of the demand board against 38%
-      at four, and leave 27 of the 64 plots unowned. The board is big enough.
+   3. NOTHING ELSE RUNS OUT. Six players use 49% of the demand board against 36%
+      at four, and still leave 28 of the 64 plots unowned. The board is big enough
+      - which is also why land falls from 13% of a winning score at four seats to
+      8% at six: it stops being scarce enough to fight over.
 
-   4. A FOURTH YEAR IS ARITHMETIC, NOT DESIGN. It runs, and it inflates: 136 EP
-      to win at four players against 92, with the lead over last going 46.7 to
-      63.5. Everything scales with it because everything in the scoring is
-      per-quarter. The one thing that needs a decision rather than a constant is
-      the demand board, which is only refreshed once, at Q8 - a fourth year needs
-      a second refresh or it is played out on a board with nothing left on it.
+   4. A FOURTH YEAR IS ARITHMETIC, NOT DESIGN. It runs, and it inflates: 117 EP to
+      win at four players against 90, and 130 at six against 101, with the lead
+      over last going 45.2 to 57.8. Everything scales with it because everything
+      in the scoring is per-quarter. The one thing that needs a decision rather
+      than a constant is the demand board, which is only refreshed once, at Q8 - a
+      fourth year needs a second refresh or it is played out on a board with
+      nothing left on it. NOT IMPLEMENTED; the game plays three years.
 
-   5. TWO THIRDS OF EVERY GAME IS THE DELIVERY PHASE. 42.8 of a player's 64.9
-      decisions are single delivery clicks. If a table ever complains the game is
-      long, that is where the time is - and most of those clicks are obvious ones
-      the player would happily hand to a "sell the rest for me" button.
+   5. TWO THIRDS OF EVERY GAME IS THE DELIVERY PHASE. At six seats, 38.0 of a
+      player's 59.2 decisions are single delivery clicks. If a table ever
+      complains the game is long, that is where the time is - and most of those
+      clicks are obvious ones the player would happily hand to a "sell the rest
+      for me" button. A six-seat table faces 355 decisions in all against 253 at
+      four, which at ten seconds each is an hour rather than forty minutes.
 
    Run: node audit_scale.js [seeds]
    ========================================================================== */

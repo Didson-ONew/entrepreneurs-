@@ -33,6 +33,56 @@
 
    Nothing is patched here. This measures the rules as they stand.
 
+   WHAT IT FOUND, over 400 games a table size
+
+   1. EVERY TABLE SIZE PLAYS. Nothing throws, nothing runs out, and the winning
+      score climbs gently with the crowd: 87 at two seats, 82 at three, 90 at
+      four, 96 at five, 101 at six. The winner's lead over LAST grows faster than
+      the lead over SECOND (26 to 59 against 26 to 16), which is what a bigger
+      table should look like - the race at the front stays close and the tail
+      gets longer.
+
+   2. THE BIG TABLE IS A CASH GAME, NOT A LAND GAME. Land falls from 21% of a
+      winning score at two seats to 8% at six, and cash rises from 23% to 28%.
+      The board does not grow, but neither does the fight over it: seats own
+      about six plots each at every size from three players up, so land stops
+      being contested and starts being a formality. If any table size wants a
+      second look, it is six - not because it breaks, but because one of the
+      game's five scoring routes has quietly gone quiet.
+
+   3. THE MEGACORP TIERS DO WHAT THEY WERE ADDED FOR. Tier 4 is claimed 59% of
+      the time at two seats and 43% at six, and tier 1 is claimed at all only
+      from four seats up - which is exactly the gradient the draw rule promises.
+      Megacorps a game rise from 1.32 to 3.68 across the range and the first one
+      arrives earlier as the table grows (Q6.9 down to Q5.4), because more people
+      chasing the same eight tiles means hurrying.
+
+   4. TURN ORDER IS NOT WORTH MUCH. No seat is more than about four points off
+      the chance line at any table size, and the spread narrows as the table
+      grows. Reverse-order drafting and the FILO tracks are between them doing
+      their job.
+
+   5. RUSH-CHEAP IS THE BEST WAY TO PLAY, and it is the only archetype that
+      clears the noise: +7.3 points at three seats and +5.7 at four. BALANCED IS
+      THE WORST - it is below chance at every size and -5.5 at five seats, which
+      is outside the noise. The reading is that buying cheap Blueprints early and
+      often beats taking whatever scores best right now, and that having no bias
+      at all is itself a losing bias. At six seats everything collapses toward
+      chance (nothing over ±1.9), because five ways of playing across six seats
+      means most of the table is running the same plan as somebody else.
+
+   6. PERSONAS BARELY MOVE THE GAME. On against off, the winning score differs by
+      1-3 EP at every table size and the spread by less than 2. They are flavour
+      and a small nudge, not a balance lever - which is the right answer for a
+      switch that is on by default. Per persona, only Supply Chain Expert at five
+      seats clears the noise (+5.0). Systems Architect leans positive at four of
+      the five sizes without ever clearing it.
+
+   7. THE SECOND-MEGACORP DEADLINE FIRES IN ABOUT ONE GAME IN SEVEN at every
+      table size, and almost always in Q9 to Q11. See audit_deadline.js for who
+      pulls it and whether pulling it pays - that question turned out to matter
+      more than how often it happens.
+
    Run: node audit_tables.js [seeds]
    ========================================================================== */
 const fs = require("fs");

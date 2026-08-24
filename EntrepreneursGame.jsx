@@ -1518,7 +1518,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "4d3705c8";
+const ENGINE_VERSION = "8475c1b7";
 const DISCS_PER_PLAYER = 12;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Twelve discs, no more.
@@ -2202,7 +2202,14 @@ function megacorpWorthIt(state, p, match) {
      the headquarters keeps drawing its industry's pot, and the district that grows around
      it scores at the end - so the company with the most neighbours already standing is
      the one to keep. */
-  const qLeft = Math.max(1, 13 - (state.quarter || 1));
+  /* How many more quarters this headquarters will actually stand. Normally that is
+     whatever is left of the three years - but if this merger is the player's SECOND
+     Megacorp it ends the game at the close of this very quarter, so everything paid
+     per quarter is paid exactly once. Counting the full remainder would have the bot
+     value its second tile on brand dividends for quarters that will never be played,
+     which is a bad trade dressed up as a good one. */
+  const ends = megacorpHQs(p).length + 1 >= MEGACORPS_TO_END;
+  const qLeft = ends ? 1 : Math.max(1, 13 - (state.quarter || 1));
   const hq = pickHQ(state, p, match.have, tierOfTile(match.tile));
   let lostPerQuarter = 0;
   for (const b of match.have) {
