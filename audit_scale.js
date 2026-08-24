@@ -1,30 +1,50 @@
 /* ============================================================================
    Six players, and a fourth year. What breaks, what it costs, how long it runs.
 
-   Both are asked as "could we?", and both have two separate answers: whether
-   the code allows it, and whether the game survives it. This measures both.
+   Both were asked as "could we?", and both have two separate answers: whether
+   the code allows it, and whether the game survives it.
 
-   WHAT STOPS A SIX-PLAYER GAME TODAY
+   THE SIX-PLAYER HALF HAS SINCE BEEN IMPLEMENTED. The table seats two to six,
+   and audit_tables.js is where those games are now measured. What is left here
+   is the record of what stood in the way, and the fourth-year question, which
+   has not been implemented and is still only a measurement.
 
-     STARTING has rows for 2, 3 and 4 seats and nothing else, so initGame throws
-     on the sixth player before a card is dealt. That is the hard stop.
+   WHAT USED TO STOP A SIX-PLAYER GAME - AND WHAT WAS DONE ABOUT IT
 
-     The action tracks do not scale. There are 14 worker slots on the board -
+     This section is kept as a record. Everything in it was true when this probe
+     was written, and the first four items have since been fixed; the game seats
+     two to six. audit_tables.js measures how the table actually plays at each
+     size. What follows is what the obstacles were, and what each one became.
+
+     STARTING had rows for 2, 3 and 4 seats and nothing else, so initGame threw
+     on the fifth player before a card was dealt. That was the hard stop.
+     FIXED: rows for 5 and 6 continue the same reverse-order slope.
+
+     The action tracks did not scale. There were 14 worker slots on the board -
      four each on Raise Capital, M&A and R&D, two on Board Meeting, one of which
      is sealed until somebody goes public. Every player places two workers. Four
-     players fill 8 of 13; six players fill 12 of 13, so the last player to place
-     has no choice at all. This is the constraint that decides whether six is a
-     game or a queue.
+     players fill 8 of 13; six players filled 12 of 13, so the last player to
+     place had no choice at all. This was the constraint that decided whether six
+     was a game or a queue, and it measured 7% forced placements.
+     FIXED: one extra slot on each working track per player above four - 17 slots
+     at five seats, 20 at six. Board Meeting was left at two on purpose.
 
      64 plots on the board against 12 discs a player. Six players could commit
-     72 discs to land alone.
+     72 discs to land alone. MEASURED, NOT FIXED: nobody gets near it. Six-seat
+     games end with about 6 plots a seat and 27 plots never bought, and land
+     falls from 15% of a winning score at four seats to 9% at six precisely
+     because the board stops being scarce enough to fight over.
 
-     The Megacorp pool draws two tiles per tier - eight at four players, which is
+     The Megacorp pool drew two tiles per tier - eight at four players, which is
      the 2n the rules promise. At six it would still be eight, not twelve.
+     UNCHANGED, DELIBERATELY: there are only sixteen tiles and four tiers, so
+     eight is every tier twice. A bigger table competes over the same box.
 
-     The lobby caps a room at three bots, and there are four player colours and
-     six personas. Those are cosmetic or nearly so, and are listed so nobody has
-     to rediscover them.
+     The lobby capped a room at three bots, and there were four player colours
+     and six personas. FIXED: the room seats six in any mix, and there are six
+     colours. Six personas for six seats means nobody now sits out - which is
+     itself visible in the numbers, and is why the persona win rates at six
+     players sit closer together than at any smaller table.
 
    WHAT STOPS A FOURTH YEAR
 
@@ -47,14 +67,16 @@
 
    1. SIX PLAYERS WORKS, once STARTING has a row for it. The winning score rises
       from 92 to 104 and the winner's lead over last from 46.7 to 56.0, which is
-      the ordinary cost of more people rather than a broken game.
+      the ordinary cost of more people rather than a broken game. SHIPPED.
 
    2. THE WORKER BOARD IS THE REAL CONSTRAINT, and it is smaller than it looks.
-      At six players 7% of placements have only one track left open - no decision
+      At six players 7% of placements had only one track left open - no decision
       at all - against 0% at four, and the average number of tracks to choose
-      between falls from 3.23 to 2.86. Six slots a track instead of four takes it
-      straight back to 0% and 3.29. One line, and it is the line that decides
-      whether a sixth seat is playing or queueing.
+      between fell from 3.23 to 2.86. Six slots a track instead of four took it
+      straight back to 0% and 3.29. One line, and it is the line that decided
+      whether a sixth seat was playing or queueing. SHIPPED, as one extra slot per
+      player above four rather than a flat six, so nothing changes below five
+      seats.
 
    3. NOTHING ELSE RUNS OUT. Six players use 49% of the demand board against 38%
       at four, and leave 27 of the 64 plots unowned. The board is big enough.
@@ -83,11 +105,12 @@ const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8
 const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
 const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
 
+/* The engine seats two to six on its own now, so nothing here patches the table size
+   any more - `seats` goes straight to initGame, and STARTING, the tracks and the tile
+   draw are whatever the shipped rules say. What is still patched is the fourth year,
+   which the game does not play. */
 const N = {
-  starting: "const STARTING = { 4: [[25, 1], [25, 2], [20, 2], [20, 3]], 3: [[25, 1], [25, 2], [20, 3]], 2: [[20, 2], [20, 2]] };",
-  tracks: "  return { raise_capital: [null, null, null, null], ma: [null, null, null, null], rd: [null, null, null, null], board_meeting: [null, null] };",
-  pool: "    out.push(...shuffle(MEGACORP_TILES.slice(from, from + MEGACORP_PER_TIER), rng).slice(0, 2));",
-  over: "  if (state.quarter >= 12) {",
+  over: "  if (state.quarter >= 12 || rushers.length) {",
   yearEndsClosing: "  if ([4, 8, 12].includes(quarter)) {",
   yearEndsRepay: "  if ([4, 8, 12].includes(state.quarter)) {",
   landPayouts: "  return [4, 8, 12].filter((q) => q >= state.quarter).length || 1;",
@@ -102,36 +125,16 @@ for (const [k, v] of Object.entries(N)) {
   if (!BASE.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
 }
 
-/* Seats 5 and 6 continue the pattern the table already sets: later seats trade
-   money for cards. */
-const STARTING_WIDE = "const STARTING = { 6: [[25, 1], [25, 2], [20, 2], [20, 3], [20, 3], [15, 4]], "
-  + "5: [[25, 1], [25, 2], [20, 2], [20, 3], [15, 4]], "
-  + "4: [[25, 1], [25, 2], [20, 2], [20, 3]], 3: [[25, 1], [25, 2], [20, 3]], 2: [[20, 2], [20, 2]] };";
-
-function engineFor({ seats = 4, quarters = 12, wideTracks = false } = {}) {
+function engineFor({ quarters = 12 } = {}) {
   let logic = BASE;
   const last = quarters;
 
-  if (seats > 4) {
-    logic = logic.replace(N.starting, STARTING_WIDE);
-    /* Keep the promise of twice as many tiles as players: three per tier at five
-       and six seats rather than two. */
-    logic = logic.replace(N.pool,
-      "    const per = Math.max(2, Math.round((nPlayers * 2) / MEGACORP_TIERS));\n"
-      + "    out.push(...shuffle(MEGACORP_TILES.slice(from, from + MEGACORP_PER_TIER), rng).slice(0, per));");
-  }
-  if (wideTracks) {
-    /* Six slots a track instead of four, so twelve workers still have somewhere
-       to choose between. */
-    logic = logic.replace(N.tracks,
-      "  return { raise_capital: [null, null, null, null, null, null], ma: [null, null, null, null, null, null], "
-      + "rd: [null, null, null, null, null, null], board_meeting: [null, null] };");
-  }
   if (quarters !== 12) {
     const ends = [];
     for (let q = 4; q <= last; q += 4) ends.push(q);
     const endsSrc = `[${ends.join(", ")}]`;
-    logic = logic.replace(N.over, `  if (state.quarter >= ${last}) {`);
+    /* keep the second-Megacorp deadline; only the year count moves */
+    logic = logic.replace(N.over, `  if (state.quarter >= ${last} || rushers.length) {`);
     logic = logic.replace(N.yearEndsClosing, `  if (${endsSrc}.includes(quarter)) {`);
     logic = logic.replace(N.yearEndsRepay, `  if (${endsSrc}.includes(state.quarter)) {`);
     logic = logic.replace(N.landPayouts, `  return ${endsSrc}.filter((q) => q >= state.quarter).length || 1;`);
@@ -225,28 +228,31 @@ console.log("Entrepreneurs - six players, and a fourth year\n");
 
 console.log("Does it run at all, as the code stands?");
 {
-  const bare = engineFor({ seats: 6 });
-  let msg = "started";
-  try { bare.E.initGame(5, 1, ["Seat 1"], undefined, true, undefined); }
-  catch (e) { msg = `THREW: ${e.message}`; }
-  /* engineFor already widens STARTING, so ask the unpatched engine directly. */
   const box = {}; const sb = { console, Math, Set, Object, Array, JSON, box, __tick: () => {} };
   vm.createContext(sb);
-  vm.runInContext(BASE + "box.exports = { initGame };", sb);
-  let raw = "started";
-  try { box.exports.initGame(5, 1, ["Seat 1"], undefined, true, undefined); }
-  catch (e) { raw = `THREW: ${e.message}`; }
-  console.log(`  6 players, engine as it ships   ${raw}`);
-  console.log(`  6 players, STARTING widened     ${msg}`);
-  console.log("  The stop is STARTING - it has rows for 2, 3 and 4 seats and nothing else.\n");
+  vm.runInContext(BASE + "box.exports = { initGame, workingTrackSlots };", sb);
+  for (const seats of [2, 4, 5, 6]) {
+    let how = "started";
+    try {
+      const st = box.exports.initGame(seats - 1, 1, ["Seat 1"], undefined, true, undefined);
+      const t = st.tracks;
+      how = `started - ${t.raise_capital.length} slots a working track, `
+        + `${t.raise_capital.length * 3 + 2} in all, ${st.megacorpPool.length} Megacorp tiles`;
+    } catch (e) { how = `THREW: ${e.message}`; }
+    console.log(`  ${seats} players, engine as it ships   ${how}`);
+  }
+  console.log("  Six seats used to throw on STARTING. It no longer does; see audit_tables.js\n"
+    + "  for how those games actually play.\n");
 }
 
+/* Six seats no longer need patching, so the only dial left is the year count.
+   Both table sizes are kept in the table because the fourth year inflates the
+   score differently at each. */
 const CASES = [
   { label: "4 players, 3 years", seats: 4, quarters: 12 },
   { label: "6 players, 3 years", seats: 6, quarters: 12 },
-  { label: "6 players, wide tracks", seats: 6, quarters: 12, wideTracks: true },
   { label: "4 players, 4 years", seats: 4, quarters: 16 },
-  { label: "6 players, 4 years", seats: 6, quarters: 16, wideTracks: true },
+  { label: "6 players, 4 years", seats: 6, quarters: 16 },
 ];
 const runs = CASES.map(run);
 
