@@ -302,7 +302,7 @@ function Lobby({ onEnter }) {
     <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
       <div className="rounded-xl p-6" style={{ ...box, width: "100%", maxWidth: 420 }}>
         <h1 className="text-2xl font-bold text-white tracking-tight mb-1">ENTREPRENEURS</h1>
-        <p className="text-sm text-gray-400 mb-5">Play online with friends &mdash; 2 to 4 players.</p>
+        <p className="text-sm text-gray-400 mb-5">Play online with friends &mdash; 2 to 6 players.</p>
 
         <AccountPanel account={account} setAccount={(u) => { setAccount(u); if (!u) setNick(null); }}
           onName={(n) => { setName(n); setReturning(false); }} />
@@ -341,11 +341,11 @@ function Lobby({ onEnter }) {
 
         <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#101318" }}>
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Start a new game</div>
-          <div className="text-[11px] text-gray-500 mb-2">Bots fill any empty seats.</div>
-          <div className="flex gap-1.5 mb-3">
-            {[0, 1, 2, 3].map((b) => (
+          <div className="text-[11px] text-gray-500 mb-2">Six chairs in all. Bots fill any empty seats.</div>
+          <div className="flex gap-1 mb-3">
+            {[0, 1, 2, 3, 4, 5].map((b) => (
               <button key={b} onClick={() => setBots(b)}
-                className="flex-1 text-xs font-semibold px-2 py-1.5 rounded"
+                className="flex-1 text-[11px] font-semibold px-1 py-1.5 rounded whitespace-nowrap"
                 style={{ backgroundColor: bots === b ? "#2c5f4f" : "#1c1f26", color: bots === b ? "#d3fcec" : "#9ca3af", border: "none", cursor: "pointer" }}>
                 {b} bot{b === 1 ? "" : "s"}
               </button>
@@ -414,6 +414,10 @@ function WaitingRoom({ me, lobby, onLeave }) {
     const r = await api("/api/kick", { code: me.code, token: me.token, seat });
     if (r.body && r.body.error) setErr(r.body.error);
   };
+  const setBots = async (n) => {
+    const r = await api("/api/options", { code: me.code, token: me.token, bots: n });
+    if (r.body && r.body.error) setErr(r.body.error);
+  };
   const total = (lobby ? lobby.members.length : 1) + (lobby ? lobby.bots : 0);
   const start = async () => {
     const r = await api("/api/start", { code: me.code, token: me.token });
@@ -447,8 +451,23 @@ function WaitingRoom({ me, lobby, onLeave }) {
           {lobby && Array.from({ length: lobby.bots }).map((_, i) => (
             <div key={`b${i}`} className="flex items-center justify-between text-sm rounded p-2" style={{ backgroundColor: "#141720" }}>
               <span className="text-gray-500 italic">Bot</span>
+              {me.host && i === lobby.bots - 1 ? (
+                <button onClick={() => setBots(lobby.bots - 1)} title="Remove this bot"
+                  className="text-[10px]" style={{ background: "none", border: "none", color: "#8b93a3", textDecoration: "underline", cursor: "pointer" }}>
+                  remove
+                </button>
+              ) : null}
             </div>
           ))}
+          {/* A host who filled the table with bots has to be able to empty a chair
+              again, or a friend arriving late can only ever watch. */}
+          {me.host && lobby && lobby.members.length + lobby.bots < 6 && (
+            <button onClick={() => setBots(lobby.bots + 1)}
+              className="w-full text-left text-sm rounded p-2"
+              style={{ backgroundColor: "#141720", border: "1px dashed #2c3340", color: "#6b7280", cursor: "pointer" }}>
+              + add a bot
+            </button>
+          )}
         </div>
 
         <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Table rules</div>
@@ -489,8 +508,10 @@ function WaitingRoom({ me, lobby, onLeave }) {
         <div className="mb-3" />
         {me.host ? (
           <>
-            <button onClick={start} disabled={total < 2} style={{ ...btn("#2c5f4f", "#d3fcec"), opacity: total < 2 ? 0.35 : 1 }}>
-              {total < 2 ? "Need at least 2 players" : `Start game (${total} players)`}
+            <button onClick={start} disabled={total < 2 || total > 6} style={{ ...btn("#2c5f4f", "#d3fcec"), opacity: total < 2 || total > 6 ? 0.35 : 1 }}>
+              {total < 2 ? "Need at least 2 players"
+                : total > 6 ? "A table seats 6 \u2014 remove someone"
+                  : `Start game (${total} players)`}
             </button>
             <p className="text-[10px] text-gray-600 mt-2">You can start as soon as everyone has joined.</p>
           </>
@@ -571,9 +592,12 @@ const store = {
    Chat rides on the state payload the client already receives, so it needs no
    transport of its own.
 
-   Voice is a small WebRTC mesh: with at most four players that is six connections,
-   which browsers handle comfortably. The server only relays the handshake; the audio
-   itself flows directly between players and never touches the host. */
+   Voice is a small WebRTC mesh: every talker holds a connection to every other, so
+   a four-seat table is six connections and a full six-seat one is fifteen. That is
+   still well inside what a browser handles, but it grows as the square of the table
+   and it is the reason the seat count is capped rather than left open. The server
+   only relays the handshake; the audio itself flows directly between players and
+   never touches the host. */
 
 const STUN = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:global.stun.twilio.com:3478" }];
 

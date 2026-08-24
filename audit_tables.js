@@ -1,12 +1,19 @@
 /* ============================================================================
-   The game at two, three and four seats - and which way of playing wins.
+   The game from two seats to six - and which way of playing wins.
 
-   Two questions in one probe, because they want the same games.
+   Three questions in one probe, because they want the same games.
 
    ONE. Does the game hold up at every table size? Most of the balance work has
    been measured at four seats, and the Megacorp tiers are the first rule whose
    text changes with the player count: tier 2 only joins at three players and
    tier 1 only at four, so a smaller table plays with a smaller and easier box.
+   Five and six seats add a fifth and a sixth slot to each of the three working
+   tracks, so the squeeze on worker placement should hold roughly steady while
+   the board, the demand and the Blueprint decks do not grow at all.
+
+   THREE. How often does the second Megacorp end the game before Q12, and how
+   early? That is the new deadline: three years, OR the first player to launch
+   two Megacorps, whichever comes first.
 
    TWO. Which of the bots' ways of playing wins, and which loses? Every seat is
    dealt an archetype - a standing bias in how it spends its two workers and what
@@ -111,7 +118,7 @@ const round1 = (n) => Math.round(n * 10) / 10;
    which a win rate is telling you nothing. */
 const noise = (p, n) => 100 * 2 * Math.sqrt((p * (1 - p)) / Math.max(1, n));
 
-const SIZES = [2, 3, 4];
+const SIZES = [2, 3, 4, 5, 6];
 const runs = [];
 
 for (const seats of SIZES) {
@@ -120,6 +127,7 @@ for (const seats of SIZES) {
     winnerEP: 0, spread: 0, gapToSecond: 0, lastEP: 0,
     hqs: 0, seatsWithAny: 0, poolTiles: 0, firstQuarter: 0, firstGames: 0,
     tierClaimed: { 1: 0, 2: 0, 3: 0, 4: 0 },
+    endedEarly: 0, endQuarter: 0, forcedPlacements: 0, placementChances: 0,
     companies: 0, upgrades: 0, plots: 0,
     ep: Object.fromEntries(BUCKETS.map((b) => [b, 0])),
     winnerEp: Object.fromEntries(BUCKETS.map((b) => [b, 0])),
@@ -138,6 +146,8 @@ for (const seats of SIZES) {
     if (st.phase !== "gameover") continue;
 
     T.games++;
+    T.endQuarter += st.quarter;
+    if (st.quarter < 12) T.endedEarly++;
     T.poolTiles += st.megacorpPool.length;
     const ranked = [...st.players].sort(E.finalRank);
     const winner = ranked[0];
@@ -177,7 +187,7 @@ for (const seats of SIZES) {
 }
 
 /* ---------------------------------------------------------------- report */
-console.log("Entrepreneurs - the game at two, three and four seats");
+console.log("Entrepreneurs - the game from two seats to six");
 console.log(`${runs[0].games} games per table size, personas on, rules as they stand.\n`);
 
 const W = 16;
@@ -198,6 +208,9 @@ row("companies standing per seat", (T) => T.companies / T.players, 2);
 row("  of them upgraded", (T) => T.upgrades / T.players, 2);
 row("plots owned per seat", (T) => T.plots / T.players, 2);
 row("unpaid loan discs per seat", (T) => T.loansUnpaid / T.players, 2);
+console.log("");
+row("quarter the game ended", (T) => T.endQuarter / T.games, 1);
+pct("ended early on 2 Megacorps", (T) => T.endedEarly / T.games);
 console.log("");
 row("Megacorp tiles drawn", (T) => (T.poolTiles + T.hqs) / T.games, 1);
 row("  left unclaimed at the end", (T) => T.poolTiles / T.games, 1);
@@ -245,7 +258,8 @@ console.log("\nIn the game as it ships, a bot's way of playing is fixed by its s
   const order = E.ARCHETYPES.map((a, i) => `${i + 1}. ${E.ARCHETYPE_LABEL[a] || a}`);
   console.log(`  ${order.join("   ")}`);
   console.log("  The first bot is always the first entry, the second always the second, and so on.");
-  console.log("  A four-seat game holds three bots, so TECH-HEAVY AND HARVEST & REBUILD NEVER PLAY.");
+  console.log("  A four-seat game holds three bots, so TECH-HEAVY AND HARVEST & REBUILD only get");
+  console.log("  dealt at five and six seats, and never at the four-seat table most people play.");
   console.log("  Below they are dealt at random instead - every archetype in every seat - because");
   console.log("  otherwise a win rate would be measuring turn order as much as strategy.");
 }
@@ -305,7 +319,47 @@ for (const seats of SIZES) {
   }
 }
 
-console.log("\n\n=== PERSONAS, FOR COMPARISON ===");
+/* ------------------------------------------------- personas on vs personas off
+   Personas are on by default and every table above has them. The question this
+   section answers is whether they are what is holding the bigger tables
+   together, or whether they only decorate them: the same seeds, the same seats,
+   dealt without powers. */
+console.log("\n\n=== WITH PERSONAS AND WITHOUT ===");
+{
+  const off = [];
+  for (const seats of SIZES) {
+    const O = { seats, games: 0, winnerEP: 0, spread: 0, hqs: 0, endQuarter: 0, endedEarly: 0 };
+    for (let seed = 1; seed <= SEEDS; seed++) {
+      const st = E.initGame(seats - 1, seed, ["Seat 1"], undefined, false, undefined);
+      st.players[0].isHuman = false;
+      if (st.phase === "drafting") { E.advanceDraft(st, () => {}); E.startPlanning(st); }
+      E.advancePlanning(st, E.mulberry32(seed + 777), () => {});
+      if (st.phase !== "gameover") continue;
+      O.games++;
+      O.endQuarter += st.quarter;
+      if (st.quarter < 12) O.endedEarly++;
+      const ranked = [...st.players].sort(E.finalRank);
+      O.winnerEP += E.epTotal(ranked[0]);
+      O.spread += E.epTotal(ranked[0]) - E.epTotal(ranked[ranked.length - 1]);
+      for (const p of st.players) O.hqs += E.megacorpHQs(p).length;
+    }
+    off.push(O);
+  }
+  const line = (name, fn, on, dp = 1) =>
+    console.log(pad(name, 34) + on.map((T) => rp(fn(T).toFixed(dp), W)).join(""));
+  head();
+  console.log("\u2500".repeat(34 + W * runs.length));
+  line("winning score, personas on", (T) => T.winnerEP / T.games, runs, 0);
+  line("winning score, personas off", (T) => T.winnerEP / T.games, off, 0);
+  line("lead over last, personas on", (T) => T.spread / T.games, runs);
+  line("lead over last, personas off", (T) => T.spread / T.games, off);
+  line("Megacorps a game, personas on", (T) => T.hqs / T.games, runs, 2);
+  line("Megacorps a game, personas off", (T) => T.hqs / T.games, off, 2);
+  line("last quarter, personas on", (T) => T.endQuarter / T.games, runs);
+  line("last quarter, personas off", (T) => T.endQuarter / T.games, off);
+}
+
+console.log("\n\n=== EVERY PERSONA AT EVERY TABLE SIZE ===");
 for (const T of runs) {
   const chance = 1 / T.seats;
   console.log(`\n${T.seats} players`);

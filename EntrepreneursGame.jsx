@@ -20,7 +20,7 @@ const IND_ABILITY = {
   TE: "Sell 2 tokens to every demand icon it reaches.",
 };
 
-const PLAYER_COLORS = ["#22D3EE", "#FB923C", "#A78BFA", "#FB7185"];
+const PLAYER_COLORS = ["#22D3EE", "#FB923C", "#A78BFA", "#FB7185", "#4ADE80", "#FACC15"];
 
 /* ============================== BOARD ============================== */
 
@@ -1054,6 +1054,13 @@ const activeBiz = (p) => p.businesses.filter((b) => !b.distressed && !b.isHQ);
    keeps its disc and it locks one of your five company slots, so every Megacorp you
    form permanently narrows how wide you can operate. */
 const megacorpHQs = (p) => p.businesses.filter((b) => b.isHQ);
+/* The game runs three years, OR until somebody launches a second Megacorp - whichever
+   comes first. The second one is a real race: a player who can assemble two of them has
+   already spent the game merging, so the rest of the table is given a deadline rather
+   than four more quarters to catch a runaway. The trigger is checked at the END of the
+   quarter it happens in, so every seat plays the same number of quarters. */
+const MEGACORPS_TO_END = 2;
+const endgameRushers = (state) => state.players.filter((p) => megacorpHQs(p).length >= MEGACORPS_TO_END);
 const companySlotsUsed = (p) => activeBiz(p).length + megacorpHQs(p).length;
 const COMPANY_SLOTS = 5;
 /* The IPO tile is the prize for forming the first Megacorp of the game. It is a sixth
@@ -1511,7 +1518,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "bb395332";
+const ENGINE_VERSION = "4d3705c8";
 const DISCS_PER_PLAYER = 12;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Twelve discs, no more.
@@ -1902,13 +1909,13 @@ function finalizeGame(state) {
   for (const p of state.players) {
     for (const hq of megacorpHQs(p)) {
       const n = hqNeighbours(state, hq);
-      if (n) addEP(p, MEGACORP_NEIGHBOUR_EP * n, `Megacorp district: ${hq.megacorpName}`, 12);
+      if (n) addEP(p, MEGACORP_NEIGHBOUR_EP * n, `Megacorp district: ${hq.megacorpName}`, state.quarter);
     }
   }
   for (const p of state.players) {
-    if (p.discsInBank) addEP(p, -5 * p.discsInBank, `Unpaid loans (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"})`, 12);
+    if (p.discsInBank) addEP(p, -5 * p.discsInBank, `Unpaid loans (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"})`, state.quarter);
     const cashEP = Math.floor(p.cash / 10);
-    if (cashEP) addEP(p, cashEP, `Cash on hand ($${Math.round(p.cash)})`, 12);
+    if (cashEP) addEP(p, cashEP, `Cash on hand ($${Math.round(p.cash)})`, state.quarter);
   }
 }
 
@@ -1930,7 +1937,8 @@ const MEGACORP_TILES = [
 
    WHICH TILES ARE IN THE BOX. Two are drawn from each tier that is in play, and the
    hard tiers only come out at a bigger table: tiers 4 and 3 always, tier 2 from three
-   players, tier 1 only at four. At four players this barely matters - eight random
+   players, tier 1 from four - so the box holds four tiles at two seats, six at three,
+   and eight from four seats up. At four players this barely matters - eight random
    tiles out of sixteen already averages two per tier - but at two players it is the
    difference between a box half full of tiles nobody can claim and a box of tiles that
    are actually reachable. Megacorps formed at a two-player table went from 1.00 a game
@@ -2132,10 +2140,23 @@ function getBizTooltipInfo(state, biz) {
 }
 
 /* ---------------- Turn-order / tracks ---------------- */
-function makeTracks() {
-  // Board Meeting holds two players (both meeples each). Seat 2 stays blocked by the
-  // IPO tile until a player goes public and claims it.
-  return { raise_capital: [null, null, null, null], ma: [null, null, null, null], rd: [null, null, null, null], board_meeting: [null, null] };
+/* Four slots on each of the three working tracks, and two on Board Meeting - of which
+   the second stays sealed under the IPO tile until somebody goes public.
+
+   THE FIFTH AND SIXTH SLOTS ONLY EXIST AT FIVE AND SIX PLAYERS. Every player places
+   two workers, so a four-seat table puts eight into the thirteen that are open, and a
+   six-seat table would put twelve into the same thirteen - measured, that left 7% of
+   placements with a single track open, which is not a decision, it is a queue. One
+   extra slot per player above four takes that back to nothing, and adding it only at
+   those counts keeps the smaller tables exactly as tight as they are now.
+
+   Board Meeting does not grow. Going public is meant to be contested. */
+const TRACK_SLOTS_BASE = 4;
+const workingTrackSlots = (nPlayers) => TRACK_SLOTS_BASE + Math.max(0, (nPlayers || 4) - 4);
+function makeTracks(nPlayers) {
+  const n = workingTrackSlots(nPlayers);
+  const row = () => new Array(n).fill(null);
+  return { raise_capital: row(), ma: row(), rd: row(), board_meeting: [null, null] };
 }
 function trackBonusOrder(slots) {
   const filled = [];
@@ -2614,7 +2635,7 @@ function workersPerPlayer(state) {
   return state.players.length === 2 ? 3 : 2;
 }
 function startPlanning(state) {
-  state.tracks = makeTracks();
+  state.tracks = makeTracks(state.players.length);
   const W = workersPerPlayer(state);
   const rep = (ids, k) => { const out = []; for (let i = 0; i < k; i++) out.push(...ids); return out; };
   if (state.doubleFirstPlayer !== null && state.doubleFirstPlayer !== undefined) {
@@ -2802,7 +2823,12 @@ function finishQuarterAfterRepay(state, log, rng) {
   }
   const summary = state.players.map((p) => `${p.name} $${Math.round(p.cash)}/${p.epBank.toFixed(0)}EP/${activeBiz(p).length}biz`).join("  \u00b7  ");
   log(`\u2500 End of Q${state.quarter}: ${summary}`, null);
-  if (state.quarter >= 12) {
+  const rushers = endgameRushers(state);
+  if (state.quarter >= 12 || rushers.length) {
+    if (rushers.length && state.quarter < 12) {
+      const who = rushers.map((p) => p.name).join(" and ");
+      log(`\u23f9 ${who} ${rushers.length === 1 ? "has" : "have"} launched ${MEGACORPS_TO_END} Megacorps \u2014 the game ends here, at the close of Q${state.quarter}.`, null);
+    }
     finalizeGame(state);
     state.phase = "gameover";
     log("=== GAME OVER \u2014 final scoring complete ===", null);
@@ -2821,7 +2847,15 @@ function humanCompleteResolutionAction(state, rng, log) {
   advanceResolution(state, rng, log);
 }
 
-const STARTING = { 4: [[25, 1], [25, 2], [20, 2], [20, 3]], 3: [[25, 1], [25, 2], [20, 3]], 2: [[20, 2], [20, 2]] };
+/* Later seats trade money for cards - reverse-order drafting is the only catch-up the
+   game has, and it is deliberately small. Seats 5 and 6 continue the same slope. */
+const STARTING = {
+  6: [[25, 1], [25, 2], [20, 2], [20, 3], [20, 3], [15, 4]],
+  5: [[25, 1], [25, 2], [20, 2], [20, 3], [15, 4]],
+  4: [[25, 1], [25, 2], [20, 2], [20, 3]],
+  3: [[25, 1], [25, 2], [20, 3]],
+  2: [[20, 2], [20, 2]],
+};
 
 /* humanNames: optional array of display names for human seats. Single player passes
    nothing and gets one human ("You") plus bots; the online server passes one name per
@@ -2986,7 +3020,7 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
     marketAwareSeats: marketAwareSeats || null,
     awaitingPlayerId: null,
     phase: "drafting",
-    tracks: makeTracks(),
+    tracks: makeTracks(nPlayers),
     megacorpPool, ipoTileClaimed: false,
     planningQueue: [],
     resolutionQueue: [],
@@ -5180,14 +5214,18 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
         </div>
         <div className="mb-6">
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Opponents</div>
-          <div className="flex gap-2">
-            {[1, 2, 3].map((n) => (
+          <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} onClick={() => setNumBots(n)}
-                className="flex-1 py-2 rounded-md text-sm font-semibold transition"
+                className="flex-1 py-2 rounded-md text-[11px] font-semibold transition whitespace-nowrap"
                 style={{ backgroundColor: numBots === n ? "#2c5f4f" : "#1c1f26", color: numBots === n ? "#d3fcec" : "#9ca3af", border: "1px solid #262a33" }}>
                 {n} bot{n > 1 ? "s" : ""}
               </button>
             ))}
+          </div>
+          <div className="text-[10px] text-gray-500 mt-1.5" style={{ lineHeight: 1.4 }}>
+            A table seats six. The fifth and sixth seats open a fifth and sixth slot on
+            each of the three working tracks, and put all four Megacorp tiers in the box.
           </div>
         </div>
         <div className="mb-6 flex flex-wrap gap-1.5">

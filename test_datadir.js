@@ -98,23 +98,31 @@ section("Upgrading never costs you the record book");
 
 section("A file already in the data directory is never overwritten by an old one");
 {
+  /* The legacy path is beside server.js, so this section plants a decoy in the real
+     application folder. It has to be cleared before the NEXT section runs: that one
+     points the data directory at the live <app>/data, and a leftover decoy would be
+     migrated straight into it - which is how a test once wrote junk into a running
+     server's feedback store. Clean up here, not in `after`. */
   const legacy = path.join(__dirname, "feedback.json");
   const existed = fs.existsSync(legacy);
   const saved = existed ? fs.readFileSync(legacy) : null;
-  fs.writeFileSync(legacy, '{"version":1,"entries":[{"id":"stale"}]}');
-  after.push(() => {
-    try { fs.unlinkSync(legacy); } catch (_) { /* moved */ }
+  const restore = () => {
+    try { fs.unlinkSync(legacy); } catch (_) { /* already moved */ }
     if (existed) fs.writeFileSync(legacy, saved);
-  });
-
-  const dir = path.join(tmp, "nocollide");
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, "feedback.json"), '{"version":1,"entries":[{"id":"current"}]}');
-  const { json } = ask({ ENT_DATA_DIR: dir });
-  check("the file in the data directory wins",
-    fs.readFileSync(json.feedback, "utf8").includes("current"),
-    fs.readFileSync(json.feedback, "utf8").slice(0, 40));
-  check("and the old one is left alone rather than deleted", fs.existsSync(legacy));
+  };
+  try {
+    fs.writeFileSync(legacy, '{"version":1,"entries":[{"id":"stale"}]}');
+    const dir = path.join(tmp, "nocollide");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "feedback.json"), '{"version":1,"entries":[{"id":"current"}]}');
+    const { json } = ask({ ENT_DATA_DIR: dir });
+    check("the file in the data directory wins",
+      fs.readFileSync(json.feedback, "utf8").includes("current"),
+      fs.readFileSync(json.feedback, "utf8").slice(0, 40));
+    check("and the old one is left alone rather than deleted", fs.existsSync(legacy));
+  } finally {
+    restore();
+  }
 }
 
 section("Data inside the application folder is called out as at risk");

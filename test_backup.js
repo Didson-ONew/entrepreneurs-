@@ -23,7 +23,11 @@ const section = (t) => console.log(`\n${t}`);
 
 const store = (users) => ({ version: 1, secret: "x", users });
 const notes = (entries) => ({ version: 1, entries });
-const match = (id, at) => ({ id, at, players: [{ name: "Ana", ep: 40, rank: 1, human: true }] });
+/* Shaped like a record the server writes, engine stamp and all: these fixtures get
+   restored into whatever store the server is running, and a record missing fields a
+   real one always has shows up later as a failure somewhere else entirely. */
+const match = (id, at) => ({ id, at, engine: "testeng0",
+  players: [{ name: "Ana", ep: 40, rank: 1, human: true }] });
 const note = (id, at) => ({ id, at, kind: "suggestion", text: "more tiles" });
 
 /* ============================================================ the file itself */
@@ -201,7 +205,9 @@ async function beSomebody(c, name, password) {
     const mine = await admin.get("/api/backup");
     const withExtra = {
       ...mine.body,
-      matches: [...mine.body.matches, match("wire-test-1", Date.now())],
+      /* a fresh id every run: this restores into whatever store the server is using,
+         and re-using a fixture id makes the second run a no-op that looks like a bug */
+      matches: [...mine.body.matches, match(`wire-test-${process.pid}-${Date.now()}`, Date.now())],
     };
     const r = await admin.post("/api/restore", withExtra);
     check("the server takes it", r.status === 200, r.body.error || "");

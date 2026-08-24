@@ -64,10 +64,15 @@ const rooms = new Map();
 const code = () => crypto.randomBytes(3).toString("hex").toUpperCase();
 const token = () => crypto.randomBytes(16).toString("hex");
 
+/* Six chairs, in any mix of people and bots. Seats five and six only exist at those
+   counts - they open a fifth and sixth slot on the three working tracks - so the room
+   never seats more than the engine deals for. */
+const MAX_SEATS = 6;
+const clampBots = (n, seated) => Math.max(0, Math.min(MAX_SEATS - Math.max(1, seated), n | 0));
 function newRoom(hostName, bots, hostPid) {
   let c; do { c = code(); } while (rooms.has(c));
   const room = {
-    code: c, bots: Math.max(0, Math.min(3, bots | 0)),
+    code: c, bots: clampBots(bots, 1),
     members: [{ token: token(), name: hostName || "Host", seat: 0, host: true, pid: hostPid || null }],
     spectators: [],
     state: null, rng: null, clients: new Set(), logs: [], version: 0, chat: [], personas: true,
@@ -930,7 +935,7 @@ const server = http.createServer(async (req, res) => {
     if (!room) return json(res, { error: "No such room." }, 404);
     const allowedJoin = nameAllowed(req, b.name);
     if (!allowedJoin.ok) return json(res, { error: allowedJoin.error }, 403);
-    const full = room.members.length >= 4;
+    const full = room.members.length + room.bots >= MAX_SEATS;
     if (room.state || full) {
       // the seat is gone, but they can still pull up a chair and watch
       const sp = {
@@ -1093,7 +1098,7 @@ const server = http.createServer(async (req, res) => {
     if (b.variants && typeof b.variants === "object") {
       room.variants = E.normaliseVariants({ ...room.variants, ...b.variants });
     }
-    if (typeof b.bots === "number") room.bots = Math.max(0, Math.min(3, b.bots | 0));
+    if (typeof b.bots === "number") room.bots = clampBots(b.bots, room.members.length);
     broadcast(room);
     return json(res, { ok: true });
   }
@@ -1106,6 +1111,7 @@ const server = http.createServer(async (req, res) => {
     if (!me || !me.host) return json(res, { error: "Only the host can start." }, 403);
     if (room.state) return json(res, { error: "Already started." }, 409);
     if (room.members.length + room.bots < 2) return json(res, { error: "Need at least 2 players (add a bot or another human)." }, 400);
+    if (room.members.length + room.bots > MAX_SEATS) return json(res, { error: `A table seats ${MAX_SEATS}. Remove a bot or a player.` }, 400);
     const seed = Math.floor(Math.random() * 1e9);
     room.state = E.initGame(room.bots, seed, room.members.map((m) => m.name), undefined, room.personas, room.variants);
     room.rng = seededRng(seed + 777);

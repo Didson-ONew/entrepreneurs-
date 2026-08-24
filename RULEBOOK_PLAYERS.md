@@ -28,8 +28,8 @@
 
 You are a founder building a city's economy. You buy land, build companies on it, and sell what they produce to the districts around them. The player with the most Entrepreneurial Points (EP) at the end of Year 3 wins.
 
-- 2 to 4 players.
-- 3 years of 4 quarters - 12 rounds in total.
+- 2 to 6 players.
+- 3 years of 4 quarters - 12 rounds at most. A second Megacorp ends it sooner.
 - The board is 16 districts of 4 plots each.
 - The coloured squares inside a district are its demand: what it will buy.
 
@@ -111,10 +111,12 @@ You have two workers (three each in a two-player game). Players place one worker
 
 | Track | Slots | What it does |
 | --- | --- | --- |
-| Raise Capital | 4 | Turn assets into cash - LOAN or SELL. |
-| M&A | 4 | Grow your footprint - LAUNCH or BUY. |
-| R&D | 4 | Improve what you have - RESEARCH or UPGRADE. |
+| Raise Capital | 4 / 5 / 6 | Turn assets into cash - LOAN or SELL. |
+| M&A | 4 / 5 / 6 | Grow your footprint - LAUNCH or BUY. |
+| R&D | 4 / 5 / 6 | Improve what you have - RESEARCH or UPGRADE. |
 | Board Meeting | 2 | GO PUBLIC or REPOSITION. Takes all your workers. |
+
+The three working tracks have four slots at two, three or four players. A fifth player opens a fifth slot on each of them, and a sixth player a sixth. Board Meeting stays at two seats however many are playing - it is meant to be scarce.
 
 The second Board Meeting seat is sealed under the IPO tile until somebody claims it by going public.
 
@@ -122,7 +124,7 @@ The second Board Meeting seat is sealed under the IPO tile until somebody claims
 
 Workers fill a track from left to right, but the track resolves from RIGHT TO LEFT. Whoever placed LAST on a track acts FIRST on it.
 
-Committing early is paid for in actions: your worker takes one action, plus one extra for every worker that lands after it in the same track. A worker alone in a track that then fills up completely takes four actions - but the other three players will all have acted before it, and may have taken exactly what it was waiting for.
+Committing early is paid for in actions: your worker takes one action, plus one extra for every worker that lands after it in the same track. A worker alone in a track that then fills up completely takes as many actions as the track has slots - but everyone who landed after it will have acted first, and may have taken exactly what it was waiting for.
 
 The tracks themselves resolve in a fixed order: Raise Capital, then M&A, then R&D, then Board Meeting.
 
@@ -385,7 +387,7 @@ The sixteen tiles are four tiers of four. Tier 4 is the four cheapest to assembl
 | 2 | Metro Trust, Crossroads Deal, Skyline Consolidated, Apex Group | 3 players | 1 EP | 3 EP |
 | 1 | Titan Industries, Colossus Group, Empire Holdings, Omnicorp | 4 players | 3 EP | 6 EP |
 
-Two tiles are drawn from each tier that is in play, so the box always holds twice as many tiles as there are players - and a small table is not filled with tiles nobody could ever claim.
+Two tiles are drawn from each tier that is in play. At two players that is four tiles, at three it is six, and from four players up all four tiers come out and the box holds eight - so a small table is never filled with tiles nobody could ever claim.
 
 ---
 
@@ -411,7 +413,11 @@ For The Omnipresent, a district counts if you own a plot in it or one of your ac
 
 Only the outright leader scores a land award, and a shared lead pays badly: 5 EP alone, 2 EP each if two players tie, 1 EP each if three or more do. Second place gets nothing.
 
-Most EP after Quarter 12 wins. If the final scores tie, the player with more money wins; if they are still tied, the player with fewer loan discs left in the bank.
+### When the game ends
+
+The game ends at the close of Quarter 12, OR at the close of the quarter in which any player launches their SECOND Megacorp - whichever comes first. The quarter is always played out in full, so every seat has had the same number of turns.
+
+Most EP wins. If the final scores tie, the player with more money wins; if they are still tied, the player with fewer loan discs left in the bank.
 
 ---
 
@@ -458,7 +464,7 @@ Whichever are on is shown in the waiting room before the game starts, and record
 
 Create a room and share the six-character code. Anyone who enters it joins your table.
 
-- 2 to 4 human seats. Bots fill any seat you do not want to wait for.
+- 2 to 6 seats in any mix of people and bots. Bots fill any seat you do not want to wait for.
 - If the table is full or the game has already started, latecomers join as watchers: they see the whole board and can chat and talk, but cannot act.
 - Text chat and voice chat are built in. Voice runs peer to peer - the server only introduces you.
 - Refreshing or losing your connection does not lose your seat. Come back to the same address and you are put straight back in.
@@ -474,9 +480,10 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 
 |  |  |
 | --- | --- |
-| Game length | 12 quarters (3 years of 4) |
+| Game length | 12 quarters (3 years of 4), or until someone launches a 2nd Megacorp |
+| Players | 2 to 6 |
 | Workers | 2 each, or 3 each in a two-player game |
-| Discs | 10, covering plots owned + active companies + unpaid loans |
+| Discs | 12, covering plots owned + active companies + unpaid loans |
 | Company slots | 5, counting Megacorp headquarters |
 | Hand limit | 5 Blueprints |
 | Loan | +$20 and one disc; buy back for $30 / $35 / $40 at year ends; -5 EP if unpaid |
