@@ -1518,7 +1518,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "8475c1b7";
+const ENGINE_VERSION = "c4a6c451";
 const DISCS_PER_PLAYER = 12;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Twelve discs, no more.
@@ -2206,8 +2206,14 @@ function megacorpWorthIt(state, p, match) {
      whatever is left of the three years - but if this merger is the player's SECOND
      Megacorp it ends the game at the close of this very quarter, so everything paid
      per quarter is paid exactly once. Counting the full remainder would have the bot
-     value its second tile on brand dividends for quarters that will never be played,
-     which is a bad trade dressed up as a good one. */
+     value its second tile on brand dividends for quarters that will never be played.
+
+     MEASURED, IT CHANGES NO DECISIONS. Over 250 four-seat games the old valuation and
+     this one accept exactly the same 51 second mergers. The tile is worth 8-22 EP on
+     its own and the district scores around it either way, so the brand dividend was
+     never the term deciding the answer - it was just wrong. This is kept because it
+     is right, not because it did anything, and if the tile EP or the level EP ever
+     move it is the line that stops the bot buying quarters that do not exist. */
   const ends = megacorpHQs(p).length + 1 >= MEGACORPS_TO_END;
   const qLeft = ends ? 1 : Math.max(1, 13 - (state.quarter || 1));
   const hq = pickHQ(state, p, match.have, tierOfTile(match.tile));

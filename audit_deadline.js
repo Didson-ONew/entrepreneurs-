@@ -28,6 +28,34 @@
 
    Nothing is patched. This measures the rules as they stand.
 
+   WHAT IT FOUND, over 400 games a table size
+
+   THE RULE DOES THE OPPOSITE OF WHAT IT WAS ADDED FOR, and not marginally. The
+   player who pulls the deadline was ALREADY LEADING in 54-89% of the games it
+   ends, and goes on to win 49-79% of them against chance lines of 17-50%. That
+   is outside two standard errors at every single table size. It is not a clock
+   on a runaway leader; it is a lever the leader pulls to bank a lead and take
+   the remaining quarters away from everybody else.
+
+   The reason is selection, not a bot misjudging its odds. Assembling two
+   Megacorps takes six to eight companies' worth of building and merging, so the
+   precondition for triggering the deadline IS having had a good game. No tuning
+   of the bot's merge decision can break that link - it is the rule's own shape.
+   (Checked: correcting the bot's valuation of a game-ending merger changes zero
+   decisions and moves none of these numbers.)
+
+   What the rule DOES do is pace. It fires in 11-17% of games, almost always in
+   Q10 or Q11, and cuts 1.5-2.2 quarters. At a six-seat table that is roughly a
+   quarter of an hour off a game that was usually decided by then anyway - the
+   final spread in games it ends is 60 EP against 58 for games that run the full
+   three years, so it is mostly ending games nobody was going to win from behind.
+
+   So the question for the rule is which of those two things it was for. As a
+   PACE rule it earns its place. As a CATCH-UP rule it is backwards, and the
+   cheapest repair is a quarter of warning: let the second Megacorp call the
+   final quarter rather than be it, so the table gets one round to respond
+   instead of finding out the game is over after it already is.
+
    Run: node audit_deadline.js [seeds]
    ========================================================================== */
 const fs = require("fs");
