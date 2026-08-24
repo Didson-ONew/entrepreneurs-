@@ -224,7 +224,8 @@ section("Passwords");
   check("an unknown address gets the same answer", unknown.body.sent === forgot.body.sent,
     "otherwise this form lists who has an account");
 
-  const file = process.env.ACCOUNTS_FILE || path.join(__dirname, "accounts.json");
+  /* the store lives wherever datadir puts it, which is not beside server.js any more */
+  const file = require("./datadir.js").resolve("accounts.json", "ACCOUNTS_FILE");
   const onDisk = JSON.parse(fs.readFileSync(file, "utf8"));
   const rec = onDisk.users.find((x) => x.nameKey === nm.toLowerCase());
   check("the server stored a reset request", !!(rec && rec.reset));

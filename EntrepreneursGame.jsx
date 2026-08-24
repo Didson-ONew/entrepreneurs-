@@ -20,7 +20,7 @@ const IND_ABILITY = {
   TE: "Sell 2 tokens to every demand icon it reaches.",
 };
 
-const PLAYER_COLORS = ["#22D3EE", "#FB923C", "#A78BFA", "#FB7185"];
+const PLAYER_COLORS = ["#22D3EE", "#FB923C", "#A78BFA", "#FB7185", "#4ADE80", "#FACC15"];
 
 /* ============================== BOARD ============================== */
 
@@ -588,6 +588,70 @@ function bestExtraDistrictsForRE(state, biz, count, home) {
   others.sort((a, b) => openCount(b) - openCount(a) || tileGridDist([...home][0], a) - tileGridDist([...home][0], b));
   return others.slice(0, count);
 }
+/* A level-N Utility reads demand across an N x N block of districts that also
+   encompasses its whole footprint. The old test (distance < level from ANY home
+   district) actually described a (2N-1) x (2N-1) block, so a level-3 Utility could
+   see the entire city instead of nine districts.
+
+   Where the footprint sits inside the block is a choice - a company straddling two
+   districts can usually place its block several ways - and the game makes that choice
+   by taking the one with the most open demand in it.
+
+   THE BLOCK IS THEN HELD FOR THE QUARTER. It used to be recomputed on every single
+   call, and the score it was chosen by counts OPEN slots: so selling into the block
+   lowered its score until a rival block overtook it, and the set of districts the
+   company could reach changed underneath the player mid-delivery. It flipped back and
+   forth on 83% of Utilities. Districts appeared and vanished from the grid between one
+   click and the next, which is precisely what it looked like from the other side. */
+function bestUtBlock(state, biz, home) {
+  const board = state.board;
+  const N = biz.level;
+  const rs = [...home].map((h) => +h.split(",")[0]);
+  const cs = [...home].map((h) => +h.split(",")[1]);
+  const minR = Math.min(...rs), maxR = Math.max(...rs);
+  const minC = Math.min(...cs), maxC = Math.max(...cs);
+  const real = allDistrictKeys(board);          // hoisted: this was recomputed per cell
+  // every N x N block that still encompasses the whole footprint
+  const blocks = [];
+  for (let r0 = maxR - N + 1; r0 <= minR; r0++) {
+    for (let c0 = maxC - N + 1; c0 <= minC; c0++) {
+      const cells = [];
+      for (let r = r0; r < r0 + N; r++) for (let c = c0; c < c0 + N; c++) cells.push(`${r},${c}`);
+      blocks.push(cells.filter((d) => real.includes(d)));
+    }
+  }
+  // the owner picks one block, so take the one offering the most open demand
+  const score = (cells) => cells.reduce((acc, d) => {
+    const t = state.demand && state.demand.tiles ? state.demand.tiles[d] : null;
+    if (!t) return acc;
+    let k = 0;
+    t.rows.forEach((rowInd, ri) => {
+      if (rowInd !== "UT") return;
+      if (ri >= 2 && state.quarter <= 4) return;
+      for (let l = 0; l < Math.min(biz.level, 4); l++) if (!t.filled[ri][l]) k++;
+    });
+    return acc + k;
+  }, 0);
+  let best = blocks[0] || [...home];
+  let bestScore = score(best);
+  for (const b of blocks) {
+    const s = score(b);
+    if (s > bestScore) { best = b; bestScore = s; }
+  }
+  return best;
+}
+function utBlock(state, biz, home) {
+  /* A company a bot is only imagining has no identity to remember a block against,
+     and must not be allowed to write one down for a real company to find. */
+  if (!biz || biz.id === undefined || biz.id < 0) return bestUtBlock(state, biz, home);
+  state.utBlocks = state.utBlocks || {};
+  const held = state.utBlocks[biz.id];
+  // an upgrade changes the size of the block, so it is chosen again
+  if (held && held.quarter === state.quarter && held.level === biz.level) return held.cells;
+  const cells = bestUtBlock(state, biz, home);
+  state.utBlocks[biz.id] = { quarter: state.quarter, level: biz.level, cells };
+  return cells;
+}
 function reachableDistricts(state, biz, chosenExtra) {
   const board = state.board;
   const home = footprintDistricts(board, biz.footprint);
@@ -603,41 +667,7 @@ function reachableDistricts(state, biz, chosenExtra) {
     // one shared network: every district any hub reaches becomes reachable
     lhDistricts(board).forEach((d) => out.add(d));
   }
-  if (bizInd(biz) === "UT") {
-    /* A level-N Utility reads demand across an N x N block of districts that also
-       encompasses its whole footprint. The old test (distance < level from ANY home
-       district) actually described a (2N-1) x (2N-1) block, so a level-3 Utility could
-       see the entire city instead of nine districts. */
-    const N = biz.level;
-    const rs = [...home].map((h) => +h.split(",")[0]);
-    const cs = [...home].map((h) => +h.split(",")[1]);
-    const minR = Math.min(...rs), maxR = Math.max(...rs);
-    const minC = Math.min(...cs), maxC = Math.max(...cs);
-    // every N x N block that still encompasses the whole footprint
-    const blocks = [];
-    for (let r0 = maxR - N + 1; r0 <= minR; r0++) {
-      for (let c0 = maxC - N + 1; c0 <= minC; c0++) {
-        const cells = [];
-        for (let r = r0; r < r0 + N; r++) for (let c = c0; c < c0 + N; c++) cells.push(`${r},${c}`);
-        blocks.push(cells.filter((d) => allDistrictKeys(board).includes(d)));
-      }
-    }
-    // the owner picks one block, so take the one offering the most open demand
-    const score = (cells) => cells.reduce((acc, d) => {
-      const t = state.demand && state.demand.tiles ? state.demand.tiles[d] : null;
-      if (!t) return acc;
-      let k = 0;
-      t.rows.forEach((rowInd, ri) => {
-        if (rowInd !== "UT") return;
-        if (ri >= 2 && state.quarter <= 4) return;
-        for (let l = 0; l < Math.min(biz.level, 4); l++) if (!t.filled[ri][l]) k++;
-      });
-      return acc + k;
-    }, 0);
-    let best = blocks[0] || [];
-    blocks.forEach((b2) => { if (score(b2) > score(best)) best = b2; });
-    best.forEach((d) => out.add(d));
-  }
+  if (bizInd(biz) === "UT") utBlock(state, biz, home).forEach((d) => out.add(d));
   if (bizInd(biz) === "RE") {
     // the Supply Chain Expert reaches one district further this quarter
     const owner = ownerOf(state, biz);
@@ -775,6 +805,13 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
     if (!footprintDistricts(state.board, biz.footprint).has(tileKey)) return 0;
   } else if (slotInd !== bizInd(biz)) return 0;
   if (levelIdx >= deliveryColumnCap(state, biz)) return 0;
+  /* Reach is a rule, not a hint. It used to live only in eligibleSlotsFor - the
+     function that decides which cells the grid highlights - so the engine itself would
+     accept a delivery into any district on the board from any company, whether it could
+     see that district or not. The grid was the only thing enforcing it, which means it
+     was enforced for anyone clicking the grid and for nobody reaching the endpoint
+     another way. */
+  if (!reachableDistricts(state, biz).has(tileKey)) return 0;
   state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
   return cross ? 1 : exchangeRate(state, biz);
 }
@@ -1009,7 +1046,15 @@ function humansNeedingRepay(state) {
   });
 }
 function newPlayer(id, name, isHuman, cash, hand, archetype) {
-  return { id, name, isHuman, cash, hand, archetype, persona: null, businesses: [], discsInBank: 0, epBank: 0, epLog: [], industriesScored: [] };
+  return { id, name, isHuman, cash, hand, archetype, persona: null, businesses: [], discsInBank: 0, epBank: 0, epLog: [], industriesScored: [],
+    /* The ground-rent ledger. Rent is the one way an unbuilt plot earns, and at a big
+       table it is most of what land does: at six seats half of every player's plots
+       carry somebody else's building. Without these three counters that income
+       disappears into the cash pile and the score reads as though land did nothing.
+       rentIn  - collected from other players' buildings standing on your land
+       rentOut - paid to other players for standing on theirs
+       rentSaved - rent you did NOT pay because you owned the ground yourself */
+    rentIn: 0, rentOut: 0, rentSaved: 0 };
 }
 const activeBiz = (p) => p.businesses.filter((b) => !b.distressed && !b.isHQ);
 /* A Megacorp headquarters stops trading - no Blueprint, so no production, no OPEX and
@@ -1017,6 +1062,13 @@ const activeBiz = (p) => p.businesses.filter((b) => !b.distressed && !b.isHQ);
    keeps its disc and it locks one of your five company slots, so every Megacorp you
    form permanently narrows how wide you can operate. */
 const megacorpHQs = (p) => p.businesses.filter((b) => b.isHQ);
+/* The game runs three years, OR until somebody launches a second Megacorp - whichever
+   comes first. The second one is a real race: a player who can assemble two of them has
+   already spent the game merging, so the rest of the table is given a deadline rather
+   than four more quarters to catch a runaway. The trigger is checked at the END of the
+   quarter it happens in, so every seat plays the same number of quarters. */
+const MEGACORPS_TO_END = 2;
+const endgameRushers = (state) => state.players.filter((p) => megacorpHQs(p).length >= MEGACORPS_TO_END);
 const companySlotsUsed = (p) => activeBiz(p).length + megacorpHQs(p).length;
 const COMPANY_SLOTS = 5;
 /* The IPO tile is the prize for forming the first Megacorp of the game. It is a sixth
@@ -1474,7 +1526,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "60bba388";
+const ENGINE_VERSION = "429c0dbe";
 const DISCS_PER_PLAYER = 12;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Twelve discs, no more.
@@ -1540,6 +1592,8 @@ function payHqRent(state, p, log) {
       if (due <= 0) continue;
       p.cash -= due;
       owner.cash += due;
+      owner.rentIn = (owner.rentIn || 0) + due;
+      p.rentOut = (p.rentOut || 0) + due;
       if (log) log(`${p.name} pays $${due} ground rent on Megacorp "${hq.megacorpName}" to ${owner.name}.`, p.id);
     }
   }
@@ -1596,7 +1650,15 @@ function runProduction(state, log) {
       for (const plot of b.footprint) {
         const due = 3 * levelsOn(b, plot);
         const ownerId = board.owner[plot];
-        if (ownerId !== undefined) { const owner = players.find((pl) => pl.id === ownerId); if (owner) owner.cash += due; }
+        if (ownerId === undefined) continue;
+        const owner = players.find((pl) => pl.id === ownerId);
+        if (!owner) continue;
+        owner.cash += due;
+        /* Rent onto your own land is a wash - it left this player's hand a line above
+           and comes straight back - but it is exactly the saving that owning the ground
+           under your own building buys, so it is worth recording as its own thing. */
+        if (owner.id === p.id) p.rentSaved = (p.rentSaved || 0) + due;
+        else { owner.rentIn = (owner.rentIn || 0) + due; p.rentOut = (p.rentOut || 0) + due; }
       }
       /* Whatever survives rent flows into each supplier's industry pot, split in
          proportion to what this business owes them. Whole dollars only: each supplier
@@ -1655,9 +1717,15 @@ function runMegacorpDividend(state, log) {
         if (log) log(`Megacorp "${hq.megacorpName}" stands on land ${p.name} no longer owns \u2014 it collects nothing this quarter.`, p.id);
         continue;
       }
-      const ep = price(state.pm, bizInd(hq));
+      const goods = price(state.pm, bizInd(hq));
+      const tier = tierOfHQ(hq);
+      const ep = brandEPFor(goods, tier);
+      if (!ep) {
+        if (log) log(`Megacorp "${hq.megacorpName}" (tier ${tier}) banks nothing \u2014 ${bizInd(hq)} sells at $${goods}, and a tier ${tier} brand needs $${tier}.`, p.id);
+        continue;
+      }
       addEP(p, ep, `Megacorp brand: ${hq.megacorpName}`, state.quarter);
-      if (log) log(`Megacorp "${hq.megacorpName}" banks ${ep} EP \u2014 ${bizInd(hq)} sells at $${ep}.`, p.id);
+      if (log) log(`Megacorp "${hq.megacorpName}" banks ${ep} EP \u2014 ${bizInd(hq)} sells at $${goods}, divided by tier ${tier}.`, p.id);
     }
   }
 }
@@ -1859,13 +1927,24 @@ function finalizeGame(state) {
   for (const p of state.players) {
     for (const hq of megacorpHQs(p)) {
       const n = hqNeighbours(state, hq);
-      if (n) addEP(p, MEGACORP_NEIGHBOUR_EP * n, `Megacorp district: ${hq.megacorpName}`, 12);
+      if (n) addEP(p, MEGACORP_NEIGHBOUR_EP * n, `Megacorp district: ${hq.megacorpName}`, state.quarter);
     }
   }
   for (const p of state.players) {
-    if (p.discsInBank) addEP(p, -5 * p.discsInBank, `Unpaid loans (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"})`, 12);
+    if (p.discsInBank) addEP(p, -5 * p.discsInBank, `Unpaid loans (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"})`, state.quarter);
+    /* Money is fungible, so splitting the cash pile is a convention rather than a fact.
+       The convention is: NET GROUND RENT IS NAMED FIRST, and whatever is left over is
+       trade. It is worth naming because rent is what land pays with once the table gets
+       big - at six seats it moves about $114 a seat over a game against $184 of terminal
+       cash - and folding it into "cash on hand" made the score read as though land had
+       stopped mattering when it had only stopped paying in awards. See audit_idle_land.js. */
     const cashEP = Math.floor(p.cash / 10);
-    if (cashEP) addEP(p, cashEP, `Cash on hand ($${Math.round(p.cash)})`, 12);
+    if (cashEP) {
+      const netRent = (p.rentIn || 0) - (p.rentOut || 0);
+      const rentEP = netRent > 0 ? Math.min(cashEP, Math.floor(netRent / 10)) : 0;
+      if (rentEP) addEP(p, rentEP, `Ground rent (net $${Math.round(netRent)})`, state.quarter);
+      if (cashEP - rentEP) addEP(p, cashEP - rentEP, `Cash on hand ($${Math.round(p.cash)})`, state.quarter);
+    }
   }
 }
 
@@ -1880,6 +1959,47 @@ const MEGACORP_TILES = [
   ["Titan Industries", { 3: 2, 4: 1 }, 17], ["Colossus Group", { 3: 4 }, 19],
   ["Empire Holdings", { 2: 1, 3: 2, 4: 1 }, 20], ["Omnicorp", { 3: 3, 4: 1 }, 22],
 ];
+/* The sixteen tiles are four tiers of four, written easiest first: tier 4 is the four
+   cheapest to assemble, tier 1 the four hardest.
+
+   Two things hang off the tier.
+
+   WHICH TILES ARE IN THE BOX. Two are drawn from each tier that is in play, and the
+   hard tiers only come out at a bigger table: tiers 4 and 3 always, tier 2 from three
+   players, tier 1 from four - so the box holds four tiles at two seats, six at three,
+   and eight from four seats up. At four players this barely matters - eight random
+   tiles out of sixteen already averages two per tier - but at two players it is the
+   difference between a box half full of tiles nobody can claim and a box of tiles that
+   are actually reachable. Megacorps formed at a two-player table went from 1.00 a game
+   to 1.26 when the hard tiles came out.
+
+   WHAT THE HEADQUARTERS EARNS. The brand dividend is the industry's price divided by
+   the tile's tier, rounded down - so a Local Syndicate built out of three level-1
+   companies no longer earns the same every quarter as an Omnicorp built out of four
+   level-3s. That single division took the Megacorp from 33% of a winning score to 17%,
+   and the winner's lead over last from 58.6 EP to 48.7.
+
+   See audit_megacorp_tiers.js. */
+const MEGACORP_TIERS = 4;
+const MEGACORP_PER_TIER = 4;
+const megacorpTierOf = (i) => MEGACORP_TIERS - Math.floor(i / MEGACORP_PER_TIER);
+const MEGACORP_TIER = {};
+MEGACORP_TILES.forEach((t, i) => { MEGACORP_TIER[t[0]] = megacorpTierOf(i); });
+/* Smallest table each tier appears at. */
+const MEGACORP_TIER_MIN_PLAYERS = { 4: 2, 3: 2, 2: 3, 1: 4 };
+const tierOfTile = (tile) => (tile ? MEGACORP_TIER[tile[0]] || 1 : 1);
+const tierOfHQ = (hq) => (hq && hq.megacorpName ? MEGACORP_TIER[hq.megacorpName] || 1 : 1);
+/* What a headquarters of this tile banks each quarter, at this price. */
+const brandEPFor = (price, tier) => Math.floor(price / tier);
+function drawMegacorpPool(nPlayers, rng) {
+  const out = [];
+  for (let tier = MEGACORP_TIERS; tier >= 1; tier--) {
+    if (nPlayers < MEGACORP_TIER_MIN_PLAYERS[tier]) continue;
+    const from = (MEGACORP_TIERS - tier) * MEGACORP_PER_TIER;
+    out.push(...shuffle(MEGACORP_TILES.slice(from, from + MEGACORP_PER_TIER), rng).slice(0, 2));
+  }
+  return out;
+}
 function tryMatchMegacorp(bizList, combo) {
   const needed = { ...combo };
   const have = [];
@@ -1906,7 +2026,7 @@ function claimMegacorp(state, p, log, hqChoice) {
   // One of the merged companies becomes the Megacorp HQ: it keeps its building and the
   // owner's disc, gains a Megacorp block, and its BP returns to its industry deck.
   // Bots take the highest-level company; the human is asked to choose.
-  const hq = hqChoice && match.have.includes(hqChoice) ? hqChoice : pickHQ(state, p, match.have);
+  const hq = hqChoice && match.have.includes(hqChoice) ? hqChoice : pickHQ(state, p, match.have, tierOfTile(match.tile));
   match.have.forEach((b) => {
     if (b === hq) return;
     b.distressed = true;
@@ -2049,10 +2169,23 @@ function getBizTooltipInfo(state, biz) {
 }
 
 /* ---------------- Turn-order / tracks ---------------- */
-function makeTracks() {
-  // Board Meeting holds two players (both meeples each). Seat 2 stays blocked by the
-  // IPO tile until a player goes public and claims it.
-  return { raise_capital: [null, null, null, null], ma: [null, null, null, null], rd: [null, null, null, null], board_meeting: [null, null] };
+/* Four slots on each of the three working tracks, and two on Board Meeting - of which
+   the second stays sealed under the IPO tile until somebody goes public.
+
+   THE FIFTH AND SIXTH SLOTS ONLY EXIST AT FIVE AND SIX PLAYERS. Every player places
+   two workers, so a four-seat table puts eight into the thirteen that are open, and a
+   six-seat table would put twelve into the same thirteen - measured, that left 7% of
+   placements with a single track open, which is not a decision, it is a queue. One
+   extra slot per player above four takes that back to nothing, and adding it only at
+   those counts keeps the smaller tables exactly as tight as they are now.
+
+   Board Meeting does not grow. Going public is meant to be contested. */
+const TRACK_SLOTS_BASE = 4;
+const workingTrackSlots = (nPlayers) => TRACK_SLOTS_BASE + Math.max(0, (nPlayers || 4) - 4);
+function makeTracks(nPlayers) {
+  const n = workingTrackSlots(nPlayers);
+  const row = () => new Array(n).fill(null);
+  return { raise_capital: row(), ma: row(), rd: row(), board_meeting: [null, null] };
 }
 function trackBonusOrder(slots) {
   const filled = [];
@@ -2098,8 +2231,21 @@ function megacorpWorthIt(state, p, match) {
      the headquarters keeps drawing its industry's pot, and the district that grows around
      it scores at the end - so the company with the most neighbours already standing is
      the one to keep. */
-  const qLeft = Math.max(1, 13 - (state.quarter || 1));
-  const hq = pickHQ(state, p, match.have);
+  /* How many more quarters this headquarters will actually stand. Normally that is
+     whatever is left of the three years - but if this merger is the player's SECOND
+     Megacorp it ends the game at the close of this very quarter, so everything paid
+     per quarter is paid exactly once. Counting the full remainder would have the bot
+     value its second tile on brand dividends for quarters that will never be played.
+
+     MEASURED, IT CHANGES NO DECISIONS. Over 250 four-seat games the old valuation and
+     this one accept exactly the same 51 second mergers. The tile is worth 8-22 EP on
+     its own and the district scores around it either way, so the brand dividend was
+     never the term deciding the answer - it was just wrong. This is kept because it
+     is right, not because it did anything, and if the tile EP or the level EP ever
+     move it is the line that stops the bot buying quarters that do not exist. */
+  const ends = megacorpHQs(p).length + 1 >= MEGACORPS_TO_END;
+  const qLeft = ends ? 1 : Math.max(1, 13 - (state.quarter || 1));
+  const hq = pickHQ(state, p, match.have, tierOfTile(match.tile));
   let lostPerQuarter = 0;
   for (const b of match.have) {
     const units = Math.min(bizProd(b), sellableForBiz(state, p, b));
@@ -2111,7 +2257,7 @@ function megacorpWorthIt(state, p, match) {
   /* The headquarters banks EP equal to its industry's price every quarter it stands, so
      merging early is worth far more than merging late - and it pays ground rent for the
      privilege if the land under it is somebody else's. */
-  const brandEP = price(state.pm, bizInd(hq)) * qLeft;
+  const brandEP = brandEPFor(price(state.pm, bizInd(hq)), tierOfTile(match.tile)) * qLeft;
   const rentEP = (hqGroundRent(state, p, hq) * qLeft) / CASH_PER_EP;
   return ep + districtEP + brandEP - rentEP - forgone - (lostPerQuarter * qLeft) / CASH_PER_EP > 0;
 }
@@ -2128,13 +2274,17 @@ function hqGroundRent(state, p, b) {
 /* Which company keeps standing as the headquarters. It scores for the companies around
    it at the end of the game, so the one already in a built-up corner is worth more than
    the biggest one - which is what bots used to take. */
-function pickHQ(state, p, have) {
+function pickHQ(state, p, have, tier = 1) {
   const qLeft = Math.max(1, 13 - (state.quarter || 1));
   /* Two things now decide which building to keep: the industry it sits in, because the
-     headquarters banks that industry's price in EP every quarter, and what stands around
-     it, because the district it ends up in scores at the end. Ground rent on somebody
-     else's land comes off the top. */
-  const worth = (b) => price(state.pm, bizInd(b)) * qLeft
+     headquarters banks that industry's price DIVIDED BY THE TILE'S TIER every quarter,
+     and what stands around it, because the district it ends up in scores at the end.
+     Ground rent on somebody else's land comes off the top.
+
+     The tier matters to this choice, not just to the total: on a tier 4 tile the brand
+     rounds to nothing in most industries, so which building to keep stops being a
+     question about price at all and becomes one about neighbours. */
+  const worth = (b) => brandEPFor(price(state.pm, bizInd(b)), tier) * qLeft
     + MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, b)
     - (hqGroundRent(state, p, b) * qLeft) / CASH_PER_EP;
   return have.reduce((a, b) => (worth(b) > worth(a) ? b : a));
@@ -2527,7 +2677,7 @@ function workersPerPlayer(state) {
   return state.players.length === 2 ? 3 : 2;
 }
 function startPlanning(state) {
-  state.tracks = makeTracks();
+  state.tracks = makeTracks(state.players.length);
   const W = workersPerPlayer(state);
   const rep = (ids, k) => { const out = []; for (let i = 0; i < k; i++) out.push(...ids); return out; };
   if (state.doubleFirstPlayer !== null && state.doubleFirstPlayer !== undefined) {
@@ -2715,7 +2865,12 @@ function finishQuarterAfterRepay(state, log, rng) {
   }
   const summary = state.players.map((p) => `${p.name} $${Math.round(p.cash)}/${p.epBank.toFixed(0)}EP/${activeBiz(p).length}biz`).join("  \u00b7  ");
   log(`\u2500 End of Q${state.quarter}: ${summary}`, null);
-  if (state.quarter >= 12) {
+  const rushers = endgameRushers(state);
+  if (state.quarter >= 12 || rushers.length) {
+    if (rushers.length && state.quarter < 12) {
+      const who = rushers.map((p) => p.name).join(" and ");
+      log(`\u23f9 ${who} ${rushers.length === 1 ? "has" : "have"} launched ${MEGACORPS_TO_END} Megacorps \u2014 the game ends here, at the close of Q${state.quarter}.`, null);
+    }
     finalizeGame(state);
     state.phase = "gameover";
     log("=== GAME OVER \u2014 final scoring complete ===", null);
@@ -2734,7 +2889,15 @@ function humanCompleteResolutionAction(state, rng, log) {
   advanceResolution(state, rng, log);
 }
 
-const STARTING = { 4: [[25, 1], [25, 2], [20, 2], [20, 3]], 3: [[25, 1], [25, 2], [20, 3]], 2: [[20, 2], [20, 2]] };
+/* Later seats trade money for cards - reverse-order drafting is the only catch-up the
+   game has, and it is deliberately small. Seats 5 and 6 continue the same slope. */
+const STARTING = {
+  6: [[25, 1], [25, 2], [20, 2], [20, 3], [20, 3], [15, 4]],
+  5: [[25, 1], [25, 2], [20, 2], [20, 3], [15, 4]],
+  4: [[25, 1], [25, 2], [20, 2], [20, 3]],
+  3: [[25, 1], [25, 2], [20, 3]],
+  2: [[20, 2], [20, 2]],
+};
 
 /* humanNames: optional array of display names for human seats. Single player passes
    nothing and gets one human ("You") plus bots; the online server passes one name per
@@ -2887,10 +3050,10 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
     const deal = shuffle(PERSONA_KEYS, rng);
     players.forEach((pl, i) => { pl.persona = deal[i % deal.length]; });
   }
-  /* Twice as many tiles as players. At (players + 1) only a third of seats ever formed
-     a Megacorp and the first one arrived in Quarter 7; at 2n it is half the seats and
-     Quarter 6.7, and being first to go public stops being a near-decisive edge. */
-  const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers * 2);
+  /* Two tiles from each tier that is in play - which still comes to twice the number
+     of players, so the count is what it was; it is the MIX that is now deliberate.
+     See MEGACORP_TIER above for why the hard tiers wait for a bigger table. */
+  const megacorpPool = drawMegacorpPool(nPlayers, rng);
   const state = {
     board, demand, pm, players, decks, variants: V, quarter: 1, solvencyEvents: 0, rngSeed: seedNum, rngCalls: 0,
     turnOrder: seats,                      // randomised seating
@@ -2899,7 +3062,7 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
     marketAwareSeats: marketAwareSeats || null,
     awaitingPlayerId: null,
     phase: "drafting",
-    tracks: makeTracks(),
+    tracks: makeTracks(nPlayers),
     megacorpPool, ipoTileClaimed: false,
     planningQueue: [],
     resolutionQueue: [],
@@ -3361,6 +3524,30 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
   );
 }
 
+/* The ground-rent ledger, shown wherever a score is broken down. Rent never appears
+   as EP while the game is running - it arrives as cash and scores at the $10 line at
+   the end - so without this the biggest thing land does is invisible until the final
+   tally, and at a big table that is most of what land does at all. */
+function RentLine({ p }) {
+  const inn = p.rentIn || 0, out = p.rentOut || 0, saved = p.rentSaved || 0;
+  if (!inn && !out && !saved) return null;
+  const net = inn - out;
+  return (
+    <div className="mt-1.5 pt-1.5 text-[10px]" style={{ borderTop: "1px solid #262a33" }}>
+      <div className="flex items-center justify-between">
+        <span className="text-gray-500">Ground rent</span>
+        <span className="font-mono" style={{ color: net > 0 ? "#8fd3b6" : net < 0 ? "#fca5a5" : "#8b93a3" }}>
+          {net > 0 ? "+" : ""}${Math.round(net)}
+        </span>
+      </div>
+      <div className="text-[9px] text-gray-600 leading-tight">
+        ${Math.round(inn)} collected &middot; ${Math.round(out)} paid out
+        {saved ? <> &middot; ${Math.round(saved)} saved on your own land</> : null}
+      </div>
+    </div>
+  );
+}
+
 function EPBreakdown({ hover }) {
   if (!hover || !hover.p) return null;
   const p = hover.p;
@@ -3395,6 +3582,7 @@ function EPBreakdown({ hover }) {
               </div>
             ))}
           </div>
+          <RentLine p={p} />
         </>
       )}
     </div></Floating>
@@ -4191,7 +4379,6 @@ function GameScreens({ online }) {
   const [pickMode, setPickMode] = useState(null); // {kind:'launch', bp, nPlots, selected:[]} | {kind:'buy', selected:[]}
   const [waitSecs, setWaitSecs] = useState(0);
   const [elapsed, setElapsed] = useState(0);
-  const [indTab, setIndTab] = useState("pots");
   // Personas are on by default in v13: they are one line each and give every seat
   // something of its own from Quarter 1. Still switchable on the setup screen.
   const [personas, setPersonas] = useState(true);
@@ -4912,84 +5099,9 @@ function GameScreens({ online }) {
               </div>
             </div>
 
-            {/* Pots, Decks and Abilities are all reference material for the same six
-                industries, so they share one frame and one tab bar instead of three
-                tall panels competing for space. */}
-            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div className="flex items-center gap-1 mb-2">
-                {[["pots", "Pots"], ["decks", "Decks"], ["abil", "Abilities"]].map(([k, label]) => (
-                  <button key={k} onClick={() => setIndTab(k)}
-                    className="flex-1 rounded text-xs font-bold uppercase tracking-wide"
-                    style={{ padding: "4px 0", border: "1px solid #262a33", cursor: "pointer",
-                      backgroundColor: indTab === k ? "#2c5f4f" : "#1c1f26",
-                      color: indTab === k ? "#d3fcec" : "#8b93a3" }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: indTab === "pots" ? "block" : "none" }}>
-              <div data-tut="pots" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Pots <Help text="When a company pays OPEX, that money (minus rent) lands in its suppliers' pots. Each quarter every pot is split evenly among the active businesses of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative." /></div>
-              <div className="text-[9px] text-gray-500 mb-1.5">Supplier OPEX collects here, then splits among that industry's active businesses by level.</div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {INDUSTRIES.map((ind) => {
-                  const pot = state.pots ? state.pots[ind] : 0;
-                  const { n, levels } = potRecipients(state, ind);
-                  return (
-                    <div key={ind} className="rounded p-1.5" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}44` }}>
-                      <div className="flex items-center justify-between">
-                        <Chip color={IND_COLOR[ind]}>{ind}</Chip>
-                        <span className="text-[11px] font-bold font-mono" style={{ color: pot > 0 ? "#8fd3b6" : "#4b5563" }}>${pot.toFixed(0)}</span>
-                      </div>
-                      <div className="text-[8px] font-mono text-gray-500 mt-0.5">
-                        {n ? `${n} biz \u00b7 ${levels} lvl` : "no takers \u2014 carries over"}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              </div>
-              <div style={{ display: indTab === "decks" ? "block" : "none" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Decks <Help text={hasVariant(state, "orderedDecks")
-                ? "Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."
-                : "Six separate decks, each shuffled whole, so any level can be on top. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."} /></div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {INDUSTRIES.map((ind) => {
-                  const deck = state.decks[ind];
-                  const top = deck && deck[0];
-                  return (
-                    <div key={ind} className="rounded p-1.5" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}55` }}>
-                      <div className="flex items-center justify-between">
-                        <Chip color={IND_COLOR[ind]}>{ind}</Chip>
-                        <span className="text-[8px] font-mono text-gray-500">{deck ? deck.length : 0} left</span>
-                      </div>
-                      {top ? (
-                        <>
-                          <div className="text-[9px] text-gray-300 leading-tight mt-0.5">{top.name}</div>
-                          <div className="text-[8px] font-mono text-gray-500 leading-tight">
-                            L{top.lvl} &middot; set ${top.setup} &middot; opex ${top.opex} &middot; prod {top.prod}
-                          </div>
-                          <div className="text-[8px] font-mono leading-tight" style={{ color: "#a5b4cf" }}>
-                            {top.deps.map((d) => `${d.ind} $${d.val}`).join(" \u00b7 ")}
-                          </div>
-                        </>
-                      ) : <div className="text-[9px] text-gray-600 italic mt-0.5">Empty</div>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-              <div style={{ display: indTab === "abil" ? "block" : "none" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Abilities</div>
-              <div className="space-y-1.5">
-                {INDUSTRIES.map((ind) => (
-                  <div key={ind} className="text-[10px] leading-snug">
-                    <Chip color={IND_COLOR[ind]}>{ind}</Chip> <span className="text-gray-400">{IND_ABILITY[ind]}</span>
-                  </div>
-                ))}
-              </div>
-              </div>
-            </div>
+            {/* Pots, decks and abilities are reference material for the same six
+                industries; they share one card each rather than three tabs. */}
+            <IndustryReference state={state} />
 
             {/* The Megacorp list is short; the log shares its frame so the column
                 keeps a single, full-width block instead of two stubby ones. */}
@@ -5093,14 +5205,18 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
         </div>
         <div className="mb-6">
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Opponents</div>
-          <div className="flex gap-2">
-            {[1, 2, 3].map((n) => (
+          <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} onClick={() => setNumBots(n)}
-                className="flex-1 py-2 rounded-md text-sm font-semibold transition"
+                className="flex-1 py-2 rounded-md text-[11px] font-semibold transition whitespace-nowrap"
                 style={{ backgroundColor: numBots === n ? "#2c5f4f" : "#1c1f26", color: numBots === n ? "#d3fcec" : "#9ca3af", border: "1px solid #262a33" }}>
                 {n} bot{n > 1 ? "s" : ""}
               </button>
             ))}
+          </div>
+          <div className="text-[10px] text-gray-500 mt-1.5" style={{ lineHeight: 1.4 }}>
+            A table seats six. The fifth and sixth seats open a fifth and sixth slot on
+            each of the three working tracks, and put all four Megacorp tiers in the box.
           </div>
         </div>
         <div className="mb-6 flex flex-wrap gap-1.5">
@@ -5159,6 +5275,91 @@ function Help({ text, label }) {
         }}>{text}</span></Floating>
       )}
     </span>
+  );
+}
+
+/* ---------------- Industry reference ----------------
+   Pots, decks and abilities were three tabs over the same six industries, which
+   meant the two numbers you actually compare when choosing what to build - what
+   an industry's pot is worth, and what its deck is offering - could never be
+   read at the same time. They are one card per industry now. The ability is the
+   one part that never changes all game, so it moves to hover rather than taking
+   permanent space. */
+function IndustryReference({ state }) {
+  const [over, setOver] = useState(null);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const enter = (ind) => (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const W = 230, PAD = 8;
+    const vw = typeof window !== "undefined" ? window.innerWidth : 1400;
+    const vh = typeof window !== "undefined" ? window.innerHeight : 900;
+    setPos({
+      x: Math.min(Math.max(PAD, r.left), vw - W - PAD),
+      y: Math.min(Math.max(PAD, r.bottom + 6), vh - 110),
+    });
+    setOver(ind);
+  };
+  const deckHelp = hasVariant(state, "orderedDecks")
+    ? "Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."
+    : "Six separate decks, each shuffled whole, so any level can be on top. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from.";
+  return (
+    <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+      <div data-tut="pots" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">
+        Industries
+        <Help text={"POT \u2014 when a company pays OPEX, that money (minus rent) lands in its suppliers' pots. Each quarter every pot is split evenly among the active businesses of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative.\n\nDECK \u2014 " + deckHelp} />
+      </div>
+      <div className="text-[9px] text-gray-500 mb-2">
+        Pot, then the top Blueprint. Hover an industry for what it does.
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        {INDUSTRIES.map((ind) => {
+          const pot = state.pots ? state.pots[ind] : 0;
+          const { n, levels } = potRecipients(state, ind);
+          const deck = state.decks[ind];
+          const top = deck && deck[0];
+          return (
+            <div key={ind} className="rounded p-1.5"
+              onMouseEnter={enter(ind)} onMouseLeave={() => setOver(null)}
+              style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}55`, cursor: "help" }}>
+              <div className="flex items-center justify-between">
+                <Chip color={IND_COLOR[ind]}>{ind}</Chip>
+                <span className="text-[11px] font-bold font-mono" style={{ color: pot > 0 ? "#8fd3b6" : "#4b5563" }}>${pot.toFixed(0)}</span>
+              </div>
+              <div className="text-[8px] font-mono text-gray-500 leading-tight">
+                {n ? `${n} biz \u00b7 ${levels} lvl` : "no takers \u2014 carries over"}
+              </div>
+              <div className="mt-1 pt-1" style={{ borderTop: "1px solid #262a3399" }}>
+                {top ? (
+                  <>
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[9px] text-gray-300 leading-tight truncate">{top.name}</span>
+                      <span className="text-[8px] font-mono text-gray-500 shrink-0">{deck.length} left</span>
+                    </div>
+                    <div className="text-[8px] font-mono text-gray-500 leading-tight">
+                      L{top.lvl} &middot; set ${top.setup} &middot; opex ${top.opex} &middot; prod {top.prod}
+                    </div>
+                    <div className="text-[8px] font-mono leading-tight" style={{ color: "#a5b4cf" }}>
+                      {top.deps.map((d) => `${d.ind} $${d.val}`).join(" \u00b7 ")}
+                    </div>
+                  </>
+                ) : <div className="text-[9px] text-gray-600 italic">Deck empty</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {over && (
+        <Floating><span style={{
+          position: "fixed", left: pos.x, top: pos.y, zIndex: 9999, width: 230,
+          backgroundColor: "#0e1014", border: `1px solid ${IND_COLOR[over]}88`, borderRadius: 6,
+          padding: "7px 9px", fontSize: 10, lineHeight: 1.45, color: "#d1d5db",
+          boxShadow: "0 6px 20px rgba(0,0,0,0.6)", pointerEvents: "none",
+        }}>
+          <span style={{ color: IND_COLOR[over], fontWeight: 700 }}>{IND_NAME[over] || over}</span>
+          <br />{IND_ABILITY[over]}
+        </span></Floating>
+      )}
+    </div>
   );
 }
 
@@ -5469,6 +5670,7 @@ function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
                           </div>
                         ))}
                       </div>
+                      <RentLine p={p} />
                       {log.length > 0 && (
                         <div className="flex items-center justify-between mt-1.5 pt-1.5 text-[10px] font-mono" style={{ borderTop: "1px solid #262a33" }}>
                           <span className="text-gray-500">

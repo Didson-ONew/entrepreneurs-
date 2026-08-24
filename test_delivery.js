@@ -30,8 +30,10 @@ function loadEngine() {
   vm.runInContext(logic + `
     box.exports = { initGame, BP_DATA, byId, activeBiz, mulberry32, doLaunch, doPlaceLH,
       hoBonusUnits, plotsWithinReach, eligibleSlotsFor, skipDelivery, humanDeliver, bizProd,
+      MEGACORP_TIER, drawMegacorpPool, brandEPFor, runMegacorpDividend, price,
       plotIsLH, plotHasLH, orthOf, bizInd, price, unitPrice, claimMegacorp, MEGACORP_TILES,
-      slotOpen, deliverToSlot, autoDeliver, SCALING, footprintDistricts };
+      slotOpen, deliverToSlot, autoDeliver, SCALING, footprintDistricts,
+      reachableDistricts, allDistrictKeys, utBlock, bestUtBlock };
   `, sandbox);
   return box.exports;
 }
@@ -258,6 +260,173 @@ section("A company can never deliver more than it produced");
   const took = slots.length ? E.humanDeliver(st, me, slots[0].tileKey, slots[0].rowIdx, slots[0].levelIdx, false, quiet) : false;
   check("a company with nothing left delivers nothing", took === false && me.cash === before,
     `$${me.cash - before}`);
+}
+
+/* ============================================ reach, and the Utilities block */
+section("A company cannot deliver where it cannot reach");
+{
+  const { st, me } = table(23);
+  const home = Object.keys(st.board.graph).find((k) => !(k in st.board.owner));
+  const biz = plant(st, me, "RE", 1, home);
+  const reach = E.reachableDistricts(st, biz);
+  const outside = E.allDistrictKeys(st.board).filter((d) => !reach.has(d));
+  check("there are districts it cannot see", outside.length > 0, `${outside.length}`);
+
+  /* The rule used to live only in eligibleSlotsFor - the function that decides which
+     cells the grid highlights - so the engine would take a delivery anywhere on the
+     board from anyone. */
+  let accepted = 0, tried = 0;
+  for (const d of outside) {
+    const t = st.demand.tiles[d];
+    if (!t) continue;
+    t.rows.forEach((rowInd, ri) => {
+      if (rowInd !== E.bizInd(biz)) return;
+      for (let li = 0; li < biz.level; li++) {
+        if (!E.slotOpen(st.demand, d, ri, li, st.quarter)) continue;
+        tried++;
+        if (E.deliverToSlot(st, biz, d, ri, li, false) > 0) accepted++;
+      }
+    });
+  }
+  check(`all ${tried} attempts out of reach are refused`, tried > 0 && accepted === 0,
+    `${accepted} accepted`);
+
+  const inside = E.eligibleSlotsFor(st, biz, me);
+  check("while a slot in reach is still accepted", inside.length > 0
+    && E.deliverToSlot(st, biz, inside[0].tileKey, inside[0].rowIdx, inside[0].levelIdx, false) > 0);
+}
+
+section("A Utility's block is chosen once and held for the quarter");
+{
+  /* A level-3 Utility spans three plots and often two districts, and the block it reads
+     can usually be placed several ways around them. The block used to be recomputed on
+     every call and chosen by counting OPEN slots - so selling into it lowered its score
+     until a rival block won, and the districts the company could reach changed under the
+     player between one click and the next. It moved on 83% of Utilities. */
+  let st, me, biz;
+  for (let seed = 1; seed <= 120 && !biz; seed++) {
+    const t = table(seed);
+    const start = Object.keys(t.st.board.graph).find((k) => !(k in t.st.board.owner));
+    let b;
+    try { b = plant(t.st, t.me, "UT", 3, start); } catch (_) { continue; }
+    if (E.footprintDistricts(t.st.board, b.footprint).size < 2) continue;
+    st = t.st; me = t.me; biz = b;
+  }
+  check("a level 3 Utility stands across two districts", !!biz,
+    biz ? [...E.footprintDistricts(st.board, biz.footprint)].join(" ") : "none found");
+
+  if (biz) {
+    const first = [...E.reachableDistricts(st, biz)].sort().join(" ");
+    check("it reads a 3 x 3 block", first.split(" ").length <= 9 && first.split(" ").length >= 4,
+      `${first.split(" ").length} districts`);
+
+    /* Sell everything it has, one unit at a time, checking after each. */
+    let moved = 0, delivered = 0;
+    for (let n = 0; n < E.bizProd(biz); n++) {
+      const slots = E.eligibleSlotsFor(st, biz, me);
+      if (!slots.length) break;
+      const s = slots[0];
+      if (E.deliverToSlot(st, biz, s.tileKey, s.rowIdx, s.levelIdx, false) <= 0) break;
+      delivered++;
+      if ([...E.reachableDistricts(st, biz)].sort().join(" ") !== first) moved++;
+    }
+    check(`the block held still across all ${delivered} deliveries`, moved === 0, `${moved} moves`);
+
+    /* A new quarter is a new choice, and an upgrade changes the size of the block. */
+    st.quarter += 1;
+    check("a new quarter may choose again",
+      Array.isArray(E.utBlock(st, biz, E.footprintDistricts(st.board, biz.footprint))));
+    check("and the held block is stamped with the quarter and level it was chosen for",
+      st.utBlocks[biz.id].quarter === st.quarter && st.utBlocks[biz.id].level === biz.level,
+      JSON.stringify({ q: st.utBlocks[biz.id].quarter, lvl: st.utBlocks[biz.id].level }));
+  }
+}
+
+section("A company a bot is only imagining never writes a block down");
+{
+  const { st, me } = table(29);
+  const home = Object.keys(st.board.graph).find((k) => !(k in st.board.owner));
+  const real = plant(st, me, "UT", 2, home);
+  E.reachableDistricts(st, real);
+  const before = JSON.stringify(st.utBlocks);
+
+  /* sellableFrom builds a probe with id -1 to price a card that has not been built. */
+  const bp = E.BP_DATA.find((x) => x.ind === "UT" && x.lvl === 3);
+  const probe = { id: -1, bp, footprint: real.footprint, level: 3, upgraded: false,
+    distressed: false, isHQ: false, scored: false, quarterBuilt: st.quarter };
+  E.reachableDistricts(st, probe);
+  check("the imagined company is answered", true);
+  check("but leaves nothing behind for the real one to find",
+    JSON.stringify(st.utBlocks) === before);
+}
+
+/* ============================================================ Megacorp tiers */
+section("The sixteen tiles are four tiers of four");
+{
+  const counts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  for (const t of E.MEGACORP_TILES) counts[E.MEGACORP_TIER[t[0]]]++;
+  check("four in every tier", Object.values(counts).every((n) => n === 4), JSON.stringify(counts));
+  check("tier 4 holds the cheapest and tier 1 the dearest",
+    E.MEGACORP_TIER[E.MEGACORP_TILES[0][0]] === 4
+    && E.MEGACORP_TIER[E.MEGACORP_TILES[E.MEGACORP_TILES.length - 1][0]] === 1,
+    `${E.MEGACORP_TILES[0][0]} -> 4, ${E.MEGACORP_TILES[15][0]} -> 1`);
+}
+
+section("Two tiles from each tier that is in play");
+{
+  const want = { 2: { tiles: 4, tiers: [3, 4] }, 3: { tiles: 6, tiers: [2, 3, 4] }, 4: { tiles: 8, tiers: [1, 2, 3, 4] } };
+  for (const n of [2, 3, 4]) {
+    const pool = E.drawMegacorpPool(n, E.mulberry32(n * 13));
+    const mix = {};
+    pool.forEach((t) => { const k = E.MEGACORP_TIER[t[0]]; mix[k] = (mix[k] || 0) + 1; });
+    check(`${n} players: ${want[n].tiles} tiles`, pool.length === want[n].tiles, `${pool.length}`);
+    check(`  two from each of tiers ${want[n].tiers.join(", ")}`,
+      want[n].tiers.every((t) => mix[t] === 2) && Object.keys(mix).length === want[n].tiers.length,
+      JSON.stringify(mix));
+    check("  and no duplicates", new Set(pool.map((t) => t[0])).size === pool.length);
+  }
+  const hard = E.drawMegacorpPool(2, E.mulberry32(5)).filter((t) => E.MEGACORP_TIER[t[0]] <= 2);
+  check("a two-player box holds none of the hard tiles", hard.length === 0, `${hard.length}`);
+}
+
+section("The brand is the industry's price divided by the tile's tier");
+{
+  /* The example as it was put: a headquarters in Manufacturing at $3. */
+  check("tier 4 banks nothing at $3", E.brandEPFor(3, 4) === 0);
+  check("tier 3 banks 1", E.brandEPFor(3, 3) === 1);
+  check("tier 2 banks 1", E.brandEPFor(3, 2) === 1);
+  check("tier 1 banks 3", E.brandEPFor(3, 1) === 3);
+  check("and tier 4 starts paying once the industry reaches $4", E.brandEPFor(4, 4) === 1);
+  check("it always rounds down", E.brandEPFor(7, 2) === 3 && E.brandEPFor(5, 4) === 1);
+}
+
+section("A headquarters banks its tier's share, quarter by quarter");
+{
+  const { st, me } = table(11);
+  const spots = Object.keys(st.board.graph).filter((k) => !(k in st.board.owner));
+  const bp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 1);
+  for (let i = 0; i < 3; i++) {
+    st.board.owner[spots[i]] = me.id;
+    me.hand = [bp];
+    E.doLaunch(st, me, bp, E.mulberry32(i + 1), quiet, [spots[i]]);
+  }
+  /* Force the cheapest tile in the box, which is a tier 4. */
+  const tile = E.MEGACORP_TILES.find((t) => t[0] === "Local Syndicate");
+  st.megacorpPool = [tile];
+  check("Local Syndicate is a tier 4 tile", E.MEGACORP_TIER[tile[0]] === 4);
+  check("the merger happens", E.claimMegacorp(st, me, quiet) === true);
+  const hq = me.businesses.find((b) => b.isHQ);
+  check("and the headquarters remembers which tile it is", hq && hq.megacorpName === "Local Syndicate");
+
+  const banked = () => (me.epLog || []).filter((e) => String(e.label).startsWith("Megacorp brand:"))
+    .reduce((n, e) => n + e.amount, 0);
+  const before = banked();
+  E.runMegacorpDividend(st, quiet);
+  const goods = E.price(st.pm, E.bizInd(hq));
+  check(`at $${goods}, a tier 4 brand banks ${E.brandEPFor(goods, 4)}`,
+    banked() - before === E.brandEPFor(goods, 4), `banked ${banked() - before}`);
+  check("which for a cheap industry is nothing at all",
+    goods >= 4 || banked() - before === 0, `$${goods}`);
 }
 
 console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed\n");

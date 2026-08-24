@@ -59,7 +59,7 @@ function play(seed, variants) {
   return { st, idle, idleLate };
 }
 
-const BUCKETS = ["industries", "companies", "megacorps", "ipo", "land", "cash", "loans"];
+const BUCKETS = ["industries", "companies", "megacorps", "ipo", "land", "rent", "cash", "loans"];
 function bucketOf(label) {
   const l = String(label || "");
   if (l.startsWith("Entered ")) return "industries";
@@ -68,6 +68,7 @@ function bucketOf(label) {
   if (l === "IPO tile") return "ipo";
   if (l === "The Real-Estate Mogul" || l === "The Omnipresent") return "land";
   if (l.startsWith("Cash on hand")) return "cash";
+  if (l.startsWith("Ground rent")) return "rent";
   if (l.startsWith("Unpaid loans")) return "loans";
   return "other";
 }

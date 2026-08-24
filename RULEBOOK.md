@@ -28,8 +28,8 @@
 
 You are a founder building a city's economy. You buy land, build companies on it, and sell what they produce to the districts around them. The player with the most Entrepreneurial Points (EP) at the end of Year 3 wins.
 
-- 2 to 4 players.
-- 3 years of 4 quarters - 12 rounds in total.
+- 2 to 6 players.
+- 3 years of 4 quarters - 12 rounds at most. A second Megacorp ends it sooner.
 - The board is 16 districts of 4 plots each.
 - The coloured squares inside a district are its demand: what it will buy.
 
@@ -68,7 +68,7 @@ Starting Blueprints are drafted in reverse seat order - the LAST seat picks firs
 ### The rest
 
 - Twelve discs each. Nothing else marks what you own.
-- Megacorp tiles: sixteen exist, and twice the number of players are shuffled into the game.
+- Megacorp tiles: sixteen exist in four tiers of four. Two are drawn from each tier that is in play - which is twice the number of players. Tiers 4 and 3 are always in; tier 2 joins at three players, tier 1 only at four.
 - Personas are dealt to everyone by default - one each, drawn from six. Leave them out for a first game if you like.
 
 > **Designer's note.** Reverse-order drafting is the only catch-up mechanism in the game, and it is deliberately small. Seat 4 in a four-player game opens with $20 and three cards against seat 1's $25 and one card - enough to matter in the first two quarters, not enough to decide a game.
@@ -119,10 +119,12 @@ You have two workers (three each in a two-player game). Players place one worker
 
 | Track | Slots | What it does |
 | --- | --- | --- |
-| Raise Capital | 4 | Turn assets into cash - LOAN or SELL. |
-| M&A | 4 | Grow your footprint - LAUNCH or BUY. |
-| R&D | 4 | Improve what you have - RESEARCH or UPGRADE. |
+| Raise Capital | 4 / 5 / 6 | Turn assets into cash - LOAN or SELL. |
+| M&A | 4 / 5 / 6 | Grow your footprint - LAUNCH or BUY. |
+| R&D | 4 / 5 / 6 | Improve what you have - RESEARCH or UPGRADE. |
 | Board Meeting | 2 | GO PUBLIC or REPOSITION. Takes all your workers. |
+
+The three working tracks have four slots at two, three or four players. A fifth player opens a fifth slot on each of them, and a sixth player a sixth. Board Meeting stays at two seats however many are playing - it is meant to be scarce.
 
 The second Board Meeting seat is sealed under the IPO tile until somebody claims it by going public.
 
@@ -130,7 +132,7 @@ The second Board Meeting seat is sealed under the IPO tile until somebody claims
 
 Workers fill a track from left to right, but the track resolves from RIGHT TO LEFT. Whoever placed LAST on a track acts FIRST on it.
 
-Committing early is paid for in actions: your worker takes one action, plus one extra for every worker that lands after it in the same track. A worker alone in a track that then fills up completely takes four actions - but the other three players will all have acted before it, and may have taken exactly what it was waiting for.
+Committing early is paid for in actions: your worker takes one action, plus one extra for every worker that lands after it in the same track. A worker alone in a track that then fills up completely takes as many actions as the track has slots - but everyone who landed after it will have acted first, and may have taken exactly what it was waiting for.
 
 The tracks themselves resolve in a fixed order: Raise Capital, then M&A, then R&D, then Board Meeting.
 
@@ -138,7 +140,7 @@ The tracks themselves resolve in a fixed order: Raise Capital, then M&A, then R&
 
 Going to the Board Meeting costs ALL of your workers for the quarter and buys a single action. It is a real sacrifice, and it is meant to be.
 
-> **Designer's note.** First-in-last-out worker placement is the spine of the game. It is the only mechanism that makes the turn order matter continuously rather than once per round, and it is why Reposition is worth two workers to a player sitting fourth.
+> **Designer's note.** First-in-last-out worker placement is the spine of the game. It is the only mechanism that makes the turn order matter continuously rather than once per round, and it is why Reposition is worth two workers to a player sitting at the back of the order.
 
 ---
 
@@ -366,7 +368,7 @@ Whoever forms the first Megacorp of the game also takes the IPO tile: a sixth co
 - You choose one of the merged companies to become the Megacorp HQ. It keeps its building and returns its Blueprint to its industry deck.
 - All the others go to the bank as Distressed Assets - anyone may take them over later.
 - The HQ stops trading: with no Blueprint it produces nothing and pays no OPEX. It still draws its equal share of its industry's pot every B2B - a headquarters that has stopped building has not stopped collecting.
-- Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for eight more quarters than one formed in Year 3.
+- Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry DIVIDED BY THE TILE'S TIER, rounded down. A tier 1 headquarters in an industry at $3 banks 3 EP a quarter; a tier 4 headquarters in the same industry banks nothing at all until that industry reaches $4. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for eight more quarters than one formed in Year 3.
 - It has no OPEX to pay its rent out of, so its owner pays the ground rent from pocket every quarter - $3 for every level standing on a plot, to that plot's owner. On your own land nothing moves.
 - A headquarters is public infrastructure: it counts as a Logistic Hub. Any company built orthogonally beside one joins the network through it, whoever owns them. A monument that only collected would be a monument nobody wanted to build near - and the companies that gather round it are exactly the ones it scores 3 EP each for at the end.
 - Sell a plot out from under a headquarters and it collects nothing at all - no pot share, no points, and it stops being a hub. A monument still needs its ground.
@@ -398,6 +400,21 @@ Twice the number of players are in play - eight at a four-player table - so a co
 
 A level-4 company is one that has been upgraded from level 3, so the richest tiles need companies you have already paid to grow.
 
+### The four tiers
+
+The sixteen tiles are four tiers of four. Tier 4 is the four cheapest to assemble and tier 1 the four hardest, and the tier does two things: it decides which tiles are in the box, and it divides what the headquarters earns.
+
+| Tier | Tiles | In play from | A $3 industry banks | A $6 industry banks |
+| --- | --- | --- | --- | --- |
+| 4 | Local Syndicate, Founders’ Pact, Continental Holdings, Twin Ventures | 2 players | 0 EP | 1 EP |
+| 3 | Silent Merger, Neighborhood Holdings, Regional Consolidated, Crosstown Alliance | 2 players | 1 EP | 2 EP |
+| 2 | Metro Trust, Crossroads Deal, Skyline Consolidated, Apex Group | 3 players | 1 EP | 3 EP |
+| 1 | Titan Industries, Colossus Group, Empire Holdings, Omnicorp | 4 players | 3 EP | 6 EP |
+
+Two tiles are drawn from each tier that is in play. At two players that is four tiles, at three it is six, and from four players up all four tiers come out and the box holds eight - so a small table is never filled with tiles nobody could ever claim.
+
+> **Designer's note.** Before the tiers, a Local Syndicate built out of three level-1 companies earned exactly as much every quarter as an Omnicorp built out of four level-3s, and the Megacorp had grown to 33% of a winning score - the largest single bucket in the game, ahead of companies. Dividing the brand by the tier halved that to 17% and took the winner’s lead over last from 58.6 EP to 48.7, without making the merger itself any rarer. The draw rule barely registers at four players, where eight random tiles out of sixteen already average two per tier; it earns its keep at two, where it took the unclaimable tiles out of the box and Megacorps formed rose from 1.00 a game to 1.26.
+
 > **Designer's note.** A merger is meant to be a real decision, not a free bonus: you are trading away the companies' production and their remaining upgrades for a lump sum now, a headquarters that collects without trading, and a district that scores around it. Every EP those companies already scored is banked and stays banked. It is strongest in Year 3 and usually a mistake in Year 1.
 
 ---
@@ -413,20 +430,31 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Entering an industry for the first time | +5 each, once per industry per game, banked immediately |
 | Each company, when it is built - and again when it is upgraded | +2 per level |
 | Megacorp tile | +8 to +22 as printed |
-| Megacorp HQ, each quarter it stands | + its industry's current price |
+| Megacorp HQ, each quarter it stands | + its industry's price / its tile's tier, rounded down |
 | Megacorp HQ, at the end | +3 for each other company beside it |
 | The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone |
 | The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone |
+| Net ground rent collected | +1 per full $10, named separately from the rest of your cash |
 | Cash on hand at the end | +1 per full $10 |
 | Each loan disc still in the bank | -5 |
 
 For The Omnipresent, a district counts if you own a plot in it or one of your active companies stands in it.
 
+Ground rent scores at the same $10 rate as the rest of your money - it is not a separate income - but the final tally names it on its own line so you can see what your land actually earned. A plot with somebody else’s building on it pays you every quarter; that is the main thing land does once the table is large.
+
+> **Designer's note.** Rent used to disappear into the cash line, which made the score read as though land stopped mattering at a big table. It does still matter less - land plus rent is 27% of a winning score at two seats and 14% at six - but the drop is about half what the old breakdown suggested. Net rent is worth about 5% of a winning score at every table size: gross rent moves far more at six seats, $9.5 a seat a quarter against $5.3, but the winner is paying rent as well as collecting it. See audit_idle_land.js.
+
 Only the outright leader scores a land award, and a shared lead pays badly: 5 EP alone, 2 EP each if two players tie, 1 EP each if three or more do. Second place gets nothing.
 
 > **Designer's note.** The awards used to pay 10 and 5 and split between ties, which meant almost everybody collected something and holding land was never really a contest - it was 21% of an average seat's score for very little decision-making. Paying only the leader, and paying badly for a draw, drops it to about 9% and turns it back into a race.
 
-Most EP after Quarter 12 wins. If the final scores tie, the player with more money wins; if they are still tied, the player with fewer loan discs left in the bank.
+### When the game ends
+
+The game ends at the close of Quarter 12, OR at the close of the quarter in which any player launches their SECOND Megacorp - whichever comes first. The quarter is always played out in full, so every seat has had the same number of turns.
+
+Most EP wins. If the final scores tie, the player with more money wins; if they are still tied, the player with fewer loan discs left in the bank.
+
+> **Designer's note.** The second Megacorp is a deadline rather than a shortcut. A player who can assemble two of them has spent the game merging, and the rest of the table would otherwise have four more quarters to be run away from. In practice it fires in about one game in eight and almost always in Quarter 11 or 12, so it shortens the average game by only a few weeks of board time - what it really does is put a clock on the leader’s last merger.
 
 > **Designer's note.** The two dials were set together against 300 games a case. At 3 EP a level, companies were 32% of an average seat's score and everything else faded behind them; at 1 EP an upgrade stopped being worth paying the setup cost twice and upgraded companies fell from 5.1 a game to 3.1, while the 5 EP entry bonus swelled to 27% of a score for a decision that is barely one. Two and three put companies at 30%, Megacorps at 24%, cash at 22%, entry at 15% and land at 10% - nothing over a third, and building is still the biggest single thing.
 
@@ -481,7 +509,7 @@ Whichever are on is shown in the waiting room before the game starts, and record
 
 Create a room and share the six-character code. Anyone who enters it joins your table.
 
-- 2 to 4 human seats. Bots fill any seat you do not want to wait for.
+- 2 to 6 seats in any mix of people and bots. Bots fill any seat you do not want to wait for.
 - If the table is full or the game has already started, latecomers join as watchers: they see the whole board and can chat and talk, but cannot act.
 - Text chat and voice chat are built in. Voice runs peer to peer - the server only introduces you.
 - Refreshing or losing your connection does not lose your seat. Come back to the same address and you are put straight back in.
@@ -497,9 +525,10 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 
 |  |  |
 | --- | --- |
-| Game length | 12 quarters (3 years of 4) |
+| Game length | 12 quarters (3 years of 4), or until someone launches a 2nd Megacorp |
+| Players | 2 to 6 |
 | Workers | 2 each, or 3 each in a two-player game |
-| Discs | 10, covering plots owned + active companies + unpaid loans |
+| Discs | 12, covering plots owned + active companies + unpaid loans |
 | Company slots | 5, counting Megacorp headquarters |
 | Hand limit | 5 Blueprints |
 | Loan | +$20 and one disc; buy back for $30 / $35 / $40 at year ends; -5 EP if unpaid |

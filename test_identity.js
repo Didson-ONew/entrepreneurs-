@@ -15,6 +15,13 @@ const check = (label, cond, detail) => {
 };
 const section = (t) => console.log(`\n${t}`);
 
+/* This test needs a name NOBODY has reserved: a registered name may only be used by
+   its owner, which is exactly the rule test_accounts and the live store both exercise.
+   Hard-coding a friendly name means the suite starts failing the day someone signs up
+   with it, so the name is made unique per run. */
+/* short, too: the solo name field caps at 16 characters and silently truncates. */
+const WHO = `G${process.pid.toString(36).slice(-4)}${Date.now().toString(36).slice(-4)}`;
+
 /* A browser keeps cookies between requests; fetch does not, so carry the jar by hand. */
 function jar() {
   let cookie = "";
@@ -46,10 +53,10 @@ const postJSON = (b) => ({ method: "POST", headers: { "Content-Type": "applicati
     "Secure is added only behind https");
 
   section("Playing once teaches it your name");
-  const made = await a.call("/api/create", postJSON({ name: "  Dids  ", bots: 1 }));
+  const made = await a.call("/api/create", postJSON({ name: `  ${WHO}  `, bots: 1 }));
   check("a room was created", !!made.body.code, made.body.code);
   const back = await a.call("/api/whoami");
-  check("the name comes back, trimmed", back.body.name === "Dids", `"${back.body.name}"`);
+  check("the name comes back, trimmed", back.body.name === WHO, `"${back.body.name}"`);
   check("and it says this is a returning player", back.body.returning === true);
   check("the id did not change", back.body.id === first.body.id);
 
@@ -110,7 +117,7 @@ const postJSON = (b) => ({ method: "POST", headers: { "Content-Type": "applicati
   check("the name field starts empty on a first visit",
     (await page.locator('input[placeholder="Your name"]').inputValue()) === "");
 
-  await page.locator('input[placeholder="Your name"]').fill("Dids");
+  await page.locator('input[placeholder="Your name"]').fill(WHO);
   await page.getByRole("button", { name: "Create room" }).click();
   await sleep(1200);
   check("the game was joined", /Room code/i.test(await txt()));
@@ -122,8 +129,8 @@ const postJSON = (b) => ({ method: "POST", headers: { "Content-Type": "applicati
   await page2.goto(BASE, { waitUntil: "networkidle" });
   await sleep(900);
   const filled = await page2.locator('input[placeholder="Your name"]').inputValue();
-  check("returning, the name is already filled in", filled === "Dids", `"${filled}"`);
-  check("and the page says so", /Welcome back, Dids/.test(await page2.evaluate(() => document.body.innerText)));
+  check("returning, the name is already filled in", filled === WHO, `"${filled}"`);
+  check("and the page says so", new RegExp(`Welcome back, ${WHO}`).test(await page2.evaluate(() => document.body.innerText)));
   check("the cookie is invisible to page scripts",
     !(await page2.evaluate(() => document.cookie)).includes("ent_player"),
     await page2.evaluate(() => document.cookie || "(none)"));
@@ -154,7 +161,7 @@ const postJSON = (b) => ({ method: "POST", headers: { "Content-Type": "applicati
   await sleep(700);
   check("the setup screen starts empty for a stranger",
     (await solo.locator('input[placeholder="You"]').inputValue()) === "");
-  await solo.locator('input[placeholder="You"]').fill("Solo Dids");
+  await solo.locator('input[placeholder="You"]').fill(`Solo ${WHO}`);
   await solo.getByRole("button", { name: /Start Game/i }).first().click();
   await sleep(1200);
 
@@ -164,7 +171,7 @@ const postJSON = (b) => ({ method: "POST", headers: { "Content-Type": "applicati
   await solo2.goto(`${BASE}/Entrepreneurs.html`, { waitUntil: "networkidle" });
   await sleep(900);
   const soloName = await solo2.locator('input[placeholder="You"]').inputValue();
-  check("starting a solo game is remembered, without localStorage", soloName === "Solo Dids", `"${soloName}"`);
+  check("starting a solo game is remembered, without localStorage", soloName === `Solo ${WHO}`, `"${soloName}"`);
 
   check("no page errors", errs.length === 0, errs.slice(0, 2).join(" | "));
   await browser.close();

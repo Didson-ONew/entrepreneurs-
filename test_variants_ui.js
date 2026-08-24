@@ -33,12 +33,12 @@ const section = (t) => console.log(`\n${t}`);
   check("a fresh room has every variant off",
     lob.variants && Object.values(lob.variants).every((v) => v === false), JSON.stringify(lob.variants));
 
-  const wanted = { roadHubs: true, singleLevelEP: true, orderedDecks: true };
+  const wanted = { roadHubs: true, heavyLevelEP: true, orderedDecks: true };
   const r = await post("/api/options", { code: host.code, token: host.token, variants: wanted });
   check("the host may set them", !r.error, r.error || "");
   lob = await lobbyOf(host.code, host.token);
   check("the lobby reports exactly what was set",
-    lob.variants.roadHubs && lob.variants.singleLevelEP && lob.variants.orderedDecks
+    lob.variants.roadHubs && lob.variants.heavyLevelEP && lob.variants.orderedDecks
     && !lob.variants.classicScoring && !lob.variants.endgameLandAwards,
     JSON.stringify(lob.variants));
   const guestView = await lobbyOf(host.code, guest.token);
@@ -50,7 +50,7 @@ const section = (t) => console.log(`\n${t}`);
   lob = await lobbyOf(host.code, host.token);
   check("an unknown variant is ignored, not stored", !("nonsense" in lob.variants));
   check("and naming one variant does not switch the others off",
-    lob.variants.roadHubs && lob.variants.singleLevelEP && lob.variants.orderedDecks,
+    lob.variants.roadHubs && lob.variants.heavyLevelEP && lob.variants.orderedDecks,
     JSON.stringify(lob.variants));
   await post("/api/options", { code: host.code, token: host.token, variants: { orderedDecks: false } });
   lob = await lobbyOf(host.code, host.token);
@@ -61,7 +61,7 @@ const section = (t) => console.log(`\n${t}`);
   section("The game starts under them");
   await post("/api/start", { code: host.code, token: host.token });
   const st = (await lobbyOf(host.code, host.token)).state;
-  check("the state carries the variants", st.variants.roadHubs === true && st.variants.singleLevelEP === true);
+  check("the state carries the variants", st.variants.roadHubs === true && st.variants.heavyLevelEP === true);
   check("the board is in road-hub mode, as those variants asked", st.board.lhOnPlots === false);
   check("and the decks are ordered, as Ordered decks asked",
     Object.values(st.decks).every((d) => !d[0] || d[0].lvl === 1),
@@ -92,14 +92,14 @@ const section = (t) => console.log(`\n${t}`);
   await sleep(300);
   let t = await txt(A);
   check("opening the fold lists all five",
-    ["Score at the year end", "Levels score single", "Ordered decks", "Hubs on the road",
+    ["Score at the year end", "Levels score heavy", "Ordered decks", "Hubs on the road",
      "Land awards at the end only"].every((n) => t.includes(n)));
   check("they start OFF", (t.match(/OFF/g) || []).length >= 5);
 
-  await A.getByText("Levels score single").click();
+  await A.getByText("Levels score heavy").click();
   await sleep(500);
   t = await txt(A);
-  check("clicking one turns it on", /Levels score single[\s\S]{0,20}ON/.test(t));
+  check("clicking one turns it on", /Levels score heavy[\s\S]{0,20}ON/.test(t));
   check("the fold header counts what is on", /Rule variants\s*—\s*1 on/.test(t) || /1 on/.test(t));
   await A.screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/variants-host.png` : "/tmp/variants-host.png" });
 
@@ -110,7 +110,7 @@ const section = (t) => console.log(`\n${t}`);
   await B.getByRole("button", { name: "Join room" }).click();
   await sleep(1200);
   const tb = await txt(B);
-  check("the guest is told what the host changed", /The host changed the rules/.test(tb) && /Levels score single/.test(tb));
+  check("the guest is told what the host changed", /The host changed the rules/.test(tb) && /Levels score heavy/.test(tb));
   check("the guest gets no toggles of their own", !/Rule variants/.test(tb));
   await B.screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/variants-guest.png` : "/tmp/variants-guest.png" });
 
