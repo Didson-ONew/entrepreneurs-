@@ -1,0 +1,300 @@
+/* ============================================================================
+   Six players, and a fourth year. What breaks, what it costs, how long it runs.
+
+   Both are asked as "could we?", and both have two separate answers: whether
+   the code allows it, and whether the game survives it. This measures both.
+
+   WHAT STOPS A SIX-PLAYER GAME TODAY
+
+     STARTING has rows for 2, 3 and 4 seats and nothing else, so initGame throws
+     on the sixth player before a card is dealt. That is the hard stop.
+
+     The action tracks do not scale. There are 14 worker slots on the board -
+     four each on Raise Capital, M&A and R&D, two on Board Meeting, one of which
+     is sealed until somebody goes public. Every player places two workers. Four
+     players fill 8 of 13; six players fill 12 of 13, so the last player to place
+     has no choice at all. This is the constraint that decides whether six is a
+     game or a queue.
+
+     64 plots on the board against 12 discs a player. Six players could commit
+     72 discs to land alone.
+
+     The Megacorp pool draws two tiles per tier - eight at four players, which is
+     the 2n the rules promise. At six it would still be eight, not twelve.
+
+     The lobby caps a room at three bots, and there are four player colours and
+     six personas. Those are cosmetic or nearly so, and are listed so nobody has
+     to rediscover them.
+
+   WHAT STOPS A FOURTH YEAR
+
+     The end of the game is `quarter >= 12`. Around it: year ends are the literal
+     list [4, 8, 12] in three places, "quarters left" is `13 - quarter` in four,
+     loan buy-back prices are a table of three, and the demand board is refreshed
+     once, at Q8. A fourth year with no fourth refresh plays its last four
+     quarters on a board that is already full.
+
+   Everything below is patched into the engine inside a sandbox; the repo file is
+   never touched, and none of this is a rule the game plays by.
+
+   HOW LONG WOULD IT TAKE HUMANS? Nobody knows, and this does not pretend to.
+   The match log holds 54 finished games and every one of them is a bot game that
+   ran in under a minute, so there is no human timing to draw on. What this can
+   count is DECISIONS - every moment the game stops and waits for a person - and
+   it reports that count alongside what it comes to at several seconds each.
+
+   WHAT IT FOUND
+
+   1. SIX PLAYERS WORKS, once STARTING has a row for it. The winning score rises
+      from 92 to 104 and the winner's lead over last from 46.7 to 56.0, which is
+      the ordinary cost of more people rather than a broken game.
+
+   2. THE WORKER BOARD IS THE REAL CONSTRAINT, and it is smaller than it looks.
+      At six players 7% of placements have only one track left open - no decision
+      at all - against 0% at four, and the average number of tracks to choose
+      between falls from 3.23 to 2.86. Six slots a track instead of four takes it
+      straight back to 0% and 3.29. One line, and it is the line that decides
+      whether a sixth seat is playing or queueing.
+
+   3. NOTHING ELSE RUNS OUT. Six players use 49% of the demand board against 38%
+      at four, and leave 27 of the 64 plots unowned. The board is big enough.
+
+   4. A FOURTH YEAR IS ARITHMETIC, NOT DESIGN. It runs, and it inflates: 136 EP
+      to win at four players against 92, with the lead over last going 46.7 to
+      63.5. Everything scales with it because everything in the scoring is
+      per-quarter. The one thing that needs a decision rather than a constant is
+      the demand board, which is only refreshed once, at Q8 - a fourth year needs
+      a second refresh or it is played out on a board with nothing left on it.
+
+   5. TWO THIRDS OF EVERY GAME IS THE DELIVERY PHASE. 42.8 of a player's 64.9
+      decisions are single delivery clicks. If a table ever complains the game is
+      long, that is where the time is - and most of those clicks are obvious ones
+      the player would happily hand to a "sell the rest for me" button.
+
+   Run: node audit_scale.js [seeds]
+   ========================================================================== */
+const fs = require("fs");
+const path = require("path");
+const vm = require("vm");
+
+const SEEDS = parseInt(process.argv[2] || "300", 10);
+
+const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
+const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
+const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
+
+const N = {
+  starting: "const STARTING = { 4: [[25, 1], [25, 2], [20, 2], [20, 3]], 3: [[25, 1], [25, 2], [20, 3]], 2: [[20, 2], [20, 2]] };",
+  tracks: "  return { raise_capital: [null, null, null, null], ma: [null, null, null, null], rd: [null, null, null, null], board_meeting: [null, null] };",
+  pool: "    out.push(...shuffle(MEGACORP_TILES.slice(from, from + MEGACORP_PER_TIER), rng).slice(0, 2));",
+  over: "  if (state.quarter >= 12) {",
+  yearEndsClosing: "  if ([4, 8, 12].includes(quarter)) {",
+  yearEndsRepay: "  if ([4, 8, 12].includes(state.quarter)) {",
+  landPayouts: "  return [4, 8, 12].filter((q) => q >= state.quarter).length || 1;",
+  repayRates: "const LOAN_REPAY_RATE = { 4: 30, 8: 35, 12: 40 };",
+  refresh: "  if (quarter === 8) refreshY3(demand);",
+  botLast: "  if (quarter === 12) {",
+  /* counters */
+  meeple: "function placeMeeple(state, playerId, track) {",
+  deliver: "  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;",
+};
+for (const [k, v] of Object.entries(N)) {
+  if (!BASE.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
+}
+
+/* Seats 5 and 6 continue the pattern the table already sets: later seats trade
+   money for cards. */
+const STARTING_WIDE = "const STARTING = { 6: [[25, 1], [25, 2], [20, 2], [20, 3], [20, 3], [15, 4]], "
+  + "5: [[25, 1], [25, 2], [20, 2], [20, 3], [15, 4]], "
+  + "4: [[25, 1], [25, 2], [20, 2], [20, 3]], 3: [[25, 1], [25, 2], [20, 3]], 2: [[20, 2], [20, 2]] };";
+
+function engineFor({ seats = 4, quarters = 12, wideTracks = false } = {}) {
+  let logic = BASE;
+  const last = quarters;
+
+  if (seats > 4) {
+    logic = logic.replace(N.starting, STARTING_WIDE);
+    /* Keep the promise of twice as many tiles as players: three per tier at five
+       and six seats rather than two. */
+    logic = logic.replace(N.pool,
+      "    const per = Math.max(2, Math.round((nPlayers * 2) / MEGACORP_TIERS));\n"
+      + "    out.push(...shuffle(MEGACORP_TILES.slice(from, from + MEGACORP_PER_TIER), rng).slice(0, per));");
+  }
+  if (wideTracks) {
+    /* Six slots a track instead of four, so twelve workers still have somewhere
+       to choose between. */
+    logic = logic.replace(N.tracks,
+      "  return { raise_capital: [null, null, null, null, null, null], ma: [null, null, null, null, null, null], "
+      + "rd: [null, null, null, null, null, null], board_meeting: [null, null] };");
+  }
+  if (quarters !== 12) {
+    const ends = [];
+    for (let q = 4; q <= last; q += 4) ends.push(q);
+    const endsSrc = `[${ends.join(", ")}]`;
+    logic = logic.replace(N.over, `  if (state.quarter >= ${last}) {`);
+    logic = logic.replace(N.yearEndsClosing, `  if (${endsSrc}.includes(quarter)) {`);
+    logic = logic.replace(N.yearEndsRepay, `  if (${endsSrc}.includes(state.quarter)) {`);
+    logic = logic.replace(N.landPayouts, `  return ${endsSrc}.filter((q) => q >= state.quarter).length || 1;`);
+    logic = logic.replace(N.botLast, `  if (quarter === ${last}) {`);
+    /* Prices rise a little each year, as they already do. */
+    const rates = ends.map((q, i) => `${q}: ${30 + i * 5}`).join(", ");
+    logic = logic.replace(N.repayRates, `const LOAN_REPAY_RATE = { ${rates} };`);
+    /* The demand board is wiped once, at Q8. A fourth year needs another wipe or
+       it plays out on a board with nothing left on it. */
+    logic = logic.replace(N.refresh,
+      `  if (quarter === 8) refreshY3(demand);\n  if (quarter === 12 && ${last} > 12) refreshY3(demand);`);
+    logic = logic.replace(/13 - \(state\.quarter \|\| 1\)/g, `${last + 1} - (state.quarter || 1)`);
+    logic = logic.replace(/13 - state\.quarter/g, `${last + 1} - state.quarter`);
+  }
+
+  /* Count the moments a person would be asked to do something. */
+  /* Count the choice the player actually had: how many tracks still had a free slot
+     at the moment they placed. One is not a decision, it is a queue. */
+  logic = logic.replace(N.meeple, "function placeMeeple(state, playerId, track) { __tick('place', "
+    + "Object.keys(state.tracks).filter((t) => (t !== 'board_meeting' || state.ipoTileClaimed) "
+    + "&& state.tracks[t].some((x) => x === null)).length);");
+  logic = logic.replace(N.deliver, "  __tick('deliver');\n" + N.deliver);
+
+  const box = {};
+  const counts = { place: 0, deliver: 0, choiceSum: 0, forced: 0 };
+  const sandbox = { console, Math, Set, Object, Array, JSON, box,
+    __tick: (k, open) => {
+      counts[k] = (counts[k] || 0) + 1;
+      if (k === "place" && typeof open === "number") {
+        counts.choiceSum += open;
+        if (open <= 1) counts.forced += 1;
+      }
+    } };
+  vm.createContext(sandbox);
+  vm.runInContext(logic + `
+    box.exports = { initGame, mulberry32, advancePlanning, advanceDraft, startPlanning,
+      activeBiz, megacorpHQs, epTotal, finalRank, plotCount, allDistrictKeys,
+      MEGACORP_TIER, DISCS_PER_PLAYER };
+  `, sandbox);
+  return { E: box.exports, counts };
+}
+
+const pad = (s, n) => String(s).padEnd(n);
+const rp = (s, n) => String(s).padStart(n);
+
+function run(cfg) {
+  const { E, counts } = engineFor(cfg);
+  const seats = cfg.seats || 4;
+  const T = { seats, quarters: cfg.quarters || 12, games: 0, players: 0, threw: null,
+    winnerEP: 0, lastEP: 0, spread: 0, plots: 0, companies: 0, hqs: 0, tiles: 0,
+    demandUsed: 0, demandTotal: 0, place: 0, deliver: 0, unowned: 0, loans: 0 };
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    let st;
+    try {
+      st = E.initGame(seats - 1, seed, ["Seat 1"], undefined, true, undefined);
+    } catch (e) { T.threw = e.message; return T; }
+    st.players[0].isHuman = false;
+    try {
+      if (st.phase === "drafting") { E.advanceDraft(st, () => {}); E.startPlanning(st); }
+      E.advancePlanning(st, E.mulberry32(seed + 777), () => {});
+    } catch (e) { T.threw = e.message; return T; }
+    if (st.phase !== "gameover") continue;
+    T.games++;
+    T.tiles += st.megacorpPool.length;
+    const ranked = [...st.players].sort(E.finalRank);
+    const eps = ranked.map((p) => E.epTotal(p));
+    T.winnerEP += eps[0];
+    T.lastEP += eps[eps.length - 1];
+    T.spread += eps[0] - eps[eps.length - 1];
+    for (const p of st.players) {
+      T.players++;
+      T.plots += E.plotCount(st, p);
+      T.companies += E.activeBiz(p).length;
+      T.hqs += E.megacorpHQs(p).length;
+      T.loans += p.discsInBank;
+    }
+    T.unowned += Object.keys(st.board.graph).filter((k) => !(k in st.board.owner)).length;
+    /* How much of the demand board actually got used. */
+    for (const k of Object.keys(st.demand.tiles)) {
+      const t = st.demand.tiles[k];
+      t.filled.forEach((row) => row.forEach((v) => { T.demandTotal++; if (v) T.demandUsed++; }));
+    }
+  }
+  T.place = counts.place; T.deliver = counts.deliver;
+  T.choiceSum = counts.choiceSum; T.forced = counts.forced;
+  return T;
+}
+
+/* ------------------------------------------------------------------ report */
+console.log("Entrepreneurs - six players, and a fourth year\n");
+
+console.log("Does it run at all, as the code stands?");
+{
+  const bare = engineFor({ seats: 6 });
+  let msg = "started";
+  try { bare.E.initGame(5, 1, ["Seat 1"], undefined, true, undefined); }
+  catch (e) { msg = `THREW: ${e.message}`; }
+  /* engineFor already widens STARTING, so ask the unpatched engine directly. */
+  const box = {}; const sb = { console, Math, Set, Object, Array, JSON, box, __tick: () => {} };
+  vm.createContext(sb);
+  vm.runInContext(BASE + "box.exports = { initGame };", sb);
+  let raw = "started";
+  try { box.exports.initGame(5, 1, ["Seat 1"], undefined, true, undefined); }
+  catch (e) { raw = `THREW: ${e.message}`; }
+  console.log(`  6 players, engine as it ships   ${raw}`);
+  console.log(`  6 players, STARTING widened     ${msg}`);
+  console.log("  The stop is STARTING - it has rows for 2, 3 and 4 seats and nothing else.\n");
+}
+
+const CASES = [
+  { label: "4 players, 3 years", seats: 4, quarters: 12 },
+  { label: "6 players, 3 years", seats: 6, quarters: 12 },
+  { label: "6 players, wide tracks", seats: 6, quarters: 12, wideTracks: true },
+  { label: "4 players, 4 years", seats: 4, quarters: 16 },
+  { label: "6 players, 4 years", seats: 6, quarters: 16, wideTracks: true },
+];
+const runs = CASES.map(run);
+
+const W = 17;
+const head = () => console.log(pad("", 32) + CASES.map((c) => rp(c.label.replace(", ", "/"), W)).join(""));
+const row = (name, fn, dp = 1) =>
+  console.log(pad(name, 32) + runs.map((T) => rp(T.threw ? "-" : fn(T).toFixed(dp), W)).join(""));
+const pct = (name, fn) =>
+  console.log(pad(name, 32) + runs.map((T) => rp(T.threw ? "-" : `${(100 * fn(T)).toFixed(0)}%`, W)).join(""));
+
+head();
+console.log("─".repeat(32 + W * runs.length));
+row("games completed", (T) => T.games, 0);
+row("winning score", (T) => T.winnerEP / T.games, 0);
+row("last place", (T) => T.lastEP / T.games, 0);
+row("winner's lead over last", (T) => T.spread / T.games);
+console.log("");
+row("companies per seat", (T) => T.companies / T.players, 2);
+row("plots per seat", (T) => T.plots / T.players, 2);
+row("plots left unowned (of 64)", (T) => T.unowned / T.games, 1);
+row("unpaid loan discs per seat", (T) => T.loans / T.players, 2);
+console.log("");
+row("Megacorp tiles left over", (T) => T.tiles / T.games, 1);
+row("Megacorps formed per game", (T) => T.hqs / T.games, 2);
+pct("demand board used up", (T) => T.demandUsed / T.demandTotal);
+
+console.log("\n\nHOW MUCH IS THERE TO DO?");
+console.log("Every moment the game stops and waits for a person, counted per player.\n");
+head();
+console.log("─".repeat(32 + W * runs.length));
+row("worker placements each", (T) => T.place / T.players, 1);
+row("  tracks open when placing", (T) => T.choiceSum / Math.max(1, T.place), 2);
+pct("  placements with no choice", (T) => T.forced / Math.max(1, T.place));
+row("delivery clicks each", (T) => T.deliver / T.players, 1);
+row("decisions each, all told", (T) => (T.place + T.deliver) / T.players, 1);
+row("decisions at the table", (T) => (T.place + T.deliver) / T.games, 0);
+
+console.log("\nWhat that comes to, at seconds per decision");
+console.log(pad("", 32) + CASES.map((c) => rp(c.label.replace(", ", "/"), W)).join(""));
+console.log("─".repeat(32 + W * runs.length));
+for (const secs of [5, 10, 15, 20]) {
+  console.log(pad(`  ${secs}s each`, 32) + runs.map((T) => {
+    if (T.threw) return rp("-", W);
+    const mins = ((T.place + T.deliver) / T.games) * secs / 60;
+    return rp(`${Math.round(mins)}m`, W);
+  }).join(""));
+}
+console.log("\n  These count only the moments the engine pauses for a decision. Real tables");
+console.log("  also spend time reading the board, arguing, and waiting for the slow player,");
+console.log("  and none of that is in here. Treat the 10s row as a floor, not a forecast.");
+console.log("");
