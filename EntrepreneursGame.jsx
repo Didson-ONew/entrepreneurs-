@@ -4379,7 +4379,6 @@ function GameScreens({ online }) {
   const [pickMode, setPickMode] = useState(null); // {kind:'launch', bp, nPlots, selected:[]} | {kind:'buy', selected:[]}
   const [waitSecs, setWaitSecs] = useState(0);
   const [elapsed, setElapsed] = useState(0);
-  const [indTab, setIndTab] = useState("pots");
   // Personas are on by default in v13: they are one line each and give every seat
   // something of its own from Quarter 1. Still switchable on the setup screen.
   const [personas, setPersonas] = useState(true);
@@ -5100,84 +5099,9 @@ function GameScreens({ online }) {
               </div>
             </div>
 
-            {/* Pots, Decks and Abilities are all reference material for the same six
-                industries, so they share one frame and one tab bar instead of three
-                tall panels competing for space. */}
-            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div className="flex items-center gap-1 mb-2">
-                {[["pots", "Pots"], ["decks", "Decks"], ["abil", "Abilities"]].map(([k, label]) => (
-                  <button key={k} onClick={() => setIndTab(k)}
-                    className="flex-1 rounded text-xs font-bold uppercase tracking-wide"
-                    style={{ padding: "4px 0", border: "1px solid #262a33", cursor: "pointer",
-                      backgroundColor: indTab === k ? "#2c5f4f" : "#1c1f26",
-                      color: indTab === k ? "#d3fcec" : "#8b93a3" }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: indTab === "pots" ? "block" : "none" }}>
-              <div data-tut="pots" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Pots <Help text="When a company pays OPEX, that money (minus rent) lands in its suppliers' pots. Each quarter every pot is split evenly among the active businesses of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative." /></div>
-              <div className="text-[9px] text-gray-500 mb-1.5">Supplier OPEX collects here, then splits among that industry's active businesses by level.</div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {INDUSTRIES.map((ind) => {
-                  const pot = state.pots ? state.pots[ind] : 0;
-                  const { n, levels } = potRecipients(state, ind);
-                  return (
-                    <div key={ind} className="rounded p-1.5" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}44` }}>
-                      <div className="flex items-center justify-between">
-                        <Chip color={IND_COLOR[ind]}>{ind}</Chip>
-                        <span className="text-[11px] font-bold font-mono" style={{ color: pot > 0 ? "#8fd3b6" : "#4b5563" }}>${pot.toFixed(0)}</span>
-                      </div>
-                      <div className="text-[8px] font-mono text-gray-500 mt-0.5">
-                        {n ? `${n} biz \u00b7 ${levels} lvl` : "no takers \u2014 carries over"}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              </div>
-              <div style={{ display: indTab === "decks" ? "block" : "none" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Industry Decks <Help text={hasVariant(state, "orderedDecks")
-                ? "Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."
-                : "Six separate decks, each shuffled whole, so any level can be on top. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."} /></div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {INDUSTRIES.map((ind) => {
-                  const deck = state.decks[ind];
-                  const top = deck && deck[0];
-                  return (
-                    <div key={ind} className="rounded p-1.5" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}55` }}>
-                      <div className="flex items-center justify-between">
-                        <Chip color={IND_COLOR[ind]}>{ind}</Chip>
-                        <span className="text-[8px] font-mono text-gray-500">{deck ? deck.length : 0} left</span>
-                      </div>
-                      {top ? (
-                        <>
-                          <div className="text-[9px] text-gray-300 leading-tight mt-0.5">{top.name}</div>
-                          <div className="text-[8px] font-mono text-gray-500 leading-tight">
-                            L{top.lvl} &middot; set ${top.setup} &middot; opex ${top.opex} &middot; prod {top.prod}
-                          </div>
-                          <div className="text-[8px] font-mono leading-tight" style={{ color: "#a5b4cf" }}>
-                            {top.deps.map((d) => `${d.ind} $${d.val}`).join(" \u00b7 ")}
-                          </div>
-                        </>
-                      ) : <div className="text-[9px] text-gray-600 italic mt-0.5">Empty</div>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-              <div style={{ display: indTab === "abil" ? "block" : "none" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Abilities</div>
-              <div className="space-y-1.5">
-                {INDUSTRIES.map((ind) => (
-                  <div key={ind} className="text-[10px] leading-snug">
-                    <Chip color={IND_COLOR[ind]}>{ind}</Chip> <span className="text-gray-400">{IND_ABILITY[ind]}</span>
-                  </div>
-                ))}
-              </div>
-              </div>
-            </div>
+            {/* Pots, decks and abilities are reference material for the same six
+                industries; they share one card each rather than three tabs. */}
+            <IndustryReference state={state} />
 
             {/* The Megacorp list is short; the log shares its frame so the column
                 keeps a single, full-width block instead of two stubby ones. */}
@@ -5351,6 +5275,91 @@ function Help({ text, label }) {
         }}>{text}</span></Floating>
       )}
     </span>
+  );
+}
+
+/* ---------------- Industry reference ----------------
+   Pots, decks and abilities were three tabs over the same six industries, which
+   meant the two numbers you actually compare when choosing what to build - what
+   an industry's pot is worth, and what its deck is offering - could never be
+   read at the same time. They are one card per industry now. The ability is the
+   one part that never changes all game, so it moves to hover rather than taking
+   permanent space. */
+function IndustryReference({ state }) {
+  const [over, setOver] = useState(null);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const enter = (ind) => (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const W = 230, PAD = 8;
+    const vw = typeof window !== "undefined" ? window.innerWidth : 1400;
+    const vh = typeof window !== "undefined" ? window.innerHeight : 900;
+    setPos({
+      x: Math.min(Math.max(PAD, r.left), vw - W - PAD),
+      y: Math.min(Math.max(PAD, r.bottom + 6), vh - 110),
+    });
+    setOver(ind);
+  };
+  const deckHelp = hasVariant(state, "orderedDecks")
+    ? "Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."
+    : "Six separate decks, each shuffled whole, so any level can be on top. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from.";
+  return (
+    <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+      <div data-tut="pots" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">
+        Industries
+        <Help text={"POT \u2014 when a company pays OPEX, that money (minus rent) lands in its suppliers' pots. Each quarter every pot is split evenly among the active businesses of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative.\n\nDECK \u2014 " + deckHelp} />
+      </div>
+      <div className="text-[9px] text-gray-500 mb-2">
+        Pot, then the top Blueprint. Hover an industry for what it does.
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        {INDUSTRIES.map((ind) => {
+          const pot = state.pots ? state.pots[ind] : 0;
+          const { n, levels } = potRecipients(state, ind);
+          const deck = state.decks[ind];
+          const top = deck && deck[0];
+          return (
+            <div key={ind} className="rounded p-1.5"
+              onMouseEnter={enter(ind)} onMouseLeave={() => setOver(null)}
+              style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}55`, cursor: "help" }}>
+              <div className="flex items-center justify-between">
+                <Chip color={IND_COLOR[ind]}>{ind}</Chip>
+                <span className="text-[11px] font-bold font-mono" style={{ color: pot > 0 ? "#8fd3b6" : "#4b5563" }}>${pot.toFixed(0)}</span>
+              </div>
+              <div className="text-[8px] font-mono text-gray-500 leading-tight">
+                {n ? `${n} biz \u00b7 ${levels} lvl` : "no takers \u2014 carries over"}
+              </div>
+              <div className="mt-1 pt-1" style={{ borderTop: "1px solid #262a3399" }}>
+                {top ? (
+                  <>
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[9px] text-gray-300 leading-tight truncate">{top.name}</span>
+                      <span className="text-[8px] font-mono text-gray-500 shrink-0">{deck.length} left</span>
+                    </div>
+                    <div className="text-[8px] font-mono text-gray-500 leading-tight">
+                      L{top.lvl} &middot; set ${top.setup} &middot; opex ${top.opex} &middot; prod {top.prod}
+                    </div>
+                    <div className="text-[8px] font-mono leading-tight" style={{ color: "#a5b4cf" }}>
+                      {top.deps.map((d) => `${d.ind} $${d.val}`).join(" \u00b7 ")}
+                    </div>
+                  </>
+                ) : <div className="text-[9px] text-gray-600 italic">Deck empty</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {over && (
+        <Floating><span style={{
+          position: "fixed", left: pos.x, top: pos.y, zIndex: 9999, width: 230,
+          backgroundColor: "#0e1014", border: `1px solid ${IND_COLOR[over]}88`, borderRadius: 6,
+          padding: "7px 9px", fontSize: 10, lineHeight: 1.45, color: "#d1d5db",
+          boxShadow: "0 6px 20px rgba(0,0,0,0.6)", pointerEvents: "none",
+        }}>
+          <span style={{ color: IND_COLOR[over], fontWeight: 700 }}>{IND_NAME[over] || over}</span>
+          <br />{IND_ABILITY[over]}
+        </span></Floating>
+      )}
+    </div>
   );
 }
 
