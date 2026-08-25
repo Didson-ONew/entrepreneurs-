@@ -1546,23 +1546,31 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "c3eb2058";
+const ENGINE_VERSION = "b13ae025";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent is NOT an extra bill: a company pays its OPEX and
    nothing else, and rent is carved out of that payment - whatever survives it goes
-   to the supplier pots. So the rate decides a SPLIT, not a cost, and lowering it
-   pushes money into the pots instead of to landlords. Pots are shared evenly among
-   the active businesses of an industry, one equal share each whatever their size,
-   while land income is concentrated in whoever owns land - so a lower rate is
-   redistributive, which is why it helps the trailing player. Measured in
-   audit_rent_scaled.js - companies covering OPEX plus rent go 91% to 94% at four
-   seats, trade income and the winning score stay flat, and the industry spread
-   is unchanged.
+   to the supplier pots. So the rate decides a SPLIT, not a cost: at $3 landlords
+   take 57% of every OPEX dollar and the pots get 43%; at $2 it is 38% and 62%.
+   Measured in audit_rent_scaled.js - companies covering OPEX plus rent go 91% to
+   94% at four seats, trade income and the winning score stay flat, and the
+   industry spread is unchanged.
 
    It is the only change measured in this repo that made the game LESS DECIDED
    rather than merely closer at the finish: the Q6 leader's win rate falls from
    41% to 36% at four seats and 31% to 28% at six.
+
+   $2 IS A MEASURED OPTIMUM, NOT A DIRECTION OF TRAVEL. Going further reverses
+   the gain - at $1 the Q6 leader wins 47% at four seats and 38% at six, worse
+   than $3 ever was (audit_rent_one.js). An earlier version of this comment
+   explained the $3-to-$2 gain by calling the pots the redistributive channel;
+   that explanation is wrong and the $1 run is what disproves it. A pot is split
+   one share per ACTIVE BUSINESS, so a player running three companies in an
+   industry draws three shares - pot income concentrates by companies-run just as
+   land income concentrates by plots-owned. Neither channel is egalitarian. Why
+   $2 specifically beats both neighbours is not derivable from the split; it is
+   an empirical minimum and should be treated as one.
 
    THE TWO-PLAYER GAME IS THE EXCEPTION and it goes the other way - the Q6
    leader's win rate rises from 60% to 67%. With two seats a cheaper cost base

@@ -25,12 +25,17 @@
      ones with the most land - so a rent rise is a transfer TO the leader, not
      from them.
 
-     IT STARVES THE POTS, WHICH ARE THE EGALITARIAN CHANNEL. A pot is split
-     evenly among the active businesses of its industry - one equal share each,
-     whatever their size - while land income is concentrated in whoever owns
-     land. Moving money from pots to rent is therefore regressive by
-     construction. Measured below: the proposed ladder cuts the money reaching
-     the pots by 38%.
+     IT STARVES THE POTS. A pot is split one share per active business of its
+     industry, whatever their size. Measured below: the proposed ladder cuts the
+     money reaching the pots by 38%, moving it to land instead.
+
+       (An earlier version of this header called the pots THE EGALITARIAN CHANNEL
+       and argued the shift was regressive by construction. That is wrong, and
+       audit_rent_one.js is what disproves it: a player running three companies
+       in an industry draws three of its shares, so pot income concentrates by
+       companies-run exactly as land income concentrates by plots-owned. Which
+       way a rate change cuts has to be measured, not derived - and measurement
+       says $2 is a floor, not a direction.)
 
    AND IT WOULD CREATE MONEY. `toPots = Math.max(0, cost - rentTotal)` floors at
    zero, but the landlords are still paid `rentTotal` in full. If rentTotal ever
@@ -121,10 +126,11 @@ console.log("\nWHAT THE LADDER WOULD DO TO THE POTS");
 console.log(`  money reaching the pots, shipped:  $${flatPots} per full round of these shapes`);
 console.log(`  money reaching the pots, ladder:   $${ladderPots}`
   + `   (${(100 * (ladderPots - flatPots) / flatPots).toFixed(0)}%)`);
-console.log("  Pots are split EVENLY among the active businesses of an industry - one equal");
-console.log("  share each, whatever their size - so they are the game's redistributive");
-console.log("  channel. Land income is concentrated in whoever owns land. Shifting money");
-console.log("  from pots to rent therefore favours the biggest landowner by construction.");
+console.log("  A pot pays ONE SHARE PER ACTIVE BUSINESS, whatever their size - so a player");
+console.log("  running three companies in an industry draws three shares. Pot income");
+console.log("  concentrates by companies-run just as land income concentrates by");
+console.log("  plots-owned; neither channel is egalitarian, and which way a rate change");
+console.log("  cuts has to be measured. See audit_rent_one.js.");
 
 console.log("\nWHO A RENT RISE ACTUALLY PAYS");
 console.log("  tenant on somebody else's ground: pays OPEX. Unchanged by the rate.");
