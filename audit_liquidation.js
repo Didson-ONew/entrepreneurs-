@@ -58,7 +58,7 @@ vm.createContext(sandbox);
 vm.runInContext(BASE + `
   box.exports = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
     epTotal, finalRank, megacorpHQs, activeBiz, bizSetup, bizProd, bizOpex, bizInd,
-    price, plotCount, districtCount, CASH_PER_EP, LAND_AWARD };
+    price, plotCount, districtCount, CASH_PER_EP, LAND_AWARD, RENT_PER_LEVEL };
 `, sandbox);
 const E = box.exports;
 
@@ -78,7 +78,7 @@ const saleValue = (b) => (b.upgraded ? E.bizSetup(b) : Math.floor(E.bizSetup(b) 
    buyer, which is the best case, so the exploit is being measured against the
    strongest possible reason not to do it. */
 const quarterTrade = (st, b) =>
-  E.bizProd(b) * E.price(st.pm, E.bizInd(b)) - E.bizOpex(b) - 3 * b.level;
+  E.bizProd(b) * E.price(st.pm, E.bizInd(b)) - E.bizOpex(b) - E.RENT_PER_LEVEL * b.level;
 
 for (const seats of SIZES) {
   const T = {

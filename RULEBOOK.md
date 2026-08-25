@@ -1,6 +1,6 @@
 # Entrepreneurs - Rulebook
 
-*Rulebook v13. The complete rules, with the designer's notes on why each one exists.*
+*Rulebook v15. The complete rules, with the designer's notes on why each one exists.*
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
@@ -49,13 +49,15 @@ The board is built fresh every game: the four central districts are one each of 
 
 ### Seats, capital and starting hand
 
-Seating is randomised - you are not automatically first. Your starting money and number of Blueprints follow the seat you drew, not the player you are: later seats get less money but more cards.
+Seating is randomised - you are not automatically first. Your starting money and number of Blueprints follow the seat you drew, not the player you are: later seats get less money but more cards. The table reads as money / Blueprints.
 
-| Players | Seat 1 | Seat 2 | Seat 3 | Seat 4 |
-| --- | --- | --- | --- | --- |
-| 4 | $25 / 1 card | $25 / 2 cards | $20 / 2 cards | $20 / 3 cards |
-| 3 | $25 / 1 card | $25 / 2 cards | $20 / 3 cards | - |
-| 2 | $20 / 2 cards | $20 / 2 cards | - | - |
+| Players | Seat 1 | Seat 2 | Seat 3 | Seat 4 | Seat 5 | Seat 6 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 6 | $25 / 1 | $25 / 2 | $20 / 2 | $20 / 3 | $20 / 3 | $15 / 4 |
+| 5 | $25 / 1 | $25 / 2 | $20 / 2 | $20 / 3 | $15 / 4 | - |
+| 4 | $25 / 1 | $25 / 2 | $20 / 2 | $20 / 3 | - | - |
+| 3 | $25 / 1 | $25 / 2 | $20 / 3 | - | - | - |
+| 2 | $20 / 2 | $20 / 2 | - | - | - | - |
 
 ### The draft
 
@@ -192,11 +194,13 @@ A plot's value is its printed road price plus $1 for every occupied plot next to
 
 A vertical company always occupies exactly one plot, whatever its level. A horizontal company occupies one plot per level, and those plots must form a connected cluster of owned, empty land - it need not be your own, though its owner will collect the rent. A level-3 horizontal Blueprint therefore needs three connected empty plots before you can build it at all.
 
-A plot can carry more than one level, and rent follows the levels rather than the plots: $3 for every level standing on a plot, paid to that plot's owner. Where a persona lets a company grow the other way - Technology stacking instead of spreading, Hospitality spreading instead of stacking - you choose which plot of the footprint the new level goes on. Stack it on land you own and the rent for those levels comes back to you.
+A plot can carry more than one level, and rent follows the levels rather than the plots: $2 for every level standing on a plot, paid to that plot's owner. Where a persona lets a company grow the other way - Technology stacking instead of spreading, Hospitality spreading instead of stacking - you choose which plot of the footprint the new level goes on. Stack it on land you own and the rent for those levels comes back to you.
+
+> **Designer's note.** Rent was $3 a level and is now $2. It is the one recurring cost NOT printed on a Blueprint, so it is the charge a small company cannot dodge by choosing a cheaper card, and it grows with level while a level-1 company's income does not. Cutting it is close to free because rent is a TRANSFER - every dollar a tenant keeps is a dollar a landlord does not collect - so the money on the table barely moves while margins improve: companies covering their OPEX and rent go from 91% to 94% at four players, with the winning score and the industry balance unchanged. It is also the only change measured that made the game LESS DECIDED rather than merely closer at the end - the player leading at the halfway mark goes on to win 36% of four-player games instead of 41%, and 28% of six-player games instead of 31%. THE TWO-PLAYER GAME IS THE EXCEPTION and moves the other way, 60% to 67%: with only two seats a cheaper cost base helps whoever is already ahead, because there is nobody else for the relief to spread across. See audit_rent_scaled.js.
 
 ### Selling the ground out from under a building
 
-A company can only produce while you own every plot it stands on. Selling one of those plots does not destroy the building, but it stops producing until the land is bought back.
+A company can only produce while every plot it stands on is owned by SOMEBODY - not necessarily by you. Selling one of those plots does not destroy the building, but it stops producing until somebody buys that ground, and whoever does collects its rent from then on.
 
 > **Designer's note.** That rule exists so a desperate player has one more thing to sell without immediately losing the company, and so an opponent's distressed land is worth watching. It is deliberately not a way to attack someone else's building - you can only sell your own.
 
@@ -223,7 +227,7 @@ Launching a company puts one supply mark on its own industry, and one demand mar
 
 Two steps in either direction move the price by $1, and no price ever falls below $1.
 
-A crowded industry can sink to $1, barely above the $1 you get for recycling unsold goods. A neglected one that half the table depends on can climb past $8 a unit.
+A crowded industry can sink to $1 - exactly what you get for recycling goods you could not sell, so at that point selling and scrapping pay the same. A neglected one that half the table depends on can climb past $8 a unit.
 
 ### What each company costs and produces
 
@@ -263,7 +267,7 @@ The three are not equally common: across the ten Blueprints of an industry, the 
 
 Every active company pays its OPEX, automatically, whether or not it sells anything afterwards. That money is immediately split:
 
-- Rent - $3 for every level standing on a plot - goes to whoever owns that plot. A vertical company stacks all its levels on one plot, so its whole rent goes to one landlord; a horizontal one puts a level on each plot it covers, so each landlord collects $3. On your own land it comes straight back to you.
+- Rent - $2 for every level standing on a plot - goes to whoever owns that plot. A vertical company stacks all its levels on one plot, so its whole rent goes to one landlord; a horizontal one puts a level on each plot it covers, so each landlord collects $2. On your own land it comes straight back to you.
 - Everything left over flows into the industry pots of that company's suppliers, divided in proportion to the dependency values on the Blueprint.
 
 ### If you cannot pay
@@ -282,7 +286,7 @@ If the bill still cannot be met once a company's OPEX comes due, that company en
 
 ## Revenue: selling what you produce
 
-Each company produces a number of units printed on its Blueprint, doubled if it has been upgraded. That number is all it has: every ability below is a route for those units, never a source of more. You deliver them to demand icons your company can reach, and each icon pays the current market price for your industry.
+Each company produces a number of units printed on its Blueprint, doubled if it has been upgraded. That number is all it has: every ability below is a route for those units, never a source of more. You deliver them to demand icons your company can reach, and every unit an icon takes is paid at the current market price for your industry.
 
 Demand icons are first come, first served, and the businesses a Hospitality company sells to are not - so it is usually right to take the contested icons first and send whatever is left to the neighbours. Anything you still cannot place is recycled for $1 a unit.
 
@@ -290,11 +294,12 @@ Delivery goes in turn order. Every icon is first come, first served, so being ea
 
 ### Which icons you may use
 
-Every district shows a 4x4 grid of demand. Each row is an industry; the four columns are levels 1 to 4. You may deliver to an icon if the row's industry is yours and the column is no higher than your company's level - so a bigger company reaches deeper into the same district.
+Every district shows a 4x4 grid of demand. Each row is an industry; the four columns are levels 1 to 4. You may deliver to an icon if the row's industry is yours and the column is no higher than your company's level - so a bigger company reaches deeper into the same district, and the deeper icons are hungrier.
 
 - Rows 3 and 4 of every district stay closed until Quarter 5.
 - At the end of Quarter 8 the entire demand grid is wiped clean and every icon reopens for Year 3.
-- Each icon can be sold to once, by whoever gets there first.
+- AN ICON TAKES ITS OWN COLUMN IN GOODS: the level-1 icon takes one unit, the level-2 icon two, the level-3 icon three, the level-4 icon four. A level-3 company reaching columns 1, 2 and 3 therefore sells 1 + 2 + 3 = 6 units into a single clean row of its industry.
+- Each icon can be sold to once, by whoever gets there first - and it is filled whole, however many units it took.
 - Anything you cannot sell is recycled for $1 a unit.
 
 ### How far a company reaches
@@ -369,7 +374,7 @@ Whoever forms the first Megacorp of the game also takes the IPO tile: a sixth co
 - All the others go to the bank as Distressed Assets - anyone may take them over later.
 - The HQ stops trading: with no Blueprint it produces nothing and pays no OPEX. It still draws its equal share of its industry's pot every B2B - a headquarters that has stopped building has not stopped collecting.
 - Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry DIVIDED BY THE TILE'S TIER, rounded down. A tier 1 headquarters in an industry at $3 banks 3 EP a quarter; a tier 4 headquarters in the same industry banks nothing at all until that industry reaches $4. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for eight more quarters than one formed in Year 3.
-- It has no OPEX to pay its rent out of, so its owner pays the ground rent from pocket every quarter - $3 for every level standing on a plot, to that plot's owner. On your own land nothing moves.
+- It has no OPEX to pay its rent out of, so its owner pays the ground rent from pocket every quarter - $2 for every level standing on a plot, to that plot's owner. On your own land nothing moves.
 - A headquarters is public infrastructure: it counts as a Logistic Hub. Any company built orthogonally beside one joins the network through it, whoever owns them. A monument that only collected would be a monument nobody wanted to build near - and the companies that gather round it are exactly the ones it scores 3 EP each for at the end.
 - Sell a plot out from under a headquarters and it collects nothing at all - no pot share, no points, and it stops being a hub. A monument still needs its ground.
 - It keeps its disc, and it permanently locks one of your five company slots. Every Megacorp you form narrows how wide you can operate.
@@ -411,7 +416,9 @@ The sixteen tiles are four tiers of four. Tier 4 is the four cheapest to assembl
 | 2 | Metro Trust, Crossroads Deal, Skyline Consolidated, Apex Group | 3 players | 1 EP | 3 EP |
 | 1 | Titan Industries, Colossus Group, Empire Holdings, Omnicorp | 4 players | 3 EP | 6 EP |
 
-Two tiles are drawn from each tier that is in play. At two players that is four tiles, at three it is six, and from four players up all four tiers come out and the box holds eight - so a small table is never filled with tiles nobody could ever claim.
+Tiles are drawn from every tier that is in play, and how many depends on the table: TWO from each tier at two, three or four players, THREE at five, and at six players every tile in the game is available. So the box holds four tiles at two players, six at three, eight at four, twelve at five and all sixteen at six.
+
+> **Designer's note.** The wider draw at five and six is not variety for its own sake. A second Megacorp calls the final quarter, and the biggest tables are the ones with most reason to want that door open - twelve quarters with six people deliberating is a long evening. With the full box in play a second merger becomes findable rather than a matter of whether the two tiles you could use happened to be drawn: games ending early go from 7% at four players to 22% at five and 34% at six, and the average six-player game ends about two thirds of a quarter sooner.
 
 > **Designer's note.** Before the tiers, a Local Syndicate built out of three level-1 companies earned exactly as much every quarter as an Omnicorp built out of four level-3s, and the Megacorp had grown to 33% of a winning score - the largest single bucket in the game, ahead of companies. Dividing the brand by the tier halved that to 17% and took the winner’s lead over last from 58.6 EP to 48.7, without making the merger itself any rarer. The draw rule barely registers at four players, where eight random tiles out of sixteen already average two per tier; it earns its keep at two, where it took the unclaimable tiles out of the box and Megacorps formed rose from 1.00 a game to 1.26.
 
@@ -434,15 +441,14 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Megacorp HQ, at the end | +3 for each other company beside it |
 | The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone |
 | The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone |
-| Net ground rent collected | +1 per full $10, named separately from the rest of your cash |
 | Cash on hand at the end | +1 per full $10 |
 | Each loan disc still in the bank | -5 |
 
 For The Omnipresent, a district counts if you own a plot in it or one of your active companies stands in it.
 
-Ground rent scores at the same $10 rate as the rest of your money - it is not a separate income - but the final tally names it on its own line so you can see what your land actually earned. A plot with somebody else’s building on it pays you every quarter; that is the main thing land does once the table is large.
+Ground rent is simply money. It is collected as it is earned and scores inside your cash at the end like every other dollar - there is nothing separate to track. What is worth knowing is how much of your income it quietly becomes: a plot with somebody else’s building on it pays you every quarter, and by six players half the plots a player owns carry a rival’s building.
 
-> **Designer's note.** Rent used to disappear into the cash line, which made the score read as though land stopped mattering at a big table. It does still matter less - land plus rent is 27% of a winning score at two seats and 14% at six - but the drop is about half what the old breakdown suggested. Net rent is worth about 5% of a winning score at every table size: gross rent moves far more at six seats, $9.5 a seat a quarter against $5.3, but the winner is paying rent as well as collecting it. See audit_idle_land.js.
+> **Designer's note.** Rent was briefly given its own scoring line while the balance of land was being investigated. It has been folded back into cash: the split changed no totals, and asking a table to keep a running rent tally all game to divide one number into two halves that add back to it is bookkeeping without a decision. The digital build still shows the flow, where it costs nothing. Land plus rent is about 27% of a winning score at two seats and 14% at six - see audit_idle_land.js.
 
 Only the outright leader scores a land award, and a shared lead pays badly: 5 EP alone, 2 EP each if two players tie, 1 EP each if three or more do. Second place gets nothing.
 
@@ -450,9 +456,9 @@ Only the outright leader scores a land award, and a shared lead pays badly: 5 EP
 
 ### When the game ends
 
-The game ends at the close of Quarter 12, OR at the close of the quarter in which any player launches their SECOND Megacorp - whichever comes first. The quarter is always played out in full, so every seat has had the same number of turns.
+The game ends at the close of Quarter 12, OR at the close of the quarter AFTER any player launches their SECOND Megacorp - whichever comes first. The second Megacorp does not end the game; it CALLS the final quarter, and everyone gets that quarter to answer it. If it is launched in Q11 or later the game simply ends at Q12 as usual.
 
-Most EP wins. If the final scores tie, the player with more money wins; if they are still tied, the player with fewer loan discs left in the bank.
+Most EP wins. If the final scores tie, the player still running more ACTIVE COMPANIES wins - headquarters do not count, because a headquarters has stopped trading. If that is level too, the player with more money; and if they are still tied, the player with fewer loan discs left in the bank.
 
 > **Designer's note.** The second Megacorp is a deadline rather than a shortcut. A player who can assemble two of them has spent the game merging, and the rest of the table would otherwise have four more quarters to be run away from. In practice it fires in about one game in eight and almost always in Quarter 11 or 12, so it shortens the average game by only a few weeks of board time - what it really does is put a clock on the leader’s last merger.
 
@@ -536,7 +542,7 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Sell a company | half its setup, or the full setup if upgraded; halved again in a forced sale |
 | Plot value | road price (1-6) + $1 per occupied neighbour + $1 if it touches a hub |
 | Upgrade | pay the setup cost again; production and OPEX double; level +1 |
-| Rent | $3 per company level, to the owners of the plots it stands on |
+| Rent | $2 per company level, to the owners of the plots it stands on |
 | Unsold production | $1 per unit |
 | Industry pot | split evenly among that industry's active companies; the remainder rides forward |
 | Renovation | card must match the shell's level; from level 2 up, its scaling type too |

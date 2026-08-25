@@ -28,7 +28,7 @@ function loadEngine() {
   vm.runInContext(logic + `
     box.exports = { initGame, mulberry32, byId, activeBiz, megacorpHQs, epTotal,
       advanceDraft, startPlanning, advancePlanning, finishQuarterAfterRepay,
-      workingTrackSlots, makeTracks, endgameRushers, MEGACORPS_TO_END,
+      workingTrackSlots, makeTracks, endgameRushers, MEGACORPS_TO_END, finalRank,
       drawMegacorpPool, MEGACORP_TIER, MEGACORP_TILES, PLAYER_COLORS, STARTING,
       DISCS_PER_PLAYER, workersPerPlayer, finalizeGame };
   `, sandbox);
@@ -93,7 +93,9 @@ for (const n of SIZES) {
 
 /* --------------------------------------------------------------- megacorps */
 section("The Megacorp box grows with the table");
-const EXPECTED_TILES = { 2: 4, 3: 6, 4: 8, 5: 8, 6: 8 };
+/* two per tier up to four players, three at five, the whole box at six */
+const EXPECTED_TILES = { 2: 4, 3: 6, 4: 8, 5: 12, 6: 16 };
+const EXPECTED_PER_TIER = { 2: 2, 3: 2, 4: 2, 5: 3, 6: 4 };
 for (const n of SIZES) {
   const pool = E.drawMegacorpPool(n, E.mulberry32(99));
   check(`${n} players: ${EXPECTED_TILES[n]} tiles in the box`, pool.length === EXPECTED_TILES[n],
@@ -101,8 +103,8 @@ for (const n of SIZES) {
   const perTier = { 1: 0, 2: 0, 3: 0, 4: 0 };
   pool.forEach((t) => { perTier[E.MEGACORP_TIER[t[0]]]++; });
   const drawn = Object.entries(perTier).filter(([, c]) => c > 0);
-  check(`${n} players: exactly two of every tier in play`,
-    drawn.every(([, c]) => c === 2), JSON.stringify(perTier));
+  check(`${n} players: exactly ${EXPECTED_PER_TIER[n]} of every tier in play`,
+    drawn.every(([, c]) => c === EXPECTED_PER_TIER[n]), JSON.stringify(perTier));
   const hardest = n >= 4 ? 1 : n >= 3 ? 2 : 3;
   check(`${n} players: hardest tier in the box is ${hardest}`,
     Math.min(...pool.map((t) => E.MEGACORP_TIER[t[0]])) === hardest, JSON.stringify(perTier));
@@ -136,7 +138,69 @@ check("the deadline is two Megacorps", E.MEGACORPS_TO_END === 2, `got ${E.MEGACO
   check("two distressed shells are not two Megacorps", E.endgameRushers(st2).length === 0);
 }
 
-section("The quarter is played out in full, then the game is over");
+section("The deadline CALLS the final quarter rather than being it");
+{
+  const st = E.initGame(3, 11, ["You"], undefined, false, undefined);
+  if (st.phase === "drafting") { E.advanceDraft(st, quiet); E.startPlanning(st); }
+  st.quarter = 6;
+  st.phase = "resolution";
+  const hq = (name) => ({ isHQ: true, distressed: false, megacorpName: name, level: 1,
+    footprint: [], bp: { ind: "MA", name: "shell" } });
+  st.players[1].businesses.push(hq("Local Syndicate"), hq("Silent Merger"));
+  const lines = [];
+  E.finishQuarterAfterRepay(st, (m) => lines.push(m), E.mulberry32(1));
+  check("the game does NOT end in the quarter it was called", st.phase !== "gameover",
+    `phase ${st.phase}`);
+  check("Q7 is named as the final quarter", st.finalQuarter === 7, `got ${st.finalQuarter}`);
+  check("the log announces it", lines.some((m) => /FINAL QUARTER/.test(m)),
+    lines.slice(-2).join(" | ").slice(0, 90));
+  check("play advances into the warning quarter", st.quarter === 7, `Q${st.quarter}`);
+
+  /* and the warning quarter really is the last one */
+  st.phase = "resolution";
+  E.finishQuarterAfterRepay(st, quiet, E.mulberry32(1));
+  check("the game is over at the close of Q7", st.phase === "gameover" && st.quarter === 7,
+    `phase ${st.phase} in Q${st.quarter}`);
+}
+
+section("A deadline called late cannot push the game past Q12");
+{
+  const st = E.initGame(3, 12, ["You"], undefined, false, undefined);
+  if (st.phase === "drafting") { E.advanceDraft(st, quiet); E.startPlanning(st); }
+  st.quarter = 12;
+  st.phase = "resolution";
+  st.players[1].businesses.push(
+    { isHQ: true, distressed: false, megacorpName: "Local Syndicate", level: 1, footprint: [], bp: { ind: "MA", name: "s" } },
+    { isHQ: true, distressed: false, megacorpName: "Silent Merger", level: 1, footprint: [], bp: { ind: "MA", name: "s" } });
+  E.finishQuarterAfterRepay(st, quiet, E.mulberry32(1));
+  check("capped at 12, so the game ends now", st.phase === "gameover" && st.quarter === 12,
+    `phase ${st.phase} in Q${st.quarter}, final ${st.finalQuarter}`);
+}
+
+section("Ties break on EP, then active companies, then money");
+{
+  const st = E.initGame(3, 21, ["You"], undefined, false, undefined);
+  const [a, b] = st.players;
+  const co = () => ({ isHQ: false, distressed: false, level: 1, footprint: [], bp: { ind: "MA", name: "c" } });
+  a.epBank = 50; b.epBank = 50;
+  a.cash = 500; b.cash = 10;
+  a.businesses = [co()];
+  b.businesses = [co(), co()];
+  check("more active companies beats more money", E.finalRank(a, b) > 0,
+    `a: 1 co $500, b: 2 co $10 -> ${E.finalRank(a, b)}`);
+  /* level the companies and money decides */
+  a.businesses = [co(), co()];
+  check("with companies level, money decides", E.finalRank(a, b) < 0, `${E.finalRank(a, b)}`);
+  /* a headquarters has stopped trading and must not count */
+  b.businesses = [co(), co(), { isHQ: true, distressed: false, megacorpName: "X", level: 1, footprint: [], bp: { ind: "MA", name: "c" } }];
+  check("a headquarters does not count as an active company", E.finalRank(a, b) < 0,
+    `a 2 active $500 vs b 2 active + 1 HQ $10 -> ${E.finalRank(a, b)}`);
+  /* EP still outranks everything */
+  a.epBank = 49;
+  check("EP still comes first", E.finalRank(a, b) > 0, `${E.finalRank(a, b)}`);
+}
+
+section("Both quarters are played out in full, then final scoring runs");
 {
   const st = E.initGame(3, 11, ["You"], undefined, false, undefined);
   if (st.phase === "drafting") { E.advanceDraft(st, quiet); E.startPlanning(st); }
@@ -148,11 +212,13 @@ section("The quarter is played out in full, then the game is over");
   p.businesses.push(hq("Local Syndicate"), hq("Silent Merger"));
   const lines = [];
   E.finishQuarterAfterRepay(st, (m) => lines.push(m), E.mulberry32(1));
-  check("the game is over in Q6", st.phase === "gameover", `phase ${st.phase} in Q${st.quarter}`);
-  check("it ended in the quarter the second Megacorp landed", st.quarter === 6, `Q${st.quarter}`);
+  check("Q6 closes without ending the game", st.phase !== "gameover", `phase ${st.phase}`);
   check("the log says why", lines.some((m) => /launched 2 Megacorps/.test(m)),
-    lines.slice(-3).join(" | ").slice(0, 90));
-  check("final scoring ran", st.players.every((q) => (q.epLog || []).some((e) => /Cash on hand|Unpaid loans|Real-Estate Mogul|Omnipresent/.test(e.label))));
+    lines.filter((m) => /Megacorps/.test(m)).slice(-1)[0] || "(no line)");
+  st.phase = "resolution";
+  E.finishQuarterAfterRepay(st, quiet, E.mulberry32(1));
+  check("and the game is over one quarter later", st.phase === "gameover", `phase ${st.phase}`);
+  check("final scoring ran", st.players.every((q) => (q.epLog || []).some((e) => /Cash on hand|Unpaid loans|Real-Estate Mogul|Omnipresent|Ground rent/.test(e.label))));
 }
 
 section("One Megacorp still plays the full three years");
@@ -225,30 +291,34 @@ for (const n of [2, 4, 6]) {
   }
 }
 
-section("A landlord paying no rent still banks what it collects");
+section("Rent is tracked as a flow, but scores inside cash and nowhere else");
 {
   const st = E.initGame(3, 55, ["You"], undefined, false, undefined);
   const p = st.players[0];
   p.rentIn = 90; p.rentOut = 0; p.cash = 100;
   st.quarter = 12;
   E.finalizeGame(st);
-  const rentEP = (p.epLog || []).filter((e) => /^Ground rent/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
+  const rentLines = (p.epLog || []).filter((e) => /rent/i.test(e.label));
   const cashEP = (p.epLog || []).filter((e) => /^Cash on hand/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
-  check("$90 net rent of $100 cash reads as 9 EP rent", rentEP === 9, `got ${rentEP}`);
-  check("and 1 EP of ordinary cash", cashEP === 1, `got ${cashEP}`);
+  check("no separate rent scoring line", rentLines.length === 0,
+    rentLines.map((e) => e.label).join(", "));
+  check("the whole $100 scores as cash", cashEP === 10, `got ${cashEP}`);
+  check("the ledger is still there for the digital build",
+    p.rentIn === 90 && p.rentOut === 0, `in ${p.rentIn} out ${p.rentOut}`);
 }
 
-section("A tenant who paid more rent than it collected shows no rent line");
+section("A heavy tenant and a heavy landlord score their cash the same way");
 {
-  const st = E.initGame(3, 56, ["You"], undefined, false, undefined);
-  const p = st.players[0];
-  p.rentIn = 10; p.rentOut = 80; p.cash = 100;
-  st.quarter = 12;
-  E.finalizeGame(st);
-  const rentEP = (p.epLog || []).filter((e) => /^Ground rent/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
-  const cashEP = (p.epLog || []).filter((e) => /^Cash on hand/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
-  check("net rent is negative, so no rent line is claimed", rentEP === 0, `got ${rentEP}`);
-  check("the whole $100 reads as ordinary cash", cashEP === 10, `got ${cashEP}`);
+  const mk = (seed, inn, out) => {
+    const st = E.initGame(3, seed, ["You"], undefined, false, undefined);
+    const p = st.players[0];
+    p.rentIn = inn; p.rentOut = out; p.cash = 100;
+    st.quarter = 12;
+    E.finalizeGame(st);
+    return (p.epLog || []).filter((e) => /^Cash on hand/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
+  };
+  check("net-positive rent scores 10 on $100", mk(56, 90, 0) === 10, `${mk(56, 90, 0)}`);
+  check("net-negative rent scores 10 on $100 too", mk(57, 10, 80) === 10, `${mk(57, 10, 80)}`);
 }
 
 console.log(fails ? `\n${fails} FAILED\n` : "\nall good\n");

@@ -406,7 +406,11 @@ function plotDemandScore(state, ind, plotKeyStr) {
    measures. */
 function placeableFor(state, owner, biz) {
   const slots = eligibleSlotsFor(state, biz, owner);
-  const direct = slots.filter((s) => !s.cross).length * exchangeRate(state, biz);
+  /* Counted in UNITS, not icons: an icon absorbs its own level (see deliverToSlot),
+     so this has to sum the columns rather than count the cells. A bot judging a
+     Blueprint by the old icon count would systematically under-build. */
+  const direct = slots.filter((s) => !s.cross)
+    .reduce((n, s) => n + (s.levelIdx + 1), 0) * exchangeRate(state, biz);
   const cross = bizInd(biz) === "MA"
     ? Math.min(biz.level, slots.filter((s) => s.cross).length) : 0;
   const neighbours = bizInd(biz) === "HO" ? hoBonusUnits(state, biz, owner) : 0;
@@ -812,8 +816,24 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
      was enforced for anyone clicking the grid and for nobody reaching the endpoint
      another way. */
   if (!reachableDistricts(state, biz).has(tileKey)) return 0;
+  /* A demand icon absorbs ITS OWN LEVEL in goods: the level-1 icon takes one unit,
+     the level-4 icon takes four. A level-3 company reaches columns 1-3, so one clean
+     row of its industry takes 1 + 2 + 3 = 6 of its units rather than 3.
+
+     This is what makes a bigger company sell more of what it makes. Production
+     already scaled with level; the board's appetite did not, so two thirds of all
+     output was being recycled at $1 while the demand grid sat 80% empty - the icons
+     were open and the units could not reach them. Measured in audit_demand_depth.js:
+     waste falls from 65% to 49%, and it falls where it should - a level-3 company
+     goes from 61% wasted to 39% while a level-1 company is unchanged, because a
+     level-1 company still only reaches the level-1 icon. Companies covering their
+     OPEX do not move at all (91% either way).
+
+     Cross-selling still moves one unit per icon. It is Manufacturing reaching into
+     somebody else's row, and letting it scale here would make a level-3 Manufacturing
+     better at every industry than the industry is at itself. */
   state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
-  return cross ? 1 : exchangeRate(state, biz);
+  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);
 }
 /* What one unit of this company's output is actually worth to this owner, including
    any persona effect. `slotInd` is the row being sold into, which only differs from the
@@ -1156,7 +1176,7 @@ function sellBpFromHand(state, p, bp, solvency = false) {
 function worstRoiBusiness(p, pm, quarter, minAge = 1) {
   const cands = activeBiz(p).filter((b) => quarter - b.quarterBuilt >= minAge);
   if (!cands.length) return null;
-  const roi = (b) => bizProd(b) * price(pm, bizInd(b)) - bizOpex(b) - 3 * b.level;
+  const roi = (b) => bizProd(b) * price(pm, bizInd(b)) - bizOpex(b) - RENT_PER_LEVEL * b.level;
   return cands.reduce((worst, b) => (roi(b) < roi(worst) ? b : worst), cands[0]);
 }
 /* Score a Blueprint for launching. Price is the dominant term: an industry everyone
@@ -1240,7 +1260,7 @@ function launchScore(state, p, bp, archetype) {
   // --- what it earns every quarter it stands ---
   // Rent is $3 per level, so a business on land you own returns that rent to you,
   // which materially narrows the gap between cheap-OPEX and expensive-OPEX industries.
-  const rent = 3 * bp.lvl;
+  const rent = RENT_PER_LEVEL * bp.lvl;
   const rentBack = owned >= nPlots ? rent : 0;
   const effOpex = bp.opex + rent - rentBack;
 
@@ -1361,7 +1381,7 @@ function upgradeScore(state, p, b, assumePlot) {
 
   const nowUnits = Math.min(bizProd(b), sellableForBiz(state, p, b));
   const nowNet = nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1
-    - bizOpex(b) - 3 * b.level;
+    - bizOpex(b) - RENT_PER_LEVEL * b.level;
 
   /* Where it would grow to. A sideways step reaches from a new plot, so ask the
      delivery rule about the grown footprint rather than assuming the reach is the same. */
@@ -1526,7 +1546,29 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "429c0dbe";
+const ENGINE_VERSION = "0e0ba155";
+/* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
+
+   It was $3 and is now $2. Rent is the one recurring cost that is NOT printed on
+   a Blueprint, so it is the charge a small company cannot escape by choosing a
+   cheaper card, and it grows with level while a level-1 company's income does
+   not. Dropping it a dollar is close to free because rent is a TRANSFER: every
+   dollar relieved from a tenant is a dollar a landlord does not collect, so the
+   money supply barely moves while margins improve. Measured in
+   audit_rent_scaled.js - companies covering OPEX plus rent go 91% to 94% at four
+   seats, trade income and the winning score stay flat, and the industry spread
+   is unchanged.
+
+   It is the only change measured in this repo that made the game LESS DECIDED
+   rather than merely closer at the finish: the Q6 leader's win rate falls from
+   41% to 36% at four seats and 31% to 28% at six.
+
+   THE TWO-PLAYER GAME IS THE EXCEPTION and it goes the other way - the Q6
+   leader's win rate rises from 60% to 67%. With two seats a cheaper cost base
+   helps whoever is already ahead, because there is nobody else for the relief to
+   be spread across. Head-to-head players who want the tighter game should know
+   that; it is in the rulebook note. */
+const RENT_PER_LEVEL = 2;
 const DISCS_PER_PLAYER = 12;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Twelve discs, no more.
@@ -1576,7 +1618,7 @@ function hqRentDue(state, p) {
     for (const plot of hq.footprint) {
       const ownerId = state.board.owner[plot];
       if (ownerId === undefined || ownerId === p.id) continue;
-      due += 3 * levelsOn(hq, plot);
+      due += RENT_PER_LEVEL * levelsOn(hq, plot);
     }
   }
   return due;
@@ -1588,7 +1630,7 @@ function payHqRent(state, p, log) {
       if (ownerId === undefined || ownerId === p.id) continue;
       const owner = state.players.find((pl) => pl.id === ownerId);
       if (!owner) continue;
-      const due = Math.min(Math.max(0, p.cash), 3 * levelsOn(hq, plot));
+      const due = Math.min(Math.max(0, p.cash), RENT_PER_LEVEL * levelsOn(hq, plot));
       if (due <= 0) continue;
       p.cash -= due;
       owner.cash += due;
@@ -1643,12 +1685,12 @@ function runProduction(state, log) {
         continue;
       }
       p.cash -= cost;
-      const rentTotal = 3 * b.level;
+      const rentTotal = RENT_PER_LEVEL * b.level;
       /* $3 for every level standing on a plot, paid to whoever owns that plot. A
          two-storey corner pays its landlord $6 while the single-storey neighbour
          collects $3, and the total still comes to $3 x level. */
       for (const plot of b.footprint) {
-        const due = 3 * levelsOn(b, plot);
+        const due = RENT_PER_LEVEL * levelsOn(b, plot);
         const ownerId = board.owner[plot];
         if (ownerId === undefined) continue;
         const owner = players.find((pl) => pl.id === ownerId);
@@ -1895,8 +1937,16 @@ function districtCount(state, p) {
 /* Final standings. EP first; a tie is broken by money, and then by having fewer loan
    discs still sitting in the bank. Ranking used to be EP alone, so a tied game picked
    its winner by whatever order the players happened to be sitting in. */
+/* Most EP wins. A tie is broken by who is still RUNNING more of a city - active
+   companies, headquarters excluded, because a headquarters has stopped trading -
+   and only then by money. Counting companies before cash rewards the player who
+   kept building over the one who sat on the proceeds, which is the same thing the
+   rest of the scoring is trying to say. Loan discs remain the last resort. */
 function finalRank(a, b) {
-  return epTotal(b) - epTotal(a) || b.cash - a.cash || a.discsInBank - b.discsInBank;
+  return epTotal(b) - epTotal(a)
+    || activeBiz(b).length - activeBiz(a).length
+    || b.cash - a.cash
+    || a.discsInBank - b.discsInBank;
 }
 /* A headquarters is a monument, not a business, and the city grows up around it. At the
    end of the game it scores for every OTHER company standing orthogonally beside it -
@@ -1932,19 +1982,16 @@ function finalizeGame(state) {
   }
   for (const p of state.players) {
     if (p.discsInBank) addEP(p, -5 * p.discsInBank, `Unpaid loans (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"})`, state.quarter);
-    /* Money is fungible, so splitting the cash pile is a convention rather than a fact.
-       The convention is: NET GROUND RENT IS NAMED FIRST, and whatever is left over is
-       trade. It is worth naming because rent is what land pays with once the table gets
-       big - at six seats it moves about $114 a seat over a game against $184 of terminal
-       cash - and folding it into "cash on hand" made the score read as though land had
-       stopped mattering when it had only stopped paying in awards. See audit_idle_land.js. */
+    /* Cash scores as one line. The ground-rent ledger below is still kept, and the
+       digital build shows it as a CASH FLOW - collected, paid out, and saved by owning
+       your own ground - because there it costs nothing to track. It is deliberately NOT
+       a separate scoring line: rent arrives as money and spends as money, and asking a
+       physical table to keep a running rent total all game to split one end-of-game
+       total into two halves that add back to the same number is bookkeeping for no
+       decision. What the split was really for was diagnosis, and a probe can compute it
+       from the ledger without the players doing anything. See audit_idle_land.js. */
     const cashEP = Math.floor(p.cash / 10);
-    if (cashEP) {
-      const netRent = (p.rentIn || 0) - (p.rentOut || 0);
-      const rentEP = netRent > 0 ? Math.min(cashEP, Math.floor(netRent / 10)) : 0;
-      if (rentEP) addEP(p, rentEP, `Ground rent (net $${Math.round(netRent)})`, state.quarter);
-      if (cashEP - rentEP) addEP(p, cashEP - rentEP, `Cash on hand ($${Math.round(p.cash)})`, state.quarter);
-    }
+    if (cashEP) addEP(p, cashEP, `Cash on hand ($${Math.round(p.cash)})`, state.quarter);
   }
 }
 
@@ -1991,12 +2038,23 @@ const tierOfTile = (tile) => (tile ? MEGACORP_TIER[tile[0]] || 1 : 1);
 const tierOfHQ = (hq) => (hq && hq.megacorpName ? MEGACORP_TIER[hq.megacorpName] || 1 : 1);
 /* What a headquarters of this tile banks each quarter, at this price. */
 const brandEPFor = (price, tier) => Math.floor(price / tier);
+/* How many tiles come out of each tier that is in play. Two up to four players,
+   three at five, and at six the whole box - all sixteen tiles, four per tier.
+
+   The point is not more choice for its own sake. A second Megacorp calls the
+   final quarter, and a six-player table has the most reason to want that door
+   available: twelve quarters with six people deliberating is a long evening, and
+   a table that can see a way to close it early has one. Widening the pool is
+   what makes a second merger findable rather than a matter of whether the two
+   tiles you could use happened to be drawn. */
+const MEGACORP_PER_TIER_DRAWN = (nPlayers) => (nPlayers >= 6 ? 4 : nPlayers >= 5 ? 3 : 2);
 function drawMegacorpPool(nPlayers, rng) {
   const out = [];
+  const take = MEGACORP_PER_TIER_DRAWN(nPlayers);
   for (let tier = MEGACORP_TIERS; tier >= 1; tier--) {
     if (nPlayers < MEGACORP_TIER_MIN_PLAYERS[tier]) continue;
     const from = (MEGACORP_TIERS - tier) * MEGACORP_PER_TIER;
-    out.push(...shuffle(MEGACORP_TILES.slice(from, from + MEGACORP_PER_TIER), rng).slice(0, 2));
+    out.push(...shuffle(MEGACORP_TILES.slice(from, from + MEGACORP_PER_TIER), rng).slice(0, take));
   }
   return out;
 }
@@ -2250,7 +2308,7 @@ function megacorpWorthIt(state, p, match) {
   for (const b of match.have) {
     const units = Math.min(bizProd(b), sellableForBiz(state, p, b));
     const trade = units * price(state.pm, bizInd(b))
-      + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - 3 * b.level;
+      + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - RENT_PER_LEVEL * b.level;
     lostPerQuarter += Math.max(0, trade);
   }
   const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);
@@ -2267,7 +2325,7 @@ function hqGroundRent(state, p, b) {
   for (const plot of b.footprint) {
     const ownerId = state.board.owner[plot];
     if (ownerId === undefined || ownerId === p.id) continue;
-    due += 3 * levelsOn(b, plot);
+    due += RENT_PER_LEVEL * levelsOn(b, plot);
   }
   return due;
 }
@@ -2341,10 +2399,13 @@ function boardMeetingDesire(state, p) {
   // otherwise, is it worth seizing the front of the turn order?
   // sitting late means everyone else picks their track (and their FILO bonus) before you.
   // This costs two meeples for one action, so only the back of the order bothers.
-  /* Repositioning buys first place NEXT quarter. In Quarter 12 there is no next
-     quarter: all it still wins is the closing hub, which is placed after the last
-     delivery and cannot change anybody's score. Both meeples for nothing. */
+  /* Repositioning buys first place NEXT quarter. In the last quarter there is no
+     next quarter: all it still wins is the closing hub, which is placed after the
+     last delivery and cannot change anybody's score. Both meeples for nothing.
+     Once a second Megacorp has named the final quarter, that quarter is the last
+     one too, and the bot can see it coming. */
   if (state.quarter >= 12) return 0;
+  if (state.finalQuarter && state.quarter >= state.finalQuarter) return 0;
   const idx = state.turnOrder.indexOf(p.id);
   if (idx >= 2 && activeBiz(p).length >= 1) return 8 + idx * 9;     // 3rd 26, 4th 35
   return 0;
@@ -2459,7 +2520,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     // and freeing the slot, the disc and the cash for something the table is short of.
     const collapsed = activeBiz(p).find((b) => {
       if (price(state.pm, bizInd(b)) > 1) return false;
-      const net = bizProd(b) * 1 - bizOpex(b) - 3 * b.level;   // $1/unit is recycling money
+      const net = bizProd(b) * 1 - bizOpex(b) - RENT_PER_LEVEL * b.level;   // $1/unit is recycling money
       return net < 0;
     });
     // ...but only when there is something better to put in its place: the company still
@@ -2865,12 +2926,20 @@ function finishQuarterAfterRepay(state, log, rng) {
   }
   const summary = state.players.map((p) => `${p.name} $${Math.round(p.cash)}/${p.epBank.toFixed(0)}EP/${activeBiz(p).length}biz`).join("  \u00b7  ");
   log(`\u2500 End of Q${state.quarter}: ${summary}`, null);
+  /* The second Megacorp CALLS the final quarter rather than being it: the game ends
+     at the close of the FOLLOWING quarter, capped at Q12. The table gets one full
+     round to answer - cash out, merge, buy the ground - instead of finding out the
+     game is over after it already is. Measured in audit_deadline_warning.js: it
+     pulls the trigger's win rate down at every table size, though not by enough to
+     clear the noise, and it costs about half the early endings. It is here as a
+     playability choice - a deadline you can respond to - not as a balance fix. */
   const rushers = endgameRushers(state);
-  if (state.quarter >= 12 || rushers.length) {
-    if (rushers.length && state.quarter < 12) {
-      const who = rushers.map((p) => p.name).join(" and ");
-      log(`\u23f9 ${who} ${rushers.length === 1 ? "has" : "have"} launched ${MEGACORPS_TO_END} Megacorps \u2014 the game ends here, at the close of Q${state.quarter}.`, null);
-    }
+  if (rushers.length && !state.finalQuarter) {
+    state.finalQuarter = Math.min(12, state.quarter + 1);
+    const who = rushers.map((p) => p.name).join(" and ");
+    log(`\u23f9 ${who} ${rushers.length === 1 ? "has" : "have"} launched ${MEGACORPS_TO_END} Megacorps \u2014 Q${state.finalQuarter} is the FINAL QUARTER.`, null);
+  }
+  if (state.quarter >= 12 || (state.finalQuarter && state.quarter >= state.finalQuarter)) {
     finalizeGame(state);
     state.phase = "gameover";
     log("=== GAME OVER \u2014 final scoring complete ===", null);
@@ -2926,7 +2995,7 @@ function draftScoreNaive(bp) {
 function draftScore(bp, drafted) {
   const bumps = draftedPressure(drafted);
   const px = expectedDraftPrice(bp.ind, bumps);
-  const rent = 3 * bp.lvl;                                 // paid, then returned on own land
+  const rent = RENT_PER_LEVEL * bp.lvl;                                 // paid, then returned on own land
   const net = bp.prod * px - bp.opex;
   let s = net / Math.max(1, bp.setup + (SCALING[bp.ind] === "H" ? (bp.lvl - 1) * 3 : 0));
   // a deck the table is already raiding will be crowded on the board too

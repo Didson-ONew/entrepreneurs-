@@ -297,11 +297,11 @@ section("Its owner pays the ground rent out of pocket");
   st.board.owner[plots[0]] = b.id;               // standing on somebody else's land
   st.board.occupiedBy[plots[0]] = hq.id;
 
-  check("the bill is $3 for every level standing there", E.hqRentDue(st, a) === 6, `$${E.hqRentDue(st, a)}`);
+  check("the bill is $2 for every level standing there", E.hqRentDue(st, a) === 4, `$${E.hqRentDue(st, a)}`);
   a.cash = 50; b.cash = 0;
   E.payHqRent(st, a, () => {});
   check("the owner pays it and the landlord collects it",
-    a.cash === 44 && b.cash === 6, `owner $${a.cash}, landlord $${b.cash}`);
+    a.cash === 46 && b.cash === 4, `owner $${a.cash}, landlord $${b.cash}`);
 
   st.board.owner[plots[0]] = a.id;               // now it is their own land
   check("on your own land nothing moves", E.hqRentDue(st, a) === 0);
