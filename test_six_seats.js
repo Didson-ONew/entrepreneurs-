@@ -78,7 +78,9 @@ const section = (t) => console.log(`\n${t}`);
     const w = st ? ["raise_capital", "ma", "rd"].map((k) => st.tracks[k].length) : [];
     check("the working tracks are six wide", w.join("/") === "6/6/6", w.join("/"));
     check("Board Meeting is still two seats", st && st.tracks.board_meeting.length === 2);
-    check("all four Megacorp tiers are in the box", st && st.megacorpPool.length === 8,
+    /* at six players every tile in the game is drawn - four from each of the four
+       tiers - which is what makes a second merger findable and the early ending real */
+    check("the whole Megacorp box is in play", st && st.megacorpPool.length === 16,
       st ? `${st.megacorpPool.length} tiles` : "");
   }
 

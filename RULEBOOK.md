@@ -284,7 +284,7 @@ If the bill still cannot be met once a company's OPEX comes due, that company en
 
 ## Revenue: selling what you produce
 
-Each company produces a number of units printed on its Blueprint, doubled if it has been upgraded. That number is all it has: every ability below is a route for those units, never a source of more. You deliver them to demand icons your company can reach, and each icon pays the current market price for your industry.
+Each company produces a number of units printed on its Blueprint, doubled if it has been upgraded. That number is all it has: every ability below is a route for those units, never a source of more. You deliver them to demand icons your company can reach, and every unit an icon takes is paid at the current market price for your industry.
 
 Demand icons are first come, first served, and the businesses a Hospitality company sells to are not - so it is usually right to take the contested icons first and send whatever is left to the neighbours. Anything you still cannot place is recycled for $1 a unit.
 
@@ -292,11 +292,12 @@ Delivery goes in turn order. Every icon is first come, first served, so being ea
 
 ### Which icons you may use
 
-Every district shows a 4x4 grid of demand. Each row is an industry; the four columns are levels 1 to 4. You may deliver to an icon if the row's industry is yours and the column is no higher than your company's level - so a bigger company reaches deeper into the same district.
+Every district shows a 4x4 grid of demand. Each row is an industry; the four columns are levels 1 to 4. You may deliver to an icon if the row's industry is yours and the column is no higher than your company's level - so a bigger company reaches deeper into the same district, and the deeper icons are hungrier.
 
 - Rows 3 and 4 of every district stay closed until Quarter 5.
 - At the end of Quarter 8 the entire demand grid is wiped clean and every icon reopens for Year 3.
-- Each icon can be sold to once, by whoever gets there first.
+- AN ICON TAKES ITS OWN COLUMN IN GOODS: the level-1 icon takes one unit, the level-2 icon two, the level-3 icon three, the level-4 icon four. A level-3 company reaching columns 1, 2 and 3 therefore sells 1 + 2 + 3 = 6 units into a single clean row of its industry.
+- Each icon can be sold to once, by whoever gets there first - and it is filled whole, however many units it took.
 - Anything you cannot sell is recycled for $1 a unit.
 
 ### How far a company reaches
@@ -413,7 +414,9 @@ The sixteen tiles are four tiers of four. Tier 4 is the four cheapest to assembl
 | 2 | Metro Trust, Crossroads Deal, Skyline Consolidated, Apex Group | 3 players | 1 EP | 3 EP |
 | 1 | Titan Industries, Colossus Group, Empire Holdings, Omnicorp | 4 players | 3 EP | 6 EP |
 
-Two tiles are drawn from each tier that is in play. At two players that is four tiles, at three it is six, and from four players up all four tiers come out and the box holds eight - so a small table is never filled with tiles nobody could ever claim.
+Tiles are drawn from every tier that is in play, and how many depends on the table: TWO from each tier at two, three or four players, THREE at five, and at six players every tile in the game is available. So the box holds four tiles at two players, six at three, eight at four, twelve at five and all sixteen at six.
+
+> **Designer's note.** The wider draw at five and six is not variety for its own sake. A second Megacorp calls the final quarter, and the biggest tables are the ones with most reason to want that door open - twelve quarters with six people deliberating is a long evening. With the full box in play a second merger becomes findable rather than a matter of whether the two tiles you could use happened to be drawn: games ending early go from 7% at four players to 22% at five and 34% at six, and the average six-player game ends about two thirds of a quarter sooner.
 
 > **Designer's note.** Before the tiers, a Local Syndicate built out of three level-1 companies earned exactly as much every quarter as an Omnicorp built out of four level-3s, and the Megacorp had grown to 33% of a winning score - the largest single bucket in the game, ahead of companies. Dividing the brand by the tier halved that to 17% and took the winner’s lead over last from 58.6 EP to 48.7, without making the merger itself any rarer. The draw rule barely registers at four players, where eight random tiles out of sixteen already average two per tier; it earns its keep at two, where it took the unclaimable tiles out of the box and Megacorps formed rose from 1.00 a game to 1.26.
 
@@ -436,15 +439,14 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Megacorp HQ, at the end | +3 for each other company beside it |
 | The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone |
 | The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone |
-| Net ground rent collected | +1 per full $10, named separately from the rest of your cash |
 | Cash on hand at the end | +1 per full $10 |
 | Each loan disc still in the bank | -5 |
 
 For The Omnipresent, a district counts if you own a plot in it or one of your active companies stands in it.
 
-Ground rent scores at the same $10 rate as the rest of your money - it is not a separate income - but the final tally names it on its own line so you can see what your land actually earned. A plot with somebody else’s building on it pays you every quarter; that is the main thing land does once the table is large.
+Ground rent is simply money. It is collected as it is earned and scores inside your cash at the end like every other dollar - there is nothing separate to track. What is worth knowing is how much of your income it quietly becomes: a plot with somebody else’s building on it pays you every quarter, and by six players half the plots a player owns carry a rival’s building.
 
-> **Designer's note.** Rent used to disappear into the cash line, which made the score read as though land stopped mattering at a big table. It does still matter less - land plus rent is 27% of a winning score at two seats and 14% at six - but the drop is about half what the old breakdown suggested. Net rent is worth about 5% of a winning score at every table size: gross rent moves far more at six seats, $9.5 a seat a quarter against $5.3, but the winner is paying rent as well as collecting it. See audit_idle_land.js.
+> **Designer's note.** Rent was briefly given its own scoring line while the balance of land was being investigated. It has been folded back into cash: the split changed no totals, and asking a table to keep a running rent tally all game to divide one number into two halves that add back to it is bookkeeping without a decision. The digital build still shows the flow, where it costs nothing. Land plus rent is about 27% of a winning score at two seats and 14% at six - see audit_idle_land.js.
 
 Only the outright leader scores a land award, and a shared lead pays badly: 5 EP alone, 2 EP each if two players tie, 1 EP each if three or more do. Second place gets nothing.
 

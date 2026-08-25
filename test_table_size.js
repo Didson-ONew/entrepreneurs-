@@ -93,7 +93,9 @@ for (const n of SIZES) {
 
 /* --------------------------------------------------------------- megacorps */
 section("The Megacorp box grows with the table");
-const EXPECTED_TILES = { 2: 4, 3: 6, 4: 8, 5: 8, 6: 8 };
+/* two per tier up to four players, three at five, the whole box at six */
+const EXPECTED_TILES = { 2: 4, 3: 6, 4: 8, 5: 12, 6: 16 };
+const EXPECTED_PER_TIER = { 2: 2, 3: 2, 4: 2, 5: 3, 6: 4 };
 for (const n of SIZES) {
   const pool = E.drawMegacorpPool(n, E.mulberry32(99));
   check(`${n} players: ${EXPECTED_TILES[n]} tiles in the box`, pool.length === EXPECTED_TILES[n],
@@ -101,8 +103,8 @@ for (const n of SIZES) {
   const perTier = { 1: 0, 2: 0, 3: 0, 4: 0 };
   pool.forEach((t) => { perTier[E.MEGACORP_TIER[t[0]]]++; });
   const drawn = Object.entries(perTier).filter(([, c]) => c > 0);
-  check(`${n} players: exactly two of every tier in play`,
-    drawn.every(([, c]) => c === 2), JSON.stringify(perTier));
+  check(`${n} players: exactly ${EXPECTED_PER_TIER[n]} of every tier in play`,
+    drawn.every(([, c]) => c === EXPECTED_PER_TIER[n]), JSON.stringify(perTier));
   const hardest = n >= 4 ? 1 : n >= 3 ? 2 : 3;
   check(`${n} players: hardest tier in the box is ${hardest}`,
     Math.min(...pool.map((t) => E.MEGACORP_TIER[t[0]])) === hardest, JSON.stringify(perTier));
@@ -289,30 +291,34 @@ for (const n of [2, 4, 6]) {
   }
 }
 
-section("A landlord paying no rent still banks what it collects");
+section("Rent is tracked as a flow, but scores inside cash and nowhere else");
 {
   const st = E.initGame(3, 55, ["You"], undefined, false, undefined);
   const p = st.players[0];
   p.rentIn = 90; p.rentOut = 0; p.cash = 100;
   st.quarter = 12;
   E.finalizeGame(st);
-  const rentEP = (p.epLog || []).filter((e) => /^Ground rent/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
+  const rentLines = (p.epLog || []).filter((e) => /rent/i.test(e.label));
   const cashEP = (p.epLog || []).filter((e) => /^Cash on hand/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
-  check("$90 net rent of $100 cash reads as 9 EP rent", rentEP === 9, `got ${rentEP}`);
-  check("and 1 EP of ordinary cash", cashEP === 1, `got ${cashEP}`);
+  check("no separate rent scoring line", rentLines.length === 0,
+    rentLines.map((e) => e.label).join(", "));
+  check("the whole $100 scores as cash", cashEP === 10, `got ${cashEP}`);
+  check("the ledger is still there for the digital build",
+    p.rentIn === 90 && p.rentOut === 0, `in ${p.rentIn} out ${p.rentOut}`);
 }
 
-section("A tenant who paid more rent than it collected shows no rent line");
+section("A heavy tenant and a heavy landlord score their cash the same way");
 {
-  const st = E.initGame(3, 56, ["You"], undefined, false, undefined);
-  const p = st.players[0];
-  p.rentIn = 10; p.rentOut = 80; p.cash = 100;
-  st.quarter = 12;
-  E.finalizeGame(st);
-  const rentEP = (p.epLog || []).filter((e) => /^Ground rent/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
-  const cashEP = (p.epLog || []).filter((e) => /^Cash on hand/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
-  check("net rent is negative, so no rent line is claimed", rentEP === 0, `got ${rentEP}`);
-  check("the whole $100 reads as ordinary cash", cashEP === 10, `got ${cashEP}`);
+  const mk = (seed, inn, out) => {
+    const st = E.initGame(3, seed, ["You"], undefined, false, undefined);
+    const p = st.players[0];
+    p.rentIn = inn; p.rentOut = out; p.cash = 100;
+    st.quarter = 12;
+    E.finalizeGame(st);
+    return (p.epLog || []).filter((e) => /^Cash on hand/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
+  };
+  check("net-positive rent scores 10 on $100", mk(56, 90, 0) === 10, `${mk(56, 90, 0)}`);
+  check("net-negative rent scores 10 on $100 too", mk(57, 10, 80) === 10, `${mk(57, 10, 80)}`);
 }
 
 console.log(fails ? `\n${fails} FAILED\n` : "\nall good\n");

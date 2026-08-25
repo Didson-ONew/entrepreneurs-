@@ -406,7 +406,11 @@ function plotDemandScore(state, ind, plotKeyStr) {
    measures. */
 function placeableFor(state, owner, biz) {
   const slots = eligibleSlotsFor(state, biz, owner);
-  const direct = slots.filter((s) => !s.cross).length * exchangeRate(state, biz);
+  /* Counted in UNITS, not icons: an icon absorbs its own level (see deliverToSlot),
+     so this has to sum the columns rather than count the cells. A bot judging a
+     Blueprint by the old icon count would systematically under-build. */
+  const direct = slots.filter((s) => !s.cross)
+    .reduce((n, s) => n + (s.levelIdx + 1), 0) * exchangeRate(state, biz);
   const cross = bizInd(biz) === "MA"
     ? Math.min(biz.level, slots.filter((s) => s.cross).length) : 0;
   const neighbours = bizInd(biz) === "HO" ? hoBonusUnits(state, biz, owner) : 0;
@@ -812,8 +816,24 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
      was enforced for anyone clicking the grid and for nobody reaching the endpoint
      another way. */
   if (!reachableDistricts(state, biz).has(tileKey)) return 0;
+  /* A demand icon absorbs ITS OWN LEVEL in goods: the level-1 icon takes one unit,
+     the level-4 icon takes four. A level-3 company reaches columns 1-3, so one clean
+     row of its industry takes 1 + 2 + 3 = 6 of its units rather than 3.
+
+     This is what makes a bigger company sell more of what it makes. Production
+     already scaled with level; the board's appetite did not, so two thirds of all
+     output was being recycled at $1 while the demand grid sat 80% empty - the icons
+     were open and the units could not reach them. Measured in audit_demand_depth.js:
+     waste falls from 65% to 49%, and it falls where it should - a level-3 company
+     goes from 61% wasted to 39% while a level-1 company is unchanged, because a
+     level-1 company still only reaches the level-1 icon. Companies covering their
+     OPEX do not move at all (91% either way).
+
+     Cross-selling still moves one unit per icon. It is Manufacturing reaching into
+     somebody else's row, and letting it scale here would make a level-3 Manufacturing
+     better at every industry than the industry is at itself. */
   state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
-  return cross ? 1 : exchangeRate(state, biz);
+  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);
 }
 /* What one unit of this company's output is actually worth to this owner, including
    any persona effect. `slotInd` is the row being sold into, which only differs from the
@@ -1526,7 +1546,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "e5648cf9";
+const ENGINE_VERSION = "05476ada";
 const DISCS_PER_PLAYER = 12;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Twelve discs, no more.
@@ -1940,19 +1960,16 @@ function finalizeGame(state) {
   }
   for (const p of state.players) {
     if (p.discsInBank) addEP(p, -5 * p.discsInBank, `Unpaid loans (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"})`, state.quarter);
-    /* Money is fungible, so splitting the cash pile is a convention rather than a fact.
-       The convention is: NET GROUND RENT IS NAMED FIRST, and whatever is left over is
-       trade. It is worth naming because rent is what land pays with once the table gets
-       big - at six seats it moves about $114 a seat over a game against $184 of terminal
-       cash - and folding it into "cash on hand" made the score read as though land had
-       stopped mattering when it had only stopped paying in awards. See audit_idle_land.js. */
+    /* Cash scores as one line. The ground-rent ledger below is still kept, and the
+       digital build shows it as a CASH FLOW - collected, paid out, and saved by owning
+       your own ground - because there it costs nothing to track. It is deliberately NOT
+       a separate scoring line: rent arrives as money and spends as money, and asking a
+       physical table to keep a running rent total all game to split one end-of-game
+       total into two halves that add back to the same number is bookkeeping for no
+       decision. What the split was really for was diagnosis, and a probe can compute it
+       from the ledger without the players doing anything. See audit_idle_land.js. */
     const cashEP = Math.floor(p.cash / 10);
-    if (cashEP) {
-      const netRent = (p.rentIn || 0) - (p.rentOut || 0);
-      const rentEP = netRent > 0 ? Math.min(cashEP, Math.floor(netRent / 10)) : 0;
-      if (rentEP) addEP(p, rentEP, `Ground rent (net $${Math.round(netRent)})`, state.quarter);
-      if (cashEP - rentEP) addEP(p, cashEP - rentEP, `Cash on hand ($${Math.round(p.cash)})`, state.quarter);
-    }
+    if (cashEP) addEP(p, cashEP, `Cash on hand ($${Math.round(p.cash)})`, state.quarter);
   }
 }
 
@@ -1999,12 +2016,23 @@ const tierOfTile = (tile) => (tile ? MEGACORP_TIER[tile[0]] || 1 : 1);
 const tierOfHQ = (hq) => (hq && hq.megacorpName ? MEGACORP_TIER[hq.megacorpName] || 1 : 1);
 /* What a headquarters of this tile banks each quarter, at this price. */
 const brandEPFor = (price, tier) => Math.floor(price / tier);
+/* How many tiles come out of each tier that is in play. Two up to four players,
+   three at five, and at six the whole box - all sixteen tiles, four per tier.
+
+   The point is not more choice for its own sake. A second Megacorp calls the
+   final quarter, and a six-player table has the most reason to want that door
+   available: twelve quarters with six people deliberating is a long evening, and
+   a table that can see a way to close it early has one. Widening the pool is
+   what makes a second merger findable rather than a matter of whether the two
+   tiles you could use happened to be drawn. */
+const MEGACORP_PER_TIER_DRAWN = (nPlayers) => (nPlayers >= 6 ? 4 : nPlayers >= 5 ? 3 : 2);
 function drawMegacorpPool(nPlayers, rng) {
   const out = [];
+  const take = MEGACORP_PER_TIER_DRAWN(nPlayers);
   for (let tier = MEGACORP_TIERS; tier >= 1; tier--) {
     if (nPlayers < MEGACORP_TIER_MIN_PLAYERS[tier]) continue;
     const from = (MEGACORP_TIERS - tier) * MEGACORP_PER_TIER;
-    out.push(...shuffle(MEGACORP_TILES.slice(from, from + MEGACORP_PER_TIER), rng).slice(0, 2));
+    out.push(...shuffle(MEGACORP_TILES.slice(from, from + MEGACORP_PER_TIER), rng).slice(0, take));
   }
   return out;
 }

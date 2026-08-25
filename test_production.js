@@ -52,9 +52,18 @@ function connectedRun(st, n) {
 }
 
 /* Count how many demand slots the whole board has open for this company right now. */
+/* `own` is counted in UNITS, not icons: an icon absorbs its own column, so a level-3
+   company facing a clean row of its industry takes 1 + 2 + 3 = 6 units from it.
+   `ownIcons` keeps the raw cell count for the tests that are about icons being
+   consumed rather than units being sold. Cross-sell still moves one unit per icon. */
 function openSlots(st, biz, owner) {
   const all = E.eligibleSlotsFor(st, biz, owner);
-  return { own: all.filter((s) => !s.cross).length, cross: all.filter((s) => s.cross).length };
+  const own = all.filter((s) => !s.cross);
+  return {
+    own: own.reduce((n, s) => n + (s.levelIdx + 1), 0),
+    ownIcons: own.length,
+    cross: all.filter((s) => s.cross).length,
+  };
 }
 
 /* Build one company of a given industry and level on land the player owns, and return
@@ -211,18 +220,35 @@ section("And it takes the contested demand icons first");
     if (!b) continue;
     const bonus = E.hoBonusUnits(b.st, b.biz, b.me);
     const s = openSlots(b.st, b.biz, b.me);
-    if (bonus <= 0 || s.own <= 0) continue;
+    if (bonus <= 0 || s.ownIcons <= 0) continue;
     checked++;
-    const iconsBefore = filledIcons(b.st);
+    /* Icons now cost different amounts - an icon absorbs its own column - so "it should
+       have filled every icon it could reach" is no longer the right assertion: a level-3
+       icon wants three units and the company may not have three left. The rule that DOES
+       still hold is the one this test is about: no unit goes to a neighbour while a
+       reachable icon is still open AND still affordable. That is checked exactly, by
+       looking at what was left open afterwards rather than by re-deriving the delivery
+       order the engine uses. */
+    const before = E.eligibleSlotsFor(b.st, b.biz, b.me).filter((x) => !x.cross);
     E.autoDeliver(b.st, b.me, b.biz);
-    const filled = filledIcons(b.st) - iconsBefore;
-    const shouldFill = Math.min(s.own, b.prod);
-    if (filled < shouldFill) { bad = { seed, filled, shouldFill, bonus, prod: b.prod }; break; }
+    const after = E.eligibleSlotsFor(b.st, b.biz, b.me).filter((x) => !x.cross);
+    const key = (x) => `${x.tileKey}|${x.rowIdx}|${x.levelIdx}`;
+    const stillOpen = new Set(after.map(key));
+    const unitsToIcons = before.filter((x) => !stillOpen.has(key(x)))
+      .reduce((n, x) => n + (x.levelIdx + 1) * E.exchangeRate(b.st, b.biz), 0);
+    const spare = b.prod - unitsToIcons;             // what neighbours could have had
+    if (spare > 0) {
+      const affordable = after.some((x) => (x.levelIdx + 1) * E.exchangeRate(b.st, b.biz) <= spare);
+      if (affordable) {
+        bad = { seed, unitsToIcons, spare, bonus, prod: b.prod };
+        break;
+      }
+    }
   }
   check(`checked ${checked} boards with both icons and neighbours available`, checked > 20, `${checked}`);
   check("every icon it could reach was taken before any unit went to a neighbour",
     bad === null,
-    bad && `seed ${bad.seed}: filled ${bad.filled} of ${bad.shouldFill} reachable icons`);
+    bad && `seed ${bad.seed}: ${bad.unitsToIcons} units to icons, ${bad.spare} spare, and an affordable icon was left open`);
 }
 
 /* =========================================================== the bot's estimate */
