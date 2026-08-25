@@ -76,9 +76,26 @@
    67%; with two players a cheaper cost base helps whoever is already ahead,
    since there is nobody else to spread the relief across.
 
-   Rent is a TRANSFER, so cutting it is not a giveaway: it moves a dollar from
-   the tenant's side to nobody, taking income from landlords at the same time.
-   That is why total income barely moves while profitability improves.
+   A LATER CORRECTION TO WHY THAT WORKS. This probe said rent was a transfer
+   between players, and explained the $3-to-$2 gain as relief to tenants. Reading
+   runProduction properly (see audit_rent_flow.js) that is wrong in an important
+   way: a company pays its OPEX and NOTHING ELSE, and rent is carved OUT of that
+   payment - `toPots = cost - rentTotal`. The rate does not change what a tenant
+   pays. What it changes is the SPLIT between landlords and the industry pots.
+
+   So cutting rent to $2 did not relieve tenants; it pushed money into the pots,
+   which are shared EVENLY among the active businesses of an industry, one equal
+   share each whatever their size. That is the game's redistributive channel, and
+   land income is its concentrated one. Moving money from rent to pots is
+   progressive by construction - which is a better explanation of the measured
+   result than the one given above, and predicts it rather than describing it.
+
+   IT ALSO MEANS THE "companies covering OPEX + rent" COLUMN IN THIS REPORT
+   OVERSTATES COSTS for ordinary companies, since it adds rent on top of an OPEX
+   that already contains it. The comparison between columns is still sound - the
+   same overstatement is applied to every ruleset - but the level is pessimistic.
+   Only a Megacorp headquarters genuinely pays rent on top, from pocket, because
+   it has no OPEX to carve it from.
 
    Run: node audit_rent_scaled.js [seeds]
    ========================================================================== */

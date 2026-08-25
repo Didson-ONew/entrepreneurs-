@@ -1546,15 +1546,16 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "0e0ba155";
+const ENGINE_VERSION = "c3eb2058";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
-   It was $3 and is now $2. Rent is the one recurring cost that is NOT printed on
-   a Blueprint, so it is the charge a small company cannot escape by choosing a
-   cheaper card, and it grows with level while a level-1 company's income does
-   not. Dropping it a dollar is close to free because rent is a TRANSFER: every
-   dollar relieved from a tenant is a dollar a landlord does not collect, so the
-   money supply barely moves while margins improve. Measured in
+   It was $3 and is now $2. Rent is NOT an extra bill: a company pays its OPEX and
+   nothing else, and rent is carved out of that payment - whatever survives it goes
+   to the supplier pots. So the rate decides a SPLIT, not a cost, and lowering it
+   pushes money into the pots instead of to landlords. Pots are shared evenly among
+   the active businesses of an industry, one equal share each whatever their size,
+   while land income is concentrated in whoever owns land - so a lower rate is
+   redistributive, which is why it helps the trailing player. Measured in
    audit_rent_scaled.js - companies covering OPEX plus rent go 91% to 94% at four
    seats, trade income and the winning score stay flat, and the industry spread
    is unchanged.
