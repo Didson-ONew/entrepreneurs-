@@ -656,6 +656,15 @@ function utBlock(state, biz, home) {
   state.utBlocks[biz.id] = { quarter: state.quarter, level: biz.level, cells };
   return cells;
 }
+/* How many districts BEYOND its own a Retail company may sell into: one per level, plus
+   one while its owner's Supply Chain Expert bump is live. This is the single number the
+   delivery picker, the server and the reach calculation all read, so a human and a bot
+   holding the same persona get the same reach. */
+function reAllowance(state, biz, owner) {
+  const p = owner || ownerOf(state, biz);
+  const bonus = (p && state.reExtraDistrict && state.reExtraDistrict[p.id]) ? 1 : 0;
+  return biz.level + bonus;
+}
 function reachableDistricts(state, biz, chosenExtra) {
   const board = state.board;
   const home = footprintDistricts(board, biz.footprint);
@@ -673,11 +682,14 @@ function reachableDistricts(state, biz, chosenExtra) {
   }
   if (bizInd(biz) === "UT") utBlock(state, biz, home).forEach((d) => out.add(d));
   if (bizInd(biz) === "RE") {
-    // the Supply Chain Expert reaches one district further this quarter
-    const owner = ownerOf(state, biz);
-    const bonus = (owner && state.reExtraDistrict && state.reExtraDistrict[owner.id]) ? 1 : 0;
+    /* The Supply Chain Expert reaches one district further this quarter. The bonus used
+       to be read only in the fallback branch below, so the moment a human confirmed a
+       pick it was skipped entirely and the persona did nothing in human hands. The
+       allowance is now one number, reAllowance, that the picker and the engine share. */
+    const allow = reAllowance(state, biz);
     const explicit = chosenExtra || (state.reChoices && state.reChoices[biz.id]);
-    const extra = explicit || bestExtraDistrictsForRE(state, biz, biz.level + bonus, home);
+    // never honour more than the allowance, whatever a client sent
+    const extra = explicit ? explicit.slice(0, allow) : bestExtraDistrictsForRE(state, biz, allow, home);
     extra.forEach((d) => out.add(d));
   }
   return out;
@@ -1546,7 +1558,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "b13ae025";
+const ENGINE_VERSION = "c65c954d";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent is NOT an extra bill: a company pays its OPEX and
@@ -1736,21 +1748,51 @@ function runProduction(state, log) {
    cleanly rides forward. An industry with no active business keeps its whole pot. */
 /* Supply Chain Expert: at the start of Revenue, push one industry you do not operate up
    one step. It costs you nothing directly but helps a rival's market, and in exchange
-   your Retail reaches one more district this quarter. */
+   your Retail reaches one more district this quarter.
+
+   WHICH industry is the decision, and it used to be taken for the player. This loop ran
+   over everybody and picked the cheapest outside industry, with a comment saying bots
+   take the top one - but nothing in it distinguished a bot from a human, so a human was
+   never asked and always lifted the market where a step is worth least. Humans now go
+   into a queue and are prompted; bots still take the cheapest. */
+function supplyChainOptions(state, p) {
+  if (!hasPersona(p, "supply_chain")) return [];
+  if (!activeBiz(p).some((b) => bizInd(b) === "RE")) return [];
+  const mine = new Set(activeBiz(p).map(bizInd));
+  return INDUSTRIES.filter((i) => !mine.has(i));
+}
+/* Everybody the table has to stop and ask. Bots are not in here - they are resolved
+   inline - so an all-bot table never pauses. */
+function humansNeedingSupplyChain(state) {
+  return state.players.filter((p) => p.isHuman && supplyChainOptions(state, p).length > 0).map((p) => p.id);
+}
+function applySupplyChainFor(state, p, ind, log) {
+  const options = supplyChainOptions(state, p);
+  if (!options.length) return false;
+  const pick = options.includes(ind) ? ind : options.slice().sort((a, b) => price(state.pm, a) - price(state.pm, b))[0];
+  state.pm.demand[pick] += 1;   // one step of extra demand for that industry
+  state.reExtraDistrict = state.reExtraDistrict || {};
+  state.reExtraDistrict[p.id] = true;
+  if (log) log(`${p.name} works the supply chain: ${pick} demand rises, and Retail reaches one extra district this quarter.`, p.id);
+  return true;
+}
+/* Bots only. Humans are handled by the supplyChain phase. */
 function applySupplyChainBump(state, log) {
   for (const p of state.players) {
-    if (!hasPersona(p, "supply_chain")) continue;
-    if (!activeBiz(p).some((b) => bizInd(b) === "RE")) continue;
-    const mine = new Set(activeBiz(p).map(bizInd));
-    const options = INDUSTRIES.filter((i) => !mine.has(i));
-    if (!options.length) continue;
-    // help whichever outside industry is cheapest to lift; bots take the top one
-    const pick = options.sort((a, b) => price(state.pm, a) - price(state.pm, b))[0];
-    state.pm.demand[pick] += 1;   // one step of extra demand for that industry
-    state.reExtraDistrict = state.reExtraDistrict || {};
-    state.reExtraDistrict[p.id] = true;
-    if (log) log(`${p.name} works the supply chain: ${pick} demand rises, and Retail reaches one extra district this quarter.`, p.id);
+    if (p.isHuman) continue;
+    applySupplyChainFor(state, p, null, log);
   }
+}
+/* The human's answer. Resumes production once the queue drains. */
+function chooseSupplyChain(state, p, ind, log, rng) {
+  if (state.phase !== "supplyChain") return false;
+  if (!state.scQueue || state.scQueue[0] !== p.id) return false;
+  applySupplyChainFor(state, p, ind, log);
+  state.scQueue = state.scQueue.slice(1);
+  if (state.scQueue.length) { state.awaitingPlayerId = state.scQueue[0]; return true; }
+  state.awaitingPlayerId = null;
+  continueProduction(state, log, rng);
+  return true;
 }
 /* A Megacorp headquarters is a standing asset, not a business. It produces nothing, but
    the sector still pays it - a full share of its industry's pot - and its name is worth
@@ -2805,7 +2847,19 @@ function advanceResolution(state, rng, log) {
 function proceedToProduction(state, log, rng) {
   state.phase = "production";
   state.reExtraDistrict = {};              // the Retail bonus lasts one quarter only
-  applySupplyChainBump(state, log);
+  applySupplyChainBump(state, log);        // bots resolve inline
+  /* Humans are asked which industry to lift, one at a time, before anything produces -
+     the bump has to land before production reads the prices. */
+  state.scQueue = humansNeedingSupplyChain(state);
+  if (state.scQueue.length) {
+    state.phase = "supplyChain";
+    state.awaitingPlayerId = state.scQueue[0];
+    return;   // resumes via chooseSupplyChain -> continueProduction
+  }
+  continueProduction(state, log, rng);
+}
+function continueProduction(state, log, rng) {
+  state.phase = "production";
   runProduction(state, log);
   state.deliveryRemaining = {};
   state.crossSellRemaining = {};
@@ -3171,7 +3225,7 @@ function whoAwaited(st) {
   if (st.phase === "drafting") return st.awaitingPlayerId;
   if (st.phase === "planning") return st.planningQueue[0];
   if (st.phase === "resolving") return st.pendingHumanAction ? st.pendingHumanAction.playerId : null;
-  if (["delivering", "liquidating", "repayingLoans"].includes(st.phase)) return st.awaitingPlayerId;
+  if (["delivering", "liquidating", "repayingLoans", "supplyChain"].includes(st.phase)) return st.awaitingPlayerId;
   if (st.phase === "placingLH") return st.turnOrder[0];
   return null;
 }
@@ -4653,6 +4707,10 @@ function GameScreens({ online }) {
   const isHumanRepaying = state.phase === "repayingLoans" && myTurn;
   const deliveringBiz = isHumanDelivering ? human.businesses.find((b) => b.id === state.deliveringBizId) : null;
   const needsREChoice = deliveringBiz && bizInd(deliveringBiz) === "RE" && !state.reChoices[deliveringBiz.id];
+  // one number for the picker: level, plus one while the Supply Chain bump is live
+  const reAllow = deliveringBiz ? reAllowance(state, deliveringBiz, human) : 0;
+  const isHumanSupplyChain = state.phase === "supplyChain" && myTurn;
+  const scOptions = isHumanSupplyChain ? supplyChainOptions(state, human) : [];
   const deliverInfo = deliveringBiz && !needsREChoice ? {
     ind: bizInd(deliveringBiz), level: deliveringBiz.level, reach: reachableDistricts(state, deliveringBiz),
     // how deep into a row this company may sell - see deliveryColumnCap
@@ -4666,6 +4724,12 @@ function GameScreens({ online }) {
     if (NET) { NET.send("reChoice", { bizId: deliveringBiz.id, districts: reSelection }); setReSelection([]); return; }
     state.reChoices[deliveringBiz.id] = reSelection;
     setReSelection([]);
+    setState({ ...state });
+  }
+  function handleSupplyChain(ind) {
+    if (!state) return;
+    if (NET) return NET.send("supplyChain", { ind });
+    chooseSupplyChain(state, human, ind, log, rngRef.current);
     setState({ ...state });
   }
   function toggleReDistrict(d, max) {
@@ -4818,25 +4882,48 @@ function GameScreens({ online }) {
               </div>
             )}
             {isHumanResolving && !pickMode && <ActionPanel state={state} human={human} rng={rngRef.current} log={log} onDone={handleResolutionDone} onStartLaunch={handleStartLaunch} onStartBuy={handleStartBuy} />}
+            {isHumanSupplyChain && scOptions.length > 0 && (
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
+                  Supply Chain Expert — raise one industry you do not operate
+                </div>
+                <div className="text-[10px] text-gray-400 mb-2">
+                  Its demand goes up one step, which helps whoever sells there. In exchange your
+                  Retail reaches one extra district this quarter.
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {scOptions.map((i) => (
+                    <button key={i} onClick={() => handleSupplyChain(i)}
+                      className="text-[10px] px-2 py-1 rounded"
+                      style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
+                      {IND_NAME[i] || i} <span style={{ color: "#9ca3af" }}>${price(state.pm, i)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {isHumanDelivering && needsREChoice && (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
-                  {deliveringBiz.bp.name} may reach {deliveringBiz.level} extra district{deliveringBiz.level > 1 ? "s" : ""} this delivery — pick {reSelection.length}/{deliveringBiz.level}
+                  {deliveringBiz.bp.name} may reach {reAllow} extra district{reAllow > 1 ? "s" : ""} this delivery — pick {reSelection.length}/{reAllow}
                 </div>
-                <div className="text-[10px] text-gray-400 mb-2">Retail may sell to any district(s) beyond its own, one per level. Choose which.</div>
+                <div className="text-[10px] text-gray-400 mb-2">
+                  Retail may sell to any district(s) beyond its own, one per level. Choose which.
+                  {reAllow > deliveringBiz.level && <span style={{ color: "#4ade80" }}> Supply Chain Expert adds one more this quarter.</span>}
+                </div>
                 <div className="flex flex-wrap gap-1.5 mb-2" style={{ maxHeight: 160, overflowY: "auto" }}>
                   {allDistrictKeys(state.board).filter((d) => !footprintDistricts(state.board, deliveringBiz.footprint).has(d)).map((d) => {
                     const tname = state.board.tiles[d];
                     const chosen = reSelection.includes(d);
                     return (
-                      <button key={d} onClick={() => toggleReDistrict(d, deliveringBiz.level)}
+                      <button key={d} onClick={() => toggleReDistrict(d, reAllow)}
                         className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: chosen ? "#1a4a2e" : "#1c1f26", border: chosen ? "1px solid #4ade80" : "1px solid #33384355", color: "#e5e7eb" }}>
                         {tname}
                       </button>
                     );
                   })}
                 </div>
-                <button onClick={handleConfirmREChoice} disabled={reSelection.length < 1 && deliveringBiz.level > 0}
+                <button onClick={handleConfirmREChoice} disabled={reSelection.length < 1 && reAllow > 0}
                   className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
                   Confirm reach
                 </button>
@@ -5658,13 +5745,14 @@ function MatchTracker({ state, elapsed }) {
   const phaseNow =
     state.phase === "planning" ? "planning"
     : state.phase === "resolving" ? "resolving"
-    : state.phase === "production" ? "production"
+    : state.phase === "production" || state.phase === "supplyChain" ? "production"
     : state.phase === "delivering" || state.phase === "liquidating" ? "delivering"
     : ["placingLH", "repayingLoans"].includes(state.phase) ? "closing"
     : null;
   const detail =
     state.phase === "delivering" ? "B2C" :
     state.phase === "liquidating" ? "cash shortfall" :
+    state.phase === "supplyChain" ? "supply chain" :
     state.phase === "placingLH" ? "hub placement" :
     state.phase === "repayingLoans" ? "loan repayment" : null;
   const pill = (label, on, done) => (
