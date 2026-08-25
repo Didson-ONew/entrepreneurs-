@@ -40,7 +40,8 @@ function loadEngine() {
       canLaunchMore, isCrossDistrictEdge, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal, canGoPublic, doReclaim, canReclaim,
       botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, advanceDelivery, ENGINE_VERSION,
       bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER,
-      PERSONAS, MEGACORP_TILES, VARIANTS, VARIANT_KEYS, normaliseVariants };
+      PERSONAS, MEGACORP_TILES, VARIANTS, VARIANT_KEYS, normaliseVariants,
+      chooseSupplyChain, supplyChainOptions, reAllowance };
   `, sandbox);
   return box.exports;
 }
@@ -219,6 +220,9 @@ function convertToBot(room, seat) {
       E.finishDelivery(st, lg, room.rng);
     } else if (st.phase === "liquidating") {
       E.humanLiquidationDone(st, room.rng, lg);
+    } else if (st.phase === "supplyChain") {
+      // the seat is a bot now: take the cheapest outside industry, as bots do
+      E.chooseSupplyChain(st, p, null, lg, room.rng);
     } else if (st.phase === "placingLH") {
       const g = st.board.graph;
       let done = false;
@@ -244,7 +248,7 @@ function whoIsAwaited(st) {
   if (st.phase === "drafting") return st.awaitingPlayerId;
   if (st.phase === "planning") return st.planningQueue[0];
   if (st.phase === "resolving") return st.pendingHumanAction ? st.pendingHumanAction.playerId : null;
-  if (["delivering", "liquidating", "repayingLoans"].includes(st.phase)) return st.awaitingPlayerId;
+  if (["delivering", "liquidating", "repayingLoans", "supplyChain"].includes(st.phase)) return st.awaitingPlayerId;
   if (st.phase === "placingLH") return st.turnOrder[0];
   return null;
 }
@@ -324,7 +328,18 @@ function applyAction(room, seat, action, data) {
     }
     case "reChoice": {
       if (st.phase !== "delivering") return { error: "Not delivering." };
-      st.reChoices[d.bizId] = Array.isArray(d.districts) ? d.districts : [];
+      /* The cap used to be enforced only by the button in the browser, so the district
+         count was advisory in multiplayer. Trim to the same allowance the engine uses. */
+      const reBiz = p.businesses.find((x) => x.id === d.bizId);
+      if (!reBiz) return { error: "No such company." };
+      const allow = E.reAllowance(st, reBiz, p);
+      const sent = Array.isArray(d.districts) ? d.districts : [];
+      st.reChoices[d.bizId] = sent.slice(0, allow);
+      break;
+    }
+    case "supplyChain": {
+      if (st.phase !== "supplyChain") return { error: "Not choosing a supply chain." };
+      if (!E.chooseSupplyChain(st, p, d.ind, lg, rng)) return { error: "Not your choice to make." };
       break;
     }
     case "skipDelivery": {
