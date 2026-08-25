@@ -188,7 +188,7 @@ A plot can carry more than one level, and rent follows the levels rather than th
 
 ### Selling the ground out from under a building
 
-A company can only produce while you own every plot it stands on. Selling one of those plots does not destroy the building, but it stops producing until the land is bought back.
+A company can only produce while every plot it stands on is owned by SOMEBODY - not necessarily by you. Selling one of those plots does not destroy the building, but it stops producing until somebody buys that ground, and whoever does collects its rent from then on.
 
 ---
 
@@ -213,7 +213,7 @@ Launching a company puts one supply mark on its own industry, and one demand mar
 
 Two steps in either direction move the price by $1, and no price ever falls below $1.
 
-A crowded industry can sink to $1, barely above the $1 you get for recycling unsold goods. A neglected one that half the table depends on can climb past $8 a unit.
+A crowded industry can sink to $1 - exactly what you get for recycling goods you could not sell, so at that point selling and scrapping pay the same. A neglected one that half the table depends on can climb past $8 a unit.
 
 ### What each company costs and produces
 
@@ -420,9 +420,9 @@ Only the outright leader scores a land award, and a shared lead pays badly: 5 EP
 
 ### When the game ends
 
-The game ends at the close of Quarter 12, OR at the close of the quarter in which any player launches their SECOND Megacorp - whichever comes first. The quarter is always played out in full, so every seat has had the same number of turns.
+The game ends at the close of Quarter 12, OR at the close of the quarter AFTER any player launches their SECOND Megacorp - whichever comes first. The second Megacorp does not end the game; it CALLS the final quarter, and everyone gets that quarter to answer it. If it is launched in Q11 or later the game simply ends at Q12 as usual.
 
-Most EP wins. If the final scores tie, the player with more money wins; if they are still tied, the player with fewer loan discs left in the bank.
+Most EP wins. If the final scores tie, the player still running more ACTIVE COMPANIES wins - headquarters do not count, because a headquarters has stopped trading. If that is level too, the player with more money; and if they are still tied, the player with fewer loan discs left in the bank.
 
 ---
 

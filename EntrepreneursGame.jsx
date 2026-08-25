@@ -1526,7 +1526,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "429c0dbe";
+const ENGINE_VERSION = "e5648cf9";
 const DISCS_PER_PLAYER = 12;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Twelve discs, no more.
@@ -1895,8 +1895,16 @@ function districtCount(state, p) {
 /* Final standings. EP first; a tie is broken by money, and then by having fewer loan
    discs still sitting in the bank. Ranking used to be EP alone, so a tied game picked
    its winner by whatever order the players happened to be sitting in. */
+/* Most EP wins. A tie is broken by who is still RUNNING more of a city - active
+   companies, headquarters excluded, because a headquarters has stopped trading -
+   and only then by money. Counting companies before cash rewards the player who
+   kept building over the one who sat on the proceeds, which is the same thing the
+   rest of the scoring is trying to say. Loan discs remain the last resort. */
 function finalRank(a, b) {
-  return epTotal(b) - epTotal(a) || b.cash - a.cash || a.discsInBank - b.discsInBank;
+  return epTotal(b) - epTotal(a)
+    || activeBiz(b).length - activeBiz(a).length
+    || b.cash - a.cash
+    || a.discsInBank - b.discsInBank;
 }
 /* A headquarters is a monument, not a business, and the city grows up around it. At the
    end of the game it scores for every OTHER company standing orthogonally beside it -
@@ -2341,10 +2349,13 @@ function boardMeetingDesire(state, p) {
   // otherwise, is it worth seizing the front of the turn order?
   // sitting late means everyone else picks their track (and their FILO bonus) before you.
   // This costs two meeples for one action, so only the back of the order bothers.
-  /* Repositioning buys first place NEXT quarter. In Quarter 12 there is no next
-     quarter: all it still wins is the closing hub, which is placed after the last
-     delivery and cannot change anybody's score. Both meeples for nothing. */
+  /* Repositioning buys first place NEXT quarter. In the last quarter there is no
+     next quarter: all it still wins is the closing hub, which is placed after the
+     last delivery and cannot change anybody's score. Both meeples for nothing.
+     Once a second Megacorp has named the final quarter, that quarter is the last
+     one too, and the bot can see it coming. */
   if (state.quarter >= 12) return 0;
+  if (state.finalQuarter && state.quarter >= state.finalQuarter) return 0;
   const idx = state.turnOrder.indexOf(p.id);
   if (idx >= 2 && activeBiz(p).length >= 1) return 8 + idx * 9;     // 3rd 26, 4th 35
   return 0;
@@ -2865,12 +2876,20 @@ function finishQuarterAfterRepay(state, log, rng) {
   }
   const summary = state.players.map((p) => `${p.name} $${Math.round(p.cash)}/${p.epBank.toFixed(0)}EP/${activeBiz(p).length}biz`).join("  \u00b7  ");
   log(`\u2500 End of Q${state.quarter}: ${summary}`, null);
+  /* The second Megacorp CALLS the final quarter rather than being it: the game ends
+     at the close of the FOLLOWING quarter, capped at Q12. The table gets one full
+     round to answer - cash out, merge, buy the ground - instead of finding out the
+     game is over after it already is. Measured in audit_deadline_warning.js: it
+     pulls the trigger's win rate down at every table size, though not by enough to
+     clear the noise, and it costs about half the early endings. It is here as a
+     playability choice - a deadline you can respond to - not as a balance fix. */
   const rushers = endgameRushers(state);
-  if (state.quarter >= 12 || rushers.length) {
-    if (rushers.length && state.quarter < 12) {
-      const who = rushers.map((p) => p.name).join(" and ");
-      log(`\u23f9 ${who} ${rushers.length === 1 ? "has" : "have"} launched ${MEGACORPS_TO_END} Megacorps \u2014 the game ends here, at the close of Q${state.quarter}.`, null);
-    }
+  if (rushers.length && !state.finalQuarter) {
+    state.finalQuarter = Math.min(12, state.quarter + 1);
+    const who = rushers.map((p) => p.name).join(" and ");
+    log(`\u23f9 ${who} ${rushers.length === 1 ? "has" : "have"} launched ${MEGACORPS_TO_END} Megacorps \u2014 Q${state.finalQuarter} is the FINAL QUARTER.`, null);
+  }
+  if (state.quarter >= 12 || (state.finalQuarter && state.quarter >= state.finalQuarter)) {
     finalizeGame(state);
     state.phase = "gameover";
     log("=== GAME OVER \u2014 final scoring complete ===", null);

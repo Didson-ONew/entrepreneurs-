@@ -28,7 +28,7 @@ function loadEngine() {
   vm.runInContext(logic + `
     box.exports = { initGame, mulberry32, byId, activeBiz, megacorpHQs, epTotal,
       advanceDraft, startPlanning, advancePlanning, finishQuarterAfterRepay,
-      workingTrackSlots, makeTracks, endgameRushers, MEGACORPS_TO_END,
+      workingTrackSlots, makeTracks, endgameRushers, MEGACORPS_TO_END, finalRank,
       drawMegacorpPool, MEGACORP_TIER, MEGACORP_TILES, PLAYER_COLORS, STARTING,
       DISCS_PER_PLAYER, workersPerPlayer, finalizeGame };
   `, sandbox);
@@ -136,7 +136,69 @@ check("the deadline is two Megacorps", E.MEGACORPS_TO_END === 2, `got ${E.MEGACO
   check("two distressed shells are not two Megacorps", E.endgameRushers(st2).length === 0);
 }
 
-section("The quarter is played out in full, then the game is over");
+section("The deadline CALLS the final quarter rather than being it");
+{
+  const st = E.initGame(3, 11, ["You"], undefined, false, undefined);
+  if (st.phase === "drafting") { E.advanceDraft(st, quiet); E.startPlanning(st); }
+  st.quarter = 6;
+  st.phase = "resolution";
+  const hq = (name) => ({ isHQ: true, distressed: false, megacorpName: name, level: 1,
+    footprint: [], bp: { ind: "MA", name: "shell" } });
+  st.players[1].businesses.push(hq("Local Syndicate"), hq("Silent Merger"));
+  const lines = [];
+  E.finishQuarterAfterRepay(st, (m) => lines.push(m), E.mulberry32(1));
+  check("the game does NOT end in the quarter it was called", st.phase !== "gameover",
+    `phase ${st.phase}`);
+  check("Q7 is named as the final quarter", st.finalQuarter === 7, `got ${st.finalQuarter}`);
+  check("the log announces it", lines.some((m) => /FINAL QUARTER/.test(m)),
+    lines.slice(-2).join(" | ").slice(0, 90));
+  check("play advances into the warning quarter", st.quarter === 7, `Q${st.quarter}`);
+
+  /* and the warning quarter really is the last one */
+  st.phase = "resolution";
+  E.finishQuarterAfterRepay(st, quiet, E.mulberry32(1));
+  check("the game is over at the close of Q7", st.phase === "gameover" && st.quarter === 7,
+    `phase ${st.phase} in Q${st.quarter}`);
+}
+
+section("A deadline called late cannot push the game past Q12");
+{
+  const st = E.initGame(3, 12, ["You"], undefined, false, undefined);
+  if (st.phase === "drafting") { E.advanceDraft(st, quiet); E.startPlanning(st); }
+  st.quarter = 12;
+  st.phase = "resolution";
+  st.players[1].businesses.push(
+    { isHQ: true, distressed: false, megacorpName: "Local Syndicate", level: 1, footprint: [], bp: { ind: "MA", name: "s" } },
+    { isHQ: true, distressed: false, megacorpName: "Silent Merger", level: 1, footprint: [], bp: { ind: "MA", name: "s" } });
+  E.finishQuarterAfterRepay(st, quiet, E.mulberry32(1));
+  check("capped at 12, so the game ends now", st.phase === "gameover" && st.quarter === 12,
+    `phase ${st.phase} in Q${st.quarter}, final ${st.finalQuarter}`);
+}
+
+section("Ties break on EP, then active companies, then money");
+{
+  const st = E.initGame(3, 21, ["You"], undefined, false, undefined);
+  const [a, b] = st.players;
+  const co = () => ({ isHQ: false, distressed: false, level: 1, footprint: [], bp: { ind: "MA", name: "c" } });
+  a.epBank = 50; b.epBank = 50;
+  a.cash = 500; b.cash = 10;
+  a.businesses = [co()];
+  b.businesses = [co(), co()];
+  check("more active companies beats more money", E.finalRank(a, b) > 0,
+    `a: 1 co $500, b: 2 co $10 -> ${E.finalRank(a, b)}`);
+  /* level the companies and money decides */
+  a.businesses = [co(), co()];
+  check("with companies level, money decides", E.finalRank(a, b) < 0, `${E.finalRank(a, b)}`);
+  /* a headquarters has stopped trading and must not count */
+  b.businesses = [co(), co(), { isHQ: true, distressed: false, megacorpName: "X", level: 1, footprint: [], bp: { ind: "MA", name: "c" } }];
+  check("a headquarters does not count as an active company", E.finalRank(a, b) < 0,
+    `a 2 active $500 vs b 2 active + 1 HQ $10 -> ${E.finalRank(a, b)}`);
+  /* EP still outranks everything */
+  a.epBank = 49;
+  check("EP still comes first", E.finalRank(a, b) > 0, `${E.finalRank(a, b)}`);
+}
+
+section("Both quarters are played out in full, then final scoring runs");
 {
   const st = E.initGame(3, 11, ["You"], undefined, false, undefined);
   if (st.phase === "drafting") { E.advanceDraft(st, quiet); E.startPlanning(st); }
@@ -148,11 +210,13 @@ section("The quarter is played out in full, then the game is over");
   p.businesses.push(hq("Local Syndicate"), hq("Silent Merger"));
   const lines = [];
   E.finishQuarterAfterRepay(st, (m) => lines.push(m), E.mulberry32(1));
-  check("the game is over in Q6", st.phase === "gameover", `phase ${st.phase} in Q${st.quarter}`);
-  check("it ended in the quarter the second Megacorp landed", st.quarter === 6, `Q${st.quarter}`);
+  check("Q6 closes without ending the game", st.phase !== "gameover", `phase ${st.phase}`);
   check("the log says why", lines.some((m) => /launched 2 Megacorps/.test(m)),
-    lines.slice(-3).join(" | ").slice(0, 90));
-  check("final scoring ran", st.players.every((q) => (q.epLog || []).some((e) => /Cash on hand|Unpaid loans|Real-Estate Mogul|Omnipresent/.test(e.label))));
+    lines.filter((m) => /Megacorps/.test(m)).slice(-1)[0] || "(no line)");
+  st.phase = "resolution";
+  E.finishQuarterAfterRepay(st, quiet, E.mulberry32(1));
+  check("and the game is over one quarter later", st.phase === "gameover", `phase ${st.phase}`);
+  check("final scoring ran", st.players.every((q) => (q.epLog || []).some((e) => /Cash on hand|Unpaid loans|Real-Estate Mogul|Omnipresent|Ground rent/.test(e.label))));
 }
 
 section("One Megacorp still plays the full three years");

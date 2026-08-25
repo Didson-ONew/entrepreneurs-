@@ -4,9 +4,12 @@
    The rulebook has been generated from rulebook.data.mjs since v13, which is
    why it has never drifted from the rules. The sell sheet was the last document
    still maintained by hand, and it had drifted: it advertised two to four
-   players after the game grew to six, ten discs after they became twelve, and a
-   Megacorp deadline "visible for a quarter before it lands" - a warning quarter
-   that was measured (audit_deadline_warning.js) and deliberately NOT shipped.
+   players after the game grew to six, and ten discs after they became twelve.
+
+   It also described the Megacorp deadline as "visible for a quarter before it
+   lands", which at the time was wrong - the warning quarter had been measured
+   and not shipped. The designer has since adopted it, so the sheet was early
+   rather than incorrect, and the text now matches the rule either way.
 
    Everything factual here is either imported from the game or carries the probe
    that produced it, in a comment, so the next person can re-run it.
@@ -151,12 +154,13 @@ const doc = new Document({
 
       H("The pitch", { before: 60 }),
       P("A city rises one business at a time — and no business stands alone. Every company you found is supplied by three others, and every dollar of operating cost you pay flows straight into those industries' pots, to be split among whoever owns them. Your rivals' costs are your income, and yours are theirs."),
-      P("Build where everyone is building and your price sinks toward a dollar. Build what everyone depends on and nobody supplies, and the pot climbs quarter after quarter until you are the only one collecting it. Buy the land before you can build on it — then watch a rival purchase the ground beneath your factory."),
+      P("Build where everyone is building and your price sinks toward a dollar. Build what everyone depends on and nobody supplies, and its pot climbs quarter after quarter — untouched, because a pot is split only among companies in that industry, and there are none. Whoever builds there first collects all of it."),
+      P("And you must buy the land before you can build on it. Sell that land later to raise cash and your own factory stops producing until somebody buys the ground back — which anybody may do, and then you are the tenant, paying them rent every quarter to stand on what used to be yours."),
 
       H("Why it stands out"),
       Prun([
         { t: "A supply chain that closes perfectly. ", bold: true },
-        { t: "Six industries, eighteen dependency relationships. Every industry has exactly three suppliers and appears as a supplier exactly three times — none over-connected, none stranded. Following the primary column alone traces a single closed loop through all six." },
+        { t: "Six industries, eighteen supply relationships. Every industry draws on exactly three others and feeds exactly three in return — none over-connected, none stranded. Take each industry's largest supplier and you get a single unbroken ring through all six: Utilities to Hospitality to Manufacturing to Healthcare to Retail to Technology, and back to Utilities." },
       ]),
       Prun([
         { t: "Costs that become someone else's revenue. ", bold: true },
@@ -168,7 +172,7 @@ const doc = new Document({
       ]),
       Prun([
         { t: "Land that pays whether or not you build on it. ", bold: true },
-        { t: "You must own a plot before you can build. Plots appreciate as neighbours fill in, can be sold out from under a running business to raise cash, and collect $3 a level every quarter from anyone else who builds there. At six players, half the plots a person owns carry somebody else's building." },
+        { t: "You buy a plot before you build, and plots appreciate as the neighbours fill in. But a company only needs its ground owned by SOMEBODY — not by its owner — so land changes hands under standing buildings, and $3 a level a quarter goes to whoever holds the deed. By six players half the plots a person owns carry somebody else's factory, and only a quarter of a company's ground belongs to the company." },
       ]),
       Prun([
         { t: "Twelve discs, one footprint. ", bold: true },
@@ -176,11 +180,11 @@ const doc = new Document({
       ]),
       Prun([
         { t: "Megacorps in four tiers. ", bold: true },
-        { t: "Sixteen merger tiles, four tiers of four. The hard tiers only come out at a bigger table, and a headquarters earns its industry's price divided by its tier — so a cheap merger of three level-1 companies no longer pays what an Omnicorp pays. Two tiles are drawn from each tier in play." },
+        { t: "Sixteen merger tiles, four tiers of four, and two are drawn from every tier that is in play — four tiles at two players, six at three, eight from four upward. The hardest tiers only come out at a bigger table, and a headquarters earns its industry's price divided by its tier, so a cheap merger of three level-1 companies no longer pays what an Omnicorp pays." },
       ]),
       Prun([
         { t: "A marathon with a door that can close. ", bold: true },
-        { t: "Three fiscal years, or less: a player who forms a second Megacorp ends the game at the close of that quarter. Each headquarters permanently locks a company slot, so the ending is bought with capacity and is never a certain win." },
+        { t: "Three fiscal years, or less: forming a second Megacorp does not end the game, it CALLS the final quarter — everyone gets one more full round to answer it. Each headquarters permanently locks a company slot, so the ending is bought with capacity, announced before it lands, and never a certain win." },
       ]),
 
       H("Development status"),
@@ -255,7 +259,7 @@ const doc = new Document({
         { size: 17, italics: true, color: MUTED }),
 
       H("The map does the balancing"),
-      P("Each district shows four demand rows of the six industries, and wants its own twice. Where an industry can sell is deliberately uneven.", { size: 18 }),
+      P("Every district shows four demand rows drawn from the six industries, one of which it wants twice — so each district has an appetite of its own. Where an industry can sell at all is deliberately uneven.", { size: 18 }),
       grid(["Industry", "Where its demand lives", "Price"], [
         ["Utilities · Retail", "Almost everywhere, including the cheap outer ring", "$2"],
         ["Hospitality · Manufacturing", "Spread across both suburbs and centre", "$3"],
