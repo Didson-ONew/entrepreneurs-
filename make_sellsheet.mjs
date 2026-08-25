@@ -172,7 +172,7 @@ const doc = new Document({
       ]),
       Prun([
         { t: "Land that pays whether or not you build on it. ", bold: true },
-        { t: "You buy a plot before you build, and plots appreciate as the neighbours fill in. But a company only needs its ground owned by SOMEBODY — not by its owner — so land changes hands under standing buildings, and $3 a level a quarter goes to whoever holds the deed. By six players half the plots a person owns carry somebody else's factory, and only a quarter of a company's ground belongs to the company." },
+        { t: "You buy a plot before you build, and plots appreciate as the neighbours fill in. But a company only needs its ground owned by SOMEBODY — not by its owner — so land changes hands under standing buildings, and $2 a level a quarter goes to whoever holds the deed. By six players half the plots a person owns carry somebody else's factory, and only a quarter of a company's ground belongs to the company." },
       ]),
       Prun([
         { t: "Twelve discs, one footprint. ", bold: true },

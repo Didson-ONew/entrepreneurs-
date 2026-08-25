@@ -184,7 +184,7 @@ A plot's value is its printed road price plus $1 for every occupied plot next to
 
 A vertical company always occupies exactly one plot, whatever its level. A horizontal company occupies one plot per level, and those plots must form a connected cluster of owned, empty land - it need not be your own, though its owner will collect the rent. A level-3 horizontal Blueprint therefore needs three connected empty plots before you can build it at all.
 
-A plot can carry more than one level, and rent follows the levels rather than the plots: $3 for every level standing on a plot, paid to that plot's owner. Where a persona lets a company grow the other way - Technology stacking instead of spreading, Hospitality spreading instead of stacking - you choose which plot of the footprint the new level goes on. Stack it on land you own and the rent for those levels comes back to you.
+A plot can carry more than one level, and rent follows the levels rather than the plots: $2 for every level standing on a plot, paid to that plot's owner. Where a persona lets a company grow the other way - Technology stacking instead of spreading, Hospitality spreading instead of stacking - you choose which plot of the footprint the new level goes on. Stack it on land you own and the rent for those levels comes back to you.
 
 ### Selling the ground out from under a building
 
@@ -251,7 +251,7 @@ The three are not equally common: across the ten Blueprints of an industry, the 
 
 Every active company pays its OPEX, automatically, whether or not it sells anything afterwards. That money is immediately split:
 
-- Rent - $3 for every level standing on a plot - goes to whoever owns that plot. A vertical company stacks all its levels on one plot, so its whole rent goes to one landlord; a horizontal one puts a level on each plot it covers, so each landlord collects $3. On your own land it comes straight back to you.
+- Rent - $2 for every level standing on a plot - goes to whoever owns that plot. A vertical company stacks all its levels on one plot, so its whole rent goes to one landlord; a horizontal one puts a level on each plot it covers, so each landlord collects $2. On your own land it comes straight back to you.
 - Everything left over flows into the industry pots of that company's suppliers, divided in proportion to the dependency values on the Blueprint.
 
 ### If you cannot pay
@@ -348,7 +348,7 @@ Whoever forms the first Megacorp of the game also takes the IPO tile: a sixth co
 - All the others go to the bank as Distressed Assets - anyone may take them over later.
 - The HQ stops trading: with no Blueprint it produces nothing and pays no OPEX. It still draws its equal share of its industry's pot every B2B - a headquarters that has stopped building has not stopped collecting.
 - Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry DIVIDED BY THE TILE'S TIER, rounded down. A tier 1 headquarters in an industry at $3 banks 3 EP a quarter; a tier 4 headquarters in the same industry banks nothing at all until that industry reaches $4. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for eight more quarters than one formed in Year 3.
-- It has no OPEX to pay its rent out of, so its owner pays the ground rent from pocket every quarter - $3 for every level standing on a plot, to that plot's owner. On your own land nothing moves.
+- It has no OPEX to pay its rent out of, so its owner pays the ground rent from pocket every quarter - $2 for every level standing on a plot, to that plot's owner. On your own land nothing moves.
 - A headquarters is public infrastructure: it counts as a Logistic Hub. Any company built orthogonally beside one joins the network through it, whoever owns them. A monument that only collected would be a monument nobody wanted to build near - and the companies that gather round it are exactly the ones it scores 3 EP each for at the end.
 - Sell a plot out from under a headquarters and it collects nothing at all - no pot share, no points, and it stops being a hub. A monument still needs its ground.
 - It keeps its disc, and it permanently locks one of your five company slots. Every Megacorp you form narrows how wide you can operate.
@@ -496,7 +496,7 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Sell a company | half its setup, or the full setup if upgraded; halved again in a forced sale |
 | Plot value | road price (1-6) + $1 per occupied neighbour + $1 if it touches a hub |
 | Upgrade | pay the setup cost again; production and OPEX double; level +1 |
-| Rent | $3 per company level, to the owners of the plots it stands on |
+| Rent | $2 per company level, to the owners of the plots it stands on |
 | Unsold production | $1 per unit |
 | Industry pot | split evenly among that industry's active companies; the remainder rides forward |
 | Renovation | card must match the shell's level; from level 2 up, its scaling type too |

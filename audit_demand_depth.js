@@ -137,7 +137,7 @@ function loadEngine(mode) {
   vm.runInContext(logic + `
     box.exports = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
       epTotal, finalRank, activeBiz, megacorpHQs, bizInd, bizProd, bizOpex, price,
-      plotCount, INDUSTRIES, SCALING };
+      plotCount, INDUSTRIES, SCALING, RENT_PER_LEVEL };
   `, sandbox);
   return box.exports;
 }
@@ -202,7 +202,7 @@ for (const [mode, label] of MODES) {
         T.hqs += E.megacorpHQs(p).length;
         for (const b of [...E.activeBiz(p), ...E.megacorpHQs(p)]) {
           T.cq++;
-          if (E.bizProd(b) * E.price(st.pm, E.bizInd(b)) >= E.bizOpex(b) + 3 * b.level) T.profitable++;
+          if (E.bizProd(b) * E.price(st.pm, E.bizInd(b)) >= E.bizOpex(b) + E.RENT_PER_LEVEL * b.level) T.profitable++;
           if (E.SCALING[E.bizInd(b)] === "V") T.vert++; else T.horiz++;
         }
       }

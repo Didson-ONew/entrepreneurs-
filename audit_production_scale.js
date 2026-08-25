@@ -123,7 +123,7 @@ function loadEngine(factor) {
   vm.runInContext(logic + `
     box.exports = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
       epTotal, finalRank, activeBiz, megacorpHQs, bizInd, bizProd, bizOpex, price,
-      plotCount, INDUSTRIES, BP_DATA, hoBonusUnits };
+      plotCount, INDUSTRIES, BP_DATA, hoBonusUnits, RENT_PER_LEVEL };
   `, sandbox);
   return box.exports;
 }
@@ -183,7 +183,7 @@ for (const f of FACTORS) {
         /* would this company cover its own OPEX selling everything at market? */
         T.companyQuarters++;
         const best = E.bizProd(b) * E.price(st.pm, E.bizInd(b));
-        if (best >= E.bizOpex(b) + 3 * b.level) T.profitable++;
+        if (best >= E.bizOpex(b) + E.RENT_PER_LEVEL * b.level) T.profitable++;
       }
     }
   }

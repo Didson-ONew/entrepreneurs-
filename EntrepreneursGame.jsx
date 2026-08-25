@@ -1176,7 +1176,7 @@ function sellBpFromHand(state, p, bp, solvency = false) {
 function worstRoiBusiness(p, pm, quarter, minAge = 1) {
   const cands = activeBiz(p).filter((b) => quarter - b.quarterBuilt >= minAge);
   if (!cands.length) return null;
-  const roi = (b) => bizProd(b) * price(pm, bizInd(b)) - bizOpex(b) - 3 * b.level;
+  const roi = (b) => bizProd(b) * price(pm, bizInd(b)) - bizOpex(b) - RENT_PER_LEVEL * b.level;
   return cands.reduce((worst, b) => (roi(b) < roi(worst) ? b : worst), cands[0]);
 }
 /* Score a Blueprint for launching. Price is the dominant term: an industry everyone
@@ -1260,7 +1260,7 @@ function launchScore(state, p, bp, archetype) {
   // --- what it earns every quarter it stands ---
   // Rent is $3 per level, so a business on land you own returns that rent to you,
   // which materially narrows the gap between cheap-OPEX and expensive-OPEX industries.
-  const rent = 3 * bp.lvl;
+  const rent = RENT_PER_LEVEL * bp.lvl;
   const rentBack = owned >= nPlots ? rent : 0;
   const effOpex = bp.opex + rent - rentBack;
 
@@ -1381,7 +1381,7 @@ function upgradeScore(state, p, b, assumePlot) {
 
   const nowUnits = Math.min(bizProd(b), sellableForBiz(state, p, b));
   const nowNet = nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1
-    - bizOpex(b) - 3 * b.level;
+    - bizOpex(b) - RENT_PER_LEVEL * b.level;
 
   /* Where it would grow to. A sideways step reaches from a new plot, so ask the
      delivery rule about the grown footprint rather than assuming the reach is the same. */
@@ -1546,7 +1546,29 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "05476ada";
+const ENGINE_VERSION = "0e0ba155";
+/* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
+
+   It was $3 and is now $2. Rent is the one recurring cost that is NOT printed on
+   a Blueprint, so it is the charge a small company cannot escape by choosing a
+   cheaper card, and it grows with level while a level-1 company's income does
+   not. Dropping it a dollar is close to free because rent is a TRANSFER: every
+   dollar relieved from a tenant is a dollar a landlord does not collect, so the
+   money supply barely moves while margins improve. Measured in
+   audit_rent_scaled.js - companies covering OPEX plus rent go 91% to 94% at four
+   seats, trade income and the winning score stay flat, and the industry spread
+   is unchanged.
+
+   It is the only change measured in this repo that made the game LESS DECIDED
+   rather than merely closer at the finish: the Q6 leader's win rate falls from
+   41% to 36% at four seats and 31% to 28% at six.
+
+   THE TWO-PLAYER GAME IS THE EXCEPTION and it goes the other way - the Q6
+   leader's win rate rises from 60% to 67%. With two seats a cheaper cost base
+   helps whoever is already ahead, because there is nobody else for the relief to
+   be spread across. Head-to-head players who want the tighter game should know
+   that; it is in the rulebook note. */
+const RENT_PER_LEVEL = 2;
 const DISCS_PER_PLAYER = 12;
 /* Every disc a player owns is committed somewhere: on a plot they own, on an active
    business, or sitting in the bank against a loan. Twelve discs, no more.
@@ -1596,7 +1618,7 @@ function hqRentDue(state, p) {
     for (const plot of hq.footprint) {
       const ownerId = state.board.owner[plot];
       if (ownerId === undefined || ownerId === p.id) continue;
-      due += 3 * levelsOn(hq, plot);
+      due += RENT_PER_LEVEL * levelsOn(hq, plot);
     }
   }
   return due;
@@ -1608,7 +1630,7 @@ function payHqRent(state, p, log) {
       if (ownerId === undefined || ownerId === p.id) continue;
       const owner = state.players.find((pl) => pl.id === ownerId);
       if (!owner) continue;
-      const due = Math.min(Math.max(0, p.cash), 3 * levelsOn(hq, plot));
+      const due = Math.min(Math.max(0, p.cash), RENT_PER_LEVEL * levelsOn(hq, plot));
       if (due <= 0) continue;
       p.cash -= due;
       owner.cash += due;
@@ -1663,12 +1685,12 @@ function runProduction(state, log) {
         continue;
       }
       p.cash -= cost;
-      const rentTotal = 3 * b.level;
+      const rentTotal = RENT_PER_LEVEL * b.level;
       /* $3 for every level standing on a plot, paid to whoever owns that plot. A
          two-storey corner pays its landlord $6 while the single-storey neighbour
          collects $3, and the total still comes to $3 x level. */
       for (const plot of b.footprint) {
-        const due = 3 * levelsOn(b, plot);
+        const due = RENT_PER_LEVEL * levelsOn(b, plot);
         const ownerId = board.owner[plot];
         if (ownerId === undefined) continue;
         const owner = players.find((pl) => pl.id === ownerId);
@@ -2286,7 +2308,7 @@ function megacorpWorthIt(state, p, match) {
   for (const b of match.have) {
     const units = Math.min(bizProd(b), sellableForBiz(state, p, b));
     const trade = units * price(state.pm, bizInd(b))
-      + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - 3 * b.level;
+      + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - RENT_PER_LEVEL * b.level;
     lostPerQuarter += Math.max(0, trade);
   }
   const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);
@@ -2303,7 +2325,7 @@ function hqGroundRent(state, p, b) {
   for (const plot of b.footprint) {
     const ownerId = state.board.owner[plot];
     if (ownerId === undefined || ownerId === p.id) continue;
-    due += 3 * levelsOn(b, plot);
+    due += RENT_PER_LEVEL * levelsOn(b, plot);
   }
   return due;
 }
@@ -2498,7 +2520,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     // and freeing the slot, the disc and the cash for something the table is short of.
     const collapsed = activeBiz(p).find((b) => {
       if (price(state.pm, bizInd(b)) > 1) return false;
-      const net = bizProd(b) * 1 - bizOpex(b) - 3 * b.level;   // $1/unit is recycling money
+      const net = bizProd(b) * 1 - bizOpex(b) - RENT_PER_LEVEL * b.level;   // $1/unit is recycling money
       return net < 0;
     });
     // ...but only when there is something better to put in its place: the company still
@@ -2973,7 +2995,7 @@ function draftScoreNaive(bp) {
 function draftScore(bp, drafted) {
   const bumps = draftedPressure(drafted);
   const px = expectedDraftPrice(bp.ind, bumps);
-  const rent = 3 * bp.lvl;                                 // paid, then returned on own land
+  const rent = RENT_PER_LEVEL * bp.lvl;                                 // paid, then returned on own land
   const net = bp.prod * px - bp.opex;
   let s = net / Math.max(1, bp.setup + (SCALING[bp.ind] === "H" ? (bp.lvl - 1) * 3 : 0));
   // a deck the table is already raiding will be crowded on the board too

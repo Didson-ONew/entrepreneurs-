@@ -52,8 +52,8 @@ hook("  claimIndustryBonus(state, p, bp.ind, log);\n  return true;",
   "  __econ.build(state, p, bp, footprint);\n  claimIndustryBonus(state, p, bp.ind, log);\n  return true;", "doLaunch");
 
 // 4. every OPEX bill paid
-hook("      p.cash -= cost;\n      const rentTotal = 3 * b.level;",
-  "      __econ.opex(state, p, b, cost);\n      p.cash -= cost;\n      const rentTotal = 3 * b.level;", "runProduction");
+hook("      p.cash -= cost;\n      const rentTotal = RENT_PER_LEVEL * b.level;",
+  "      __econ.opex(state, p, b, cost);\n      p.cash -= cost;\n      const rentTotal = RENT_PER_LEVEL * b.level;", "runProduction");
 
 // 5. every Megacorp formed
 hook("  b.upgraded = true; b.level += 1;",
@@ -62,10 +62,14 @@ hook("  state.megacorpPool = state.megacorpPool.filter((t) => t !== match.tile);
   "  __econ.megacorp(state, p, match);\n  state.megacorpPool = state.megacorpPool.filter((t) => t !== match.tile);", "claimMegacorp");
 
 // 6. rent handed to landlords - the one payment the engine can make fractional
-hook("        const due = 3 * levelsOn(b, plot);",
-  "        const due = 3 * levelsOn(b, plot);\n        __econ.rent(due, b.footprint.length, due, b.level);", "rent split");
-hook("if (owner) owner.cash += due;",
-  "if (owner) { __econ.rentPay(p.id, owner.id, due); owner.cash += due; }", "rent payment");
+hook("        const due = RENT_PER_LEVEL * levelsOn(b, plot);",
+  "        const due = RENT_PER_LEVEL * levelsOn(b, plot);\n        __econ.rent(due, b.footprint.length, due, b.level);", "rent split");
+/* The rent transfer was rewritten when the ground-rent ledger was added, so the
+   old one-line `if (owner) owner.cash += due;` no longer exists. This hooks the
+   production-side transfer where it now lives, just before the ledger entries. */
+hook("        if (!owner) continue;\n        owner.cash += due;",
+  "        if (!owner) continue;\n        __econ.rentPay(p.id, owner.id, due);\n        owner.cash += due;",
+  "rent payment");
 
 // 7. a snapshot at the close of every quarter, for the cash curve
 hook("function finishQuarterAfterLH(state, log, rng) {\n  runClosingRest(state, log);",

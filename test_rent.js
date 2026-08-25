@@ -2,8 +2,8 @@
 
    A vertical company stacks every level on one plot, so its whole rent goes to one
    landlord. A horizontal company puts one level on each plot, so each landlord takes
-   $3. A persona can flip which way a company grows, and then a plot carries two levels
-   while its neighbour carries one - $6 and $3, never $4.50 each.
+   $2. A persona can flip which way a company grows, and then a plot carries two levels
+   while its neighbour carries one - $4 and $2, never $3 each.
 
    Run: node test_rent.js
 */
@@ -21,7 +21,7 @@ function loadEngine() {
   vm.runInContext(logic + `
     box.exports = { initGame, BP_DATA, byId, activeBiz, mulberry32, doLaunch, doUpgrade,
       levelsOn, ensureLevels, newBusiness, SCALING, upgradeScaling, runProduction,
-      bizOpex, orthOf, PERSONAS };
+      bizOpex, orthOf, PERSONAS, RENT_PER_LEVEL };
   `, sandbox);
   return box.exports;
 }
@@ -82,7 +82,7 @@ section("A business from before this record still answers");
 }
 
 /* ============================================================ rent in practice */
-section("Rent is $3 for every level on a plot");
+section("Rent is $2 for every level on a plot");
 {
   /* Two landlords, one tenant. The tenant builds a vertical company on ONE of their
      plots, so that landlord takes the whole rent and the other takes nothing. */
@@ -103,7 +103,7 @@ section("Rent is $3 for every level on a plot");
   const biz = E.activeBiz(tenant)[0];
   landlordA.cash = 0; landlordB.cash = 0; tenant.cash = 500;
   E.runProduction(st, quiet);
-  check("landlord A collects $3 x 2 levels", landlordA.cash === 6, `$${landlordA.cash}`);
+  check("landlord A collects $2 x 2 levels", landlordA.cash === 4, `$${landlordA.cash}`);
   check("landlord B, with nothing standing on their plot, collects nothing",
     landlordB.cash === 0, `$${landlordB.cash}`);
 }
@@ -124,7 +124,7 @@ section("A horizontal company pays each landlord for its own storey");
 
   A.cash = 0; B.cash = 0; tenant.cash = 500;
   E.runProduction(st, quiet);
-  check("each landlord collects $3", A.cash === 3 && B.cash === 3, `A $${A.cash}, B $${B.cash}`);
+  check("each landlord collects $2", A.cash === 2 && B.cash === 2, `A $${A.cash}, B $${B.cash}`);
 }
 
 section("The case that used to owe $4.50: two storeys here, one there");
@@ -157,10 +157,11 @@ section("The case that used to owe $4.50: two storeys here, one there");
 
   A.cash = 0; B.cash = 0; tenant.cash = 500;
   E.runProduction(st, quiet);
-  check("the two-storey landlord collects $6", B.cash === 6, `$${B.cash}`);
-  check("the one-storey landlord collects $3", A.cash === 3, `$${A.cash}`);
-  check("and the two together are the company's whole $3 x level rent",
-    A.cash + B.cash === 3 * biz.level, `$${A.cash + B.cash} of $${3 * biz.level}`);
+  check("the two-storey landlord collects $4", B.cash === 4, `$${B.cash}`);
+  check("the one-storey landlord collects $2", A.cash === 2, `$${A.cash}`);
+  check("and the two together are the company's whole $2 x level rent",
+    A.cash + B.cash === E.RENT_PER_LEVEL * biz.level,
+    `$${A.cash + B.cash} of $${E.RENT_PER_LEVEL * biz.level}`);
   check("every payment is a whole number of dollars",
     Number.isInteger(A.cash) && Number.isInteger(B.cash));
 }
