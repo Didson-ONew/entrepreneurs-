@@ -1,6 +1,6 @@
 # Entrepreneurs - How to play
 
-*Rulebook v15. Everything you need to play, and nothing you don't.*
+*Rulebook v16. Everything you need to play, and nothing you don't.*
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
