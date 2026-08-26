@@ -514,6 +514,58 @@ const saveFeedback = () => {
 let accountsDirty = false;
 const saveAccounts = () => { try { accounts.save(ACCOUNTS); accountsDirty = false; } catch (e) { accountsDirty = true; console.error("could not save accounts:", e.message); } };
 
+/* Merge a backup file into what this server is holding, and write down whatever
+   changed. Two things call this and they must not drift: the Backup tab's "Put a
+   copy back" button, and the ENT_SEED_BACKUP boot step below.
+
+   backup.apply never overwrites: an account whose name is already registered is
+   left exactly as it is, games and notes are added only if their id is new. So
+   this is safe to run with the wrong file, and safe to run on every single boot. */
+function mergeBackup(file) {
+  const result = backup.apply(file, { accounts: ACCOUNTS, matches: MATCHES, feedback: FEEDBACK });
+  if (result.error) return result;
+  /* Matches live in an append-only file, so the new ones are appended rather than
+     the whole book rewritten - a half-written line can then only ever cost the
+     last one. */
+  for (const m of result.newMatches) { if (matchlog.append(m)) MATCHES.push(m); }
+  if (result.added.accounts) saveAccounts();
+  if (result.added.feedback) saveFeedback();
+  if (result.newMatches.length) STATS_CACHE = null;
+  return result;
+}
+
+/* ENT_SEED_BACKUP - a backup file, accounts only, base64, applied at boot.
+
+   Free hosting has no permanent disk: the data directory is rebuilt from the
+   deploy every restart, so without this everybody would have to register again
+   after each one. An environment variable survives that, and Render keeps it out
+   of the repository - which matters, because the value contains password hashes
+   and this repository is public.
+
+   Produce the value with `node account_tool.js seed <backup.json>`.
+
+   A bad value must never stop the server starting. Somebody pasting the wrong
+   thing into a dashboard field should get a line in the log and a running game,
+   not an outage. */
+function applySeedBackup() {
+  const raw = String(process.env.ENT_SEED_BACKUP || "").trim();
+  if (!raw) return;
+  let file;
+  try {
+    file = JSON.parse(Buffer.from(raw, "base64").toString("utf8"));
+  } catch (e) {
+    console.log("ENT_SEED_BACKUP is set but is not base64-encoded JSON - ignored.");
+    console.log("  Produce it with: node account_tool.js seed <backup.json>");
+    return;
+  }
+  const result = mergeBackup(file);
+  if (result.error) {
+    console.log(`ENT_SEED_BACKUP ignored: ${result.error}`);
+    return;
+  }
+  console.log(`ENT_SEED_BACKUP: ${backup.describe(result)}`);
+}
+
 const httpsBehind = (req) => String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim() === "https";
 function sessionCookie(req, value, maxAgeSeconds) {
   return [`${SESSION_COOKIE}=${value}`, "Path=/", `Max-Age=${maxAgeSeconds}`, "SameSite=Lax", "HttpOnly"]
@@ -691,16 +743,8 @@ const server = http.createServer(async (req, res) => {
     if (!isAdmin(me)) return json(res, { error: "Not for you." }, 403);
     const file = await body(req, 64 * 1024 * 1024);
     if (file.__tooBig) return json(res, { error: "That file is larger than this server will accept (64 MB)." }, 413);
-    const result = backup.apply(file, { accounts: ACCOUNTS, matches: MATCHES, feedback: FEEDBACK });
+    const result = mergeBackup(file);
     if (result.error) return json(res, { error: result.error }, 400);
-
-    /* Matches live in an append-only file, so the new ones are appended rather than
-       the whole book rewritten - a half-written line can then only ever cost the
-       last one. */
-    for (const m of result.newMatches) { if (matchlog.append(m)) MATCHES.push(m); }
-    if (result.added.accounts) accounts.save(ACCOUNTS);
-    if (result.added.feedback) saveFeedback();
-    if (result.newMatches.length) STATS_CACHE = null;
 
     const said = backup.describe(result);
     console.log(`restore by ${me.name}: ${said}`);
@@ -1217,6 +1261,9 @@ server.listen(PORT, () => {
   console.log(`Mail: ${mailer.describe(MAIL)}`);
   console.log(`Admins: ${[...ADMINS].join(", ") || "(none)"} - set ENT_ADMINS to change`);
   console.log("");
+  /* Before the count is printed, so the report below reflects what was seeded
+     rather than what the wiped disk happened to hold. */
+  applySeedBackup();
   /* Say what survived the last restart. An empty store here is the only warning
      anybody gets before a player discovers their account is gone. */
   datadir.report({
