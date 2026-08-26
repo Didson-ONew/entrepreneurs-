@@ -35,62 +35,88 @@
    sake of it and do not misread the market, so every scarcity here is a floor:
    a table of people will press on the same limits at least this hard.
 
-   WHAT IT FOUND, over 150 games a table size
+   WHAT IT FOUND, over 250 games a table size, on the rules as they stand
+   (rent at $2, demand icons absorbing their own column, the full Megacorp
+   box at six seats). Re-measured after those changes shipped.
 
    THE ECONOMY DOES NOT NEED TO SCALE WITH THE PLAYER COUNT. It already does,
-   on its own. Cash on the table grows almost exactly linearly - $167 at two
-   seats to $510 at six - while cash PER SEAT stays flat at $67-$85 and prices
-   rise from a mean of $3 in Year 1 to $4 in Year 3 at every count. A closed
-   loop with more players in it simply circulates more money among more hands.
-   Nothing about the money supply, the pots or the price ladder wants adjusting.
+   on its own. Cash on the table grows almost exactly linearly - $195 at two
+   seats to $525 at six - while cash PER SEAT stays flat at $80-$98 and prices
+   rise from a mean of $3 in Year 1 to $4 in Year 3 from three seats up. A
+   closed loop with more players in it simply circulates more money among more
+   hands. Nothing about the money supply, the pots or the price ladder wants
+   adjusting for the count.
 
-   THE BINDING CONSTRAINT AT EVERY TABLE SIZE IS THE DISCS, NOT THE BOARD. A
-   seat uses 7.1-8.5 of its twelve on average and 21-34% of seats end with none
-   free, while the city stays mostly empty: 16-38% of plots owned and only
-   11-25% of open demand slots ever filled. Two players use 11% of the demand
-   grid. The pond is not the limit; the fishing licence is.
+   WHICH RESOURCE BINDS FIRST CHANGES AT FIVE SEATS. Below five it is the
+   discs; at five and six it is the Blueprint decks:
 
-   THE ONE THING THAT REALLY DOES SCALE IS THE BLUEPRINT DECKS. Cards left of
-   sixty: 44.6 at two seats, 41.1 at three, 31.6 at four, 23.4 at five, 13.6 at
-   SIX. Six players consume 77% of the card supply. That is the number that says
-   six is the ceiling for this box - a seventh seat would run the decks dry
-   before Year 3, and nothing else in the game is close to its limit.
+                        2p    3p    4p    5p    6p
+       discs used      71%   61%   60%   60%   60%
+       cards used      25%   32%   49%   60%   72%
+       land owned      17%   20%   26%   32%   38%
+       demand used     10%   12%   16%   18%   21%
+
+   THE DECKS ARE WHAT SET THE PLAYER CEILING. Cards left of sixty: 45.0 at two
+   seats, 40.7 at three, 30.8 at four, 23.7 at five, 17.0 at six. Six players
+   consume 72% of the card supply. A seventh seat would run the decks dry
+   before Year 3, and nothing else in the game is close to its limit - the city
+   is never more than 38% owned and never more than 21% of its demand is taken.
 
    SO THE RECOMMENDED "ECONOMY SIZE" PER COUNT IS:
 
-     2 players   the board is roughly twice the city this game needs. 11% demand
-                 use, 16% land use, 25% of districts ever built in. Playable and
-                 measured as balanced, but it plays in a ghost town. The only
-                 count where trimming the map (say eight suburb districts rather
-                 than twelve) would tighten the game rather than break it.
-     3 players   slightly loose - 12% demand, 19% land. Trimming optional.
-     4 players   the reference. Every resource comfortably inside its limit.
-     5 players   healthy. Decks at 61% consumed.
-     6 players   the ceiling, and the decks are what set it. Everything else has
-                 room; the cards do not.
+     2 players   the board is roughly twice the city this game needs. 10% demand
+                 use, 17% land use, 24% of districts ever built in, and a quarter
+                 of the cards touched. Playable and measured as balanced, but it
+                 plays in a ghost town, and it is also where a seat commits the
+                 most discs (8.6 of 12 against 7.2 elsewhere). The one count
+                 where trimming the map - say eight suburb districts rather than
+                 twelve - would tighten the game rather than break it.
+     3 players   still loose: 12% demand, 20% land, 32% of the cards. Trimming
+                 optional. The count least likely to end early (1% of games).
+     4 players   the reference. Every resource comfortably inside its limit and
+                 the decks at about half.
+     5 players   healthy, and the point where the decks overtake the discs as
+                 the tightest thing on the table.
+     6 players   the ceiling, and the cards are what set it. Everything else has
+                 room; at 72% consumed the deck does not.
      7+          would need more Blueprints before anything else is considered.
 
    TWO THINGS TURNED UP THAT ARE NOT ABOUT TABLE SIZE AT ALL:
 
-   ABOUT TWO THIRDS OF ALL PRODUCTION IS RECYCLED AT $1. 64-67% at every table
-   size, and roughly flat across company levels (60-75%), so it is structural
-   rather than a big-company problem. It splits hard by industry, though:
-   Technology wastes 34-58% and Healthcare 45-65%, against Utilities 71-76% and
-   Retail 71-77%. Since only 11-25% of demand slots are ever filled, the cause
-   is REACH, not exhausted demand - production cannot get to the icons that are
-   sitting open. Whether that is a fault or a feature is a design decision, not
-   a measurement: the $1 floor is a deliberate rule and companies stay
-   profitable. But it does mean the production numbers printed on the cards are
-   roughly three times what the board absorbs, and that the $2 industries are
-   the ones paying for it.
+   ABOUT HALF OF ALL PRODUCTION IS STILL RECYCLED AT $1 - 48-51% at every table
+   size. That is down from about two thirds before demand icons began absorbing
+   their own column, so the change did what it was meant to, but half the
+   output of the average company still finds no buyer.
 
-   THE 12-DISC LIMIT LEAKS, RARELY. Peak observed use is 13 discs at four and
-   six seats and 14 at two, against a limit of twelve - about 0.4% of samples at
-   two players and effectively none elsewhere. The example case is ten plots
-   plus four company slots with no loans outstanding. doLoan checks discsFree
-   but some other acquisition path evidently does not. It is rare enough not to
-   affect any balance number here, and it matters for a physical edition, where
-   the box has to contain enough discs for whatever the rules permit.
+   It splits hard by company level, and that split is the whole story:
+
+       level 1   68-72% recycled
+       level 2   49-52%
+       level 3   37-48%
+       level 4   39-47%
+
+   A level-1 company sells barely three units in ten. That is the small-company
+   problem in one line, and it is structural: reach, not exhausted demand. Only
+   10-21% of the demand slots on the board are ever filled, so the icons are
+   sitting open - a small company simply cannot get to them.
+
+   By industry the order is stable across every count:
+
+       UT 57-66%   RE 50-53%   HO 46-55%   MA 41-48%   TE 32-46%   HC 30-39%
+
+   Utilities wastes nearly twice what Healthcare does. Utilities reads a block
+   of districts of its own and is barred from the hub network; Healthcare rides
+   the whole network by default. Reach is what separates them, and the waste
+   table is the clearest measurement of that in the repo.
+
+   THE 12-DISC LIMIT LEAKS, RARELY. Peak observed use is 13 discs at three,
+   four and five seats and 14 at two and six, against a limit of twelve - about
+   1% of samples at two players and effectively none elsewhere. The example
+   case is ten plots plus four company slots with no loans outstanding. doLoan
+   checks discsFree but some other acquisition path evidently does not. It is
+   rare enough not to affect any balance number here, and it matters for a
+   physical edition, where the box has to contain enough discs for whatever the
+   rules permit.
 
    Run: node audit_economy_size.js [seeds]
    ========================================================================== */

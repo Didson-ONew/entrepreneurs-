@@ -255,7 +255,7 @@ const doc = new Document({
       H("In the box"),
       P("1 city board · 20 district tiles · 60 Blueprint cards · 16 Megacorp tiles · 1 IPO tile · 6 portfolio boards · 3 auxiliary boards · 270 cubes · 12 hub discs · 72 player discs (12 each) · EP tokens · currency.",
         { size: 18, after: 60 }),
-      P("Cube counts and auxiliary boards are what I would expect to negotiate first. The Blueprint deck is the component that sets the player ceiling: at six players 77% of the sixty cards are consumed by the end of Year 3, which is why six is the maximum rather than an arbitrary choice.",
+      P("Cube counts and auxiliary boards are what I would expect to negotiate first. The Blueprint deck is the component that sets the player ceiling: at six players 72% of the sixty cards are consumed by the end of Year 3, which is why six is the maximum rather than an arbitrary choice.",
         { size: 17, italics: true, color: MUTED }),
 
       H("The map does the balancing"),
@@ -269,29 +269,36 @@ const doc = new Document({
       P("For all of Year 1 the $4 industries can only sell in the centre, where land runs $4–$6 a plot against $1 at the rim. The premium is paid twice: in land, and in waiting.", { size: 18 }),
 
       H("Balance, measured"),
-      /* Source: 400 four-player games on the shipped ruleset. Reproduce with the
-         probe described in audit_tables.js; the previous sheet quoted a 60-game
-         run on the pre-tier rules, where Healthcare sat at 22%. */
-      P("Tuned against a simulation harness rather than by feel. Across 400 complete four-player games, how often each industry appeared in the winner's portfolio. Two standard errors is about ±5 points, so the middle four are indistinguishable — the point is that none of the six is dead.",
+      /* Source: 250 complete games at EVERY table size (2-6), on the shipped
+         ruleset, re-measured after rent moved to $2 and demand icons began
+         absorbing their own column. Reproduce with audit_state_of_play.js.
+         The bars are the mean across all five counts; the per-count spreads
+         quoted underneath are the finding that matters. */
+      P("Tuned against a simulation harness rather than by feel. Across 250 complete games at every table size from two to six, how often each industry appeared in the winner's portfolio, averaged over all five counts. Two standard errors is about ±6 points, so most of this list is one flat band — the point is that none of the six is dead.",
         { size: 18 }),
       grid(null, [
-        ["Hospitality", "████████████████", "56%"],
-        ["Retail", "███████████████", "52%"],
-        ["Manufacturing", "██████████████", "51%"],
-        ["Utilities", "████████████", "43%"],
-        ["Healthcare", "███████████", "41%"],
-        ["Technology", "███████████", "39%"],
+        ["Hospitality", "████████████████", "60%"],
+        ["Retail", "██████████████", "55%"],
+        ["Manufacturing", "██████████████", "53%"],
+        ["Healthcare", "█████████████", "49%"],
+        ["Utilities", "███████████", "42%"],
+        ["Technology", "███████████", "42%"],
       ], [2600, TEXT_WIDTH - 3500, 900], { size: 17 }),
       gap(120),
-      P("The previous edition of this sheet reported a 22% outlier at the bottom of that list. Retiring it was the work of the last development cycle: the spread is now 39–56% against 22–60%.",
+      P("The spread narrows as the table fills. At six players the six industries sit inside 10 points of each other — entirely within the noise, so they are interchangeable. At two players they are 30 points apart, with Utilities and Technology measurably weaker: both are the industries that want a big board and other people's demand to sell into, and a two-player city has neither.",
         { size: 17, italics: true, color: MUTED }),
 
       H("What the harness says about table size"),
-      P("The economy scales itself. Cash on the table grows almost exactly linearly with the player count — $167 at two seats to $510 at six — while cash per seat stays flat at $67–$85 and the mean industry price rises from $3 in Year 1 to $4 in Year 3 at every count. No rule needs to change with the number of players except the two extra track slots and which Megacorp tiers come out.",
+      P("The economy scales itself. Cash on the table grows almost exactly linearly with the player count — $195 at two seats to $525 at six — while cash per seat stays flat at $80–$98 and the mean industry price rises from $3 in Year 1 to $4 in Year 3 from three seats up. No rule needs to change with the number of players except the two extra track slots and which Megacorp tiers come out.",
         { size: 18 }),
-      P("The binding constraint at every table size is the twelve discs, not the board: a seat uses 7–8.5 of them on average while only 16–38% of plots are ever owned and 11–25% of open demand slots ever filled. Two players play in a noticeably empty city, which is the one count where a smaller map would tighten the game.",
+      P("What binds first changes at five seats. Below that it is the twelve discs; at five and six it is the Blueprint deck, which is what sets the player ceiling at six — 72% of the sixty cards are consumed by the end of Year 3. The city itself is never the limit: at most 38% of plots are ever owned and at most 21% of the open demand slots ever filled. Two players play in a noticeably empty city, which is the one count where a smaller map would tighten the game.",
         { size: 18, after: 40 }),
-      P("Full figures: audit_economy_size.js.", { size: 17, italics: true, color: MUTED }),
+
+      H("No runaway winners"),
+      P("The player leading at the halfway mark goes on to win 65% of two-player games, 35% of four-player and 20% of six-player ones — against the 50%, 25% and 17% that chance alone would give. Holding a lead the whole way is rarer still: leading at both Q4 and Q8 and going on to win happens in 49% of two-player games but only 11% of six-player ones. An early lead is worth having and never close to decisive.",
+        { size: 18, after: 40 }),
+
+      P("Full figures: audit_state_of_play.js and audit_economy_size.js.", { size: 17, italics: true, color: MUTED }),
     ],
   }],
 });
