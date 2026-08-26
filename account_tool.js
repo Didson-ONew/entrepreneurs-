@@ -13,6 +13,11 @@
      node account_tool.js add    <name> <email> <password>
      node account_tool.js reset  <name> <password>
      node account_tool.js remove <name>
+     node account_tool.js seed   <backup.json>
+
+   `seed` is the odd one out: it writes nothing, it reads a backup file you
+   downloaded from the Playtest panel and prints the value for ENT_SEED_BACKUP,
+   which is how accounts survive a deploy on hosting with no permanent disk.
 
    ACCOUNTS_FILE=/path/to/accounts.json picks a different file - use the same
    value the server runs with, or this will helpfully report on the wrong one.
@@ -77,6 +82,42 @@ try { store = accounts.load(file); } catch (e) { die(e.message); }
       break;
     }
 
+    /* Turn a downloaded backup into the value ENT_SEED_BACKUP wants.
+
+       Free hosting rebuilds the data directory on every deploy, so without this
+       everyone has to register again after each one. The server merges this value
+       at boot and cannot overwrite an account that is already there.
+
+       ACCOUNTS ONLY, on purpose. A whole backup is mostly the hall of fame, which
+       grows every game and would push the value past what a dashboard field will
+       comfortably hold; the accounts are a few hundred bytes and are the only part
+       that has to survive automatically. Games and notes go back through the
+       Backup tab, which is a button rather than a redeploy. */
+    case "seed": {
+      const [path] = args;
+      if (!path) die("Usage: node account_tool.js seed <backup.json>");
+      const backup = require("./backup.js");
+      let file_;
+      try { file_ = JSON.parse(require("fs").readFileSync(path, "utf8")); }
+      catch (e) { die(`Could not read ${path}: ${e.message}`); }
+
+      const accountsOnly = { ...file_, matches: [], feedback: [] };
+      const why = backup.problem(accountsOnly);
+      if (why) die(why);
+      if (!accountsOnly.accounts.length) die(`${path} has no accounts in it - nothing to seed.`);
+      accountsOnly.counts = { accounts: accountsOnly.accounts.length, matches: 0, feedback: 0 };
+
+      const value = Buffer.from(JSON.stringify(accountsOnly), "utf8").toString("base64");
+      const names = accountsOnly.accounts.map((u) => u.name).join(", ");
+      console.error(`${accountsOnly.accounts.length} account(s): ${names}`);
+      console.error(`${value.length} characters. Set this as ENT_SEED_BACKUP in your host's dashboard.`);
+      console.error("It contains password hashes - do not commit it, and do not paste it in chat.\n");
+      /* The value alone on stdout, so `... seed x.json > v.txt` gives a clean file
+         and the commentary above still reaches a person. */
+      console.log(value);
+      break;
+    }
+
     case "remove": {
       const [name] = args;
       if (!name) die("Usage: node account_tool.js remove <name>");
@@ -90,7 +131,7 @@ try { store = accounts.load(file); } catch (e) { die(e.message); }
 
     default:
       console.log(require("fs").readFileSync(__filename, "utf8")
-        .split("\n").slice(1, 19).map((l) => l.replace(/^ {3}/, "")).join("\n"));
+        .split("\n").slice(1, 24).map((l) => l.replace(/^ {3}/, "")).join("\n"));
       console.log(`\nReading: ${file}`);
       process.exit(cmd ? 1 : 0);
   }

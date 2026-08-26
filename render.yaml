@@ -1,5 +1,5 @@
 # =============================================================================
-# Entrepreneurs on Render.
+# Entrepreneurs on Render — free instance.
 #
 # With this file in the repository, Render builds the service from the blueprint
 # instead of from a form somebody filled in once and forgot. A merge to main
@@ -7,61 +7,71 @@
 #
 #   Render dashboard -> New -> Blueprint -> pick this repository -> Apply
 #
-# THE DATA SURVIVES DEPLOYS, AND THAT IS WHAT THE DISK BELOW IS FOR
+# THERE IS NO DISK HERE, AND IT IS NOT AN OVERSIGHT
 #
-# Everything the server must not lose lives in one directory - accounts, the
-# hall of fame, the playtest notes, and any game in progress:
+# A free instance has no permanent storage. Its filesystem is rebuilt from the
+# deploy every time the service restarts - which includes waking from the sleep
+# it drops into after fifteen idle minutes. So everything the server remembers
+# between games is erased, over and over:
 #
 #   accounts.json   who is registered, and the session signing secret
 #   matches.jsonl   the hall of fame
 #   feedback.json   the playtest notes
-#   games.json      games currently being played
+#   games.json      a game in progress ends
 #
-# That directory is a mounted disk at /var/lib/entrepreneurs, OUTSIDE the
-# application folder, so replacing the application folder on every deploy no
-# longer touches it. ENT_DATA_DIR below points at the mount, and the two must
-# always agree - datadir.js prints where it landed at boot and says plainly if
-# it is somewhere a deploy would erase.
+# A mounted disk fixes all of that, and it WAS tried. Render refused it:
 #
-# THIS USED TO BE A FREE INSTANCE, and a free instance has no permanent storage:
-# its filesystem is rebuilt from the deploy on every restart, including waking
-# from the sleep it drops into after fifteen idle minutes. Everything above was
-# erased over and over, and everyone had to register again each time. That is
-# what the disk fixed. Going back to `plan: free` brings all of it back, so if
-# the plan is ever changed, remove the disk and expect the wipes.
+#     Disks are not available for this compute plan
 #
-# THE BACKUP TAB IS STILL WORTH KNOWING ABOUT. It is no longer what keeps the
-# site working - the disk is - but it is still the way to take a copy off this
-# host: Download a copy from the Playtest panel, and Put a copy back to merge it
-# into a running server. Putting one back never deletes anything (see
-# backup.js), so it is safe to press when unsure. Useful for moving to new
-# hosting, keeping an off-site copy, or seeding a fresh instance.
+# The trap is that "plan" means two different things on Render. A service has a
+# COMPUTE PLAN (free, starter, standard...) and the workspace around it has a
+# WORKSPACE PLAN (Hobby, Pro, Scale, Enterprise). Paying for a starter INSTANCE
+# is not enough - disks need a paid WORKSPACE, which is Pro at $25/mo. This
+# workspace is on Hobby, so the blueprint sync failed on all three counts: the
+# disk, the plan change, and the ENT_DATA_DIR that pointed at the mount.
 #
-#   THAT FILE HOLDS PASSWORD HASHES AND EMAIL ADDRESSES. Keep it as carefully as
-#   a password list, and never commit it - this repository is public, and
-#   .gitignore blocks data/, accounts.json and matches.jsonl for that reason.
+# So do not add a `disk:` block back without moving the workspace to Pro first,
+# or every sync from now on goes red. If the workspace IS moved to Pro, the whole
+# fix is:
+#
+#   plan: starter
+#   disk:
+#     name: entrepreneurs-data
+#     mountPath: /var/lib/entrepreneurs
+#     sizeGB: 1
+#
+#   ...and set ENT_DATA_DIR to /var/lib/entrepreneurs so it matches the mount.
+#
+# WHAT CARRIES THE ACCOUNTS ACROSS A DEPLOY INSTEAD: ENT_SEED_BACKUP, below. It
+# holds a backup file - accounts only - and the server merges it at boot, so a
+# wiped data directory comes back with everyone still registered. It cannot
+# overwrite an account that is already there, so it is safe on every restart.
+#
+# The Backup tab in the Playtest panel is still the way to move the REST: the
+# hall of fame and the playtest notes. Download a copy, and Put a copy back
+# afterwards. Putting one back never deletes anything (see backup.js), so it is
+# safe to press when unsure. A game in progress is the one thing nothing can
+# bring back on this tier.
+#
+#   THE BACKUP FILE HOLDS PASSWORD HASHES AND EMAIL ADDRESSES. Keep it as
+#   carefully as a password list, and never commit it - this repository is
+#   PUBLIC, and .gitignore blocks data/, accounts.json and matches.jsonl for
+#   exactly that reason. ENT_SEED_BACKUP belongs in the Render dashboard, which
+#   stores it out of the repository, and nowhere else.
 #
 # APPLYING THIS TO A SERVICE THAT ALREADY EXISTS: a blueprint matches services
 # BY NAME. If yours is not called `entrepreneurs`, either rename it in the
 # Render dashboard first or change the name here - otherwise Render creates a
 # SECOND service on a new URL, and the link you have given people keeps pointing
-# at the old one. Changing `plan` also affects billing, so Render will ask for
-# confirmation in the dashboard rather than applying it on an autodeploy.
+# at the old one.
 # =============================================================================
 
 services:
   - type: web
     name: entrepreneurs
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
-
-    # Permanent storage. This is the whole reason accounts survive a deploy; see
-    # ENT_DATA_DIR below, which must name this same path.
-    disk:
-      name: entrepreneurs-data
-      mountPath: /var/lib/entrepreneurs
-      sizeGB: 1
 
     # esbuild is a devDependency, so the install has to include them. Building
     # here rather than trusting the committed HTML means the pages can never be
@@ -74,13 +84,12 @@ services:
     healthCheckPath: /api/presence
 
     envVars:
-      # The mounted disk above. It is deliberately OUTSIDE the application
-      # folder, so a deploy replacing that folder leaves the data alone. If this
-      # and the disk's mountPath ever disagree, the server writes to a folder
-      # inside the app instead and the wipes come back - datadir.js says so at
-      # boot, in those words, so read the deploy log after changing either.
+      # On a free instance this is inside the application folder, which is the
+      # folder every deploy replaces. The server says so at boot, in those words,
+      # so the warning in the log is expected here rather than a mistake. See the
+      # header: a disk would fix it and needs a Pro workspace.
       - key: ENT_DATA_DIR
-        value: /var/lib/entrepreneurs
+        value: /opt/render/project/src/data
 
       # Render terminates TLS in front of the service, so every request arrives
       # from the same internal address. Without this the rate limiter counts the
@@ -91,13 +100,25 @@ services:
 
       # Which accounts may read the playtest notes and see who is at which table.
       # This names them; it does not create them - those accounts still have to
-      # be registered through the site once. With the disk in place that
-      # registration now survives, so it is a one-time job rather than something
-      # to redo after every deploy.
+      # be registered through the site, and ENT_SEED_BACKUP is what stops that
+      # having to be done again after every wipe.
       - key: ENT_ADMINS
         value: Dids,Didson
 
       - key: NODE_VERSION
         value: "22"
+
+      # A backup file, accounts only, base64 - merged into the data directory at
+      # boot so a wipe does not cost anyone their registration. Produce the value
+      # with:
+      #
+      #     node account_tool.js seed entrepreneurs-backup-YYYY-MM-DD.json
+      #
+      # and paste it into the Render dashboard. It is deliberately NOT given a
+      # value here: it contains password hashes, and this repository is public.
+      # `sync: false` is what tells Render to ask for it in the dashboard rather
+      # than expecting to find it in this file.
+      - key: ENT_SEED_BACKUP
+        sync: false
 
       # PORT is set by Render and read by server.js. Do not set it here.
