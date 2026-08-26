@@ -157,6 +157,57 @@ try { JSON.parse(Buffer.from("not base64 at all!!", "base64").toString("utf8"));
 catch (e) { threw = true; }
 check("undecodable input throws rather than parsing to something", threw);
 
+/* ---- 4b. what a person actually pastes into a dashboard -------------------- *
+   The first real deploy of this failed here: the value was set and the server
+   refused it. A dashboard field is not a shell - values get wrapped, pick up a
+   stray newline, or the whole backup file gets pasted in raw because that is the
+   obvious thing to try. Base64 contains no whitespace and a leading `{` is
+   unambiguous, so all of these can simply be read, and none of them should cost
+   anybody their account. decodeSeed is lifted from server.js verbatim. */
+console.log("\n4b. THE WAYS A VALUE ARRIVES FROM A DASHBOARD");
+function decodeSeed(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return null;
+  if (s.startsWith("{")) return JSON.parse(s);
+  const compact = s.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+  return JSON.parse(Buffer.from(compact, "base64").toString("utf8"));
+}
+/* The copy above is only worth anything while it matches the real one, so this
+   fails if server.js changes and this file does not. */
+{
+  const src = fs.readFileSync(path.join(__dirname, "server.js"), "utf8");
+  const body = /function decodeSeed\(raw\) \{[\s\S]*?\n\}/.exec(src);
+  // comments are commentary: compare what the code DOES, not what it explains
+  const norm = (s) => String(s).replace(/\/\/[^\n]*/g, "").replace(/\s+/g, " ").trim();
+  check("this file's copy of decodeSeed still matches server.js",
+    !!body && norm(body[0]) === norm(decodeSeed.toString()),
+    body ? "" : "decodeSeed not found in server.js");
+}
+const good = seedFile([user]);
+const b64 = Buffer.from(JSON.stringify(good), "utf8").toString("base64");
+const readsBack = (v, what) => {
+  let out = null;
+  try { out = decodeSeed(v); } catch (e) { out = null; }
+  check(what, !!out && out.accounts && out.accounts[0] && out.accounts[0].name === "Didson");
+};
+readsBack(b64, "the value the tool prints");
+readsBack(`  ${b64}\n`, "with whitespace around it");
+readsBack(b64.replace(/(.{40})/g, "$1\n"), "line-wrapped every 40 characters");
+readsBack(b64.match(/.{1,60}/g).join(" "), "broken up with spaces");
+readsBack(JSON.stringify(good), "the raw backup file, pasted straight in");
+readsBack(`\n${JSON.stringify(good)}\n`, "raw JSON with whitespace around it");
+readsBack(b64.replace(/\+/g, "-").replace(/\//g, "_"), "base64url, as some tools emit");
+/* And things that genuinely are wrong must still be refused, not half-read. */
+const refuses = (v, what) => {
+  let out;
+  try { out = decodeSeed(v); } catch (e) { out = null; }
+  check(what, !out || backup.problem(out) !== null);
+};
+refuses("hello world", "a sentence is refused");
+refuses(b64.slice(0, 40), "a truncated value is refused");
+refuses(Buffer.from('{"hello":"world"}').toString("base64"), "base64 of the wrong object is refused");
+check("an empty variable is simply nothing to do", decodeSeed("") === null);
+
 /* ---- 5. what account_tool.js seed produces --------------------------------- */
 console.log("\n5. THE VALUE account_tool.js PRODUCES");
 const whole = seedFile([user]);

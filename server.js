@@ -547,15 +547,45 @@ function mergeBackup(file) {
    A bad value must never stop the server starting. Somebody pasting the wrong
    thing into a dashboard field should get a line in the log and a running game,
    not an outage. */
+/* Take what a person actually pasted, not only what the tool printed.
+
+   The first version of this accepted base64 and nothing else, and the first real
+   deploy failed on it. A dashboard field is not a shell: values get wrapped, get
+   a stray newline on the end, or the whole backup file gets pasted in raw because
+   that is the obvious thing to try. None of those are user error worth an
+   outage - base64 contains no whitespace, and a leading `{` is unambiguous, so
+   all three can simply be read. */
+function decodeSeed(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return null;
+  // Somebody pasted the backup file itself. That is a perfectly clear intent.
+  if (s.startsWith("{")) return JSON.parse(s);
+  // Base64 has no whitespace in it, so any that is here was added in transit.
+  // Accept base64url too - some tools emit -_ instead of +/.
+  const compact = s.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+  return JSON.parse(Buffer.from(compact, "base64").toString("utf8"));
+}
+
 function applySeedBackup() {
   const raw = String(process.env.ENT_SEED_BACKUP || "").trim();
   if (!raw) return;
   let file;
   try {
-    file = JSON.parse(Buffer.from(raw, "base64").toString("utf8"));
+    file = decodeSeed(raw);
   } catch (e) {
-    console.log("ENT_SEED_BACKUP is set but is not base64-encoded JSON - ignored.");
-    console.log("  Produce it with: node account_tool.js seed <backup.json>");
+    /* Say enough to tell the three likely mistakes apart without printing the
+       value, which holds password hashes. The length and the first few
+       characters are not secret: every one of these files begins `{"format":1`,
+       so base64 of one always starts `eyJmb3JtYXQi`. */
+    const compact = raw.replace(/\s+/g, "");
+    const looks = raw.startsWith("{") ? "JSON, but it did not parse"
+      : /^[A-Za-z0-9+/=_-]+$/.test(compact) ? "base64, but it did not decode to JSON"
+      : "neither JSON nor base64";
+    console.log(`ENT_SEED_BACKUP is set but could not be read - ignored. Nobody is registered.`);
+    console.log(`  It is ${raw.length} characters and looks like ${looks}.`);
+    console.log(`  It starts: ${JSON.stringify(raw.slice(0, 12))}`);
+    console.log(`  A good value starts "eyJmb3JtYXQi" (base64) or "{\\"format\\":1" (raw JSON).`);
+    console.log("  Produce one with: node account_tool.js seed <backup.json>");
     return;
   }
   const result = mergeBackup(file);
