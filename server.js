@@ -588,9 +588,21 @@ function applySeedBackup() {
     console.log("  Produce one with: node account_tool.js seed <backup.json>");
     return;
   }
+  /* A seed is about the accounts, and trimming a downloaded backup down to just
+     those is the obvious thing to do by hand. backup.problem insists on all
+     three arrays, so a hand-trimmed file would be refused for "no matches in it"
+     - true, and beside the point. Fill in what is missing and let it through;
+     the restore endpoint stays strict, because there the file is uploaded whole. */
+  if (file && typeof file === "object") {
+    if (!Array.isArray(file.matches)) file.matches = [];
+    if (!Array.isArray(file.feedback)) file.feedback = [];
+  }
   const result = mergeBackup(file);
   if (result.error) {
     console.log(`ENT_SEED_BACKUP ignored: ${result.error}`);
+    if (/format/.test(String(result.error))) {
+      console.log('  Every backup starts {"format": 1 - check the value was copied whole.');
+    }
     return;
   }
   console.log(`ENT_SEED_BACKUP: ${backup.describe(result)}`);
