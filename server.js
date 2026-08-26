@@ -323,7 +323,10 @@ function applyAction(room, seat, action, data) {
       const b = p.businesses.find((x) => x.id === st.deliveringBizId);
       if (!b) return { error: "No business selected." };
       if (!E.humanDeliver(st, p, d.tileKey, d.rowIdx, d.levelIdx, !!d.cross, lg)) return { error: "Cannot deliver there." };
-      if ((st.deliveryRemaining[b.id] || 0) <= 0 && (st.crossSellRemaining[b.id] || 0) <= 0) E.finishDelivery(st, lg, rng);
+      /* Production alone decides this. Cross-sell is a route for those units, not a
+         second pile of goods, so waiting on it too stranded Manufacturing on a panel
+         it could not act on. Matches the single-player path. */
+      if ((st.deliveryRemaining[b.id] || 0) <= 0) E.finishDelivery(st, lg, rng);
       break;
     }
     case "reChoice": {

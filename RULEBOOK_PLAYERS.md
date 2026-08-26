@@ -209,11 +209,13 @@ Every industry has one market price that everybody sells at. It starts at its ba
 
 ### How the price moves
 
-Launching a company puts one supply mark on its own industry, and one demand mark on every supplier industry printed on its Blueprint.
+Each industry has one marker on a price track running from $1 to $10, with a BLANK CELL between each number - nineteen cells in all, so half a dollar per cell. A marker resting on a blank reads as the number above it.
 
-Two steps in either direction move the price by $1, and no price ever falls below $1.
+Launching a company moves TWO markers. Every industry printed as a SUPPLIER on its Blueprint goes UP two cells - a whole dollar each, at once. The industry of the company itself goes DOWN one cell, so it takes two companies in an industry to knock a dollar off its price.
 
-A crowded industry can sink to $1 - exactly what you get for recycling goods you could not sell, so at that point selling and scrapping pay the same. A neglected one that half the table depends on can climb past $8 a unit.
+A marker stops at the ends. On $10 it will not climb further, and on $1 it will not fall further, but it moves the other way the moment something pushes it - a marker sitting on $10 comes off $10 as soon as two companies are built there.
+
+A crowded industry can sink to $1 - exactly what you get for recycling goods you could not sell, so at that point selling and scrapping pay the same. A neglected one that half the table depends on climbs fast, and $10 is genuinely reachable.
 
 ### What each company costs and produces
 

@@ -223,11 +223,17 @@ Every industry has one market price that everybody sells at. It starts at its ba
 
 ### How the price moves
 
-Launching a company puts one supply mark on its own industry, and one demand mark on every supplier industry printed on its Blueprint.
+Each industry has one marker on a price track running from $1 to $10, with a BLANK CELL between each number - nineteen cells in all, so half a dollar per cell. A marker resting on a blank reads as the number above it.
 
-Two steps in either direction move the price by $1, and no price ever falls below $1.
+Launching a company moves TWO markers. Every industry printed as a SUPPLIER on its Blueprint goes UP two cells - a whole dollar each, at once. The industry of the company itself goes DOWN one cell, so it takes two companies in an industry to knock a dollar off its price.
 
-A crowded industry can sink to $1 - exactly what you get for recycling goods you could not sell, so at that point selling and scrapping pay the same. A neglected one that half the table depends on can climb past $8 a unit.
+A marker stops at the ends. On $10 it will not climb further, and on $1 it will not fall further, but it moves the other way the moment something pushes it - a marker sitting on $10 comes off $10 as soon as two companies are built there.
+
+> **Designer's note.** The ends being hard stops is why this is a marker on a track rather than a running tally. Counting supply and demand separately let an industry that 'should' have been $14 sit at $10 while carrying an invisible overshoot, so four companies had to be built before the price moved at all. A marker cannot hide anything: what you see on the track is the whole state.
+
+A crowded industry can sink to $1 - exactly what you get for recycling goods you could not sell, so at that point selling and scrapping pay the same. A neglected one that half the table depends on climbs fast, and $10 is genuinely reachable.
+
+> **Designer's note.** Supplier appearances used to be worth half this much - two of them to earn a dollar. Making one appearance worth a dollar is what puts real money behind an industry nobody is building, and it is a big change to the economy rather than a tidy-up. Measured over 200 games a table size: the winning score goes from 111 to 173 at six seats, cash a seat ends with more than doubles ($196 to $471), and cash on hand rises from about 30% of a winning score to about half of it. It also widens the winner's margin over second place from 16.8 EP to 33.7 at six seats, and spreads the industries out again - the six sat inside 10 points of each other at a full table and now span 31. Those are the costs of the faster climb, and they are worth knowing before the next dial is turned.
 
 ### What each company costs and produces
 
