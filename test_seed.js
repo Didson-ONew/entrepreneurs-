@@ -203,6 +203,31 @@ const refuses = (v, what) => {
   try { out = decodeSeed(v); } catch (e) { out = null; }
   check(what, !out || backup.problem(out) !== null);
 };
+/* Trimming a backup by hand down to the account is the obvious thing to do, and
+   the seed path fills in the arrays that leaves out. Mirrors server.js. */
+const fillArrays = (f) => {
+  if (f && typeof f === "object") {
+    if (!Array.isArray(f.matches)) f.matches = [];
+    if (!Array.isArray(f.feedback)) f.feedback = [];
+  }
+  return f;
+};
+const trimmed = { format: backup.FORMAT, at: good.at, accounts: [user] };
+check("a hand-trimmed backup would be refused as it stands",
+  backup.problem(trimmed) !== null, backup.problem(trimmed) || "");
+check("...and the seed path fills the gap so it is accepted",
+  backup.problem(fillArrays({ ...trimmed })) === null);
+const trimCur = emptyCurrent();
+const trimRes = backup.apply(fillArrays({ ...trimmed }), trimCur);
+check("...and it really does add the account",
+  !trimRes.error && trimCur.accounts.users.length === 1);
+
+/* A value cut off partway through - the single likeliest paste mistake. */
+const cut = JSON.stringify(good).slice(0, 300);
+let cutThrew = false;
+try { decodeSeed(cut); } catch (e) { cutThrew = true; }
+check("JSON cut off partway is refused, not half-read", cutThrew);
+
 refuses("hello world", "a sentence is refused");
 refuses(b64.slice(0, 40), "a truncated value is refused");
 refuses(Buffer.from('{"hello":"world"}').toString("base64"), "base64 of the wrong object is refused");
