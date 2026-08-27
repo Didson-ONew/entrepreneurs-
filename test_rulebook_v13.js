@@ -80,9 +80,18 @@ section("Prices - a track from $1 to $10, half a dollar a cell");
   const p0 = E.price(pm, "HO");
   check("an untouched industry sits at its base price", p0 === 3, `HO is $${p0}`);
 
+  /* Supply and demand push equally: one cell each, so TWO of either moves a
+     whole dollar. A marker on a blank reads as the number above it, which is why
+     the first supplier appearance shows the dollar and the second adds nothing,
+     while the first company built shows nothing and the second takes the dollar.
+     The RATE is what matters and it is the same both ways. */
   E.onLaunch(pm, "ZZ", ["HO"]);                       // HO appears as a supplier once
-  check("ONE supplier appearance is worth $1", E.price(pm, "HO") === p0 + 1,
+  const afterOne = E.price(pm, "HO");
+  E.onLaunch(pm, "ZZ", ["HO"]);                       // and a second time
+  check("two supplier appearances are worth $1", E.price(pm, "HO") === p0 + 1,
     `$${p0} -> $${E.price(pm, "HO")}`);
+  check("the second one adds nothing on top", E.price(pm, "HO") === afterOne,
+    `after one $${afterOne}, after two $${E.price(pm, "HO")}`);
 
   const pm2 = E.makePriceMatrix();
   E.onLaunch(pm2, "HO", []);                          // one HO company built
@@ -90,6 +99,14 @@ section("Prices - a track from $1 to $10, half a dollar a cell");
   E.onLaunch(pm2, "HO", []);
   check("two companies built take $1 off", E.price(pm2, "HO") === p0 - 1,
     `$${p0} -> $${E.price(pm2, "HO")}`);
+
+  /* The two pressures being equal is the whole point of halving the climb: an
+     industry built as often as it is needed should not drift. */
+  const pm2b = E.makePriceMatrix();
+  E.onLaunch(pm2b, "HO", []);           // built once
+  E.onLaunch(pm2b, "ZZ", ["HO"]);       // needed once
+  check("built as often as needed, the price sits still", E.price(pm2b, "HO") === p0,
+    `$${p0} -> $${E.price(pm2b, "HO")}`);
 
   /* The ends are hard stops, and the marker must come straight back off them -
      that is the whole reason this is one clamped position and not two tallies. */

@@ -225,7 +225,9 @@ Every industry has one market price that everybody sells at. It starts at its ba
 
 Each industry has one marker on a price track running from $1 to $10, with a BLANK CELL between each number - nineteen cells in all, so half a dollar per cell. A marker resting on a blank reads as the number above it.
 
-Launching a company moves TWO markers. Every industry printed as a SUPPLIER on its Blueprint goes UP two cells - a whole dollar each, at once. The industry of the company itself goes DOWN one cell, so it takes two companies in an industry to knock a dollar off its price.
+Launching a company moves TWO markers. Every industry printed as a SUPPLIER on its Blueprint goes UP one cell. The industry of the company itself goes DOWN one cell. So it takes two of either to move a whole dollar, and an industry that is built as often as it is needed sits exactly where it is.
+
+Because a blank reads as the number above it, the first supplier appearance shows the dollar straight away and the second adds nothing on top, while the first company built shows nothing and the second takes the dollar off. The rate is the same in both directions.
 
 A marker stops at the ends. On $10 it will not climb further, and on $1 it will not fall further, but it moves the other way the moment something pushes it - a marker sitting on $10 comes off $10 as soon as two companies are built there.
 
@@ -233,7 +235,7 @@ A marker stops at the ends. On $10 it will not climb further, and on $1 it will 
 
 A crowded industry can sink to $1 - exactly what you get for recycling goods you could not sell, so at that point selling and scrapping pay the same. A neglected one that half the table depends on climbs fast, and $10 is genuinely reachable.
 
-> **Designer's note.** Supplier appearances used to be worth half this much - two of them to earn a dollar. Making one appearance worth a dollar is what puts real money behind an industry nobody is building, and it is a big change to the economy rather than a tidy-up. Measured over 200 games a table size: the winning score goes from 111 to 173 at six seats, cash a seat ends with more than doubles ($196 to $471), and cash on hand rises from about 30% of a winning score to about half of it. It also widens the winner's margin over second place from 16.8 EP to 33.7 at six seats, and spreads the industries out again - the six sat inside 10 points of each other at a full table and now span 31. Those are the costs of the faster climb, and they are worth knowing before the next dial is turned.
+> **Designer's note.** A whole dollar per supplier appearance was tried and measured, and it was too much. A Blueprint lists about two suppliers, so every build pushed $2 of price into the city and took only half a dollar out of its own, and the city inflated: the winning score at six seats went from 111 to 173, cash a seat ended with more than doubled, cash rose to about half of a winning score, and the winner's margin over second place roughly doubled - the opposite of what every other change this cycle was for. One cell each way keeps the visible track and the hard stops, which were the real improvements, at the old rate. See audit_price_track.js.
 
 ### What each company costs and produces
 
@@ -447,12 +449,14 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Megacorp HQ, at the end | +3 for each other company beside it |
 | The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone |
 | The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone |
-| Cash on hand at the end | +1 per full $10 |
+| Cash on hand at the end | +1 per full $20 |
 | Each loan disc still in the bank | -5 |
 
 For The Omnipresent, a district counts if you own a plot in it or one of your active companies stands in it.
 
 Ground rent is simply money. It is collected as it is earned and scores inside your cash at the end like every other dollar - there is nothing separate to track. What is worth knowing is how much of your income it quietly becomes: a plot with somebody else’s building on it pays you every quarter, and by six players half the plots a player owns carry a rival’s building.
+
+> **Designer's note.** Cash scored 1 EP per $10 until the price track landed. The track makes the whole economy bigger - more money moving through more hands - and scoring that at the old rate simply doubled the cash line, which took it from about a third of a winning score to about half: not spending was outscoring building. $20 puts it back. Measured over 120 games a table size in audit_price_track.js, and worth re-reading if the price rules ever move again, because this number and those ones are tied together.
 
 > **Designer's note.** Rent was briefly given its own scoring line while the balance of land was being investigated. It has been folded back into cash: the split changed no totals, and asking a table to keep a running rent tally all game to divide one number into two halves that add back to it is bookkeeping without a decision. The digital build still shows the flow, where it costs nothing. Land plus rent is about 27% of a winning score at two seats and 14% at six - see audit_idle_land.js.
 

@@ -211,7 +211,9 @@ Every industry has one market price that everybody sells at. It starts at its ba
 
 Each industry has one marker on a price track running from $1 to $10, with a BLANK CELL between each number - nineteen cells in all, so half a dollar per cell. A marker resting on a blank reads as the number above it.
 
-Launching a company moves TWO markers. Every industry printed as a SUPPLIER on its Blueprint goes UP two cells - a whole dollar each, at once. The industry of the company itself goes DOWN one cell, so it takes two companies in an industry to knock a dollar off its price.
+Launching a company moves TWO markers. Every industry printed as a SUPPLIER on its Blueprint goes UP one cell. The industry of the company itself goes DOWN one cell. So it takes two of either to move a whole dollar, and an industry that is built as often as it is needed sits exactly where it is.
+
+Because a blank reads as the number above it, the first supplier appearance shows the dollar straight away and the second adds nothing on top, while the first company built shows nothing and the second takes the dollar off. The rate is the same in both directions.
 
 A marker stops at the ends. On $10 it will not climb further, and on $1 it will not fall further, but it moves the other way the moment something pushes it - a marker sitting on $10 comes off $10 as soon as two companies are built there.
 
@@ -411,7 +413,7 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Megacorp HQ, at the end | +3 for each other company beside it |
 | The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone |
 | The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone |
-| Cash on hand at the end | +1 per full $10 |
+| Cash on hand at the end | +1 per full $20 |
 | Each loan disc still in the bank | -5 |
 
 For The Omnipresent, a district counts if you own a plot in it or one of your active companies stands in it.

@@ -77,8 +77,33 @@
      industry does not run away from the built ones. That is the genuine cost of
      the faster climb, and no cash rate can pay it.
 
-   So: B if the rule as written matters more than industry parity, C if it is the
-   other way round. There is no column that gets both.
+   SHIPPED: D - one cell each way, cash per $20. Chosen over B deliberately, with
+   the cash consequence known in advance. Re-measured at 200 games a table size
+   afterwards, against the ruleset before any of this landed:
+
+                            before      shipped
+       winning score, 6p       111          101
+       winner's lead, 6p      16.8         16.9
+       industry spread, 6p   10 pts       10 pts
+       industry spread, 4p   25 pts       12 pts
+       cash % of winner        30%      15-18%
+       companies % of winner 31-33%      37-39%
+
+   Industry parity came back exactly, and at four seats it is better than it has
+   ever been. The margin is back to where it was. What moved is what the game
+   rewards: cash halved from about a third of a winning score to a sixth, and
+   BUILDING absorbed it, from 31-33% to 37-39%, with the Megacorp lines taking
+   the rest. That is a real change of emphasis, not a neutral rebalance, and it
+   is the thing to watch at a table.
+
+   ONE NUMBER WENT THE WRONG WAY and is recorded here rather than buried: the Q6
+   leader at six seats won 20% of games before and 32% now. Two standard errors
+   on each is about 7 points, so a 12-point gap is probably real rather than
+   noise. Nothing else in the runaway table moved - the margin, the wire-to-wire
+   rate and the bottom-half comeback rate are all where they were - so this may
+   be the halfway snapshot catching a game that now resolves earlier rather than
+   a leader who is harder to catch. It wants a second look before anything is
+   done about it.
 
    Run: node audit_price_track.js [seeds]      (default 100 a size a ruleset)
    ========================================================================== */

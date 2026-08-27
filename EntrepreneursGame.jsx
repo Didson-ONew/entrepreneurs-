@@ -938,11 +938,10 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
 
    Two things move a marker, and they are deliberately asymmetric:
 
-     APPEARING AS A SUPPLIER on a Blueprint somebody builds moves it UP two cells
-     - a whole dollar, at once. Being needed is worth more than being present.
-
-     BEING BUILT moves that industry's own marker DOWN one cell, so it takes TWO
-     companies in an industry to knock a dollar off its price.
+     APPEARING AS A SUPPLIER on a Blueprint somebody builds moves it UP one cell.
+     BEING BUILT moves that industry's own marker DOWN one cell. So it takes two
+     of either to move the price a whole dollar - the two pressures are equal and
+     opposite, and an industry that is built as often as it is needed sits still.
 
    The marker STOPS at each end. That is the reason this is one clamped position
    rather than the two counters it used to be: with separate demand and offer
@@ -951,8 +950,13 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
    overshoot nobody could see. A marker parked on $10 comes off $10 the moment
    one company is built, which is what a track on a table would do.
 
-   It used to take TWO supplier appearances to earn a dollar. Halving that is
-   what makes an unbuilt industry genuinely worth watching. */
+   A dollar a supplier appearance was tried and measured, and it was too much: it
+   roughly doubled the winner's margin over second place and took the winning
+   score at six seats from 111 to 173, because a Blueprint lists about two
+   suppliers, so every build pushed $2 of price into the city and took only half a
+   dollar out of its own. The city inflated. One cell each way keeps the visible
+   track and the hard stops - which were the real improvements - without that.
+   See audit_price_track.js. */
 const PRICE_MIN = 1, PRICE_MAX = 10;
 const CELL_MIN = 0, CELL_MAX = (PRICE_MAX - PRICE_MIN) * 2;   // 18
 const cellOfPrice = (p) => (p - PRICE_MIN) * 2;
@@ -983,7 +987,7 @@ function moveMarker(pm, ind, cells) {
 /* Building a company: its own industry down one cell, every industry it lists as a
    supplier up two. A Blueprint with two suppliers therefore lifts $2 of price into
    the city and takes half a dollar out of its own. */
-const SUPPLIER_CELLS = 2, BUILT_CELLS = -1;
+const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;
 function onLaunch(pm, ind, depInds) {
   moveMarker(pm, ind, BUILT_CELLS);
   depInds.forEach((d) => moveMarker(pm, d, SUPPLIER_CELLS));
@@ -1272,10 +1276,19 @@ function landEPWeight(state, p) {
   return 0;                                                   // not a race this player is in
 }
 
-/* $10 on hand is 1 EP at the end of the game. That rate is what makes it possible to
-   compare a company's earnings with the points its building scores, so it is the unit
-   everything below is measured in. */
-const CASH_PER_EP = 10;
+/* Cash on hand at the end is worth 1 EP per this many dollars. That rate is what makes
+   it possible to compare a company's earnings with the points its building scores, so
+   it is the unit everything below is measured in - and it is used by the BOTS to price
+   every decision they make, not only by final scoring. Both have to read the same
+   number or a bot values money at a rate the scoresheet does not honour.
+
+   It was $10, and moved to $20 with the price track. The track makes the whole economy
+   bigger - more money through more hands - and scoring that at the old rate simply
+   doubled the cash line, taking it from about a third of a winning score to about half.
+   Measured in audit_price_track.js. The final-scoring line used to hardcode 10 rather
+   than read this constant, so the two could have drifted apart unnoticed; it reads the
+   constant now. */
+const CASH_PER_EP = 20;
 
 /* What will this industry pay ME, once my own company is standing in it?
 
@@ -1608,7 +1621,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "8bae71ec";
+const ENGINE_VERSION = "2ed8acd2";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent is NOT an extra bill: a company pays its OPEX and
@@ -2092,7 +2105,7 @@ function finalizeGame(state) {
        total into two halves that add back to the same number is bookkeeping for no
        decision. What the split was really for was diagnosis, and a probe can compute it
        from the ledger without the players doing anything. See audit_idle_land.js. */
-    const cashEP = Math.floor(p.cash / 10);
+    const cashEP = Math.floor(p.cash / CASH_PER_EP);
     if (cashEP) addEP(p, cashEP, `Cash on hand ($${Math.round(p.cash)})`, state.quarter);
   }
 }
@@ -5829,7 +5842,7 @@ function FinalQuarterNotice({ state, human, onClose }) {
         </div>
         <div style={{ fontSize: 12.5, color: "#c9cfda", lineHeight: 1.55, marginTop: 10 }}>
           {quartersLeft <= 1
-            ? "This is the last quarter. Cash scores 1 EP per $10, and every loan disc still in the bank costs you 5."
+            ? `This is the last quarter. Cash scores 1 EP per $${CASH_PER_EP}, and every loan disc still in the bank costs you 5.`
             : `That leaves ${quartersLeft} quarters, this one included. Anything you cannot finish by then scores nothing, and loan discs still cost 5 EP each.`}
         </div>
         <button onClick={onClose} style={{
