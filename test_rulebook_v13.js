@@ -71,26 +71,63 @@ for (const [ind, want] of Object.entries(V10)) {
 }
 
 /* ------------------------------------------------------------------ prices */
-section("Prices - two steps in either direction move the price by $1");
+section("Prices - a track from $1 to $10, half a dollar a cell");
 {
+  /* One marker per industry on a 19-cell track: $1, blank, $2, blank ... $10.
+     Appearing as a supplier moves it UP two cells - a whole dollar. Being built
+     moves it DOWN one, so it takes two companies to knock a dollar off. */
   const pm = E.makePriceMatrix();
   const p0 = E.price(pm, "HO");
-  pm.demand.HO += 1;
-  const p1 = E.price(pm, "HO");
-  pm.demand.HO += 1;
-  const p2 = E.price(pm, "HO");
-  check("one step of demand does not move the price", p1 === p0, `${p0} -> ${p1}`);
-  check("two steps of demand move it $1", p2 === p0 + 1, `${p0} -> ${p2}`);
+  check("an untouched industry sits at its base price", p0 === 3, `HO is $${p0}`);
+
+  /* Supply and demand push equally: one cell each, so TWO of either moves a
+     whole dollar. A marker on a blank reads as the number above it, which is why
+     the first supplier appearance shows the dollar and the second adds nothing,
+     while the first company built shows nothing and the second takes the dollar.
+     The RATE is what matters and it is the same both ways. */
+  E.onLaunch(pm, "ZZ", ["HO"]);                       // HO appears as a supplier once
+  const afterOne = E.price(pm, "HO");
+  E.onLaunch(pm, "ZZ", ["HO"]);                       // and a second time
+  check("two supplier appearances are worth $1", E.price(pm, "HO") === p0 + 1,
+    `$${p0} -> $${E.price(pm, "HO")}`);
+  check("the second one adds nothing on top", E.price(pm, "HO") === afterOne,
+    `after one $${afterOne}, after two $${E.price(pm, "HO")}`);
+
   const pm2 = E.makePriceMatrix();
-  pm2.offer.HO += 1;
-  const q1 = E.price(pm2, "HO");
-  pm2.offer.HO += 1;
-  const q2 = E.price(pm2, "HO");
-  check("one step of supply does not move the price", q1 === p0, `${p0} -> ${q1}`);
-  check("two steps of supply move it $1", q2 === p0 - 1, `${p0} -> ${q2}`);
-  const pm3 = E.makePriceMatrix();
-  pm3.offer.UT += 40;
-  check("no price ever falls below $1", E.price(pm3, "UT") === 1);
+  E.onLaunch(pm2, "HO", []);                          // one HO company built
+  check("one company built does not move the price", E.price(pm2, "HO") === p0);
+  E.onLaunch(pm2, "HO", []);
+  check("two companies built take $1 off", E.price(pm2, "HO") === p0 - 1,
+    `$${p0} -> $${E.price(pm2, "HO")}`);
+
+  /* The two pressures being equal is the whole point of halving the climb: an
+     industry built as often as it is needed should not drift. */
+  const pm2b = E.makePriceMatrix();
+  E.onLaunch(pm2b, "HO", []);           // built once
+  E.onLaunch(pm2b, "ZZ", ["HO"]);       // needed once
+  check("built as often as needed, the price sits still", E.price(pm2b, "HO") === p0,
+    `$${p0} -> $${E.price(pm2b, "HO")}`);
+
+  /* The ends are hard stops, and the marker must come straight back off them -
+     that is the whole reason this is one clamped position and not two tallies. */
+  const hi = E.makePriceMatrix();
+  for (let n = 0; n < 40; n++) E.onLaunch(hi, "ZZ", ["UT"]);
+  check("no price ever climbs above $10", E.price(hi, "UT") === 10, `$${E.price(hi, "UT")}`);
+  E.onLaunch(hi, "UT", []); E.onLaunch(hi, "UT", []);
+  check("and it comes straight back off $10 when built", E.price(hi, "UT") === 9,
+    `$${E.price(hi, "UT")} - a marker parked past the end would not have moved`);
+
+  const lo = E.makePriceMatrix();
+  for (let n = 0; n < 40; n++) E.onLaunch(lo, "UT", []);
+  check("no price ever falls below $1", E.price(lo, "UT") === 1);
+  E.onLaunch(lo, "ZZ", ["UT"]);
+  check("and it comes straight back off $1 when needed", E.price(lo, "UT") === 2,
+    `$${E.price(lo, "UT")}`);
+
+  /* A game saved before the track existed carries demand/offer instead. */
+  const old = { demand: { HO: 4 }, offer: { HO: 0 } };
+  check("a game saved on the old model still prices", E.price(old, "HO") === 5,
+    `$${E.price(old, "HO")}`);
 }
 
 /* -------------------------------------------------------------------- B2B */

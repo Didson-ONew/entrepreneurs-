@@ -186,13 +186,15 @@ p2.plots = [Object.keys(st2.board.graph)[0]];
 p2.businesses = [{ ...reBiz, footprint: [p2.plots[0]] }];
 st2.reExtraDistrict = {};
 
-const before = { ...st2.pm.demand };
+/* The price track replaced the demand/offer tallies; read prices, which is what
+   the bump is actually for. */
+const before = Object.fromEntries(E.INDUSTRIES.map((i) => [i, E.price(st2.pm, i)]));
 const lines = [];
 const lg = (m) => lines.push(m);
 
 /* Bots resolve inline; the human must not. */
 E.applySupplyChainBump(st2, lg);
-const movedByBump = E.INDUSTRIES.filter((i) => st2.pm.demand[i] !== before[i]);
+const movedByBump = E.INDUSTRIES.filter((i) => E.price(st2.pm, i) !== before[i]);
 check("the bump no longer fires for a human seat on its own",
   !st2.reExtraDistrict[p2.id],
   st2.reExtraDistrict[p2.id] ? "the human was auto-bumped" : "human left for the prompt");
@@ -214,11 +216,11 @@ const cheapest = opts.slice().sort((a, b) => E.price(st2.pm, a) - E.price(st2.pm
 st2.phase = "supplyChain";
 st2.scQueue = queue;
 st2.awaitingPlayerId = queue[0];
-const demandBefore = { ...st2.pm.demand };
+const demandBefore = Object.fromEntries(E.INDUSTRIES.map((i) => [i, E.price(st2.pm, i)]));
 E.chooseSupplyChain(st2, p2, dearest, lg, E.mulberry32(11));
-const movedByChoice = E.INDUSTRIES.filter((i) => st2.pm.demand[i] !== demandBefore[i]);
+const movedByChoice = E.INDUSTRIES.filter((i) => E.price(st2.pm, i) !== demandBefore[i]);
 
-console.log(`  they chose ${dearest} ($${E.price(demandBefore ? st2.pm : st2.pm, dearest)}); the old rule would have taken ${cheapest}`);
+console.log(`  they chose ${dearest} (was $${demandBefore[dearest]}, now $${E.price(st2.pm, dearest)}); the old rule would have taken ${cheapest}`);
 console.log(`  industries that moved: ${movedByChoice.join(", ") || "none"}`);
 lines.forEach((l) => console.log(`  log: ${l}`));
 

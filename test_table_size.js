@@ -30,7 +30,7 @@ function loadEngine() {
       advanceDraft, startPlanning, advancePlanning, finishQuarterAfterRepay,
       workingTrackSlots, makeTracks, endgameRushers, MEGACORPS_TO_END, finalRank,
       drawMegacorpPool, MEGACORP_TIER, MEGACORP_TILES, PLAYER_COLORS, STARTING,
-      DISCS_PER_PLAYER, workersPerPlayer, finalizeGame };
+      DISCS_PER_PLAYER, workersPerPlayer, finalizeGame, CASH_PER_EP };
   `, sandbox);
   return box.exports;
 }
@@ -276,12 +276,15 @@ for (const n of [2, 4, 6]) {
   check(`${n} players: nobody has negative rent`,
     st.players.every((p) => (p.rentIn || 0) >= 0 && (p.rentOut || 0) >= 0 && (p.rentSaved || 0) >= 0));
 
-  /* the final tally must name rent separately, and the two cash lines together
-     must still come to exactly floor(cash / 10) - the split renames, never adds */
+  /* The final tally must name rent separately, and the two cash lines together must
+     still come to exactly what the cash rule pays - the split renames, never adds.
+     Read the rate from the engine rather than writing 10 here: this check hardcoded
+     it and broke the day the rate moved to $20, which is the test drifting from the
+     rule rather than the rule breaking. */
   for (const p of st.players) {
     const rentEP = (p.epLog || []).filter((e) => /^Ground rent/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
     const cashEP = (p.epLog || []).filter((e) => /^Cash on hand/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
-    const want = Math.floor(p.cash / 10);
+    const want = Math.floor(p.cash / E.CASH_PER_EP);
     if (want <= 0) continue;
     check(`${n}p ${p.name}: rent + cash lines equal the cash EP`, rentEP + cashEP === want,
       `${rentEP} + ${cashEP} vs ${want}`);
@@ -302,7 +305,8 @@ section("Rent is tracked as a flow, but scores inside cash and nowhere else");
   const cashEP = (p.epLog || []).filter((e) => /^Cash on hand/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
   check("no separate rent scoring line", rentLines.length === 0,
     rentLines.map((e) => e.label).join(", "));
-  check("the whole $100 scores as cash", cashEP === 10, `got ${cashEP}`);
+  check(`the whole $100 scores as cash`, cashEP === Math.floor(100 / E.CASH_PER_EP),
+    `got ${cashEP}, want ${Math.floor(100 / E.CASH_PER_EP)} at $${E.CASH_PER_EP} per EP`);
   check("the ledger is still there for the digital build",
     p.rentIn === 90 && p.rentOut === 0, `in ${p.rentIn} out ${p.rentOut}`);
 }
@@ -317,8 +321,14 @@ section("A heavy tenant and a heavy landlord score their cash the same way");
     E.finalizeGame(st);
     return (p.epLog || []).filter((e) => /^Cash on hand/.test(e.label)).reduce((s2, e) => s2 + e.amount, 0);
   };
-  check("net-positive rent scores 10 on $100", mk(56, 90, 0) === 10, `${mk(56, 90, 0)}`);
-  check("net-negative rent scores 10 on $100 too", mk(57, 10, 80) === 10, `${mk(57, 10, 80)}`);
+  /* Whichever way the rent flowed, $100 in hand is $100 in hand: the point of these
+     two is that the rent ledger changes no total, so they must track the cash rule
+     rather than a number typed here. */
+  const want100 = Math.floor(100 / E.CASH_PER_EP);
+  check("net-positive rent scores the same on $100", mk(56, 90, 0) === want100,
+    `${mk(56, 90, 0)} vs ${want100}`);
+  check("net-negative rent scores the same on $100 too", mk(57, 10, 80) === want100,
+    `${mk(57, 10, 80)} vs ${want100}`);
 }
 
 console.log(fails ? `\n${fails} FAILED\n` : "\nall good\n");

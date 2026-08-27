@@ -925,19 +925,73 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
 }
 
 
+/* ---------------------------- the price track ----------------------------
+   One marker per industry on a track running $1 to $10, with a BLANK CELL between
+   each number - so nineteen cells, and half a dollar per cell.
+
+       cell   0   1   2   3   4  ...  18
+       reads $1  $2  $2  $3  $3  ...  $10
+
+   A marker on a blank cell reads as the NEXT number up, which is what makes the
+   halves work out: from $3 one company built leaves it still reading $3, and the
+   second takes it to $2.
+
+   Two things move a marker, and they are deliberately asymmetric:
+
+     APPEARING AS A SUPPLIER on a Blueprint somebody builds moves it UP one cell.
+     BEING BUILT moves that industry's own marker DOWN one cell. So it takes two
+     of either to move the price a whole dollar - the two pressures are equal and
+     opposite, and an industry that is built as often as it is needed sits still.
+
+   The marker STOPS at each end. That is the reason this is one clamped position
+   rather than the two counters it used to be: with separate demand and offer
+   tallies, an industry that "should" have been $14 had to be built four times
+   before the price moved at all, because the arithmetic was still unwinding an
+   overshoot nobody could see. A marker parked on $10 comes off $10 the moment
+   one company is built, which is what a track on a table would do.
+
+   A dollar a supplier appearance was tried and measured, and it was too much: it
+   roughly doubled the winner's margin over second place and took the winning
+   score at six seats from 111 to 173, because a Blueprint lists about two
+   suppliers, so every build pushed $2 of price into the city and took only half a
+   dollar out of its own. The city inflated. One cell each way keeps the visible
+   track and the hard stops - which were the real improvements - without that.
+   See audit_price_track.js. */
+const PRICE_MIN = 1, PRICE_MAX = 10;
+const CELL_MIN = 0, CELL_MAX = (PRICE_MAX - PRICE_MIN) * 2;   // 18
+const cellOfPrice = (p) => (p - PRICE_MIN) * 2;
+const clampCell = (c) => Math.max(CELL_MIN, Math.min(CELL_MAX, c));
+
 function makePriceMatrix() {
-  const demand = {}, offer = {};
-  INDUSTRIES.forEach((i) => { demand[i] = 0; offer[i] = 0; });
-  return { demand, offer };
+  const cell = {};
+  INDUSTRIES.forEach((i) => { cell[i] = cellOfPrice(BASE_PRICE[i]); });
+  return { cell };
 }
-/* Offer and demand move the price symmetrically: two steps in either direction are
-   worth $1, and nothing ever sells below $1. Demand used to pay out a whole dollar per
-   step while supply took two to claw one back, which made every supplier industry
-   climb about twice as fast as the rulebook says it should. */
+/* A game saved before the track existed carries `demand` and `offer` instead. Read
+   its price the old way and put the marker where that lands, so a match in progress
+   survives the change rather than starting Year 2 with every price reset. */
+function trackCell(pm, ind) {
+  if (pm.cell && pm.cell[ind] !== undefined) return pm.cell[ind];
+  const old = BASE_PRICE[ind]
+    + Math.floor(((pm.demand || {})[ind] || 0) / 2)
+    - Math.floor(((pm.offer || {})[ind] || 0) / 2);
+  return clampCell(cellOfPrice(Math.max(PRICE_MIN, Math.min(PRICE_MAX, old))));
+}
 function price(pm, ind) {
-  return Math.max(1, BASE_PRICE[ind] + Math.floor(pm.demand[ind] / 2) - Math.floor(pm.offer[ind] / 2));
+  return PRICE_MIN + Math.ceil(trackCell(pm, ind) / 2);
 }
-function onLaunch(pm, ind, depInds) { pm.offer[ind] += 1; depInds.forEach((d) => (pm.demand[d] += 1)); }
+function moveMarker(pm, ind, cells) {
+  if (!pm.cell) pm.cell = {};
+  pm.cell[ind] = clampCell(trackCell(pm, ind) + cells);
+}
+/* Building a company: its own industry down one cell, every industry it lists as a
+   supplier up two. A Blueprint with two suppliers therefore lifts $2 of price into
+   the city and takes half a dollar out of its own. */
+const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;
+function onLaunch(pm, ind, depInds) {
+  moveMarker(pm, ind, BUILT_CELLS);
+  depInds.forEach((d) => moveMarker(pm, d, SUPPLIER_CELLS));
+}
 
 /* ============================== GAME ENGINE ============================== */
 
@@ -1222,10 +1276,19 @@ function landEPWeight(state, p) {
   return 0;                                                   // not a race this player is in
 }
 
-/* $10 on hand is 1 EP at the end of the game. That rate is what makes it possible to
-   compare a company's earnings with the points its building scores, so it is the unit
-   everything below is measured in. */
-const CASH_PER_EP = 10;
+/* Cash on hand at the end is worth 1 EP per this many dollars. That rate is what makes
+   it possible to compare a company's earnings with the points its building scores, so
+   it is the unit everything below is measured in - and it is used by the BOTS to price
+   every decision they make, not only by final scoring. Both have to read the same
+   number or a bot values money at a rate the scoresheet does not honour.
+
+   It was $10, and moved to $20 with the price track. The track makes the whole economy
+   bigger - more money through more hands - and scoring that at the old rate simply
+   doubled the cash line, taking it from about a third of a winning score to about half.
+   Measured in audit_price_track.js. The final-scoring line used to hardcode 10 rather
+   than read this constant, so the two could have drifted apart unnoticed; it reads the
+   constant now. */
+const CASH_PER_EP = 20;
 
 /* What will this industry pay ME, once my own company is standing in it?
 
@@ -1234,7 +1297,7 @@ const CASH_PER_EP = 10;
    case that goes wrong: an industry already at the floor, where one more entrant is the
    difference between $2 and $1. */
 function priceAfterMyBuild(pm, ind) {
-  return Math.max(1, BASE_PRICE[ind] + Math.floor(pm.demand[ind] / 2) - Math.floor((pm.offer[ind] + 1) / 2));
+  return PRICE_MIN + Math.ceil(clampCell(trackCell(pm, ind) + BUILT_CELLS) / 2);
 }
 
 /* What is a company actually worth, in points?
@@ -1558,7 +1621,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "c65c954d";
+const ENGINE_VERSION = "2ed8acd2";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent is NOT an extra bill: a company pays its OPEX and
@@ -1770,7 +1833,8 @@ function applySupplyChainFor(state, p, ind, log) {
   const options = supplyChainOptions(state, p);
   if (!options.length) return false;
   const pick = options.includes(ind) ? ind : options.slice().sort((a, b) => price(state.pm, a) - price(state.pm, b))[0];
-  state.pm.demand[pick] += 1;   // one step of extra demand for that industry
+  /* "one step" is the same step a supplier appearance is worth: a whole dollar. */
+  moveMarker(state.pm, pick, SUPPLIER_CELLS);
   state.reExtraDistrict = state.reExtraDistrict || {};
   state.reExtraDistrict[p.id] = true;
   if (log) log(`${p.name} works the supply chain: ${pick} demand rises, and Retail reaches one extra district this quarter.`, p.id);
@@ -2041,7 +2105,7 @@ function finalizeGame(state) {
        total into two halves that add back to the same number is bookkeeping for no
        decision. What the split was really for was diagnosis, and a probe can compute it
        from the ledger without the players doing anything. See audit_idle_land.js. */
-    const cashEP = Math.floor(p.cash / 10);
+    const cashEP = Math.floor(p.cash / CASH_PER_EP);
     if (cashEP) addEP(p, cashEP, `Cash on hand ($${Math.round(p.cash)})`, state.quarter);
   }
 }
@@ -3044,13 +3108,15 @@ const STARTING = {
 function draftedPressure(drafted) {
   const bumps = Object.fromEntries(INDUSTRIES.map((i) => [i, 0]));
   for (const bp of drafted) {
-    bumps[bp.ind] -= 1;                                   // more supply of its own good
-    bp.deps.forEach((d) => { bumps[d.ind] += 1; });        // more demand for its suppliers
+    bumps[bp.ind] += BUILT_CELLS;                          // more supply of its own good
+    bp.deps.forEach((d) => { bumps[d.ind] += SUPPLIER_CELLS; });   // more demand for its suppliers
   }
   return bumps;
 }
+/* Cells on the price track, read the way price() reads them, so a bot drafting is
+   pricing against the same board everyone else can see. */
 function expectedDraftPrice(ind, bumps) {
-  return Math.max(1, BASE_PRICE[ind] + Math.round(bumps[ind] / 2));   // 2 steps = $1
+  return PRICE_MIN + Math.ceil(clampCell(cellOfPrice(BASE_PRICE[ind]) + bumps[ind]) / 2);
 }
 function draftScoreNaive(bp) {
   return (bp.prod * BASE_PRICE[bp.ind] - bp.opex) / Math.max(1, bp.setup);
@@ -4529,6 +4595,10 @@ function GameScreens({ online }) {
   };
   const startedAt = useRef(null);
   const [reSelection, setReSelection] = useState([]);
+  /* Which final quarter this player has already been told about. Keyed on the quarter
+     rather than a boolean so it cannot be re-shown by a re-render, and so a rematch -
+     which starts a fresh state with no finalQuarter - announces the next one properly. */
+  const [ackedFinalQ, setAckedFinalQ] = useState(0);
   const rngRef = useRef(null);
   const logEndRef = useRef(null);
 
@@ -4773,7 +4843,12 @@ function GameScreens({ online }) {
     if (!state || !deliveringBiz) return;
     if (NET) return NET.send("deliver", { tileKey, rowIdx, levelIdx, cross: !!cross });
     humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log);
-    const stillHas = (state.deliveryRemaining[deliveringBiz.id] || 0) > 0 || (state.crossSellRemaining[deliveringBiz.id] || 0) > 0;
+    /* PRODUCTION is what decides whether there is anything left to do. Cross-sell is
+       a ROUTE for those units, not a second pile of goods - humanDeliver refuses
+       every delivery once deliveryRemaining hits zero. Waiting on crossSellRemaining
+       too left Manufacturing sitting on an open panel showing cross-sell units it
+       could never spend, with every click silently refused. */
+    const stillHas = (state.deliveryRemaining[deliveringBiz.id] || 0) > 0;
     if (!stillHas) finishDelivery(state, log, rngRef.current);
     setState({ ...state });
     if (state.phase === "gameover") setScreen("gameover");
@@ -4806,6 +4881,11 @@ function GameScreens({ online }) {
         </div>
 
         {tutorial && <Tutorial onClose={closeTutorial} />}
+        {/* Announced once per player, to everyone at the table including whoever
+            triggered it. The tutorial owns the screen if it is open, so this waits. */}
+        {!tutorial && state.finalQuarter && state.phase !== "gameover" && ackedFinalQ !== state.finalQuarter && (
+          <FinalQuarterNotice state={state} human={human} onClose={() => setAckedFinalQ(state.finalQuarter)} />
+        )}
         {reviewing && (
           <div className="rounded-lg p-2 mb-3 flex items-center justify-between flex-wrap gap-2"
             style={{ backgroundColor: "#1a2e26", border: "1px solid #2c5f4f" }}>
@@ -4933,7 +5013,11 @@ function GameScreens({ online }) {
               <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
                   Delivering {deliveringBiz.bp.name} ({bizInd(deliveringBiz)} L{deliveringBiz.level}) — {state.deliveryRemaining[deliveringBiz.id]} unit(s) left
-                  {bizInd(deliveringBiz) === "MA" && (state.crossSellRemaining[deliveringBiz.id] || 0) > 0 && <span> &middot; <span style={{ color: "#f5a623" }}>{state.crossSellRemaining[deliveringBiz.id]} cross-sell unit(s)</span></span>}
+                  {/* Never advertise more cross-sell than there is production to spend
+                      on it: the allowance is a cap on where units may go, and showing
+                      a number bigger than the units left reads as goods you do not
+                      have. */}
+                  {bizInd(deliveringBiz) === "MA" && Math.min(state.crossSellRemaining[deliveringBiz.id] || 0, state.deliveryRemaining[deliveringBiz.id] || 0) > 0 && <span> &middot; <span style={{ color: "#f5a623" }}>{Math.min(state.crossSellRemaining[deliveringBiz.id], state.deliveryRemaining[deliveringBiz.id])} of them may cross-sell</span></span>}
                 </div>
                 {state.hoBonusPaid && state.hoBonusPaid[deliveringBiz.id] > 0 && (
                   <div className="text-[10px] mb-1" style={{ color: "#8fd3b6" }}>
@@ -5715,6 +5799,58 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
         )}
       </div>
     </div>
+  );
+}
+
+/* The deadline, announced.
+
+   A second Megacorp does not end the game - it CALLS the final quarter, and everyone
+   gets that quarter to answer it. That is the single most consequential thing that can
+   happen without the player doing it, and it used to arrive as one line in a log nobody
+   reads mid-turn: people found out the game was over by the game being over.
+
+   Every client already has state.finalQuarter in its synced state, so this needs no
+   message of its own - each player sees it the moment their board updates, whether they
+   are the one who triggered it or not. */
+function FinalQuarterNotice({ state, human, onClose }) {
+  const q = state.finalQuarter;
+  const callers = state.players.filter((p) => megacorpHQs(p).length >= MEGACORPS_TO_END);
+  const mine = callers.some((p) => p.id === human.id);
+  const who = callers.map((p) => p.name).join(" and ") || "Somebody";
+  const quartersLeft = Math.max(0, q - state.quarter + 1);
+  return (
+    <Floating>
+      <div style={{ position: "fixed", inset: 0, zIndex: 10050, backgroundColor: "rgba(6,8,11,.82)" }} />
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 10051 }} />
+      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Final quarter called" style={{
+        position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)",
+        width: "min(92vw,460px)", zIndex: 10052, backgroundColor: "#14161a",
+        border: "1px solid #f5a623", borderRadius: 12, padding: 20,
+        boxShadow: "0 20px 60px rgba(0,0,0,.75)",
+      }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.4, color: "#f5a623", marginBottom: 6 }}>
+          ⏹ THE DEADLINE IS CALLED
+        </div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: "#f3f4f6", marginBottom: 10 }}>
+          Quarter {q} is the FINAL quarter.
+        </div>
+        <div style={{ fontSize: 12.5, color: "#c9cfda", lineHeight: 1.55 }}>
+          {mine
+            ? `You have launched your ${MEGACORPS_TO_END === 2 ? "second" : `${MEGACORPS_TO_END}th`} Megacorp, which calls the end of the game.`
+            : `${who} ${callers.length > 1 ? "have" : "has"} launched a ${MEGACORPS_TO_END === 2 ? "second" : `${MEGACORPS_TO_END}th`} Megacorp, which calls the end of the game.`}
+          {" "}Everyone still plays Quarter {q} in full — it is a deadline, not a finish line.
+        </div>
+        <div style={{ fontSize: 12.5, color: "#c9cfda", lineHeight: 1.55, marginTop: 10 }}>
+          {quartersLeft <= 1
+            ? `This is the last quarter. Cash scores 1 EP per $${CASH_PER_EP}, and every loan disc still in the bank costs you 5.`
+            : `That leaves ${quartersLeft} quarters, this one included. Anything you cannot finish by then scores nothing, and loan discs still cost 5 EP each.`}
+        </div>
+        <button onClick={onClose} style={{
+          marginTop: 16, width: "100%", padding: "9px 0", borderRadius: 8, border: "none",
+          backgroundColor: "#f5a623", color: "#1a1206", fontSize: 13, fontWeight: 800, cursor: "pointer",
+        }}>Understood</button>
+      </div>
+    </Floating>
   );
 }
 
