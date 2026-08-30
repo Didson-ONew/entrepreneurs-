@@ -20,3 +20,7 @@ accounts.json.tmp
 # the way accounts.json is, but it is other people's words and not source.
 feedback.json
 feedback.json.tmp
+
+# the Instagram kit is generated - make_instagram.mjs rebuilds it from the engine,
+# and the captions live at instagram_captions.md so a rebuild cannot delete them
+instagram/
