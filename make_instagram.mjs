@@ -589,8 +589,14 @@ function reelPieces() {
    twelve frames are the ends of quarters 1 through 12, evenly spaced - but only
    if the axis is labelled from the quarter each frame actually carries, which
    is why `qEnd` is recorded here instead of being assumed downstream. */
-function playOneGame(seed, seats = 4) {
-  const st = E2.initGame(seats, seed, ["Seat 1"], undefined, true, undefined);
+/* `seats` is the TABLE SIZE. initGame's first argument is the number of BOTS
+   and it adds one seat per human name, so a table of six is five bots plus the
+   one nominal human seat below - which is then handed to a bot as well, because
+   the reel wants a game that plays itself. Passing the table size straight
+   through asked for a seven player game, and STARTING has no row past six. */
+function playOneGame(seed, seats) {
+  const st = E2.initGame(seats - 1, seed, ["Seat 1"], undefined, true, undefined);
+  if (st.players.length !== seats) throw new Error(`asked for ${seats} seats, got ${st.players.length}`);
   st.players[0].isHuman = false;
   if (st.phase === "drafting") { E2.advanceDraft(st, () => {}); E2.startPlanning(st); }
   const frames = [];        // per quarter: { qEnd, plots:{plot:{ind,lvl,hq,sold}}, prices:{ind:$} }
@@ -652,12 +658,29 @@ function reelTwelveQuarters() {
      the 64 plots and then stopped dead: the last four quarters built nothing
      and moved no price, so the whole of the third year was a still image.
 
-     So the ranking is now, in order: no dead quarters in the closing stretch,
-     then the fullest city, then the most Megacorps. And the table is played
-     with FOUR seats rather than three - a fourth builder is worth about ten
-     more plots over twelve quarters, which is the difference between a city
-     that fills and one that dots. */
-  const SEATS = 4;
+     So the ranking is now, in order: a game that runs the full twelve quarters,
+     then no dead quarters in the closing stretch, then the fullest city, then
+     the most Megacorps.
+
+     TABLE SIZE, measured over the same 200 seeds rather than guessed:
+
+       seats   plots built   Megacorps   sold   price moves   ends early
+         2         8.5          1.3       3.1       7.5          9%
+         3        12.6          2.0       4.5      10.6          3%
+         4        18.3          3.2       6.4      14.8          7%
+         5        23.1          5.1       9.8      17.7         23%
+         6        27.0          6.6      12.0      18.9         41%
+
+     Every seat added builds more, merges more and sells more, so six is the
+     fullest city on offer. The chart is the flatter return: price movement
+     gains only 7% from five to six, because the extra builds push prices down
+     roughly as fast as the extra supplier appearances push them up.
+
+     The cost of six is that 41% of those games end before Quarter 12 - somebody
+     claims a second Megacorp and the deadline fires. A reel titled "Twelve
+     quarters" cannot show a game that stopped at ten, so the search requires
+     the full twelve and simply skips the rest. There are plenty left. */
+  const SEATS = 6;
   let best = null;
   const better = (g, b) => !b || g.deadLate < b.deadLate
     || (g.deadLate === b.deadLate && (g.built > b.built
@@ -668,8 +691,10 @@ function reelTwelveQuarters() {
      on a game that filled a third of the board. */
   for (let seed = 1; seed <= 200; seed++) {
     const g = playOneGame(seed, SEATS);
+    if (g.frames[g.frames.length - 1].qEnd < 12) continue;   // ended on the Megacorp deadline
     if (better(g, best)) best = { ...g, seed };
   }
+  if (!best) { console.error("no seed ran the full twelve quarters"); process.exit(2); }
   const { st, frames, seed } = best;
   console.log(`  reel 12: seed ${seed}, ${SEATS} seats - ${best.hqCount} Megacorp HQ(s), `
     + `${best.built} plots built, ${best.soldCount} sold, `

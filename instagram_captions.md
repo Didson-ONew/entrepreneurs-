@@ -263,13 +263,20 @@ Powers are quoted verbatim from the engine, so they cannot drift from the game.
 ## 12 · Reel — a full game in 30 seconds
 `reels/12_twelve-quarters.html` · cover `reels/12_twelve-quarters_cover.png`
 
-*This is a real game, not an abstraction: the engine plays out four bots over
-twelve quarters and the reel draws what they actually built, in the district they
-actually built it, in the quarter it went up. Seed 84 of two hundred played —
-picked because it fills 31 of the 64 plots, forms seven Megacorps, and never
-has a quarter where nothing happens.*
+*This is a real game, not an abstraction: the engine plays out a **full six-player
+table** over twelve quarters and the reel draws what they actually built, in the
+district they actually built it, in the quarter it went up. Seed 180 of two
+hundred played — picked because it fills 37 of the 64 plots, forms five
+Megacorps, runs the full twelve quarters, and never has a quarter where nothing
+happens.*
 
-> Three fiscal years. Twelve quarters. Sixteen districts, four plots each.
+*Why six and not four: measured over the same 200 seeds, every seat added builds
+more. 2 players fill 8.5 plots on average, 4 fill 18.3, 6 fill 27.0. The catch is
+that 41% of six-player games end early on the second-Megacorp deadline, so the
+search throws those out and takes the fullest game that still reaches Q12.*
+
+> Three fiscal years. Twelve quarters. Sixteen districts, four plots each. Six
+> players — a full table.
 >
 > This is one real game. Every square that lights up is a company somebody
 > actually built, in the district they built it, in the quarter it went up.
@@ -284,14 +291,18 @@ has a quarter where nothing happens.*
 > The half-faded squares with a dashed border are companies that were **sold**.
 > Selling doesn't clear the plot: the building stays standing as a distressed
 > shell, and anyone can take it over and renovate it — at which point it comes
-> back to full colour. Fifteen of these change hands over the twelve quarters.
+> back to full colour. Eleven change hands over the twelve quarters, and by the
+> final bell every one of them has been renovated by somebody.
 >
 > Watch the chart underneath at the same time. That is the same event seen twice:
 > every company that goes up is an operating bill somebody else now collects, and
 > the price of their goods moves because of it.
 >
-> Technology finished at $8. Retail, which everybody built, bottomed out at $1 —
-> where selling a unit is worth exactly what throwing it away is worth.
+> Technology finished at $8 — nobody wanted to build it, everybody needed it.
+> Then watch the last two quarters. Utilities drops $5 → $3 in a single quarter,
+> Retail $4 → $2 in the one after, while Hospitality and Manufacturing climb to
+> $7. The table spent eleven quarters reading the market and then all moved at
+> once, which is exactly what the market does to you.
 
 ---
 
