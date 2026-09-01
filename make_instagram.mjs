@@ -42,9 +42,9 @@ vm.createContext(sandbox);
 vm.runInContext(SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "") + `
   box.E = { BP_DATA, INDUSTRIES, IND_NAME, IND_COLOR, BASE_PRICE, PERSONAS,
             MEGACORPS_TO_END, DISCS_PER_PLAYER, CASH_PER_EP, SCALING,
-            PRICE_MIN, PRICE_MAX, RENT_PER_LEVEL };
+            PRICE_MIN, PRICE_MAX, RENT_PER_LEVEL, PLAYER_COLORS };
   box.E2 = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
-             activeBiz, megacorpHQs, bizInd };
+             activeBiz, megacorpHQs, bizInd, price };
 `, sandbox);
 const E = box.E;
 const E2 = box.E2;      // the parts needed to actually play a game for reel 12
@@ -465,33 +465,39 @@ function reelSupplyWeb() {
 
 /* Reel 7 - placement order AND what it costs you in actions.
 
-   The first version showed two rows of boxes counting up and down, which drew
-   the ORDER but hid the actual trade. The rule is: "your worker takes one
-   action, plus one extra for every worker that lands after it." So the worker
-   that acts first is the one that takes the FEWEST actions, and the numbers run
-   opposite to each other - which is the whole point and was the one thing not
-   on screen. */
+   Two earlier problems, both about the same confusion. The first cut drew the
+   order but not the cost. The second put the numbers in, and because the resolve
+   row counts DOWN while the placement row counts UP, it read as though the
+   fourth player to commit was the one acting last with four actions - the exact
+   opposite of the rule.
+
+   The fix is that a player is a COLOUR, not a number. The same coloured disc
+   sits in the same column in both rows, so the eye tracks one player straight
+   down: the cyan disc committed first, and the cyan disc acts last, four times.
+   The numbers then annotate that instead of carrying it. */
 function reelTurnOrder() {
   const N = 4;
+  const PC = E.PLAYER_COLORS;
   const T = (n) => 0.5 + n * 0.62;                    // placement beat
-  const R = (n) => 3.6 + n * 0.75;                    // resolution beat
-  const slot = (i, phase) => {
-    const placedNo = i + 1;                            // 1st..4th placed, left to right
+  const R = (n) => 3.6 + n * 0.78;                    // resolution beat, right to left
+  const cell = (i, phase) => {
+    const col = PC[i];
     const actNo = N - i;                               // rightmost acts first
-    /* One action, plus one for every worker that lands AFTER this one - and the
-       workers landing after it are exactly the ones to its right. So the count
-       equals the position in the resolve order: act 4th and you act four times.
-       That coincidence is the rule, not a nicety, and it is the thing to show. */
-    const actions = N - i;
+    const actions = N - i;                             // and takes that many actions
     const delay = phase === "place" ? T(i) : R(N - 1 - i);
+    const ord = ["1st", "2nd", "3rd", "4th"];
     return `
       <div class="cell" style="animation-delay:${delay}s">
-        <div class="disc">${phase === "place" ? placedNo : actNo}</div>
-        ${phase === "resolve" ? `<div class="acts">×${actions}</div>` : ""}
+        <div class="disc" style="background:${col};box-shadow:0 0 0 6px ${col}22">
+          ${phase === "place" ? i + 1 : actNo}
+        </div>
+        <div class="under" style="color:${col}">
+          ${phase === "place" ? `committed ${ord[i]}` : `acts ${ord[actNo - 1]} · ${actions} action${actions > 1 ? "s" : ""}`}
+        </div>
       </div>`;
   };
   return shell(1080, 1920, `
-    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:78px;padding:0 70px">
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:64px;padding:0 62px">
       <div style="text-align:center">
         <div class="kicker">One track, four seats</div>
         <div style="font-size:58px;font-weight:850;margin-top:12px;letter-spacing:-1.2px">
@@ -499,33 +505,36 @@ function reelTurnOrder() {
       </div>
 
       <div>
-        <div class="rowlbl" style="color:${MINT}">Workers go down &nbsp;→&nbsp; left to right</div>
-        <div class="row">${[0, 1, 2, 3].map((i) => slot(i, "place")).join("")}</div>
+        <div class="rowlbl" style="color:${MINT}">Planning &nbsp;→&nbsp; workers go down left to right</div>
+        <div class="row">${[0, 1, 2, 3].map((i) => cell(i, "place")).join("")}</div>
       </div>
 
+      <div class="linkrow">${[0, 1, 2, 3].map((i) =>
+        `<div class="linkcol"><div class="link" style="background:linear-gradient(${PC[i]}00,${PC[i]}cc)"></div></div>`).join("")}</div>
+
       <div>
-        <div class="rowlbl" style="color:${GOLD}">The track resolves &nbsp;←&nbsp; right to left</div>
-        <div class="row">${[0, 1, 2, 3].map((i) => slot(i, "resolve")).join("")}</div>
-        <div class="legend">the order it acts &nbsp;·&nbsp; <span style="color:${GOLD}">the actions it gets</span></div>
+        <div class="rowlbl" style="color:${GOLD}">Action &nbsp;←&nbsp; the track resolves right to left</div>
+        <div class="row">${[0, 1, 2, 3].map((i) => cell(i, "resolve")).join("")}</div>
       </div>
 
       <div style="background:${CARD};border:1px solid ${GOLD};border-radius:22px;padding:32px 34px">
-        <div style="font-size:37px;font-weight:850;color:${GOLD};line-height:1.25">
-          Act first, act once.<br>Act last, act four times.</div>
-        <div style="font-size:28px;color:#C9CFDA;margin-top:14px">
-          One action, plus one more for every worker that lands after yours &mdash;
-          so the two numbers are always the same.</div>
+        <div style="font-size:36px;font-weight:850;color:${GOLD};line-height:1.3">
+          Commit first — act most, but last.<br>Join late — act first, but least.</div>
+        <div style="font-size:27px;color:#C9CFDA;margin-top:14px">
+          One action, plus one more for every worker that lands after yours.</div>
       </div>
     </div>`, `
     ${REEL_CSS}
-    .rowlbl{font-size:30px;font-weight:800;letter-spacing:.5px;margin-bottom:18px}
-    .row{display:flex;gap:20px}
-    .cell{flex:1;height:176px;border-radius:22px;border:2px solid ${LINE};background:${CARD};
-          display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    .rowlbl{font-size:28px;font-weight:800;letter-spacing:.4px;margin-bottom:18px}
+    .row{display:flex;gap:18px}
+    .cell{flex:1;display:flex;flex-direction:column;align-items:center;gap:12px;
           opacity:0;animation:fadeUp .45s forwards}
-    .disc{font-size:56px;font-weight:860;color:${CREAM};line-height:1}
-    .acts{font-size:30px;font-weight:850;color:${GOLD}}
-    .legend{margin-top:14px;font-size:24px;color:${MUTE};font-weight:650;text-align:center}
+    .disc{width:118px;height:118px;border-radius:999px;display:flex;align-items:center;
+          justify-content:center;font-size:52px;font-weight:870;color:#0E1013}
+    .under{font-size:20px;font-weight:750;text-align:center;line-height:1.25}
+    .linkrow{display:flex;gap:18px;margin:-30px 0 -30px}
+    .linkcol{flex:1;display:flex;justify-content:center}
+    .link{width:7px;height:56px;border-radius:4px;opacity:.75}
   `);
 }
 
@@ -559,126 +568,205 @@ function reelPieces() {
     </div>`, REEL_CSS);
 }
 
-/* Reel 12 - twelve quarters of a REAL game.
+/* Reel 12 - twelve quarters of a REAL game, with what actually happened in it.
 
-   The first version was an 8x8 grid of cells lighting up in industry colours
-   picked by `i % 6`. It looked like something but showed nothing: not the real
-   board, not real companies, not a real order. It could not answer "what am I
-   looking at?" because the honest answer was "a pattern".
+   The first cut was an 8x8 grid lighting up in colours picked by `i % 6`: not
+   the real board, not real companies, not a real order. The second played a real
+   game but flattened it - every plot looked like a level-1 company sitting beside
+   another, and the two things a viewer would most want to see, the Megacorps and
+   the prices moving, were not on screen at all.
 
-   This runs an actual four-player game and records, at every quarter boundary,
-   which plots have companies standing on them and in which industry. The board
-   is 16 districts of 4 plots, so it draws as 4x4 districts of 2x2 plots - the
-   same shape as the board people will play on. What fills in is what the bots
-   actually built, in the quarter they actually built it. */
+   This records, at every quarter boundary, the industry AND LEVEL standing on
+   each plot, which plots carry a Megacorp headquarters, and the price of all six
+   goods. Then it draws the city filling and the price chart moving on the same
+   clock, because those two things are the same event seen twice: every company
+   that goes up is a supplier bill somebody now pays, and the chart is where that
+   shows. */
 function playOneGame(seed) {
   const st = E2.initGame(3, seed, ["Seat 1"], undefined, true, undefined);
   st.players[0].isHuman = false;
   if (st.phase === "drafting") { E2.advanceDraft(st, () => {}); E2.startPlanning(st); }
-  const frames = [];                       // frames[q] = { plot: ind }
+  const frames = [];                 // per quarter: { plots: {plot:{ind,lvl,hq}}, prices:{ind:$} }
   const snapshot = () => {
-    const seen = {};
-    const indOf = {};
+    const meta = {};
     for (const p of st.players) {
-      for (const b of E2.activeBiz(p).concat(E2.megacorpHQs(p))) {
-        indOf[b.id] = b.isHQ ? "HQ" : E2.bizInd(b);
-      }
+      for (const b of E2.activeBiz(p)) meta[b.id] = { ind: E2.bizInd(b), lvl: b.level, hq: false };
+      for (const b of E2.megacorpHQs(p)) meta[b.id] = { ind: E2.bizInd(b), lvl: b.level, hq: true };
     }
+    const plots = {};
     for (const [plot, bizId] of Object.entries(st.board.occupiedBy || {})) {
       if (bizId === undefined || bizId === null) continue;
-      if (indOf[bizId]) seen[plot] = indOf[bizId];
+      if (meta[bizId]) plots[plot] = meta[bizId];
     }
-    frames.push(seen);
+    const prices = {};
+    for (const ind of E.INDUSTRIES) prices[ind] = E2.price(st.pm, ind);
+    frames.push({ plots, prices });
   };
   E2.advancePlanning(st, E2.mulberry32(seed + 777), (msg) => {
     if (/^▶ Year \d+, Quarter \d+/.test(String(msg))) snapshot();
   });
   snapshot();
-  return { st, frames };
+  const hqs = new Set();
+  for (const f of frames) for (const [plot, m] of Object.entries(f.plots)) if (m.hq) hqs.add(plot);
+  return { st, frames, hqCount: hqs.size, built: new Set(frames.flatMap((f) => Object.keys(f.plots))).size };
 }
 
 function reelTwelveQuarters() {
-  /* A seed that produces a reasonably full city - an empty one shows nothing. */
+  /* A game worth showing needs Megacorps in it - they are the endgame, and a
+     reel that never shows one is describing a different game. Search seeds for
+     two or more, then prefer the fullest city among those. */
   let best = null;
-  for (const seed of [3, 11, 19, 27, 41, 55, 73]) {
+  for (let seed = 1; seed <= 140; seed++) {
     const g = playOneGame(seed);
-    const filled = Object.keys(g.frames[g.frames.length - 1] || {}).length;
-    if (!best || filled > best.filled) best = { ...g, filled, seed };
+    const score = g.hqCount * 1000 + g.built;
+    if (!best || score > best.score) best = { ...g, score, seed };
+    if (best.hqCount >= 2 && best.built >= 22 && seed > 60) break;
   }
-  const { st, frames } = best;
+  const { st, frames, seed } = best;
+  console.log(`  reel 12: seed ${seed} - ${best.hqCount} Megacorp HQ(s), ${best.built} plots built`);
 
-  /* District (r,c) -> 4x4, plot pos -> 2x2 inside it, so the picture is the
-     board's real shape rather than an arbitrary square. */
   const rs = [...new Set(Object.values(st.board.cellOf).map((c) => c.r))].sort((a, b) => a - b);
   const cs = [...new Set(Object.values(st.board.cellOf).map((c) => c.c))].sort((a, b) => a - b);
-  const posIndex = {};                       // stable 0..3 within a district
+  const byDistrict = {};
   for (const [plot, c] of Object.entries(st.board.cellOf)) {
     const k = `${c.r},${c.c}`;
-    posIndex[k] = posIndex[k] || [];
-    posIndex[k].push(plot);
+    (byDistrict[k] = byDistrict[k] || []).push(plot);
   }
-  Object.values(posIndex).forEach((a) => a.sort());
+  Object.values(byDistrict).forEach((a) => a.sort());
 
-  /* When each plot first gained a building, and in what industry. */
-  const firstSeen = {};
+  const PER_Q = 1.15, LEAD = 0.7;
+  const tOf = (q) => (LEAD + q * PER_Q).toFixed(2);
+
+  /* Each plot as a list of states with the quarter each began, so an upgrade
+     shows as the level changing rather than as a second company appearing. */
+  const timeline = {};
   frames.forEach((f, q) => {
-    for (const [plot, ind] of Object.entries(f)) {
-      if (firstSeen[plot] === undefined) firstSeen[plot] = { q, ind };
+    for (const [plot, m] of Object.entries(f.plots)) {
+      const seq = (timeline[plot] = timeline[plot] || []);
+      const last = seq[seq.length - 1];
+      if (!last || last.ind !== m.ind || last.lvl !== m.lvl || last.hq !== m.hq) {
+        if (last) last.until = q;
+        seq.push({ ...m, from: q });
+      }
     }
   });
 
-  const PER_Q = 1.15;                        // seconds a quarter is on screen
   const districts = rs.map((r) => cs.map((c) => {
-    const plots = posIndex[`${r},${c}`] || [];
+    const plots = byDistrict[`${r},${c}`] || [];
     const tname = (Object.values(st.board.cellOf).find((x) => x.r === r && x.c === c) || {}).tname || "";
     const cells = plots.map((plot) => {
-      const hit = firstSeen[plot];
-      const fill = hit
-        ? `<div style="position:absolute;inset:0;background:${hit.ind === "HQ" ? "#0B0D10" : E.IND_COLOR[hit.ind]};
-             ${hit.ind === "HQ" ? `border:2px solid ${GOLD};` : ""}opacity:0;
-             animation:pop .45s ${(0.7 + hit.q * PER_Q).toFixed(2)}s forwards"></div>`
-        : "";
-      return `<div class="plot">${fill}</div>`;
+      const seq = timeline[plot] || [];
+      const layers = seq.map((sState) => {
+        const col = sState.hq ? "#0B0D10" : E.IND_COLOR[sState.ind];
+        const dur = sState.until === undefined ? 99 : (sState.until - sState.from) * PER_Q;
+        const fadeOut = sState.until === undefined ? ""
+          : `,fadeOut .3s ${tOf(sState.until)}s forwards`;
+        return `<div class="fill" style="background:${col};
+            ${sState.hq ? `border:3px solid ${GOLD};` : ""}
+            animation:pop .45s ${tOf(sState.from)}s forwards${fadeOut}">
+            ${sState.hq
+              ? `<span class="hq">★</span>`
+              : sState.lvl > 1 ? `<span class="lvl">${sState.lvl}</span>` : ""}
+          </div>`;
+      }).join("");
+      return `<div class="plot">${layers}</div>`;
     }).join("");
     return `<div class="district"><div class="plots">${cells}</div>
               <div class="dname">${tname}</div></div>`;
   }).join("")).join("");
 
-  const ticks = frames.map((_, q) => `
-    <div class="tick"><div style="animation:grow ${PER_Q}s ${(0.7 + q * PER_Q).toFixed(2)}s forwards"></div></div>`).join("");
+  /* The price chart, on the same clock. One polyline an industry, revealed by
+     stroke-dashoffset so the line draws as the quarters pass. */
+  /* PADR is a gutter for the end-of-line labels. Without it they were drawn
+     past the right edge of the viewBox and never appeared at all. */
+  const W = 956, H = 300, PADL = 54, PADR = 132, PADB = 26, PADT = 12;
+  const nQ = frames.length;
+  const xOf = (q) => PADL + (W - PADL - PADR) * (nQ === 1 ? 0 : q / (nQ - 1));
+  const yOf = (v) => PADT + (H - PADT - PADB) * (1 - (v - E.PRICE_MIN) / (E.PRICE_MAX - E.PRICE_MIN));
+  const totalT = LEAD + (nQ - 1) * PER_Q;
+  const lines = E.INDUSTRIES.map((ind) => {
+    const pts = frames.map((f, q) => `${xOf(q).toFixed(1)},${yOf(f.prices[ind]).toFixed(1)}`).join(" ");
+    return `<polyline points="${pts}" fill="none" stroke="${E.IND_COLOR[ind]}" stroke-width="4"
+      stroke-linejoin="round" stroke-linecap="round" class="pline"
+      style="animation:draw ${(totalT - LEAD).toFixed(2)}s ${LEAD}s linear forwards"/>`;
+  }).join("");
+  /* Industries that finish on the same price land on the same line, and the
+     labels print on top of each other. Walk them top to bottom and push each one
+     down until it clears the last, then draw a leader back to the real value so
+     a nudged label still points at its own line. */
+  const LBL_GAP = 26;
+  const ordered = E.INDUSTRIES
+    .map((ind) => ({ ind, v: frames[nQ - 1].prices[ind], y: yOf(frames[nQ - 1].prices[ind]) }))
+    .sort((a, b) => a.y - b.y);
+  let lastY = -Infinity;
+  for (const o of ordered) { o.ly = Math.max(o.y, lastY + LBL_GAP); lastY = o.ly; }
+  const endLabels = ordered.map((o) => {
+    const x = xOf(nQ - 1);
+    const leader = Math.abs(o.ly - o.y) > 2
+      ? `<path d="M${(x + 4).toFixed(1)},${o.y.toFixed(1)} L${(x + 12).toFixed(1)},${o.ly.toFixed(1)}"
+           stroke="${E.IND_COLOR[o.ind]}" stroke-width="2" fill="none" opacity=".7"/>` : "";
+    return `<g style="opacity:0;animation:fadeIn .5s ${totalT.toFixed(2)}s forwards">
+      ${leader}
+      <text x="${(x + 16).toFixed(1)}" y="${(o.ly + 7).toFixed(1)}"
+        fill="${E.IND_COLOR[o.ind]}" font-size="21" font-weight="800">${o.ind} $${o.v}</text>
+    </g>`;
+  }).join("");
+  const gridY = [1, 4, 7, 10].map((v) => `
+    <line x1="${PADL}" y1="${yOf(v)}" x2="${W - PADR + 8}" y2="${yOf(v)}" stroke="${LINE}" stroke-width="1"/>
+    <text x="14" y="${(yOf(v) + 7).toFixed(1)}" fill="${MUTE}" font-size="19" font-weight="700">$${v}</text>`).join("");
 
-  const built = Object.keys(firstSeen).length;
   return shell(1080, 1920, `
-    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 62px;gap:46px">
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 62px;gap:30px">
       <div style="text-align:center">
         <div class="kicker">One real game</div>
-        <div style="font-size:62px;font-weight:850;margin-top:12px;letter-spacing:-1.4px">
+        <div style="font-size:58px;font-weight:850;margin-top:10px;letter-spacing:-1.4px">
           Twelve quarters.</div>
-        <div style="font-size:27px;color:${MUTE};margin-top:12px;font-weight:650">
-          Sixteen districts · four plots each</div>
       </div>
 
       <div class="city">${districts}</div>
 
-      <div style="display:flex;gap:7px">${ticks}</div>
-      <div style="display:flex;justify-content:space-between;font-size:21px;color:${MUTE};font-weight:700">
+      <div class="legend">
+        <span><i class="sw" style="background:${E.IND_COLOR.RE}"></i>a company</span>
+        <span><i class="sw lv">2</i>its level</span>
+        <span><i class="sw hqsw">★</i>Megacorp HQ</span>
+      </div>
+
+      <div style="margin-top:2px">
+        <div class="chartlbl">What that did to the price of every good</div>
+        <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
+          ${gridY}${lines}${endLabels}
+        </svg>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;font-size:20px;color:${MUTE};font-weight:700">
         <span>Y1 Q1</span><span>Y2</span><span>Y3</span><span>Q12</span>
       </div>
 
-      <div style="text-align:center;font-size:33px;font-weight:780;color:#C9CFDA;line-height:1.35">
-        ${built} companies went up.<br>
-        <span style="color:${GOLD}">Every one changed what the city needed next.</span>
+      <div style="text-align:center;font-size:30px;font-weight:780;color:#C9CFDA;line-height:1.35">
+        Every company that goes up is a bill<br>
+        <span style="color:${GOLD}">somebody else now collects.</span>
       </div>
     </div>`, `
     ${REEL_CSS}
-    .city{display:grid;grid-template-columns:repeat(${cs.length},1fr);gap:14px}
-    .district{background:#12151A;border:1px solid ${LINE};border-radius:14px;padding:9px}
-    .plots{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-    .plot{aspect-ratio:1;border-radius:6px;background:#191D24;position:relative;overflow:hidden}
-    .dname{font-size:15px;color:#5A616E;font-weight:700;text-align:center;margin-top:7px;letter-spacing:.5px}
-    .tick{flex:1;height:9px;border-radius:5px;background:${LINE};overflow:hidden}
-    .tick > div{height:100%;background:${GOLD};transform:scaleX(0);transform-origin:left}
-    @keyframes grow{to{transform:scaleX(1)}}
+    .city{display:grid;grid-template-columns:repeat(${cs.length},1fr);gap:11px}
+    .district{background:#12151A;border:1px solid ${LINE};border-radius:12px;padding:7px}
+    .plots{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+    .plot{aspect-ratio:1;border-radius:5px;background:#191D24;position:relative;overflow:hidden}
+    .fill{position:absolute;inset:0;opacity:0;display:flex;align-items:center;justify-content:center}
+    .lvl{font-size:26px;font-weight:880;color:#0E1013}
+    .hq{font-size:26px;color:${GOLD}}
+    .dname{font-size:13px;color:#5A616E;font-weight:700;text-align:center;margin-top:5px}
+    .legend{display:flex;gap:26px;justify-content:center;font-size:20px;color:${MUTE};font-weight:700}
+    .legend span{display:flex;align-items:center;gap:8px}
+    .sw{width:24px;height:24px;border-radius:5px;display:inline-flex;align-items:center;
+        justify-content:center;font-size:15px;font-weight:880;color:#0E1013}
+    .sw.lv{background:${E.IND_COLOR.MA}}
+    .sw.hqsw{background:#0B0D10;border:2px solid ${GOLD};color:${GOLD}}
+    .chartlbl{font-size:24px;font-weight:800;color:${CREAM};margin-bottom:8px;letter-spacing:.2px}
+    .pline{stroke-dasharray:2400;stroke-dashoffset:2400}
+    @keyframes draw{to{stroke-dashoffset:0}}
+    @keyframes fadeIn{to{opacity:1}}
+    @keyframes fadeOut{to{opacity:0}}
     @keyframes pop{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
   `);
 }

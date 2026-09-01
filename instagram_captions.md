@@ -185,17 +185,19 @@ hands-on-table footage — real components will always beat a rendered mock.*
 ## 7 · Reel — the trap everyone falls into
 `reels/07_turn-order.html` · cover `reels/07_turn-order_cover.png`
 
-> Workers go down left to right. The track resolves right to left.
+> Commit first — act most, but last.
+> Join late — act first, but least.
 >
-> Your worker takes one action, plus one more for every worker that lands after
-> it — so the order you act in and the number of actions you get are the same
-> number, running opposite to the order you placed.
+> Workers go down a track left to right. The track resolves right to left. Your
+> worker takes one action, plus one more for every worker that lands after it.
 >
-> Act first, act once. Act last, act four times.
+> So the player who committed first acts LAST, four times over — and the player
+> who joined late acts FIRST, once. Follow one colour down the screen and you can
+> see the whole trade.
 >
-> Place early and you get the actions, but everyone who followed you moves first
+> Commit early and you get the actions, but everyone who followed you moves first
 > and may take exactly what you were waiting for. Every single turn is that
-> trade.
+> trade. It is the rule that catches new players, and the one they never forget.
 
 ---
 
@@ -267,14 +269,16 @@ actually built it, in the quarter it went up.*
 
 > Three fiscal years. Twelve quarters. Sixteen districts, four plots each.
 >
-> This is one real game — every square that lights up is a company a player
-> actually built, in the district they built it, in the quarter it went up.
+> This is one real game. Every square that lights up is a company somebody
+> actually built, in the district they built it, in the quarter it went up. The
+> number on it is the company's level. The gold stars are Megacorp headquarters —
+> mergers that stop trading and start being worth points.
 >
-> Twenty companies by the end, and not one of them was placed into an empty
-> market: every company changes the price of its own industry and of everything
-> that supplies it.
+> Watch the chart underneath at the same time. That is the same event seen twice:
+> every company that goes up is an operating bill somebody else now collects, and
+> the price of their goods moves because of it.
 >
-> Every one changed what the city needed next.
+> Technology finished at $6. Retail, which everybody built, finished at $2.
 
 ---
 
