@@ -582,16 +582,31 @@ function reelPieces() {
    clock, because those two things are the same event seen twice: every company
    that goes up is a supplier bill somebody now pays, and the chart is where that
    shows. */
-function playOneGame(seed) {
-  const st = E2.initGame(3, seed, ["Seat 1"], undefined, true, undefined);
+/* WHICH QUARTER A FRAME IS. The hook fires on the log line that OPENS a
+   quarter, so the state it sees is everything the previous quarter finished
+   with: the frame taken as Quarter N begins is the end of Quarter N-1. Then one
+   final snapshot after the game returns is the end of the last quarter. So
+   twelve frames are the ends of quarters 1 through 12, evenly spaced - but only
+   if the axis is labelled from the quarter each frame actually carries, which
+   is why `qEnd` is recorded here instead of being assumed downstream. */
+function playOneGame(seed, seats = 4) {
+  const st = E2.initGame(seats, seed, ["Seat 1"], undefined, true, undefined);
   st.players[0].isHuman = false;
   if (st.phase === "drafting") { E2.advanceDraft(st, () => {}); E2.startPlanning(st); }
-  const frames = [];                 // per quarter: { plots: {plot:{ind,lvl,hq}}, prices:{ind:$} }
-  const snapshot = () => {
+  const frames = [];        // per quarter: { qEnd, plots:{plot:{ind,lvl,hq,sold}}, prices:{ind:$} }
+  const snapshot = (qEnd) => {
     const meta = {};
     for (const p of st.players) {
-      for (const b of E2.activeBiz(p)) meta[b.id] = { id: b.id, ind: E2.bizInd(b), lvl: b.level, hq: false };
-      for (const b of E2.megacorpHQs(p)) meta[b.id] = { id: b.id, ind: E2.bizInd(b), lvl: b.level, hq: true };
+      /* A company that has been SOLD is not gone. `sellCompany` only sets
+         `distressed`, so the structure keeps standing on its plots and can be
+         taken over and renovated later - which is why it is recorded here as a
+         state of its own rather than being dropped. Reading only activeBiz left
+         a sold company frozen on the board at full strength, showing a city
+         fuller than the one the players were actually running. */
+      for (const b of p.businesses) {
+        meta[b.id] = { id: b.id, ind: E2.bizInd(b), lvl: b.level,
+                       hq: !!b.isHQ, sold: !b.isHQ && !!b.distressed };
+      }
     }
     const plots = {};
     for (const [plot, bizId] of Object.entries(st.board.occupiedBy || {})) {
@@ -600,30 +615,65 @@ function playOneGame(seed) {
     }
     const prices = {};
     for (const ind of E.INDUSTRIES) prices[ind] = E2.price(st.pm, ind);
-    frames.push({ plots, prices });
+    frames.push({ qEnd, plots, prices });
   };
   E2.advancePlanning(st, E2.mulberry32(seed + 777), (msg) => {
-    if (/^▶ Year \d+, Quarter \d+/.test(String(msg))) snapshot();
+    if (/^▶ Year \d+, Quarter \d+/.test(String(msg))) snapshot(st.quarter - 1);
   });
-  snapshot();
-  const hqs = new Set();
-  for (const f of frames) for (const [plot, m] of Object.entries(f.plots)) if (m.hq) hqs.add(plot);
-  return { st, frames, hqCount: hqs.size, built: new Set(frames.flatMap((f) => Object.keys(f.plots))).size };
+  snapshot(st.quarter);
+  const hqs = new Set(), sold = new Set();
+  for (const f of frames) for (const [plot, m] of Object.entries(f.plots)) {
+    if (m.hq) hqs.add(plot);
+    if (m.sold) sold.add(plot);
+  }
+  /* A quarter in which neither the city nor the chart moved is a quarter the
+     reel spends showing a still image. Counting them - especially the ones near
+     the end, where a viewer reads a flat run as "the game stopped" - is how a
+     seed gets rejected below. */
+  let dead = 0, deadLate = 0;
+  for (let i = 1; i < frames.length; i++) {
+    const a = frames[i - 1], b = frames[i];
+    const cityMoved = Object.keys(a.plots).length !== Object.keys(b.plots).length
+      || Object.keys(b.plots).some((k) => !a.plots[k] || a.plots[k].lvl !== b.plots[k].lvl
+        || a.plots[k].hq !== b.plots[k].hq || a.plots[k].sold !== b.plots[k].sold);
+    const priceMoved = E.INDUSTRIES.some((ind) => a.prices[ind] !== b.prices[ind]);
+    if (!cityMoved && !priceMoved) { dead++; if (i >= frames.length - 4) deadLate++; }
+  }
+  return { st, frames, dead, deadLate, hqCount: hqs.size, soldCount: sold.size,
+           built: new Set(frames.flatMap((f) => Object.keys(f.plots))).size };
 }
 
 function reelTwelveQuarters() {
-  /* A game worth showing needs Megacorps in it - they are the endgame, and a
-     reel that never shows one is describing a different game. Search seeds for
-     two or more, then prefer the fullest city among those. */
+  /* CHOOSING THE GAME.
+
+     A game worth showing needs Megacorps in it - they are the endgame, and a
+     reel that never shows one is describing a different game. But the previous
+     search asked for nothing else, and the seed it settled on filled only 20 of
+     the 64 plots and then stopped dead: the last four quarters built nothing
+     and moved no price, so the whole of the third year was a still image.
+
+     So the ranking is now, in order: no dead quarters in the closing stretch,
+     then the fullest city, then the most Megacorps. And the table is played
+     with FOUR seats rather than three - a fourth builder is worth about ten
+     more plots over twelve quarters, which is the difference between a city
+     that fills and one that dots. */
+  const SEATS = 4;
   let best = null;
-  for (let seed = 1; seed <= 140; seed++) {
-    const g = playOneGame(seed);
-    const score = g.hqCount * 1000 + g.built;
-    if (!best || score > best.score) best = { ...g, score, seed };
-    if (best.hqCount >= 2 && best.built >= 22 && seed > 60) break;
+  const better = (g, b) => !b || g.deadLate < b.deadLate
+    || (g.deadLate === b.deadLate && (g.built > b.built
+      || (g.built === b.built && g.hqCount > b.hqCount)));
+  /* Every seed, no early exit. Two hundred games is nineteen seconds and the
+     result is the best one rather than the first acceptable one - the previous
+     search stopped as soon as a seed cleared a low bar, which is how it settled
+     on a game that filled a third of the board. */
+  for (let seed = 1; seed <= 200; seed++) {
+    const g = playOneGame(seed, SEATS);
+    if (better(g, best)) best = { ...g, seed };
   }
   const { st, frames, seed } = best;
-  console.log(`  reel 12: seed ${seed} - ${best.hqCount} Megacorp HQ(s), ${best.built} plots built`);
+  console.log(`  reel 12: seed ${seed}, ${SEATS} seats - ${best.hqCount} Megacorp HQ(s), `
+    + `${best.built} plots built, ${best.soldCount} sold, `
+    + `${best.dead} quarter(s) with nothing happening (${best.deadLate} of them late)`);
 
   const rs = [...new Set(Object.values(st.board.cellOf).map((c) => c.r))].sort((a, b) => a - b);
   const cs = [...new Set(Object.values(st.board.cellOf).map((c) => c.c))].sort((a, b) => a - b);
@@ -644,7 +694,8 @@ function reelTwelveQuarters() {
     for (const [plot, m] of Object.entries(f.plots)) {
       const seq = (timeline[plot] = timeline[plot] || []);
       const last = seq[seq.length - 1];
-      if (!last || last.id !== m.id || last.ind !== m.ind || last.lvl !== m.lvl || last.hq !== m.hq) {
+      if (!last || last.id !== m.id || last.ind !== m.ind || last.lvl !== m.lvl
+          || last.hq !== m.hq || last.sold !== m.sold) {
         if (last) last.until = q;
         seq.push({ ...m, from: q });
       }
@@ -699,14 +750,14 @@ function reelTwelveQuarters() {
   /* A cell draws a border only on the sides where the neighbouring cell is not
      part of the same company. Do that for every plot of a footprint and the
      union is one unbroken outline around the whole company, however it sprawls. */
-  const outlineFor = (plot, bizId, q) => {
+  const outlineFor = (plot, bizId, q, style = "solid") => {
     const mine = new Set(footprintAt[q][bizId] || [plot]);
     const at = {};
     for (const pl of mine) { const g = cellOfPlot[pl]; if (g) at[`${g.gr},${g.gc}`] = true; }
     const g = cellOfPlot[plot];
     if (!g) return "";
     const has = (dr, dc) => !!at[`${g.gr + dr},${g.gc + dc}`];
-    const w = "3px solid";
+    const w = `3px ${style}`;
     return [
       has(-1, 0) ? "" : `border-top:${w} var(--oc);`,
       has(1, 0) ? "" : `border-bottom:${w} var(--oc);`,
@@ -731,9 +782,22 @@ function reelTwelveQuarters() {
       const col = sState.hq ? "#0B0D10" : shadeOf(sState.ind, sState.lvl);
       const oc = sState.hq ? GOLD : "#F3F4F6";
       const ink = sState.hq ? GOLD : inkOn(col);
+      /* A SOLD company sits at half strength: same hue, same level, visibly
+         switched off. It is not removed, because it has not left the board -
+         the shell stands there until somebody renovates it, and when they do
+         the plot simply comes back to full shade. Half opacity says "still
+         there, not trading" in a way that neither deleting it nor greying it to
+         a neutral colour would.
+
+         Opacity alone was not enough, though. Half of a light mint over a near
+         black page is a mid grey-green, which a viewer reads as a DIFFERENT
+         industry rather than a dimmed one - it loses exactly the information
+         the colour is carrying. So the footprint outline goes dashed as well:
+         a broken border says shell whatever the fill happens to look like. */
+      const fo = sState.sold ? ".5" : "1";
       const fadeOut = sState.until === undefined ? "" : `,fadeOut .3s ${tOf(sState.until)}s forwards`;
-      return `<div class="fill" style="--oc:${oc};background:${col};
-          ${outlineFor(plot, sState.id, sState.from)}
+      return `<div class="fill" style="--oc:${oc};--fo:${fo};background:${col};
+          ${outlineFor(plot, sState.id, sState.from, sState.sold ? "dashed" : "solid")}
           animation:pop .45s ${tOf(sState.from)}s forwards${fadeOut}">
           ${sState.hq ? `<span class="hq">★</span>`
             : `<span class="lvl" style="color:${ink}">${sState.lvl}</span>`}
@@ -793,6 +857,33 @@ function reelTwelveQuarters() {
     <line x1="${PADL}" y1="${yOf(v)}" x2="${W - PADR + 8}" y2="${yOf(v)}" stroke="${LINE}" stroke-width="1"/>
     <text x="14" y="${(yOf(v) + 7).toFixed(1)}" fill="${MUTE}" font-size="19" font-weight="700">$${v}</text>`).join("");
 
+  /* THE YEARS, DRAWN WHERE THE YEARS ACTUALLY ARE.
+
+     These used to be four words in a flex row under the chart - "Y1 Q1, Y2, Y3,
+     Q12" - spread evenly across the full width of the container. The chart is
+     not that wide: it reserves 54px on the left for the dollar scale and 132px
+     on the right for the end labels. So "Y3" sat roughly above quarter ten and
+     "Q12" hung out past the end of the data entirely, and a run of flat
+     quarters at the close of a game read as the whole of the third year being
+     flat. The x scale is the same one the polylines are plotted on, and every
+     boundary is placed from the quarter its frame really carries, so the label
+     cannot drift from the line above it again. */
+  const xAtQ = (q) => {
+    const i = frames.findIndex((f) => f.qEnd >= q);
+    return xOf(i < 0 ? nQ - 1 : i);
+  };
+  const lastQ = frames[nQ - 1].qEnd;
+  const yearMarks = [4, 8].filter((q) => q < lastQ).map((q) => `
+    <line x1="${xAtQ(q).toFixed(1)}" y1="${PADT}" x2="${xAtQ(q).toFixed(1)}" y2="${H - PADB}"
+      stroke="${LINE}" stroke-width="1" stroke-dasharray="4 6"/>`).join("");
+  const yearLabels = [{ q: 1, t: "Y1" }, { q: 5, t: "Y2" }, { q: 9, t: "Y3" }]
+    .filter((m) => m.q <= lastQ)
+    .map((m) => `<text x="${(xAtQ(m.q) + 4).toFixed(1)}" y="${H - 6}"
+        fill="${MUTE}" font-size="19" font-weight="800">${m.t}</text>`)
+    .join("")
+    + `<text x="${xAtQ(lastQ).toFixed(1)}" y="${H - 6}" text-anchor="end"
+        fill="${MUTE}" font-size="19" font-weight="800">Q${lastQ}</text>`;
+
   return shell(1080, 1920, `
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 62px;gap:30px">
       <div style="text-align:center">
@@ -806,18 +897,15 @@ function reelTwelveQuarters() {
       <div class="legend">
         <span><i class="sw" style="background:${E.IND_COLOR.RE}"></i>a company</span>
         <span><i class="sw lv">2</i>its level</span>
+        <span><i class="sw soldsw" style="background:${E.IND_COLOR.HO}"></i>sold</span>
         <span><i class="sw hqsw">★</i>Megacorp HQ</span>
       </div>
 
       <div style="margin-top:2px">
         <div class="chartlbl">What that did to the price of every good</div>
         <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
-          ${sweep}${gridY}${lines}${endLabels}
+          ${sweep}${gridY}${yearMarks}${lines}${endLabels}${yearLabels}
         </svg>
-      </div>
-
-      <div style="display:flex;justify-content:space-between;font-size:20px;color:${MUTE};font-weight:700">
-        <span>Y1 Q1</span><span>Y2</span><span>Y3</span><span>Q12</span>
       </div>
 
       <div style="text-align:center;font-size:30px;font-weight:780;color:#C9CFDA;line-height:1.35">
@@ -831,7 +919,7 @@ function reelTwelveQuarters() {
     .plate{background:#12151A;border:1px solid ${LINE};border-radius:10px;
            margin:-2px;z-index:0}
     .plot{border-radius:5px;background:#1B1F27;position:relative;z-index:1}
-    .fill{position:absolute;inset:-1px;opacity:0;display:flex;align-items:center;
+    .fill{position:absolute;inset:-1px;opacity:0;--fo:1;display:flex;align-items:center;
           justify-content:center;border-radius:5px;box-sizing:border-box}
     .lvl{font-size:23px;font-weight:880;color:#0E1013}
     .hq{font-size:22px;color:${GOLD}}
@@ -842,12 +930,13 @@ function reelTwelveQuarters() {
     .sw{width:24px;height:24px;border-radius:5px;display:inline-flex;align-items:center;
         justify-content:center;font-size:15px;font-weight:880;color:#0E1013}
     .sw.lv{background:${E.IND_COLOR.MA}}
+    .sw.soldsw{opacity:.5;border:2px dashed ${CREAM}}
     .sw.hqsw{background:#0B0D10;border:2px solid ${GOLD};color:${GOLD}}
     .chartlbl{font-size:24px;font-weight:800;color:${CREAM};margin-bottom:8px;letter-spacing:.2px}
     @keyframes sweep{to{width:${(xOf(nQ - 1) + 3).toFixed(1)}px}}
     @keyframes fadeIn{to{opacity:1}}
     @keyframes fadeOut{to{opacity:0}}
-    @keyframes pop{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
+    @keyframes pop{from{opacity:0;transform:scale(.55)}to{opacity:var(--fo);transform:scale(1)}}
   `);
 }
 

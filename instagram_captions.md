@@ -265,7 +265,9 @@ Powers are quoted verbatim from the engine, so they cannot drift from the game.
 
 *This is a real game, not an abstraction: the engine plays out four bots over
 twelve quarters and the reel draws what they actually built, in the district they
-actually built it, in the quarter it went up.*
+actually built it, in the quarter it went up. Seed 84 of two hundred played —
+picked because it fills 31 of the 64 plots, forms seven Megacorps, and never
+has a quarter where nothing happens.*
 
 > Three fiscal years. Twelve quarters. Sixteen districts, four plots each.
 >
@@ -279,11 +281,17 @@ actually built it, in the quarter it went up.*
 > stars are Megacorp headquarters — mergers that stop trading and start being
 > worth points.
 >
+> The half-faded squares with a dashed border are companies that were **sold**.
+> Selling doesn't clear the plot: the building stays standing as a distressed
+> shell, and anyone can take it over and renovate it — at which point it comes
+> back to full colour. Fifteen of these change hands over the twelve quarters.
+>
 > Watch the chart underneath at the same time. That is the same event seen twice:
 > every company that goes up is an operating bill somebody else now collects, and
 > the price of their goods moves because of it.
 >
-> Technology finished at $6. Retail, which everybody built, finished at $2.
+> Technology finished at $8. Retail, which everybody built, bottomed out at $1 —
+> where selling a unit is worth exactly what throwing it away is worth.
 
 ---
 
