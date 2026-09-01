@@ -41,14 +41,29 @@ const ffmpegPath = (() => {
 const REELS = [
   { stem: "02_supply-web", seconds: 13 },
   { stem: "04_pieces", seconds: 9 },
-  { stem: "07_turn-order", seconds: 9 },
-  { stem: "12_twelve-quarters", seconds: 16 },
+  { stem: "07_turn-order", seconds: 11 },
+  { stem: "12_twelve-quarters", seconds: 17 },
 ];
 
 fs.rmSync(RAW, { recursive: true, force: true });
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(RAW, { recursive: true });
 fs.mkdirSync(OUT, { recursive: true });
+
+/* WHY THIS DOES NOT RECORD THE PAGE.
+
+   Playwright's recordVideo captures whenever the compositor happens to produce
+   a frame, so the output is variable-rate: some animation frames appear twice,
+   some not at all. Handing that to ffmpeg with a fixed -r makes it duplicate and
+   drop unevenly, and the result visibly flickers - which is exactly what the
+   first cut did.
+
+   So the animation is not recorded, it is SEEKED. Every CSS animation on the
+   page is paused and its currentTime set to an exact instant through the Web
+   Animations API, then the frame is captured. Frame n is always the page at
+   exactly n/fps seconds, the same every run, and the encode is true constant
+   frame rate. No compositor timing is involved anywhere. */
+const FPS = 30;
 
 const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
 const made = [];
@@ -58,36 +73,47 @@ for (const r of REELS) {
   if (!fs.existsSync(src)) { console.error(`missing ${src}`); continue; }
 
   const dir = path.join(RAW, r.stem);
-  const ctx = await browser.newContext({
-    viewport: { width: 1080, height: 1920 },
-    deviceScaleFactor: 1,
-    recordVideo: { dir, size: { width: 1080, height: 1920 } },
+  fs.mkdirSync(dir, { recursive: true });
+  const page = await browser.newPage({
+    viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1,
   });
-  const page = await ctx.newPage();
   await page.goto(`file://${src}`, { waitUntil: "load" });
-  await page.waitForTimeout(r.seconds * 1000);
-  await ctx.close();                                  // flushes the video file
+  await page.evaluate(() => document.fonts && document.fonts.ready);
+  await page.waitForTimeout(400);
 
-  const webm = fs.readdirSync(dir).find((f) => f.endsWith(".webm"));
-  if (!webm) { console.error(`no video captured for ${r.stem}`); continue; }
+  const total = Math.round(r.seconds * FPS);
+  for (let n = 0; n < total; n++) {
+    await page.evaluate((ms) => {
+      for (const a of document.getAnimations()) {
+        a.pause();
+        try { a.currentTime = ms; } catch (e) { /* a finished animation may refuse */ }
+      }
+    }, (n / FPS) * 1000);
+    await page.screenshot({
+      path: path.join(dir, `f${String(n).padStart(5, "0")}.png`),
+      animations: "disabled",          // never wait on, or advance, an animation
+    });
+  }
+  await page.close();
 
   const mp4 = path.join(OUT, `${r.stem}.mp4`);
-  /* yuv420p and an even frame size are the two things that decide whether a
-     social platform accepts the file at all; faststart puts the index at the
-     front so it begins playing before it has finished downloading. */
+  /* -fps_mode cfr with a matching input rate keeps one encoded frame per
+     captured frame; yuv420p and an even size decide whether a social platform
+     accepts the file at all, and faststart lets it play before it has finished
+     downloading. */
   execFileSync(ffmpegPath, [
-    "-y", "-i", path.join(dir, webm),
+    "-y", "-framerate", String(FPS),
+    "-i", path.join(dir, "f%05d.png"),
     "-c:v", "libx264", "-preset", "slow", "-crf", "20",
-    "-pix_fmt", "yuv420p", "-r", "30",
-    "-vf", "scale=1080:1920:flags=lanczos",
-    "-movflags", "+faststart",
-    "-an",
+    "-pix_fmt", "yuv420p", "-fps_mode", "cfr", "-r", String(FPS),
+    "-movflags", "+faststart", "-an",
     mp4,
   ], { stdio: ["ignore", "ignore", "pipe"] });
 
+  fs.rmSync(dir, { recursive: true, force: true });
   const mb = fs.statSync(mp4).size / 1e6;
-  made.push({ stem: r.stem, mb, seconds: r.seconds });
-  console.log(`  ${r.stem}.mp4   ${mb.toFixed(2)} MB   ${r.seconds}s`);
+  made.push({ stem: r.stem, mb, seconds: r.seconds, frames: total });
+  console.log(`  ${r.stem}.mp4   ${mb.toFixed(2)} MB   ${r.seconds}s   ${total} frames`);
 }
 
 await browser.close();

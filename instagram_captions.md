@@ -8,10 +8,13 @@ script after any rules change and the images follow.
 **Sizes.** Carousels and stills are 1080×1350 (4:5 — the tallest the feed allows,
 so it takes the most screen). Reels are 1080×1920.
 
-**About the Reels.** There is no video encoder on the build machine, so these are
-delivered as self-contained animated HTML at exact Reel size. Open one full-screen
-in a browser and screen-record it — the animation loops, so you can take as long a
-clip as you want. A still cover frame is rendered beside each one.
+**The Reels are .mp4 files**, in `instagram/reels_mp4/` — 1080×1920, H.264,
+yuv420p, 30fps, constant frame rate. Upload them directly; no screen-recording.
+
+They are rendered frame by frame rather than screen-recorded: every CSS animation
+is paused and seeked to an exact instant through the Web Animations API before
+each frame is captured. Recording the page instead produced variable-rate video
+that visibly flickered once ffmpeg forced it to a constant rate.
 
 ---
 
@@ -182,14 +185,17 @@ hands-on-table footage — real components will always beat a rendered mock.*
 ## 7 · Reel — the trap everyone falls into
 `reels/07_turn-order.html` · cover `reels/07_turn-order_cover.png`
 
-> Workers go down left to right. Tracks resolve right to left.
+> Workers go down left to right. The track resolves right to left.
 >
-> Place early → more actions, but everyone who followed you acts first and takes
-> what you wanted.
-> Place last → you act first, but only once.
+> Your worker takes one action, plus one more for every worker that lands after
+> it — so the order you act in and the number of actions you get are the same
+> number, running opposite to the order you placed.
 >
-> Every single turn is that trade. It's the rule that catches new players, and the
-> one they never forget.
+> Act first, act once. Act last, act four times.
+>
+> Place early and you get the actions, but everyone who followed you moves first
+> and may take exactly what you were waiting for. Every single turn is that
+> trade.
 
 ---
 
@@ -255,13 +261,20 @@ Powers are quoted verbatim from the engine, so they cannot drift from the game.
 ## 12 · Reel — a full game in 30 seconds
 `reels/12_twelve-quarters.html` · cover `reels/12_twelve-quarters_cover.png`
 
-*The generated version is an abstract fill. If you can screen-record a real
-12-quarter game in the browser build, use that instead — actual play beats an
-abstraction here.*
+*This is a real game, not an abstraction: the engine plays out four bots over
+twelve quarters and the reel draws what they actually built, in the district they
+actually built it, in the quarter it went up.*
 
-> Three fiscal years. Twelve quarters. One city, filling up.
+> Three fiscal years. Twelve quarters. Sixteen districts, four plots each.
 >
-> Every company placed changes what the city needs next.
+> This is one real game — every square that lights up is a company a player
+> actually built, in the district they built it, in the quarter it went up.
+>
+> Twenty companies by the end, and not one of them was placed into an empty
+> market: every company changes the price of its own industry and of everything
+> that supplies it.
+>
+> Every one changed what the city needed next.
 
 ---
 

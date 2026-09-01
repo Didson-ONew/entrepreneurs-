@@ -43,8 +43,11 @@ vm.runInContext(SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "") + `
   box.E = { BP_DATA, INDUSTRIES, IND_NAME, IND_COLOR, BASE_PRICE, PERSONAS,
             MEGACORPS_TO_END, DISCS_PER_PLAYER, CASH_PER_EP, SCALING,
             PRICE_MIN, PRICE_MAX, RENT_PER_LEVEL };
+  box.E2 = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
+             activeBiz, megacorpHQs, bizInd };
 `, sandbox);
 const E = box.E;
+const E2 = box.E2;      // the parts needed to actually play a game for reel 12
 
 /* Who buys from whom, straight off the cards. */
 const SUPPLIES = {};      // ind -> the industries that list it as a supplier
@@ -460,37 +463,70 @@ function reelSupplyWeb() {
   `);
 }
 
-/* Reel 7 - placement order. Left to right down, right to left back. */
+/* Reel 7 - placement order AND what it costs you in actions.
+
+   The first version showed two rows of boxes counting up and down, which drew
+   the ORDER but hid the actual trade. The rule is: "your worker takes one
+   action, plus one extra for every worker that lands after it." So the worker
+   that acts first is the one that takes the FEWEST actions, and the numbers run
+   opposite to each other - which is the whole point and was the one thing not
+   on screen. */
 function reelTurnOrder() {
-  const slots = 4;
-  const box = (i, delay, dir) => `
-    <div style="width:170px;height:170px;border-radius:22px;border:2px solid ${LINE};
-      background:${CARD};display:flex;align-items:center;justify-content:center;
-      font-size:52px;font-weight:850;color:${dir === "down" ? MINT : GOLD};
-      opacity:0;animation:fadeUp .5s ${delay}s forwards">${i}</div>`;
+  const N = 4;
+  const T = (n) => 0.5 + n * 0.62;                    // placement beat
+  const R = (n) => 3.6 + n * 0.75;                    // resolution beat
+  const slot = (i, phase) => {
+    const placedNo = i + 1;                            // 1st..4th placed, left to right
+    const actNo = N - i;                               // rightmost acts first
+    /* One action, plus one for every worker that lands AFTER this one - and the
+       workers landing after it are exactly the ones to its right. So the count
+       equals the position in the resolve order: act 4th and you act four times.
+       That coincidence is the rule, not a nicety, and it is the thing to show. */
+    const actions = N - i;
+    const delay = phase === "place" ? T(i) : R(N - 1 - i);
+    return `
+      <div class="cell" style="animation-delay:${delay}s">
+        <div class="disc">${phase === "place" ? placedNo : actNo}</div>
+        ${phase === "resolve" ? `<div class="acts">×${actions}</div>` : ""}
+      </div>`;
+  };
   return shell(1080, 1920, `
-    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:110px;padding:0 70px">
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:78px;padding:0 70px">
+      <div style="text-align:center">
+        <div class="kicker">One track, four seats</div>
+        <div style="font-size:58px;font-weight:850;margin-top:12px;letter-spacing:-1.2px">
+          Last in, first out.</div>
+      </div>
+
       <div>
-        <div class="kicker" style="color:${MINT}">Workers go down</div>
-        <div style="font-size:44px;font-weight:820;margin:14px 0 30px">left to right</div>
-        <div style="display:flex;gap:22px">
-          ${[1, 2, 3, 4].map((i) => box(i, 0.4 + i * 0.55, "down")).join("")}
-        </div>
+        <div class="rowlbl" style="color:${MINT}">Workers go down &nbsp;→&nbsp; left to right</div>
+        <div class="row">${[0, 1, 2, 3].map((i) => slot(i, "place")).join("")}</div>
       </div>
+
       <div>
-        <div class="kicker">The track resolves</div>
-        <div style="font-size:44px;font-weight:820;margin:14px 0 30px">right to left</div>
-        <div style="display:flex;gap:22px">
-          ${[1, 2, 3, 4].map((i) => box(i, 3.4 + (slots - i) * 0.55, "up")).join("")}
-        </div>
+        <div class="rowlbl" style="color:${GOLD}">The track resolves &nbsp;←&nbsp; right to left</div>
+        <div class="row">${[0, 1, 2, 3].map((i) => slot(i, "resolve")).join("")}</div>
+        <div class="legend">the order it acts &nbsp;·&nbsp; <span style="color:${GOLD}">the actions it gets</span></div>
       </div>
-      <div style="background:${CARD};border:1px solid ${GOLD};border-radius:22px;padding:34px 36px">
-        <div style="font-size:40px;font-weight:850;color:${GOLD}">Whoever placed LAST acts FIRST.</div>
-        <div style="font-size:30px;color:#C9CFDA;margin-top:14px">
-          Place early → more actions, but everyone behind you moves first.<br>
-          Place last → you move first, but only once.</div>
+
+      <div style="background:${CARD};border:1px solid ${GOLD};border-radius:22px;padding:32px 34px">
+        <div style="font-size:37px;font-weight:850;color:${GOLD};line-height:1.25">
+          Act first, act once.<br>Act last, act four times.</div>
+        <div style="font-size:28px;color:#C9CFDA;margin-top:14px">
+          One action, plus one more for every worker that lands after yours &mdash;
+          so the two numbers are always the same.</div>
       </div>
-    </div>`, REEL_CSS);
+    </div>`, `
+    ${REEL_CSS}
+    .rowlbl{font-size:30px;font-weight:800;letter-spacing:.5px;margin-bottom:18px}
+    .row{display:flex;gap:20px}
+    .cell{flex:1;height:176px;border-radius:22px;border:2px solid ${LINE};background:${CARD};
+          display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+          opacity:0;animation:fadeUp .45s forwards}
+    .disc{font-size:56px;font-weight:860;color:${CREAM};line-height:1}
+    .acts{font-size:30px;font-weight:850;color:${GOLD}}
+    .legend{margin-top:14px;font-size:24px;color:${MUTE};font-weight:650;text-align:center}
+  `);
 }
 
 /* Reel 4 - what a piece tells you. */
@@ -523,35 +559,128 @@ function reelPieces() {
     </div>`, REEL_CSS);
 }
 
-/* Reel 12 - twelve quarters, filling up. */
+/* Reel 12 - twelve quarters of a REAL game.
+
+   The first version was an 8x8 grid of cells lighting up in industry colours
+   picked by `i % 6`. It looked like something but showed nothing: not the real
+   board, not real companies, not a real order. It could not answer "what am I
+   looking at?" because the honest answer was "a pattern".
+
+   This runs an actual four-player game and records, at every quarter boundary,
+   which plots have companies standing on them and in which industry. The board
+   is 16 districts of 4 plots, so it draws as 4x4 districts of 2x2 plots - the
+   same shape as the board people will play on. What fills in is what the bots
+   actually built, in the quarter they actually built it. */
+function playOneGame(seed) {
+  const st = E2.initGame(3, seed, ["Seat 1"], undefined, true, undefined);
+  st.players[0].isHuman = false;
+  if (st.phase === "drafting") { E2.advanceDraft(st, () => {}); E2.startPlanning(st); }
+  const frames = [];                       // frames[q] = { plot: ind }
+  const snapshot = () => {
+    const seen = {};
+    const indOf = {};
+    for (const p of st.players) {
+      for (const b of E2.activeBiz(p).concat(E2.megacorpHQs(p))) {
+        indOf[b.id] = b.isHQ ? "HQ" : E2.bizInd(b);
+      }
+    }
+    for (const [plot, bizId] of Object.entries(st.board.occupiedBy || {})) {
+      if (bizId === undefined || bizId === null) continue;
+      if (indOf[bizId]) seen[plot] = indOf[bizId];
+    }
+    frames.push(seen);
+  };
+  E2.advancePlanning(st, E2.mulberry32(seed + 777), (msg) => {
+    if (/^▶ Year \d+, Quarter \d+/.test(String(msg))) snapshot();
+  });
+  snapshot();
+  return { st, frames };
+}
+
 function reelTwelveQuarters() {
-  const cells = [];
-  for (let i = 0; i < 64; i++) {
-    const ind = E.INDUSTRIES[i % E.INDUSTRIES.length];
-    const q = Math.floor(i / 64 * 12);
-    cells.push(`<div style="aspect-ratio:1;border-radius:9px;background:${CARD};border:1px solid ${LINE};
-      position:relative;overflow:hidden">
-      <div style="position:absolute;inset:0;background:${E.IND_COLOR[ind]};opacity:0;
-        animation:fadeUp .5s ${(0.6 + q * 1.1 + (i % 6) * 0.09).toFixed(2)}s forwards"></div>
-    </div>`);
+  /* A seed that produces a reasonably full city - an empty one shows nothing. */
+  let best = null;
+  for (const seed of [3, 11, 19, 27, 41, 55, 73]) {
+    const g = playOneGame(seed);
+    const filled = Object.keys(g.frames[g.frames.length - 1] || {}).length;
+    if (!best || filled > best.filled) best = { ...g, filled, seed };
   }
-  const ticks = Array.from({ length: 12 }).map((_, q) => `
-    <div style="flex:1;height:8px;border-radius:4px;background:${LINE};position:relative;overflow:hidden">
-      <div style="position:absolute;inset:0;background:${GOLD};transform:scaleX(0);transform-origin:left;
-        animation:grow 1.1s ${(0.6 + q * 1.1).toFixed(2)}s forwards"></div>
-    </div>`).join("");
+  const { st, frames } = best;
+
+  /* District (r,c) -> 4x4, plot pos -> 2x2 inside it, so the picture is the
+     board's real shape rather than an arbitrary square. */
+  const rs = [...new Set(Object.values(st.board.cellOf).map((c) => c.r))].sort((a, b) => a - b);
+  const cs = [...new Set(Object.values(st.board.cellOf).map((c) => c.c))].sort((a, b) => a - b);
+  const posIndex = {};                       // stable 0..3 within a district
+  for (const [plot, c] of Object.entries(st.board.cellOf)) {
+    const k = `${c.r},${c.c}`;
+    posIndex[k] = posIndex[k] || [];
+    posIndex[k].push(plot);
+  }
+  Object.values(posIndex).forEach((a) => a.sort());
+
+  /* When each plot first gained a building, and in what industry. */
+  const firstSeen = {};
+  frames.forEach((f, q) => {
+    for (const [plot, ind] of Object.entries(f)) {
+      if (firstSeen[plot] === undefined) firstSeen[plot] = { q, ind };
+    }
+  });
+
+  const PER_Q = 1.15;                        // seconds a quarter is on screen
+  const districts = rs.map((r) => cs.map((c) => {
+    const plots = posIndex[`${r},${c}`] || [];
+    const tname = (Object.values(st.board.cellOf).find((x) => x.r === r && x.c === c) || {}).tname || "";
+    const cells = plots.map((plot) => {
+      const hit = firstSeen[plot];
+      const fill = hit
+        ? `<div style="position:absolute;inset:0;background:${hit.ind === "HQ" ? "#0B0D10" : E.IND_COLOR[hit.ind]};
+             ${hit.ind === "HQ" ? `border:2px solid ${GOLD};` : ""}opacity:0;
+             animation:pop .45s ${(0.7 + hit.q * PER_Q).toFixed(2)}s forwards"></div>`
+        : "";
+      return `<div class="plot">${fill}</div>`;
+    }).join("");
+    return `<div class="district"><div class="plots">${cells}</div>
+              <div class="dname">${tname}</div></div>`;
+  }).join("")).join("");
+
+  const ticks = frames.map((_, q) => `
+    <div class="tick"><div style="animation:grow ${PER_Q}s ${(0.7 + q * PER_Q).toFixed(2)}s forwards"></div></div>`).join("");
+
+  const built = Object.keys(firstSeen).length;
   return shell(1080, 1920, `
-    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 70px;gap:54px">
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 62px;gap:46px">
       <div style="text-align:center">
-        <div class="kicker">Three fiscal years</div>
-        <div style="font-size:66px;font-weight:850;margin-top:14px;letter-spacing:-1.5px">Twelve quarters.</div>
+        <div class="kicker">One real game</div>
+        <div style="font-size:62px;font-weight:850;margin-top:12px;letter-spacing:-1.4px">
+          Twelve quarters.</div>
+        <div style="font-size:27px;color:${MUTE};margin-top:12px;font-weight:650">
+          Sixteen districts · four plots each</div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:12px">${cells.join("")}</div>
-      <div style="display:flex;gap:8px">${ticks}</div>
-      <div style="text-align:center;font-size:34px;font-weight:780;color:#C9CFDA">
-        Every company placed changes<br>what the city needs next.</div>
-    </div>`, `${REEL_CSS}
-    @keyframes grow{to{transform:scaleX(1)}}`);
+
+      <div class="city">${districts}</div>
+
+      <div style="display:flex;gap:7px">${ticks}</div>
+      <div style="display:flex;justify-content:space-between;font-size:21px;color:${MUTE};font-weight:700">
+        <span>Y1 Q1</span><span>Y2</span><span>Y3</span><span>Q12</span>
+      </div>
+
+      <div style="text-align:center;font-size:33px;font-weight:780;color:#C9CFDA;line-height:1.35">
+        ${built} companies went up.<br>
+        <span style="color:${GOLD}">Every one changed what the city needed next.</span>
+      </div>
+    </div>`, `
+    ${REEL_CSS}
+    .city{display:grid;grid-template-columns:repeat(${cs.length},1fr);gap:14px}
+    .district{background:#12151A;border:1px solid ${LINE};border-radius:14px;padding:9px}
+    .plots{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+    .plot{aspect-ratio:1;border-radius:6px;background:#191D24;position:relative;overflow:hidden}
+    .dname{font-size:15px;color:#5A616E;font-weight:700;text-align:center;margin-top:7px;letter-spacing:.5px}
+    .tick{flex:1;height:9px;border-radius:5px;background:${LINE};overflow:hidden}
+    .tick > div{height:100%;background:${GOLD};transform:scaleX(0);transform-origin:left}
+    @keyframes grow{to{transform:scaleX(1)}}
+    @keyframes pop{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
+  `);
 }
 
 const reels = [
