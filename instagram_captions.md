@@ -270,9 +270,14 @@ actually built it, in the quarter it went up.*
 > Three fiscal years. Twelve quarters. Sixteen districts, four plots each.
 >
 > This is one real game. Every square that lights up is a company somebody
-> actually built, in the district they built it, in the quarter it went up. The
-> number on it is the company's level. The gold stars are Megacorp headquarters —
-> mergers that stop trading and start being worth points.
+> actually built, in the district they built it, in the quarter it went up.
+>
+> The number is the company's level, and the shade goes with it — pale at level
+> 1, darker as it grows. A white outline is one company: a horizontal company
+> spreads across connected plots and can run straight over a district border, so
+> the outline is drawn around the whole footprint rather than each square. Gold
+> stars are Megacorp headquarters — mergers that stop trading and start being
+> worth points.
 >
 > Watch the chart underneath at the same time. That is the same event seen twice:
 > every company that goes up is an operating bill somebody else now collects, and

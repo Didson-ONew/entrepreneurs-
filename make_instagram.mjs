@@ -42,7 +42,7 @@ vm.createContext(sandbox);
 vm.runInContext(SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "") + `
   box.E = { BP_DATA, INDUSTRIES, IND_NAME, IND_COLOR, BASE_PRICE, PERSONAS,
             MEGACORPS_TO_END, DISCS_PER_PLAYER, CASH_PER_EP, SCALING,
-            PRICE_MIN, PRICE_MAX, RENT_PER_LEVEL, PLAYER_COLORS };
+            PRICE_MIN, PRICE_MAX, RENT_PER_LEVEL, PLAYER_COLORS, COORDS };
   box.E2 = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
              activeBiz, megacorpHQs, bizInd, price };
 `, sandbox);
@@ -590,8 +590,8 @@ function playOneGame(seed) {
   const snapshot = () => {
     const meta = {};
     for (const p of st.players) {
-      for (const b of E2.activeBiz(p)) meta[b.id] = { ind: E2.bizInd(b), lvl: b.level, hq: false };
-      for (const b of E2.megacorpHQs(p)) meta[b.id] = { ind: E2.bizInd(b), lvl: b.level, hq: true };
+      for (const b of E2.activeBiz(p)) meta[b.id] = { id: b.id, ind: E2.bizInd(b), lvl: b.level, hq: false };
+      for (const b of E2.megacorpHQs(p)) meta[b.id] = { id: b.id, ind: E2.bizInd(b), lvl: b.level, hq: true };
     }
     const plots = {};
     for (const [plot, bizId] of Object.entries(st.board.occupiedBy || {})) {
@@ -644,36 +644,105 @@ function reelTwelveQuarters() {
     for (const [plot, m] of Object.entries(f.plots)) {
       const seq = (timeline[plot] = timeline[plot] || []);
       const last = seq[seq.length - 1];
-      if (!last || last.ind !== m.ind || last.lvl !== m.lvl || last.hq !== m.hq) {
+      if (!last || last.id !== m.id || last.ind !== m.ind || last.lvl !== m.lvl || last.hq !== m.hq) {
         if (last) last.until = q;
         seq.push({ ...m, from: q });
       }
     }
   });
 
-  const districts = rs.map((r) => cs.map((c) => {
-    const plots = byDistrict[`${r},${c}`] || [];
+  /* THE REAL GEOMETRY. A district is a 3x3 block with four of its eight compass
+     positions carrying a plot and the centre always empty - COORDS in the engine
+     is the authority. Drawing each district as a tidy 2x2 was wrong: it put
+     plots next to each other that are not neighbours on the board, and separated
+     ones that are. A horizontal company's footprint has to be orthogonally
+     connected, so the layout has to be the board's own or the outline would be a
+     lie. The whole city is therefore one 12x12 grid, and adjacency across a
+     district boundary is real adjacency. */
+  /* Level as a SHADE as well as a number: light at level 1, darker as it grows.
+     The number alone made a level-4 company look identical to a level-1 beside
+     it at a glance, which is the opposite of what the board does - a tall stack
+     reads instantly. Mixing toward white and then toward black keeps every step
+     inside the industry's own hue, so the colour still says WHICH industry. */
+  const hex2rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const rgb2hex = (a) => "#" + a.map((v) => Math.round(Math.max(0, Math.min(255, v)))
+    .toString(16).padStart(2, "0")).join("");
+  const mix = (h, target, amt) => rgb2hex(hex2rgb(h).map((v, i) => v + (target[i] - v) * amt));
+  const LEVEL_MIX = { 1: 0.46, 2: 0.22, 3: 0, 4: -0.26 };     // + toward white, - toward black
+  const shadeOf = (ind, lvl) => {
+    const amt = LEVEL_MIX[Math.min(4, Math.max(1, lvl))] ?? 0;
+    return amt >= 0 ? mix(E.IND_COLOR[ind], [255, 255, 255], amt)
+                    : mix(E.IND_COLOR[ind], [0, 0, 0], -amt);
+  };
+  /* Dark text on a light block, light text on a dark one. */
+  const inkOn = (hexColor) => {
+    const [r, g, b] = hex2rgb(hexColor);
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 140 ? "#0E1013" : "#F3F4F6";
+  };
+
+  const CO = E.COORDS;                       // pos -> [x, y] inside a 3x3
+  const GR = rs.length * 3, GC = cs.length * 3;
+  const cellOfPlot = {};                     // plot -> {gr, gc}
+  for (const [plot, c] of Object.entries(st.board.cellOf)) {
+    const [dx, dy] = CO[c.pos];
+    cellOfPlot[plot] = { gr: (rs.indexOf(c.r)) * 3 + dy, gc: (cs.indexOf(c.c)) * 3 + dx };
+  }
+
+  /* Which plots each company stood on, quarter by quarter, so the outline drawn
+     for a state is the footprint that company actually had at that moment. */
+  const footprintAt = frames.map((f) => {
+    const byBiz = {};
+    for (const [plot, m] of Object.entries(f.plots)) (byBiz[m.id] = byBiz[m.id] || []).push(plot);
+    return byBiz;
+  });
+
+  /* A cell draws a border only on the sides where the neighbouring cell is not
+     part of the same company. Do that for every plot of a footprint and the
+     union is one unbroken outline around the whole company, however it sprawls. */
+  const outlineFor = (plot, bizId, q) => {
+    const mine = new Set(footprintAt[q][bizId] || [plot]);
+    const at = {};
+    for (const pl of mine) { const g = cellOfPlot[pl]; if (g) at[`${g.gr},${g.gc}`] = true; }
+    const g = cellOfPlot[plot];
+    if (!g) return "";
+    const has = (dr, dc) => !!at[`${g.gr + dr},${g.gc + dc}`];
+    const w = "3px solid";
+    return [
+      has(-1, 0) ? "" : `border-top:${w} var(--oc);`,
+      has(1, 0) ? "" : `border-bottom:${w} var(--oc);`,
+      has(0, -1) ? "" : `border-left:${w} var(--oc);`,
+      has(0, 1) ? "" : `border-right:${w} var(--oc);`,
+    ].join("");
+  };
+
+  /* District plates sit behind the plots, so the districts still read as areas
+     without pretending to be the grid. The centre of a 3x3 never holds a plot,
+     which is exactly where the district's name goes. */
+  const plates = rs.map((r, ri) => cs.map((c, ci) => {
     const tname = (Object.values(st.board.cellOf).find((x) => x.r === r && x.c === c) || {}).tname || "";
-    const cells = plots.map((plot) => {
-      const seq = timeline[plot] || [];
-      const layers = seq.map((sState) => {
-        const col = sState.hq ? "#0B0D10" : E.IND_COLOR[sState.ind];
-        const dur = sState.until === undefined ? 99 : (sState.until - sState.from) * PER_Q;
-        const fadeOut = sState.until === undefined ? ""
-          : `,fadeOut .3s ${tOf(sState.until)}s forwards`;
-        return `<div class="fill" style="background:${col};
-            ${sState.hq ? `border:3px solid ${GOLD};` : ""}
-            animation:pop .45s ${tOf(sState.from)}s forwards${fadeOut}">
-            ${sState.hq
-              ? `<span class="hq">★</span>`
-              : sState.lvl > 1 ? `<span class="lvl">${sState.lvl}</span>` : ""}
-          </div>`;
-      }).join("");
-      return `<div class="plot">${layers}</div>`;
-    }).join("");
-    return `<div class="district"><div class="plots">${cells}</div>
-              <div class="dname">${tname}</div></div>`;
+    return `<div class="plate" style="grid-row:${ri * 3 + 1}/span 3;grid-column:${ci * 3 + 1}/span 3"></div>
+            <div class="dname" style="grid-row:${ri * 3 + 2};grid-column:${ci * 3 + 2}">${tname}</div>`;
   }).join("")).join("");
+
+  const plotCells = Object.keys(cellOfPlot).map((plot) => {
+    const g = cellOfPlot[plot];
+    const seq = timeline[plot] || [];
+    const layers = seq.map((sState) => {
+      const col = sState.hq ? "#0B0D10" : shadeOf(sState.ind, sState.lvl);
+      const oc = sState.hq ? GOLD : "#F3F4F6";
+      const ink = sState.hq ? GOLD : inkOn(col);
+      const fadeOut = sState.until === undefined ? "" : `,fadeOut .3s ${tOf(sState.until)}s forwards`;
+      return `<div class="fill" style="--oc:${oc};background:${col};
+          ${outlineFor(plot, sState.id, sState.from)}
+          animation:pop .45s ${tOf(sState.from)}s forwards${fadeOut}">
+          ${sState.hq ? `<span class="hq">★</span>`
+            : `<span class="lvl" style="color:${ink}">${sState.lvl}</span>`}
+        </div>`;
+    }).join("");
+    return `<div class="plot" style="grid-row:${g.gr + 1};grid-column:${g.gc + 1}">${layers}</div>`;
+  }).join("");
+
+  const districts = plates + plotCells;
 
   /* The price chart, on the same clock. One polyline an industry, revealed by
      stroke-dashoffset so the line draws as the quarters pass. */
@@ -684,12 +753,21 @@ function reelTwelveQuarters() {
   const xOf = (q) => PADL + (W - PADL - PADR) * (nQ === 1 ? 0 : q / (nQ - 1));
   const yOf = (v) => PADT + (H - PADT - PADB) * (1 - (v - E.PRICE_MIN) / (E.PRICE_MAX - E.PRICE_MIN));
   const totalT = LEAD + (nQ - 1) * PER_Q;
+  /* The chart is revealed by a CLIP that sweeps left to right on exactly the
+     clock the city fills on: at the instant quarter q pops on the map, the chart
+     is revealed to quarter q. It used to animate stroke-dashoffset from a fixed
+     dash length of 2400 for every line - but each polyline is a different real
+     length, so every line revealed at its own wrong speed, finished early, and
+     the last quarter arrived as a jump. A clip has no length to guess at. */
   const lines = E.INDUSTRIES.map((ind) => {
     const pts = frames.map((f, q) => `${xOf(q).toFixed(1)},${yOf(f.prices[ind]).toFixed(1)}`).join(" ");
     return `<polyline points="${pts}" fill="none" stroke="${E.IND_COLOR[ind]}" stroke-width="4"
-      stroke-linejoin="round" stroke-linecap="round" class="pline"
-      style="animation:draw ${(totalT - LEAD).toFixed(2)}s ${LEAD}s linear forwards"/>`;
+      stroke-linejoin="round" stroke-linecap="round" clip-path="url(#reveal)"/>`;
   }).join("");
+  const sweep = `<defs><clipPath id="reveal"><rect x="0" y="0" height="${H}"
+      style="width:${xOf(0).toFixed(1)}px;
+             animation:sweep ${((nQ - 1) * PER_Q).toFixed(2)}s ${LEAD}s linear forwards"/>
+    </clipPath></defs>`;
   /* Industries that finish on the same price land on the same line, and the
      labels print on top of each other. Walk them top to bottom and push each one
      down until it clears the last, then draw a leader back to the real value so
@@ -734,7 +812,7 @@ function reelTwelveQuarters() {
       <div style="margin-top:2px">
         <div class="chartlbl">What that did to the price of every good</div>
         <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
-          ${gridY}${lines}${endLabels}
+          ${sweep}${gridY}${lines}${endLabels}
         </svg>
       </div>
 
@@ -748,14 +826,17 @@ function reelTwelveQuarters() {
       </div>
     </div>`, `
     ${REEL_CSS}
-    .city{display:grid;grid-template-columns:repeat(${cs.length},1fr);gap:11px}
-    .district{background:#12151A;border:1px solid ${LINE};border-radius:12px;padding:7px}
-    .plots{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-    .plot{aspect-ratio:1;border-radius:5px;background:#191D24;position:relative;overflow:hidden}
-    .fill{position:absolute;inset:0;opacity:0;display:flex;align-items:center;justify-content:center}
-    .lvl{font-size:26px;font-weight:880;color:#0E1013}
-    .hq{font-size:26px;color:${GOLD}}
-    .dname{font-size:13px;color:#5A616E;font-weight:700;text-align:center;margin-top:5px}
+    .city{display:grid;grid-template-columns:repeat(${GC},1fr);
+          grid-template-rows:repeat(${GR},1fr);gap:3px;aspect-ratio:${GC}/${GR}}
+    .plate{background:#12151A;border:1px solid ${LINE};border-radius:10px;
+           margin:-2px;z-index:0}
+    .plot{border-radius:5px;background:#1B1F27;position:relative;z-index:1}
+    .fill{position:absolute;inset:-1px;opacity:0;display:flex;align-items:center;
+          justify-content:center;border-radius:5px;box-sizing:border-box}
+    .lvl{font-size:23px;font-weight:880;color:#0E1013}
+    .hq{font-size:22px;color:${GOLD}}
+    .dname{display:flex;align-items:center;justify-content:center;z-index:1;
+           font-size:13px;color:#5A616E;font-weight:800;letter-spacing:.3px}
     .legend{display:flex;gap:26px;justify-content:center;font-size:20px;color:${MUTE};font-weight:700}
     .legend span{display:flex;align-items:center;gap:8px}
     .sw{width:24px;height:24px;border-radius:5px;display:inline-flex;align-items:center;
@@ -763,8 +844,7 @@ function reelTwelveQuarters() {
     .sw.lv{background:${E.IND_COLOR.MA}}
     .sw.hqsw{background:#0B0D10;border:2px solid ${GOLD};color:${GOLD}}
     .chartlbl{font-size:24px;font-weight:800;color:${CREAM};margin-bottom:8px;letter-spacing:.2px}
-    .pline{stroke-dasharray:2400;stroke-dashoffset:2400}
-    @keyframes draw{to{stroke-dashoffset:0}}
+    @keyframes sweep{to{width:${(xOf(nQ - 1) + 3).toFixed(1)}px}}
     @keyframes fadeIn{to{opacity:1}}
     @keyframes fadeOut{to{opacity:0}}
     @keyframes pop{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
