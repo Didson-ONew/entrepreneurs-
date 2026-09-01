@@ -19,6 +19,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { execFileSync } from "child_process";
+import { createHash } from "crypto";
 import { chromium } from "playwright-core";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -36,13 +37,16 @@ const ffmpegPath = (() => {
   process.exit(2);
 })();
 
-/* How long each page needs to have said everything it has to say. The supply
-   web runs a 12s cycle; the others land their last line inside five. */
+/* Each reel runs until its last animation lands, plus a beat to read the final
+   card - and no longer. A clip that keeps playing after everything has settled
+   is a still image with a progress bar, which is what the first cut of `pieces`
+   was: four seconds of animation in a nine second reel. The frame-difference
+   check below reports how much of each one actually moves. */
 const REELS = [
-  { stem: "02_supply-web", seconds: 13 },
-  { stem: "04_pieces", seconds: 9 },
-  { stem: "07_turn-order", seconds: 11 },
-  { stem: "12_twelve-quarters", seconds: 17 },
+  { stem: "02_supply-web", seconds: 13 },      // infinite 12s cycle - one full pass
+  { stem: "04_pieces", seconds: 6 },           // last row lands at 4.0s
+  { stem: "07_turn-order", seconds: 9 },       // resolve row finishes at 6.3s
+  { stem: "12_twelve-quarters", seconds: 17 }, // 12 quarters at 1.15s from 0.7s
 ];
 
 fs.rmSync(RAW, { recursive: true, force: true });
@@ -89,12 +93,29 @@ for (const r of REELS) {
         try { a.currentTime = ms; } catch (e) { /* a finished animation may refuse */ }
       }
     }, (n / FPS) * 1000);
-    await page.screenshot({
-      path: path.join(dir, `f${String(n).padStart(5, "0")}.png`),
-      animations: "disabled",          // never wait on, or advance, an animation
-    });
+    /* NOT animations:"disabled". That option fast-forwards every finite animation
+       to its end state and cancels infinite ones, which overrode the seek above
+       and produced a video of identical frames. The animations are already
+       paused, so there is nothing to race with. */
+    await page.screenshot({ path: path.join(dir, `f${String(n).padStart(5, "0")}.png`) });
   }
   await page.close();
+
+  /* The whole point of this file is that the frames MOVE. Compare a spread of
+     them and stop if they do not: a silent wall of identical frames is exactly
+     the failure that shipped last time, and it is trivial to detect. */
+  const sample = [0, Math.floor(total * 0.25), Math.floor(total * 0.5),
+                  Math.floor(total * 0.75), total - 1]
+    .map((n) => createHash("sha1")
+      .update(fs.readFileSync(path.join(dir, `f${String(n).padStart(5, "0")}.png`)))
+      .digest("hex"));
+  const distinct = new Set(sample).size;
+  if (distinct < 3) {
+    console.error(`${r.stem}: only ${distinct} distinct frames out of 5 sampled `
+      + "- the animation is not advancing, refusing to encode a static video");
+    process.exitCode = 1;
+    continue;
+  }
 
   const mp4 = path.join(OUT, `${r.stem}.mp4`);
   /* -fps_mode cfr with a matching input rate keeps one encoded frame per
@@ -112,8 +133,9 @@ for (const r of REELS) {
 
   fs.rmSync(dir, { recursive: true, force: true });
   const mb = fs.statSync(mp4).size / 1e6;
-  made.push({ stem: r.stem, mb, seconds: r.seconds, frames: total });
-  console.log(`  ${r.stem}.mp4   ${mb.toFixed(2)} MB   ${r.seconds}s   ${total} frames`);
+  made.push({ stem: r.stem, mb, seconds: r.seconds, frames: total, distinct });
+  console.log(`  ${r.stem}.mp4   ${mb.toFixed(2)} MB   ${r.seconds}s   ${total} frames   `
+    + `${distinct}/5 sampled frames differ`);
 }
 
 await browser.close();
