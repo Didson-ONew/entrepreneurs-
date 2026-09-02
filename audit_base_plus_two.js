@@ -5,10 +5,18 @@
    The ruleset under test, against the game as it ships:
 
      bases   every industry up $2 - UT/RE $4, HO/MA $5, HC/TE $6
-     floor   the track runs $2..$10, so $1 stops being a market price and
+     floor   the track starts at $2, so $1 stops being a market price and
              becomes purely the recycling rate
      step    one build moves its own good a FULL dollar down and each of its
              suppliers a full dollar up, instead of half
+
+   Two versions of it, because the first raised the bases into a ceiling that
+   was still $10 and turned a floor problem into a ceiling one:
+
+     ceil10  $2..$10, cash still scores at $20 per EP
+     ceil12  $2..$12, cash scores at $50 per EP - the ceiling moved up to give
+             the raised bases somewhere to go, and the cash rate moved with the
+             takings so the scores do not inflate
 
    The first half of this measures whether the market behaves: how much room a
    price has above and below where it starts, how often it is pinned, how often
@@ -52,9 +60,18 @@ for (const [k, v] of Object.entries(N)) {
 }
 const P = {
   step: "const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;",
-  floor: "const PRICE_MIN = 2, PRICE_MAX = 10;",
   base: "const BASE_PRICE = { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 };",
+  rate: "const CASH_PER_EP = 20;",
 };
+if (!SRC.includes(P.rate)) { console.error("CASH_PER_EP has changed - update this probe"); process.exit(2); }
+
+/* The three worlds. `ceiling` and `rate` are what separate the two proposals. */
+const WORLDS = {
+  today:  { label: "today",  patch: (l) => l },
+  ceil10: { label: "ceil10", ceiling: 10, rate: 20 },
+  ceil12: { label: "ceil12", ceiling: 12, rate: 50 },
+};
+const NAMES = Object.keys(WORLDS);
 const SALE_HOOK = "  const leftover = Math.max(0, remaining);\n"
   + "  __econ.sale(earned, leftover, bizProd(biz), bizInd(biz), biz.level);\n"
   + "  p.cash += earned + leftover * 1;";
@@ -64,8 +81,13 @@ const SALE_HOOK = "  const leftover = Math.max(0, remaining);\n"
    today a flooded good and a binned good are worth the same. */
 function engine(which) {
   let logic = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
-  if (which === "proposed") {
-    logic = logic.replace(N.step, P.step).replace(N.floor, P.floor).replace(N.base, P.base);
+  const w = WORLDS[which];
+  if (which !== "today") {
+    logic = logic
+      .replace(N.step, P.step)
+      .replace(N.floor, `const PRICE_MIN = 2, PRICE_MAX = ${w.ceiling};`)
+      .replace(N.base, P.base)
+      .replace(P.rate, `const CASH_PER_EP = ${w.rate};`);
   }
   logic = logic.replace(N.sale, SALE_HOOK);
   const econ = { earned: 0, recycled: 0, prod: 0 };
@@ -83,7 +105,8 @@ function engine(which) {
   `, sandbox);
   return { ...box, econ };
 }
-const ENG = { today: engine("today"), proposed: engine("proposed") };
+const ENG = {};
+for (const n of NAMES) ENG[n] = engine(n);
 const INDS = ENG.today.E.INDUSTRIES;
 
 function run(seats, which) {
@@ -167,103 +190,122 @@ function run(seats, which) {
 }
 
 const R = {};
-for (const w of ["today", "proposed"]) for (const z of SIZES) R[`${w}|${z}`] = run(z, w);
+for (const w of NAMES) for (const z of SIZES) R[`${w}|${z}`] = run(z, w);
 
-const Et = ENG.today.E, Ep = ENG.proposed.E;
-console.log("Entrepreneurs - bases +$2, a $2 floor, and a full dollar per build");
-console.log(`${SEEDS} games at each of ${SIZES.length} table sizes, both ways `
-  + `(${SEEDS * SIZES.length * 2} games)\n`);
-console.log("  today      $1..$10   bases " + INDS.map((i) => `${i} $${Et.BASE_PRICE[i]}`).join(" ")
-  + "   half-dollar step");
-console.log("  proposed   $2..$10   bases " + INDS.map((i) => `${i} $${Ep.BASE_PRICE[i]}`).join(" ")
-  + "   full-dollar step");
-console.log("  recycling stays $1 in both\n");
+const Et = ENG.today.E;
+const W = (n) => ENG[n].E;
+console.log("Entrepreneurs - raising the bases, the ceiling and the cash rate");
+console.log(`${SEEDS} games at each of ${SIZES.length} table sizes, ${NAMES.length} ways `
+  + `(${SEEDS * SIZES.length * NAMES.length} games)\n`);
+for (const n of NAMES) {
+  const E = W(n);
+  console.log(`  ${n.padEnd(9)} $${E.PRICE_MIN}..$${E.PRICE_MAX}   bases `
+    + INDS.map((i) => `${i} $${E.BASE_PRICE[i]}`).join(" ")
+    + `   $${E.CASH_PER_EP}/EP   ${n === "today" ? "half" : "full"}-dollar step`);
+}
+console.log("  recycling stays $1 in all three\n");
+
+const col = (v) => String(v).padStart(9);
+const hdr = "             " + NAMES.map((n) => col(n)).join("");
 
 /* ------------------------------------------------------- the market */
 console.log("=".repeat(78));
 console.log("DOES THE MARKET STILL WORK?  (4 players)");
 console.log("=".repeat(78));
-console.log("             room below/above base      ever below   ever at $1   ever at $10");
-console.log("              today      proposed      today prop   today prop   today prop");
+
+console.log("\n  Room below / above the base, in dollars");
+console.log(hdr);
 for (const i of INDS) {
-  const a = R["today|4"], b = R["proposed|4"];
-  const rt = `${Et.BASE_PRICE[i] - Et.PRICE_MIN}/${Et.PRICE_MAX - Et.BASE_PRICE[i]}`;
-  const rp = `${Ep.BASE_PRICE[i] - Ep.PRICE_MIN}/${Ep.PRICE_MAX - Ep.BASE_PRICE[i]}`;
-  const pc = (t, f) => `${(100 * t[f][i] / t.gamesInd).toFixed(0)}%`;
-  console.log(`${Et.IND_NAME[i].padEnd(13)}${rt.padStart(6)}${rp.padStart(14)}`
-    + `${pc(a, "below").padStart(11)}${pc(b, "below").padStart(6)}`
-    + `${pc(a, "floorEver").padStart(9)}${pc(b, "floorEver").padStart(6)}`
-    + `${pc(a, "ceilEver").padStart(9)}${pc(b, "ceilEver").padStart(6)}`);
-}
-console.log("\n  \"room below/above\" is dollars between the base and each end of the track.");
-{
-  const a = R["today|4"], b = R["proposed|4"];
-  console.log(`  quarters spent pinned on the floor:  today ${(100 * a.pinned / a.cells).toFixed(0)}%`
-    + `   proposed ${(100 * b.pinned / b.cells).toFixed(0)}%`);
-  console.log(`  quarters spent pinned on the ceiling: today ${(100 * a.atCeil / a.cells).toFixed(0)}%`
-    + `   proposed ${(100 * b.atCeil / b.cells).toFixed(0)}%`);
+  console.log(`  ${Et.IND_NAME[i].padEnd(11)}`
+    + NAMES.map((n) => {
+      const E = W(n);
+      return col(`${E.BASE_PRICE[i] - E.PRICE_MIN}/${E.PRICE_MAX - E.BASE_PRICE[i]}`);
+    }).join(""));
 }
 
-console.log("\n  mean price by year, 4 players");
+const pctRow = (field) => {
+  console.log(hdr);
+  for (const i of INDS) {
+    console.log(`  ${Et.IND_NAME[i].padEnd(11)}`
+      + NAMES.map((n) => {
+        const t = R[`${n}|4`];
+        return col(`${(100 * t[field][i] / t.gamesInd).toFixed(0)}%`);
+      }).join(""));
+  }
+};
+console.log("\n  Ever trades BELOW its own base - the market working in the player's favour");
+pctRow("below");
+console.log("\n  Ever reaches the FLOOR");
+pctRow("floorEver");
+console.log("\n  Ever reaches the CEILING");
+pctRow("ceilEver");
+
+console.log("\n  Share of all quarters spent pinned against an end of the track");
+console.log(hdr);
+console.log("  on the floor"
+  + NAMES.map((n) => { const t = R[`${n}|4`]; return col(`${(100 * t.pinned / t.cells).toFixed(0)}%`); }).join(""));
+console.log("  on the ceiling"
+  + NAMES.map((n) => { const t = R[`${n}|4`]; return col(`${(100 * t.atCeil / t.cells).toFixed(0)}%`); }).join("").slice(2));
+
+console.log("\n  Mean price by year, 4 players");
 console.log("             Y1     Y2     Y3");
-for (const w of ["today", "proposed"]) {
-  const t = R[`${w}|4`];
-  console.log(`  ${w.padEnd(10)}` + [1, 2, 3].map((y) =>
+for (const n of NAMES) {
+  const t = R[`${n}|4`];
+  console.log(`  ${n.padEnd(10)}` + [1, 2, 3].map((y) =>
     `$${(t.priceByYear[y] / t.priceN[y]).toFixed(2)}`.padStart(7)).join(""));
 }
 
 /* -------------------------------------------------- size of economy */
 console.log("\n" + "=".repeat(78));
-console.log("THE SIZE OF THE ECONOMY");
+console.log("THE SIZE OF THE ECONOMY, by table size");
 console.log("=".repeat(78));
 const line = (label, f, fmt = (v) => `$${v.toFixed(0)}`) => {
-  console.log(`  ${label.padEnd(30)}`
-    + SIZES.map((z) => {
-      const a = f(R[`today|${z}`]), b = f(R[`proposed|${z}`]);
-      return `${fmt(a)}→${fmt(b)}`.padStart(15);
-    }).join(""));
+  console.log(`  ${label.padEnd(28)}`
+    + SIZES.map((z) => NAMES.map((n) => fmt(f(R[`${n}|${z}`]))).join("/").padStart(19)).join(""));
 };
-console.log("  " + " ".repeat(30) + SIZES.map((z) => `${z} players`.padStart(15)).join(""));
+console.log(`  ${"".padEnd(28)}` + SIZES.map((z) => `${z} players`.padStart(19)).join(""));
+console.log(`  ${"(today / ceil10 / ceil12)".padEnd(28)}`);
 line("cash per seat, mean", (t) => t.cashSeat / (t.samples * (t.endSeats / Math.max(1, t.games))));
 line("cash on the table, mean", (t) => t.cashTable / t.samples);
 line("cash on the table, peak", (t) => t.peakTable);
 line("most one seat ever held", (t) => t.peakSeat);
 line("largest single pot", (t) => t.potMax);
-line("takings per game (all sales)", (t) => t.earned / t.games);
-line("cash held at the final bell", (t) => t.endCashTotal / t.games);
-
+line("takings per game", (t) => t.earned / t.games);
 console.log("");
-line("winning EP", (t) => t.winnerEP / t.games, (v) => v.toFixed(0));
-line("EP spread, first to last", (t) => t.epSpread / t.games, (v) => v.toFixed(0));
-line("units recycled per game", (t) => t.recycled / t.games, (v) => v.toFixed(0));
-line("share of output recycled", (t) => 100 * t.recycled / Math.max(1, t.prod), (v) => `${v.toFixed(0)}%`);
+line("winning score", (t) => t.winnerEP / t.games, (v) => v.toFixed(0));
+line("spread, first to last", (t) => t.epSpread / t.games, (v) => v.toFixed(0));
+line("output recycled", (t) => 100 * t.recycled / Math.max(1, t.prod), (v) => `${v.toFixed(0)}%`);
 
-/* ------------------------------------------------ what it costs to fix */
+/* ------------------------------------------------------ the verdict */
 console.log("\n" + "=".repeat(78));
-console.log("WHAT THE CASH RATE WOULD HAVE TO BECOME");
+console.log("DID THE CASH RATE LAND?");
 console.log("=".repeat(78));
-console.log(`  Cash scores at $${Et.CASH_PER_EP} per EP. If takings rise and that rate does not,`);
-console.log("  every score inflates and the cash half of the game outweighs the building half.");
+console.log("  Cash converts to points at a fixed rate, so if takings rise and the rate does");
+console.log("  not, every score inflates and cash quietly outweighs building. $50/EP was");
+console.log("  chosen against a measured 92% growth in takings; this is whether it held.");
 console.log("");
-console.log("            takings    growth    $/EP to hold    rounded");
-console.log("            per game             scores level");
+console.log("            takings/game        winning score       score vs today");
+console.log("          today  c10   c12    today  c10   c12    c10      c12");
 for (const z of SIZES) {
-  const a = R[`today|${z}`], b = R[`proposed|${z}`];
-  const ea = a.earned / a.games, eb = b.earned / b.games;
-  const g = eb / ea;
-  const want = Et.CASH_PER_EP * g;
-  console.log(`  ${z} players ${`$${ea.toFixed(0)}→$${eb.toFixed(0)}`.padStart(12)}`
-    + `${`${((g - 1) * 100).toFixed(0)}%`.padStart(10)}`
-    + `${`$${want.toFixed(1)}`.padStart(16)}`
-    + `${`$${(Math.round(want / 5) * 5).toFixed(0)}`.padStart(11)}`);
+  const g = (n) => R[`${n}|${z}`];
+  const tk = (n) => g(n).earned / g(n).games;
+  const sc = (n) => g(n).winnerEP / g(n).games;
+  console.log(`  ${z}p  ` + NAMES.map((n) => `$${tk(n).toFixed(0)}`.padStart(7)).join("")
+    + "   " + NAMES.map((n) => sc(n).toFixed(0).padStart(6)).join("")
+    + `   ${((sc("ceil10") / sc("today") - 1) * 100).toFixed(0)}%`.padStart(8)
+    + `   ${((sc("ceil12") / sc("today") - 1) * 100).toFixed(0)}%`.padStart(8));
 }
 {
-  let ga = 0, gb = 0;
-  for (const z of SIZES) { ga += R[`today|${z}`].earned / R[`today|${z}`].games;
-                           gb += R[`proposed|${z}`].earned / R[`proposed|${z}`].games; }
-  const g = gb / ga;
-  console.log(`\n  Pooled over every table size, takings grow ${((g - 1) * 100).toFixed(0)}%, `
-    + `so the rate wants to go`);
-  console.log(`  from $${Et.CASH_PER_EP} to about $${(Et.CASH_PER_EP * g).toFixed(0)} per EP `
-    + `to leave the balance between cash and building where it is.`);
+  const tot = (n, f) => SIZES.reduce((s, z) => s + f(R[`${n}|${z}`]), 0) / SIZES.length;
+  const scT = tot("today", (t) => t.winnerEP / t.games);
+  const sc10 = tot("ceil10", (t) => t.winnerEP / t.games);
+  const sc12 = tot("ceil12", (t) => t.winnerEP / t.games);
+  const tkT = tot("today", (t) => t.earned / t.games);
+  const tk12 = tot("ceil12", (t) => t.earned / t.games);
+  console.log(`\n  Pooled: takings ${((tk12 / tkT - 1) * 100).toFixed(0)}% higher, `
+    + `winning score ${((sc12 / scT - 1) * 100).toFixed(0)}% `
+    + `with $${W("ceil12").CASH_PER_EP}/EP`);
+  console.log(`  (leaving the rate at $${Et.CASH_PER_EP} instead gives ${((sc10 / scT - 1) * 100).toFixed(0)}%)`);
+  const ideal = Et.CASH_PER_EP * (tk12 / tkT);
+  console.log(`  A rate that exactly tracked takings would be $${ideal.toFixed(0)}/EP.`);
 }
