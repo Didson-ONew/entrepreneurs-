@@ -20,7 +20,7 @@
 
    The eight-cell grid below still earns its place: it says the three changes
    contribute roughly +3, +3 and 0 points of spread, that they ADD rather than
-   interact, and that all of it sits inside the noise. Three factors: 
+   interact, and that all of it sits inside the noise.
 
    Three binary factors, every combination, eight worlds:
 
@@ -37,9 +37,11 @@
              $50    at the new one. This is not only scoring: the bots price
                     every decision through it, so it changes how they play.
 
-   The measure is the SPREAD - best persona's win rate minus worst - because
-   that is what regressed. Individual rates are printed too, since a factor
-   might move one persona without moving the spread much.
+   The grid reports the SPREAD because that is the number that raised the alarm.
+   Read it knowing what it is: a biased, noisy statistic useful for comparing
+   eight cells measured the same way, and useless as an absolute. The per-persona
+   rates underneath it are what actually settle anything, and `corners` at high
+   sample is what settles it properly.
 
    Every world plays the SAME seeds, so a difference between two cells is the
    rule change and not the deal.
