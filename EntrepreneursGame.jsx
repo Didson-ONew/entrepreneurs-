@@ -1226,11 +1226,18 @@ function scoreCompanyOnCompletion(state, p, biz) {
   biz.scored = true;
 }
 
+/* What the bank pays for a company that is not being forced out. An upgraded
+   structure fetches its full setup because the upgrades were paid for on top of
+   it; anything else fetches half. */
+const voluntarySalePrice = (b) => (b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2));
 function sellCompany(p, b, solvency = false) {
   let recv;
   if (solvency) recv = b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4);
-  else recv = b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2);
+  else recv = voluntarySalePrice(b);
   p.cash += recv; b.distressed = true;
+  /* Remember the payout: buying the shell back as it stands costs exactly what
+     the bank handed over for it. See reclaimCost. */
+  b.distressPayout = recv;
   return recv;
 }
 function sellBpFromHand(state, p, bp, solvency = false) {
@@ -1621,7 +1628,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "2ed8acd2";
+const ENGINE_VERSION = "87792388";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent is NOT an extra bill: a company pays its OPEX and
@@ -2252,6 +2259,7 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   if (prev) prev.businesses = prev.businesses.filter((b) => b !== distressedBiz);
   p.cash -= cost;
   distressedBiz.distressed = false;
+  delete distressedBiz.distressPayout;   // back in service: the old payout is spent
   distressedBiz.bp = bp;
   distressedBiz.level = bp.lvl;
   distressedBiz.upgraded = false;
@@ -2268,8 +2276,24 @@ function doRenovate(state, p, distressedBiz, bp, log) {
 /* A distressed company can also simply be bought out of the bank as it stands, for half
    its own setup cost, keeping its Blueprint and level. Renovating with a card from hand
    is the alternative when you want to change what the structure is. */
+/* BUYING A SHELL AS IT STANDS COSTS WHAT THE BANK PAID FOR IT.
+
+   This used to be half the structure's setup no matter how it went distressed,
+   which meant an UPGRADED company was a money printer: selling one pays its full
+   setup, and buying the same building straight back cost half. Every round trip
+   banked half a setup and left the board exactly as it was. Now the payout is
+   recorded when the company goes distressed and charged back on reclaim, so a
+   sale and a buy-back net to zero and the only thing spent is the actions.
+
+   A company a Megacorp absorbed was never paid for, so there is no payout to
+   charge. It is priced at what it would have fetched had it been sold, which is
+   the same schedule - otherwise merging four companies would leave four
+   buildings on the board free for anyone to pick up.
+
+   The fallback keeps games saved before this existed loadable. */
 function reclaimCost(biz) {
-  return Math.floor(bizSetup(biz) / 2);
+  if (typeof biz.distressPayout === "number") return biz.distressPayout;
+  return voluntarySalePrice(biz);
 }
 function canReclaim(state, p, biz) {
   if (!biz || !biz.distressed) return false;
@@ -2285,6 +2309,7 @@ function doReclaim(state, p, biz, log) {
   if (prev) prev.businesses = prev.businesses.filter((b) => b !== biz);
   p.cash -= cost;
   biz.distressed = false;
+  delete biz.distressPayout;   // back in service: the old payout is spent
   biz.scored = false;          // it scores again for its new owner
   biz.quarterBuilt = state.quarter;
   scoreCompanyOnCompletion(state, p, biz);
