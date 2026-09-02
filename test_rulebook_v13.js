@@ -22,7 +22,7 @@ function loadEngine() {
       plotHasLH, lhDistricts, hqNetworkPlots,
       hqNeighbours, MEGACORP_NEIGHBOUR_EP, runB2B, finalizeGame, epTotal, orthOf,
       companySlotsUsed, canLaunchMore, discsUsed, discsFree, finalRank, unitPrice,
-      renovationEligible, bizInd,
+      renovationEligible, bizInd, PRICE_MIN, PRICE_MAX, BASE_PRICE,
       byId, BP_DATA, MEGACORP_TILES, STARTING, INDUSTRIES, BASE_PRICE, SCALING,
       LOAN_REPAY_RATE, BP_SELL_PRICE, DISCS_PER_PLAYER, COMPANY_SLOTS, PERSONAS,
       levelEP, landPayouts, VARIANT_KEYS, scoreCompanyOnCompletion, runClosingRest,
@@ -48,12 +48,12 @@ check("4p: 25/1, 25/2, 20/2, 20/3", JSON.stringify(E.STARTING[4]) === JSON.strin
 /* --------------------------------------------------------- the six industries */
 section("The six industries - setup / OPEX / production per level");
 const V10 = {
-  UT: { base: 2, scale: "H", lv: [[15, 4, 4], [20, 7, 8], [30, 10, 16]] },
-  RE: { base: 2, scale: "V", lv: [[10, 5, 4], [15, 9, 8], [25, 14, 16]] },
-  HO: { base: 3, scale: "V", lv: [[10, 6, 3], [15, 10, 6], [25, 16, 12]] },
-  MA: { base: 3, scale: "H", lv: [[20, 4, 3], [35, 7, 6], [60, 10, 12]] },
-  HC: { base: 4, scale: "V", lv: [[20, 5, 2], [35, 9, 4], [60, 14, 8]] },
-  TE: { base: 4, scale: "H", lv: [[15, 6, 2], [25, 10, 4], [40, 16, 8]] },
+  UT: { base: 4, scale: "H", lv: [[15, 4, 4], [20, 7, 8], [30, 10, 16]] },
+  RE: { base: 4, scale: "V", lv: [[10, 5, 4], [15, 9, 8], [25, 14, 16]] },
+  HO: { base: 5, scale: "V", lv: [[10, 6, 3], [15, 10, 6], [25, 16, 12]] },
+  MA: { base: 5, scale: "H", lv: [[20, 4, 3], [35, 7, 6], [60, 10, 12]] },
+  HC: { base: 6, scale: "V", lv: [[20, 5, 2], [35, 9, 4], [60, 14, 8]] },
+  TE: { base: 6, scale: "H", lv: [[15, 6, 2], [25, 10, 4], [40, 16, 8]] },
 };
 for (const [ind, want] of Object.entries(V10)) {
   check(`${ind} base $${want.base}, ${want.scale === "H" ? "horizontal" : "vertical"}`,
@@ -78,30 +78,29 @@ section("Prices - a track from $1 to $10, half a dollar a cell");
      moves it DOWN one, so it takes two companies to knock a dollar off. */
   const pm = E.makePriceMatrix();
   const p0 = E.price(pm, "HO");
-  check("an untouched industry sits at its base price", p0 === 3, `HO is $${p0}`);
+  check("an untouched industry sits at its base price", p0 === E.BASE_PRICE.HO, `HO is $${p0}`);
 
-  /* Supply and demand push equally: one cell each, so TWO of either moves a
-     whole dollar. A marker on a blank reads as the number above it, which is why
-     the first supplier appearance shows the dollar and the second adds nothing,
-     while the first company built shows nothing and the second takes the dollar.
-     The RATE is what matters and it is the same both ways. */
+  /* Supply and demand push equally, and each is worth a WHOLE DOLLAR: one
+     supplier appearance lifts a price a dollar, one company built takes a dollar
+     off. The blank cells the track used to carry are gone with the half-dollar
+     step that needed them. */
   E.onLaunch(pm, "ZZ", ["HO"]);                       // HO appears as a supplier once
-  const afterOne = E.price(pm, "HO");
-  E.onLaunch(pm, "ZZ", ["HO"]);                       // and a second time
-  check("two supplier appearances are worth $1", E.price(pm, "HO") === p0 + 1,
+  check("one supplier appearance is worth $1", E.price(pm, "HO") === p0 + 1,
     `$${p0} -> $${E.price(pm, "HO")}`);
-  check("the second one adds nothing on top", E.price(pm, "HO") === afterOne,
-    `after one $${afterOne}, after two $${E.price(pm, "HO")}`);
+  E.onLaunch(pm, "ZZ", ["HO"]);                       // and a second time
+  check("and the second is worth another", E.price(pm, "HO") === p0 + 2,
+    `$${p0} -> $${E.price(pm, "HO")}`);
 
   const pm2 = E.makePriceMatrix();
   E.onLaunch(pm2, "HO", []);                          // one HO company built
-  check("one company built does not move the price", E.price(pm2, "HO") === p0);
+  check("one company built takes $1 off", E.price(pm2, "HO") === p0 - 1,
+    `$${p0} -> $${E.price(pm2, "HO")}`);
   E.onLaunch(pm2, "HO", []);
-  check("two companies built take $1 off", E.price(pm2, "HO") === p0 - 1,
+  check("two take $2 off", E.price(pm2, "HO") === p0 - 2,
     `$${p0} -> $${E.price(pm2, "HO")}`);
 
-  /* The two pressures being equal is the whole point of halving the climb: an
-     industry built as often as it is needed should not drift. */
+  /* The two pressures being equal is the point: an industry built as often as it
+     is needed should not drift. */
   const pm2b = E.makePriceMatrix();
   E.onLaunch(pm2b, "HO", []);           // built once
   E.onLaunch(pm2b, "ZZ", ["HO"]);       // needed once
@@ -112,21 +111,34 @@ section("Prices - a track from $1 to $10, half a dollar a cell");
      that is the whole reason this is one clamped position and not two tallies. */
   const hi = E.makePriceMatrix();
   for (let n = 0; n < 40; n++) E.onLaunch(hi, "ZZ", ["UT"]);
-  check("no price ever climbs above $10", E.price(hi, "UT") === 10, `$${E.price(hi, "UT")}`);
-  E.onLaunch(hi, "UT", []); E.onLaunch(hi, "UT", []);
-  check("and it comes straight back off $10 when built", E.price(hi, "UT") === 9,
+  check(`no price ever climbs above $${E.PRICE_MAX}`, E.price(hi, "UT") === E.PRICE_MAX,
+    `$${E.price(hi, "UT")}`);
+  E.onLaunch(hi, "UT", []);
+  check(`and it comes straight back off $${E.PRICE_MAX} when built`,
+    E.price(hi, "UT") === E.PRICE_MAX - 1,
     `$${E.price(hi, "UT")} - a marker parked past the end would not have moved`);
 
   const lo = E.makePriceMatrix();
   for (let n = 0; n < 40; n++) E.onLaunch(lo, "UT", []);
-  check("no price ever falls below $1", E.price(lo, "UT") === 1);
-  E.onLaunch(lo, "ZZ", ["UT"]);
-  check("and it comes straight back off $1 when needed", E.price(lo, "UT") === 2,
+  check(`no price ever falls below $${E.PRICE_MIN}`, E.price(lo, "UT") === E.PRICE_MIN,
     `$${E.price(lo, "UT")}`);
+  E.onLaunch(lo, "ZZ", ["UT"]);
+  check(`and it comes straight back off $${E.PRICE_MIN} when needed`,
+    E.price(lo, "UT") === E.PRICE_MIN + 1, `$${E.price(lo, "UT")}`);
 
-  /* A game saved before the track existed carries demand/offer instead. */
+  /* THE FLOOR IS NO LONGER THE RECYCLING RATE. Production the demand board
+     cannot absorb is still binned for $1, and the market now stops a dollar
+     above that - so a flooded good is worth twice what scrapping it is worth,
+     which was not true when the track bottomed out at $1. */
+  check("the floor sits above the recycling rate", E.PRICE_MIN > 1,
+    `floor $${E.PRICE_MIN}, recycling $1`);
+
+  /* A game saved before the track existed carries demand/offer instead. It is
+     read on TODAY'S base prices, so the expected figure comes from the engine
+     rather than being typed. */
   const old = { demand: { HO: 4 }, offer: { HO: 0 } };
-  check("a game saved on the old model still prices", E.price(old, "HO") === 5,
+  check("a game saved on the old model still prices",
+    E.price(old, "HO") === Math.min(E.PRICE_MAX, E.BASE_PRICE.HO + 2),
     `$${E.price(old, "HO")}`);
 }
 
