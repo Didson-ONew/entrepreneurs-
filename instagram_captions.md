@@ -288,11 +288,17 @@ search throws those out and takes the fullest game that still reaches Q12.*
 > stars are Megacorp headquarters — mergers that stop trading and start being
 > worth points.
 >
-> The half-faded squares with a dashed border are companies that were **sold**.
-> Selling doesn't clear the plot: the building stays standing as a distressed
-> shell, and anyone can take it over and renovate it — at which point it comes
-> back to full colour. Eleven change hands over the twelve quarters, and by the
-> final bell every one of them has been renovated by somebody.
+> The half-faded squares are **distressed shells** — buildings still standing
+> that nobody is trading out of. There are two ways to make one, and the border
+> tells you which. A **white dashed** border means the company was sold. A
+> **gold dashed** border means it was eaten to form a Megacorp: merging turns
+> every company in the combination except one into a shell, and the survivor
+> gets the star. Eleven plots go gold-dashed over these twelve quarters, and by
+> the final bell every one has been renovated by somebody.
+>
+> That is the real price of a Megacorp, and it's the thing the rules text never
+> quite lands: the star on the board is worth points, and it cost you four
+> working companies to put there.
 >
 > Watch the chart underneath at the same time. That is the same event seen twice:
 > every company that goes up is an operating bill somebody else now collects, and
@@ -303,6 +309,44 @@ search throws those out and takes the fullest game that still reaches Q12.*
 > Retail $4 → $2 in the one after, while Hospitality and Manufacturing climb to
 > $7. The table spent eleven quarters reading the market and then all moved at
 > once, which is exactly what the market does to you.
+
+---
+
+## 12b · The same reel, at every table size
+`reels_mp4/12_twelve-quarters_2p.mp4` · `_3p` · `_4p` · `_5p` ·
+plus the six-player cut above
+
+Each is its own search over 200 games at that table size — not the six-player
+game with seats deleted. The boards really are this different, and "what does it
+look like with two?" is a question every buyer asks.
+
+| players | seed | plots built | Megacorps | merged away | $ of price movement |
+|---|---|---|---|---|---|
+| 2 | 166 | 13 / 64 | 3 | 6 | 15 |
+| 3 | 1 | 19 / 64 | 1 | 4 | 13 |
+| 4 | 191 | 25 / 64 | 2 | 5 | 20 |
+| 5 | 84 | 31 / 64 | 7 | 15 | 19 |
+| 6 | 180 | 37 / 64 | 5 | 11 | 26 |
+
+**Read these as five specific games, not five averages.** Each is the fullest
+game found at that size, so the plot counts are near the top of what that table
+can do — the measured averages are 8.5 / 12.6 / 18.3 / 23.1 / 27.0.
+
+Post them as a set, or use the two-player cut on its own as an answer to the
+comment you will definitely get:
+
+> Same game, same twelve quarters, two players instead of six.
+>
+> Thirteen plots built instead of thirty-seven — barely a fifth of the city
+> touched. Land is cheap, nobody is blocking you, and you can plan four quarters
+> ahead without someone taking the plot you wanted.
+>
+> The prices still move: fifteen dollars of movement across the six goods
+> against twenty-six in the six-player game. But they're moving because of *you*.
+> With six players the market is something you read. With two it's something you
+> and one other person are writing, one build at a time.
+>
+> Which is the whole trade. More players, more city, less control.
 
 ---
 

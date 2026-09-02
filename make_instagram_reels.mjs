@@ -46,7 +46,14 @@ const REELS = [
   { stem: "02_supply-web", seconds: 13 },      // infinite 12s cycle - one full pass
   { stem: "04_pieces", seconds: 6 },           // last row lands at 4.0s
   { stem: "07_turn-order", seconds: 9 },       // resolve row finishes at 6.3s
-  { stem: "12_twelve-quarters", seconds: 17 }, // 12 quarters at 1.15s from 0.7s
+  /* One twelve-quarters cut per table size. Every one runs the same clock - 12
+     quarters at 1.15s from a 0.7s lead, so the last quarter lands at 13.35s and
+     the end labels a half second later - so they all get the same 17s. */
+  { stem: "12_twelve-quarters", seconds: 17 },
+  { stem: "12_twelve-quarters_2p", seconds: 17 },
+  { stem: "12_twelve-quarters_3p", seconds: 17 },
+  { stem: "12_twelve-quarters_4p", seconds: 17 },
+  { stem: "12_twelve-quarters_5p", seconds: 17 },
 ];
 
 fs.rmSync(RAW, { recursive: true, force: true });

@@ -36,10 +36,37 @@ const OUT = path.join(__dirname, "instagram");
 const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
 const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
 if (CUT < 0) { console.error("the engine marker moved - update this script"); process.exit(2); }
+/* MARK THE COMPANIES A MEGACORP EATS.
+
+   Forming a Megacorp sets `distressed` on every company it absorbs except the
+   one that becomes the HQ - exactly the flag a voluntary SALE sets. Nothing
+   distinguishes them afterwards, so reel 12 was painting a merger and a sale
+   identically: four companies vanishing into a Megacorp looked like four
+   companies being sold off, which is close to the opposite story.
+
+   The engine has no field for it, so the flag is added here, in the sandbox
+   copy. The repo file is never touched. The needle is asserted before it is
+   replaced, so this stops rather than silently rendering the old picture if the
+   merge is ever rewritten. */
+const MERGE_NEEDLE = `  match.have.forEach((b) => {
+    if (b === hq) return;
+    b.distressed = true;
+  });`;
+if (!SRC.includes(MERGE_NEEDLE)) {
+  console.error("the Megacorp merge has changed shape - update this script");
+  process.exit(2);
+}
+const MERGE_PATCH = `  match.have.forEach((b) => {
+    if (b === hq) return;
+    b.distressed = true;
+    b.absorbedBy = name;
+  });`;
+
 const box = {};
 const sandbox = { console, Math, Set, Map, Object, Array, JSON, box, String, Number };
 vm.createContext(sandbox);
-vm.runInContext(SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "") + `
+vm.runInContext(SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "")
+  .replace(MERGE_NEEDLE, MERGE_PATCH) + `
   box.E = { BP_DATA, INDUSTRIES, IND_NAME, IND_COLOR, BASE_PRICE, PERSONAS,
             MEGACORPS_TO_END, DISCS_PER_PLAYER, CASH_PER_EP, SCALING,
             PRICE_MIN, PRICE_MAX, RENT_PER_LEVEL, PLAYER_COLORS, COORDS };
@@ -608,10 +635,18 @@ function playOneGame(seed, seats) {
          taken over and renovated later - which is why it is recorded here as a
          state of its own rather than being dropped. Reading only activeBiz left
          a sold company frozen on the board at full strength, showing a city
-         fuller than the one the players were actually running. */
+         fuller than the one the players were actually running.
+
+         MERGED is the other way a company goes distressed, and it is a
+         different event: it was eaten to form a Megacorp rather than sold off.
+         Both leave a shell anyone can renovate, so both draw at half strength -
+         but the merged ones are outlined in the Megacorp's gold, because they
+         are the price somebody paid for the star on the board. */
       for (const b of p.businesses) {
+        const shell = !b.isHQ && !!b.distressed;
         meta[b.id] = { id: b.id, ind: E2.bizInd(b), lvl: b.level,
-                       hq: !!b.isHQ, sold: !b.isHQ && !!b.distressed };
+                       hq: !!b.isHQ, sold: shell && !b.absorbedBy,
+                       merged: shell && !!b.absorbedBy };
       }
     }
     const plots = {};
@@ -627,10 +662,11 @@ function playOneGame(seed, seats) {
     if (/^▶ Year \d+, Quarter \d+/.test(String(msg))) snapshot(st.quarter - 1);
   });
   snapshot(st.quarter);
-  const hqs = new Set(), sold = new Set();
+  const hqs = new Set(), sold = new Set(), merged = new Set();
   for (const f of frames) for (const [plot, m] of Object.entries(f.plots)) {
     if (m.hq) hqs.add(plot);
     if (m.sold) sold.add(plot);
+    if (m.merged) merged.add(plot);
   }
   /* A quarter in which neither the city nor the chart moved is a quarter the
      reel spends showing a still image. Counting them - especially the ones near
@@ -641,15 +677,17 @@ function playOneGame(seed, seats) {
     const a = frames[i - 1], b = frames[i];
     const cityMoved = Object.keys(a.plots).length !== Object.keys(b.plots).length
       || Object.keys(b.plots).some((k) => !a.plots[k] || a.plots[k].lvl !== b.plots[k].lvl
-        || a.plots[k].hq !== b.plots[k].hq || a.plots[k].sold !== b.plots[k].sold);
+        || a.plots[k].hq !== b.plots[k].hq || a.plots[k].sold !== b.plots[k].sold
+        || a.plots[k].merged !== b.plots[k].merged);
     const priceMoved = E.INDUSTRIES.some((ind) => a.prices[ind] !== b.prices[ind]);
     if (!cityMoved && !priceMoved) { dead++; if (i >= frames.length - 4) deadLate++; }
   }
   return { st, frames, dead, deadLate, hqCount: hqs.size, soldCount: sold.size,
+           mergedCount: merged.size,
            built: new Set(frames.flatMap((f) => Object.keys(f.plots))).size };
 }
 
-function reelTwelveQuarters() {
+function reelTwelveQuarters(seats) {
   /* CHOOSING THE GAME.
 
      A game worth showing needs Megacorps in it - they are the endgame, and a
@@ -679,8 +717,12 @@ function reelTwelveQuarters() {
      The cost of six is that 41% of those games end before Quarter 12 - somebody
      claims a second Megacorp and the deadline fires. A reel titled "Twelve
      quarters" cannot show a game that stopped at ten, so the search requires
-     the full twelve and simply skips the rest. There are plenty left. */
-  const SEATS = 6;
+     the full twelve and simply skips the rest. There are plenty left.
+
+     Six is the flagship, but the same reel is cut for every table size, because
+     "what does a two player game look like" is a question a buyer actually
+     asks, and the honest answer is a much emptier board. */
+  const SEATS = seats;
   let best = null;
   const better = (g, b) => !b || g.deadLate < b.deadLate
     || (g.deadLate === b.deadLate && (g.built > b.built
@@ -696,8 +738,8 @@ function reelTwelveQuarters() {
   }
   if (!best) { console.error("no seed ran the full twelve quarters"); process.exit(2); }
   const { st, frames, seed } = best;
-  console.log(`  reel 12: seed ${seed}, ${SEATS} seats - ${best.hqCount} Megacorp HQ(s), `
-    + `${best.built} plots built, ${best.soldCount} sold, `
+  console.log(`  reel 12 (${SEATS}p): seed ${seed} - ${best.built} plots built, `
+    + `${best.hqCount} Megacorp HQ(s), ${best.soldCount} sold, ${best.mergedCount} merged away, `
     + `${best.dead} quarter(s) with nothing happening (${best.deadLate} of them late)`);
 
   const rs = [...new Set(Object.values(st.board.cellOf).map((c) => c.r))].sort((a, b) => a - b);
@@ -720,7 +762,7 @@ function reelTwelveQuarters() {
       const seq = (timeline[plot] = timeline[plot] || []);
       const last = seq[seq.length - 1];
       if (!last || last.id !== m.id || last.ind !== m.ind || last.lvl !== m.lvl
-          || last.hq !== m.hq || last.sold !== m.sold) {
+          || last.hq !== m.hq || last.sold !== m.sold || last.merged !== m.merged) {
         if (last) last.until = q;
         seq.push({ ...m, from: q });
       }
@@ -805,7 +847,9 @@ function reelTwelveQuarters() {
     const seq = timeline[plot] || [];
     const layers = seq.map((sState) => {
       const col = sState.hq ? "#0B0D10" : shadeOf(sState.ind, sState.lvl);
-      const oc = sState.hq ? GOLD : "#F3F4F6";
+      /* Gold ties a plot to a Megacorp: the HQ itself, and the companies that
+         were eaten to build it. */
+      const oc = (sState.hq || sState.merged) ? GOLD : "#F3F4F6";
       const ink = sState.hq ? GOLD : inkOn(col);
       /* A SOLD company sits at half strength: same hue, same level, visibly
          switched off. It is not removed, because it has not left the board -
@@ -819,10 +863,11 @@ function reelTwelveQuarters() {
          industry rather than a dimmed one - it loses exactly the information
          the colour is carrying. So the footprint outline goes dashed as well:
          a broken border says shell whatever the fill happens to look like. */
-      const fo = sState.sold ? ".5" : "1";
+      const shell = sState.sold || sState.merged;
+      const fo = shell ? ".5" : "1";
       const fadeOut = sState.until === undefined ? "" : `,fadeOut .3s ${tOf(sState.until)}s forwards`;
       return `<div class="fill" style="--oc:${oc};--fo:${fo};background:${col};
-          ${outlineFor(plot, sState.id, sState.from, sState.sold ? "dashed" : "solid")}
+          ${outlineFor(plot, sState.id, sState.from, shell ? "dashed" : "solid")}
           animation:pop .45s ${tOf(sState.from)}s forwards${fadeOut}">
           ${sState.hq ? `<span class="hq">★</span>`
             : `<span class="lvl" style="color:${ink}">${sState.lvl}</span>`}
@@ -878,6 +923,18 @@ function reelTwelveQuarters() {
         fill="${E.IND_COLOR[o.ind]}" font-size="21" font-weight="800">${o.ind} $${o.v}</text>
     </g>`;
   }).join("");
+  /* A key for a state that never occurs in THIS game is worse than no key: the
+     two player cut has no sales in it at all, and a "sold" swatch sends the
+     viewer hunting the board for something that is not there. So the legend is
+     built from what this particular game contains. */
+  const legend = [
+    `<span><i class="sw" style="background:${E.IND_COLOR.RE}"></i>a company</span>`,
+    `<span><i class="sw lv">2</i>its level</span>`,
+    best.soldCount ? `<span><i class="sw soldsw" style="background:${E.IND_COLOR.HO}"></i>sold</span>` : "",
+    best.mergedCount ? `<span><i class="sw mergedsw" style="background:${E.IND_COLOR.MA}"></i>merged away</span>` : "",
+    best.hqCount ? `<span><i class="sw hqsw">★</i>Megacorp HQ</span>` : "",
+  ].filter(Boolean).join("");
+
   const gridY = [1, 4, 7, 10].map((v) => `
     <line x1="${PADL}" y1="${yOf(v)}" x2="${W - PADR + 8}" y2="${yOf(v)}" stroke="${LINE}" stroke-width="1"/>
     <text x="14" y="${(yOf(v) + 7).toFixed(1)}" fill="${MUTE}" font-size="19" font-weight="700">$${v}</text>`).join("");
@@ -912,19 +969,14 @@ function reelTwelveQuarters() {
   return shell(1080, 1920, `
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 62px;gap:30px">
       <div style="text-align:center">
-        <div class="kicker">One real game</div>
+        <div class="kicker">One real game &middot; ${SEATS} players</div>
         <div style="font-size:58px;font-weight:850;margin-top:10px;letter-spacing:-1.4px">
           Twelve quarters.</div>
       </div>
 
       <div class="city">${districts}</div>
 
-      <div class="legend">
-        <span><i class="sw" style="background:${E.IND_COLOR.RE}"></i>a company</span>
-        <span><i class="sw lv">2</i>its level</span>
-        <span><i class="sw soldsw" style="background:${E.IND_COLOR.HO}"></i>sold</span>
-        <span><i class="sw hqsw">★</i>Megacorp HQ</span>
-      </div>
+      <div class="legend">${legend}</div>
 
       <div style="margin-top:2px">
         <div class="chartlbl">What that did to the price of every good</div>
@@ -956,6 +1008,7 @@ function reelTwelveQuarters() {
         justify-content:center;font-size:15px;font-weight:880;color:#0E1013}
     .sw.lv{background:${E.IND_COLOR.MA}}
     .sw.soldsw{opacity:.5;border:2px dashed ${CREAM}}
+    .sw.mergedsw{opacity:.5;border:2px dashed ${GOLD}}
     .sw.hqsw{background:#0B0D10;border:2px solid ${GOLD};color:${GOLD}}
     .chartlbl{font-size:24px;font-weight:800;color:${CREAM};margin-bottom:8px;letter-spacing:.2px}
     @keyframes sweep{to{width:${(xOf(nQ - 1) + 3).toFixed(1)}px}}
@@ -965,11 +1018,21 @@ function reelTwelveQuarters() {
   `);
 }
 
+/* Reel 12 is cut once per table size. Six players is the flagship and keeps the
+   plain filename, because the caption and the gallery already point at it; the
+   rest are suffixed. Each one searches its own 200 seeds, so a two player reel
+   shows the best two player game rather than a six player game with four seats
+   deleted - the boards really are that different. */
+const TABLE_SIZES = [2, 3, 4, 5, 6];
+const FLAGSHIP = 6;
 const reels = [
   { file: "reels/02_supply-web.html", html: reelSupplyWeb() },
   { file: "reels/04_pieces.html", html: reelPieces() },
   { file: "reels/07_turn-order.html", html: reelTurnOrder() },
-  { file: "reels/12_twelve-quarters.html", html: reelTwelveQuarters() },
+  ...TABLE_SIZES.map((n) => ({
+    file: `reels/12_twelve-quarters${n === FLAGSHIP ? "" : `_${n}p`}.html`,
+    html: reelTwelveQuarters(n),
+  })),
 ];
 
 /* ---------------------------------------------------------------- render */
