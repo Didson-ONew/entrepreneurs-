@@ -3760,8 +3760,12 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
           fontSize: 9, fontWeight: 800, color: "#062b33",
         }}>H</span>
       )}
+      {/* PlotCell is given the board, not the state, so it cannot read a price
+          here - and threading the price matrix into all 64 cells to fill a
+          tooltip is not worth it. The tier is the number that matters, and the
+          plot inspector does the arithmetic. */}
       {foundBiz && foundBiz.isHQ && (
-        <span title={`Megacorp HQ: ${foundBiz.megacorpName}`} style={{
+        <span title={`Megacorp HQ: ${foundBiz.megacorpName} \u2014 tier ${tierOfHQ(foundBiz)}, so it banks its industry's price divided by ${tierOfHQ(foundBiz)} each quarter`} style={{
           position: "absolute", inset: 3, borderRadius: 2, backgroundColor: "#f5d76e",
           border: "1.5px solid #7a5c00", pointerEvents: "none",
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -3878,7 +3882,7 @@ function BizTooltip({ state, hover }) {
     </div></Floating>
   );
 }
-function PlotInfo({ board, players, selectedPlot }) {
+function PlotInfo({ board, players, selectedPlot, pm }) {
   if (!selectedPlot) return <div className="text-[10px] text-gray-500 italic px-1">Click a plot to inspect it.</div>;
   const [r, c, pos] = selectedPlot.split(",");
   const tname = board.tiles[`${r},${c}`];
@@ -3900,7 +3904,12 @@ function PlotInfo({ board, players, selectedPlot }) {
           {biz.distressed
             ? <span style={{ color: "#f5a623" }}>Distressed &middot; unowned (renovate via M&amp;A &rarr; Buy)</span>
             : biz.isHQ
-              ? <span style={{ color: "#f5d76e" }}>Megacorp HQ &ldquo;{biz.megacorpName}&rdquo; &middot; {bizOwnerName}</span>
+              ? <span style={{ color: "#f5d76e" }}>Megacorp HQ &ldquo;{biz.megacorpName}&rdquo; &middot; {bizOwnerName}
+                  {" "}&middot; <span style={{ color: "#c9a0ff" }}>tier {tierOfHQ(biz)}</span>
+                  {" "}&middot; ${price(pm, bizInd(biz))} &divide; {tierOfHQ(biz)} ={" "}
+                  <b style={{ color: brandEPFor(price(pm, bizInd(biz)), tierOfHQ(biz)) ? "#8fd3b6" : "#8b93a3" }}>
+                    {brandEPFor(price(pm, bizInd(biz)), tierOfHQ(biz))} EP
+                  </b>{" "}a quarter</span>
               : bizOwnerName}
         </span>
       ) : (
@@ -4955,7 +4964,7 @@ function GameScreens({ online }) {
             <BoardView board={state.board} players={state.players} demand={state.demand} quarter={state.quarter} selectedPlot={selectedPlot} onSelectPlot={setSelectedPlot} selectMode={pickMode} selectCtx={{ state, player: human }} onSelectForLaunch={handlePickPlot} deliverInfo={deliverInfo} onDeliver={handleDeliverClick} onHoverBiz={(biz, x, y) => setHover(biz ? { biz, x, y } : null)} />
             <BizTooltip state={state} hover={hover} />
             <EPBreakdown hover={epHover} />
-            <PlotInfo board={state.board} players={state.players} selectedPlot={selectedPlot} />
+            <PlotInfo board={state.board} players={state.players} selectedPlot={selectedPlot} pm={state.pm} />
 
             </div>
 
@@ -5406,7 +5415,7 @@ function GameScreens({ online }) {
                 keeps a single, full-width block instead of two stubby ones. */}
             <div className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
 
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks EP equal to that industry's price every quarter, counts as a Logistic Hub for anything built beside it, and at the end scores 3 EP for every other company standing beside it. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots - unless you were first to go public, which wins the IPO tile and a sixth bay." /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks its industry's price DIVIDED BY THE TILE'S TIER as EP every quarter (the \u00f7 number on each tile, rounded down - so a \u00f72 tile on a $7 good pays 3 EP a quarter, and pays nothing at all while the price is below the tier), counts as a Logistic Hub for anything built beside it, and at the end scores 3 EP for every other company standing beside it. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots - unless you were first to go public, which wins the IPO tile and a sixth bay." /></div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
                 {state.megacorpPool.map(([name, combo, ep], i) => (
                   <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>
@@ -5417,6 +5426,14 @@ function GameScreens({ online }) {
                           {k}&times;<LevelBadge level={+l} />
                         </span>
                       ))}
+                      {/* THE TIER IS THE DIVISOR. A tile's one-off EP is only half of
+                          what it is worth: the headquarters then banks its industry's
+                          price DIVIDED BY THIS NUMBER every quarter for the rest of the
+                          game. A player choosing between two combinations cannot price
+                          that decision without seeing it, and until now it appeared
+                          nowhere in the interface. */}
+                      <span title={`Tier ${MEGACORP_TIER[name] || 1}: this headquarters banks its industry's price divided by ${MEGACORP_TIER[name] || 1}, every quarter. A lower divisor is better.`}
+                            style={{ color: "#c9a0ff", fontWeight: 700 }}>&divide;{MEGACORP_TIER[name] || 1}</span>
                       <span style={{ color: "#8fd3b6", fontWeight: 700 }}>{ep}EP</span>
                     </span>
                   </div>
