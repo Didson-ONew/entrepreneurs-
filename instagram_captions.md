@@ -300,6 +300,10 @@ search throws those out and takes the fullest game that still reaches Q12.*
 > quite lands: the star on the board is worth points, and it cost you four
 > working companies to put there.
 >
+> Under the map, the city's economy counts up: every dollar of goods the table
+> has sold, from the first quarter to the last. That number is what all of this
+> is for — six people building a city that pays for itself.
+>
 > Watch the chart underneath at the same time. That is the same event seen twice:
 > every company that goes up is an operating bill somebody else now collects, and
 > the price of their goods moves because of it.
@@ -312,6 +316,15 @@ search throws those out and takes the fullest game that still reaches Q12.*
 
 ---
 
+> **These cuts play the proposed economy, not the live one.** The track runs
+> $2–$12, every base is $2 higher, one build moves a price a whole dollar, and
+> cash scores at $50 per EP. The game online still runs the old numbers, so do
+> not post these next to post 3 (the price carousel) until the change lands —
+> they describe different games. Set `RULESET = "shipped"` in
+> `make_instagram.mjs` to re-cut them on the live rules.
+
+---
+
 ## 12b · The same reel, at every table size
 `reels_mp4/12_twelve-quarters_2p.mp4` · `_3p` · `_4p` · `_5p` ·
 plus the six-player cut above
@@ -320,17 +333,22 @@ Each is its own search over 200 games at that table size — not the six-player
 game with seats deleted. The boards really are this different, and "what does it
 look like with two?" is a question every buyer asks.
 
-| players | seed | plots built | Megacorps | merged away | $ of price movement |
-|---|---|---|---|---|---|
-| 2 | 166 | 13 / 64 | 3 | 6 | 15 |
-| 3 | 1 | 19 / 64 | 1 | 4 | 13 |
-| 4 | 191 | 25 / 64 | 2 | 5 | 20 |
-| 5 | 84 | 31 / 64 | 7 | 15 | 19 |
-| 6 | 180 | 37 / 64 | 5 | 11 | 26 |
+| players | seed | plots built | Megacorps | merged away |
+|---|---|---|---|---|
+| 2 | 80 | 13 / 64 | 3 | 7 |
+| 3 | 40 | 19 / 64 | 5 | 6 |
+| 4 | 98 | 25 / 64 | 5 | 7 |
+| 5 | 183 | 29 / 64 | 6 | 8 |
+| 6 | 34 | 35 / 64 | 6 | 16 |
 
-**Read these as five specific games, not five averages.** Each is the fullest
-game found at that size, so the plot counts are near the top of what that table
-can do — the measured averages are 8.5 / 12.6 / 18.3 / 23.1 / 27.0.
+**Read these as five specific games, not five averages.** Each is close to the
+fullest game found at that size, so the plot counts are near the top of what
+that table can do — the measured averages are 8.5 / 12.6 / 18.3 / 23.1 / 27.0.
+
+The search now also rejects games whose prices flatline against either end of
+the track, because the fullest games are the hottest ones: more building means
+more supplier appearances means higher prices, so ranking on fullness alone
+picks from the hot tail rather than the middle.
 
 Post them as a set, or use the two-player cut on its own as an answer to the
 comment you will definitely get:
@@ -341,8 +359,7 @@ comment you will definitely get:
 > touched. Land is cheap, nobody is blocking you, and you can plan four quarters
 > ahead without someone taking the plot you wanted.
 >
-> The prices still move: fifteen dollars of movement across the six goods
-> against twenty-six in the six-player game. But they're moving because of *you*.
+> The prices still move — but they're moving because of *you*.
 > With six players the market is something you read. With two it's something you
 > and one other person are writing, one build at a time.
 >

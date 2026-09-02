@@ -62,19 +62,69 @@ const MERGE_PATCH = `  match.have.forEach((b) => {
     b.absorbedBy = name;
   });`;
 
-const box = {};
-const sandbox = { console, Math, Set, Map, Object, Array, JSON, box, String, Number };
-vm.createContext(sandbox);
-vm.runInContext(SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "")
-  .replace(MERGE_NEEDLE, MERGE_PATCH) + `
-  box.E = { BP_DATA, INDUSTRIES, IND_NAME, IND_COLOR, BASE_PRICE, PERSONAS,
-            MEGACORPS_TO_END, DISCS_PER_PLAYER, CASH_PER_EP, SCALING,
-            PRICE_MIN, PRICE_MAX, RENT_PER_LEVEL, PLAYER_COLORS, COORDS };
-  box.E2 = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
-             activeBiz, megacorpHQs, bizInd, price };
-`, sandbox);
-const E = box.E;
-const E2 = box.E2;      // the parts needed to actually play a game for reel 12
+/* THE PROPOSED ECONOMY, for reel 12 only.
+
+   Reel 12 plays a real game and draws what happened in it, so it has to be
+   played under some ruleset. These constants are the measured proposal - the
+   track running $2..$12, every base up $2, one build worth a whole dollar, and
+   cash scoring at $50 per EP - which is NOT what the engine currently ships.
+
+   Everything else in this kit still reads the shipped rules, so the price
+   carousel and reel 12 describe different games until the proposal lands. Hold
+   the twelve-quarters cuts back until it does, or post them alongside a caption
+   that says which rules they are. RULESET below is the one switch: set it to
+   "shipped" and the reel goes back to the live game. */
+const RULESET = "proposed";
+const RULE_NEEDLES = {
+  step: "const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;",
+  track: "const PRICE_MIN = 1, PRICE_MAX = 10;",
+  base: "const BASE_PRICE = { UT: 2, RE: 2, HO: 3, MA: 3, HC: 4, TE: 4 };",
+  rate: "const CASH_PER_EP = 20;",
+  /* the delivery line, hooked so the city's takings can be totalled per quarter */
+  sale: "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;",
+};
+const RULE_PATCHES = {
+  step: "const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;",
+  track: "const PRICE_MIN = 2, PRICE_MAX = 12;",
+  base: "const BASE_PRICE = { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 };",
+  rate: "const CASH_PER_EP = 50;",
+};
+for (const [k, v] of Object.entries(RULE_NEEDLES)) {
+  if (!SRC.includes(v)) { console.error(`the ${k} constants have moved - update this script`); process.exit(2); }
+}
+const SALE_HOOK = "  const leftover = Math.max(0, remaining);\n"
+  + "  if (typeof __econ !== 'undefined') __econ.sale(earned);\n"
+  + "  p.cash += earned + leftover * 1;";
+
+/* Two engines. The kit at large reads the shipped one; reel 12 reads whichever
+   RULESET names, with the sale hook so the economy label has something real to
+   count. Only the sandbox copies are patched - the repo file is never touched. */
+function buildEngine({ proposed, hook }) {
+  let logic = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "")
+    .replace(MERGE_NEEDLE, MERGE_PATCH);
+  if (proposed) for (const k of ["step", "track", "base", "rate"]) {
+    logic = logic.replace(RULE_NEEDLES[k], RULE_PATCHES[k]);
+  }
+  if (hook) logic = logic.replace(RULE_NEEDLES.sale, SALE_HOOK);
+  const box = {};
+  const econ = { quarterEarned: 0 };
+  const sandbox = { console, Math, Set, Map, Object, Array, JSON, box, String, Number,
+    __econ: { sale: (earned) => { econ.quarterEarned += earned; } } };
+  vm.createContext(sandbox);
+  vm.runInContext(logic + `
+    box.E = { BP_DATA, INDUSTRIES, IND_NAME, IND_COLOR, BASE_PRICE, PERSONAS,
+              MEGACORPS_TO_END, DISCS_PER_PLAYER, CASH_PER_EP, SCALING,
+              PRICE_MIN, PRICE_MAX, RENT_PER_LEVEL, PLAYER_COLORS, COORDS };
+    box.E2 = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
+               activeBiz, megacorpHQs, bizInd, price };
+  `, sandbox);
+  return { E: box.E, E2: box.E2, econ };
+}
+
+const SHIPPED = buildEngine({ proposed: false, hook: false });
+const REEL12 = buildEngine({ proposed: RULESET === "proposed", hook: true });
+const E = SHIPPED.E;
+const E2 = SHIPPED.E2;
 
 /* Who buys from whom, straight off the cards. */
 const SUPPLIES = {};      // ind -> the industries that list it as a supplier
@@ -622,12 +672,18 @@ function reelPieces() {
    the reel wants a game that plays itself. Passing the table size straight
    through asked for a seven player game, and STARTING has no row past six. */
 function playOneGame(seed, seats) {
-  const st = E2.initGame(seats - 1, seed, ["Seat 1"], undefined, true, undefined);
+  /* Reel 12 plays under RULESET, not necessarily the shipped rules. */
+  const { E: RE, E2: R2, econ } = REEL12;
+  const st = R2.initGame(seats - 1, seed, ["Seat 1"], undefined, true, undefined);
   if (st.players.length !== seats) throw new Error(`asked for ${seats} seats, got ${st.players.length}`);
   st.players[0].isHuman = false;
-  if (st.phase === "drafting") { E2.advanceDraft(st, () => {}); E2.startPlanning(st); }
-  const frames = [];        // per quarter: { qEnd, plots:{plot:{ind,lvl,hq,sold}}, prices:{ind:$} }
+  if (st.phase === "drafting") { R2.advanceDraft(st, () => {}); R2.startPlanning(st); }
+  econ.quarterEarned = 0;
+  let takings = 0;          // everything the city has sold, cumulative
+  const frames = [];        // per quarter: { qEnd, plots, prices, takings }
   const snapshot = (qEnd) => {
+    takings += econ.quarterEarned;
+    econ.quarterEarned = 0;
     const meta = {};
     for (const p of st.players) {
       /* A company that has been SOLD is not gone. `sellCompany` only sets
@@ -644,7 +700,7 @@ function playOneGame(seed, seats) {
          are the price somebody paid for the star on the board. */
       for (const b of p.businesses) {
         const shell = !b.isHQ && !!b.distressed;
-        meta[b.id] = { id: b.id, ind: E2.bizInd(b), lvl: b.level,
+        meta[b.id] = { id: b.id, ind: R2.bizInd(b), lvl: b.level,
                        hq: !!b.isHQ, sold: shell && !b.absorbedBy,
                        merged: shell && !!b.absorbedBy };
       }
@@ -655,10 +711,10 @@ function playOneGame(seed, seats) {
       if (meta[bizId]) plots[plot] = meta[bizId];
     }
     const prices = {};
-    for (const ind of E.INDUSTRIES) prices[ind] = E2.price(st.pm, ind);
-    frames.push({ qEnd, plots, prices });
+    for (const ind of RE.INDUSTRIES) prices[ind] = R2.price(st.pm, ind);
+    frames.push({ qEnd, plots, prices, takings });
   };
-  E2.advancePlanning(st, E2.mulberry32(seed + 777), (msg) => {
+  R2.advancePlanning(st, R2.mulberry32(seed + 777), (msg) => {
     if (/^▶ Year \d+, Quarter \d+/.test(String(msg))) snapshot(st.quarter - 1);
   });
   snapshot(st.quarter);
@@ -672,6 +728,17 @@ function playOneGame(seed, seats) {
      reel spends showing a still image. Counting them - especially the ones near
      the end, where a viewer reads a flat run as "the game stopped" - is how a
      seed gets rejected below. */
+  /* A price sitting on an end of the track is a flat line on the chart, and a
+     flat line is the exact defect that made the first cut of this reel look
+     broken - it just happens at the top rather than the bottom. Count those
+     cells so the seed search can avoid a game where the market has run out of
+     room, which the FULLEST games are the most prone to: more building means
+     more supplier appearances means hotter prices. Ranking on fullness alone
+     picks from the hottest tail of the distribution rather than the middle. */
+  let pinnedCells = 0;
+  for (const f of frames) for (const ind of RE.INDUSTRIES) {
+    if (f.prices[ind] === RE.PRICE_MIN || f.prices[ind] === RE.PRICE_MAX) pinnedCells++;
+  }
   let dead = 0, deadLate = 0;
   for (let i = 1; i < frames.length; i++) {
     const a = frames[i - 1], b = frames[i];
@@ -679,10 +746,10 @@ function playOneGame(seed, seats) {
       || Object.keys(b.plots).some((k) => !a.plots[k] || a.plots[k].lvl !== b.plots[k].lvl
         || a.plots[k].hq !== b.plots[k].hq || a.plots[k].sold !== b.plots[k].sold
         || a.plots[k].merged !== b.plots[k].merged);
-    const priceMoved = E.INDUSTRIES.some((ind) => a.prices[ind] !== b.prices[ind]);
+    const priceMoved = RE.INDUSTRIES.some((ind) => a.prices[ind] !== b.prices[ind]);
     if (!cityMoved && !priceMoved) { dead++; if (i >= frames.length - 4) deadLate++; }
   }
-  return { st, frames, dead, deadLate, hqCount: hqs.size, soldCount: sold.size,
+  return { st, frames, dead, deadLate, pinnedCells, hqCount: hqs.size, soldCount: sold.size,
            mergedCount: merged.size,
            built: new Set(frames.flatMap((f) => Object.keys(f.plots))).size };
 }
@@ -724,9 +791,13 @@ function reelTwelveQuarters(seats) {
      asks, and the honest answer is a much emptier board. */
   const SEATS = seats;
   let best = null;
+  /* Fullness minus flatness. Each quarter a good spends stuck against an end of
+     the track costs as much as a plot left empty, so a slightly smaller city
+     with a market still moving beats a packed one whose chart has flatlined. */
+  const score = (g) => g.built - g.pinnedCells;
   const better = (g, b) => !b || g.deadLate < b.deadLate
-    || (g.deadLate === b.deadLate && (g.built > b.built
-      || (g.built === b.built && g.hqCount > b.hqCount)));
+    || (g.deadLate === b.deadLate && (score(g) > score(b)
+      || (score(g) === score(b) && g.hqCount > b.hqCount)));
   /* Every seed, no early exit. Two hundred games is nineteen seconds and the
      result is the best one rather than the first acceptable one - the previous
      search stopped as soon as a seed cleared a low bar, which is how it settled
@@ -740,6 +811,7 @@ function reelTwelveQuarters(seats) {
   const { st, frames, seed } = best;
   console.log(`  reel 12 (${SEATS}p): seed ${seed} - ${best.built} plots built, `
     + `${best.hqCount} Megacorp HQ(s), ${best.soldCount} sold, ${best.mergedCount} merged away, `
+    + `${best.pinnedCells} price-quarters stuck at an end, `
     + `${best.dead} quarter(s) with nothing happening (${best.deadLate} of them late)`);
 
   const rs = [...new Set(Object.values(st.board.cellOf).map((c) => c.r))].sort((a, b) => a - b);
@@ -885,7 +957,11 @@ function reelTwelveQuarters(seats) {
   const W = 956, H = 300, PADL = 54, PADR = 132, PADB = 26, PADT = 12;
   const nQ = frames.length;
   const xOf = (q) => PADL + (W - PADL - PADR) * (nQ === 1 ? 0 : q / (nQ - 1));
-  const yOf = (v) => PADT + (H - PADT - PADB) * (1 - (v - E.PRICE_MIN) / (E.PRICE_MAX - E.PRICE_MIN));
+  /* THE SCALE COMES FROM THE ENGINE THAT PLAYED THE GAME. The kit at large
+     reads the shipped $1..$10; this reel may be playing $2..$12, and plotting
+     one on the other's axis would push every line off the top of the chart. */
+  const RMIN = REEL12.E.PRICE_MIN, RMAX = REEL12.E.PRICE_MAX;
+  const yOf = (v) => PADT + (H - PADT - PADB) * (1 - (v - RMIN) / (RMAX - RMIN));
   const totalT = LEAD + (nQ - 1) * PER_Q;
   /* The chart is revealed by a CLIP that sweeps left to right on exactly the
      clock the city fills on: at the instant quarter q pops on the map, the chart
@@ -923,6 +999,37 @@ function reelTwelveQuarters(seats) {
         fill="${E.IND_COLOR[o.ind]}" font-size="21" font-weight="800">${o.ind} $${o.v}</text>
     </g>`;
   }).join("");
+  /* THE CITY'S ECONOMY, counting up under the map.
+
+     The map says what got built and the chart says what that did to prices, but
+     neither says how much bigger the city got - and that is the thing the whole
+     machine exists to produce. This totals every dollar of goods the table has
+     sold, cumulatively, and grows it on the same clock as everything else.
+
+     It is drawn as one bar plus a stack of numbers, one per quarter, each fading
+     in as its quarter lands. A counter cannot be animated in CSS, and the frames
+     are rendered by seeking animations to an exact instant, so a script-driven
+     counter would not survive the capture either. Thirteen spans do. */
+  const totalTake = frames[nQ - 1].takings || 0;
+  const econStops = frames.map((f, q) => {
+    const pct = (100 * q / Math.max(1, nQ - 1)).toFixed(2);
+    const w = (100 * (f.takings || 0) / Math.max(1, totalTake)).toFixed(1);
+    return `${pct}%{width:${w}%}`;
+  }).join("");
+  const econNums = frames.map((f, q) => {
+    const out = q === nQ - 1 ? "" : `,fadeOut .01s ${tOf(q + 1)}s forwards`;
+    return `<span style="animation:fadeIn .3s ${tOf(q)}s forwards${out}">`
+      + `$${Math.round(f.takings || 0).toLocaleString("en-US")}</span>`;
+  }).join("");
+  const econLabel = `
+      <div class="econ">
+        <div class="econtop">
+          <span class="econlbl">City economy &middot; everything sold, so far</span>
+          <span class="econnum">${econNums}</span>
+        </div>
+        <div class="econbar"><i></i></div>
+      </div>`;
+
   /* A key for a state that never occurs in THIS game is worse than no key: the
      two player cut has no sales in it at all, and a "sold" swatch sends the
      viewer hunting the board for something that is not there. So the legend is
@@ -935,7 +1042,9 @@ function reelTwelveQuarters(seats) {
     best.hqCount ? `<span><i class="sw hqsw">★</i>Megacorp HQ</span>` : "",
   ].filter(Boolean).join("");
 
-  const gridY = [1, 4, 7, 10].map((v) => `
+  /* Four gridlines spread over whatever range the track actually has. */
+  const gridY = [RMIN, RMIN + Math.round((RMAX - RMIN) / 3), RMAX - Math.round((RMAX - RMIN) / 3), RMAX]
+    .filter((v, i, a) => a.indexOf(v) === i).map((v) => `
     <line x1="${PADL}" y1="${yOf(v)}" x2="${W - PADR + 8}" y2="${yOf(v)}" stroke="${LINE}" stroke-width="1"/>
     <text x="14" y="${(yOf(v) + 7).toFixed(1)}" fill="${MUTE}" font-size="19" font-weight="700">$${v}</text>`).join("");
 
@@ -978,6 +1087,8 @@ function reelTwelveQuarters(seats) {
 
       <div class="legend">${legend}</div>
 
+      ${econLabel}
+
       <div style="margin-top:2px">
         <div class="chartlbl">What that did to the price of every good</div>
         <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
@@ -1011,6 +1122,17 @@ function reelTwelveQuarters(seats) {
     .sw.mergedsw{opacity:.5;border:2px dashed ${GOLD}}
     .sw.hqsw{background:#0B0D10;border:2px solid ${GOLD};color:${GOLD}}
     .chartlbl{font-size:24px;font-weight:800;color:${CREAM};margin-bottom:8px;letter-spacing:.2px}
+    .econ{margin-top:4px}
+    .econtop{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px}
+    .econlbl{font-size:22px;font-weight:800;color:${MUTE};letter-spacing:.3px}
+    .econnum{position:relative;display:inline-block;min-width:230px;height:40px}
+    .econnum span{position:absolute;right:0;top:0;opacity:0;font-size:38px;font-weight:880;
+                  color:${MINT};font-variant-numeric:tabular-nums;letter-spacing:-1px;white-space:nowrap}
+    .econbar{height:12px;border-radius:6px;background:#1B1F27;overflow:hidden}
+    .econbar i{display:block;height:100%;width:0;border-radius:6px;
+               background:linear-gradient(90deg,${MINT},${GOLD});
+               animation:grow ${((nQ - 1) * PER_Q).toFixed(2)}s ${LEAD}s linear forwards}
+    @keyframes grow{${econStops}}
     @keyframes sweep{to{width:${(xOf(nQ - 1) + 3).toFixed(1)}px}}
     @keyframes fadeIn{to{opacity:1}}
     @keyframes fadeOut{to{opacity:0}}
