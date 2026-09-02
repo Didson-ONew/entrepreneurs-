@@ -468,6 +468,149 @@ add(`11_personas/${order.length + 1}.png`, shell(1080, 1350, `
   </div>
   ${foot(order.length + 1, order.length + 1)}`));
 
+/* ---- 13. the study --------------------------------------------------- */
+/* THESE NUMBERS CANNOT BE DERIVED, SO THEY ARE RECORDED.
+
+   Everything else in this kit reads the live engine, which is the right rule
+   and the reason nothing here can contradict the game. This post is the one
+   exception, and it has to be: half of what it reports is a measurement of a
+   ruleset the engine no longer contains. There is no way to ask the current
+   build what Technology's price used to do, because the economy that did it is
+   gone.
+
+   So the "before" figures are written down, each with the audit that produced
+   it and the sample it came from, and the "after" figures are read from the
+   engine wherever the engine knows them. The guard below then checks that the
+   recorded after-state still matches the live constants: if the economy moves
+   again, this post stops the build instead of quietly telling a story about a
+   game nobody is playing. */
+const STUDY = {
+  /* audit_full_dollar_step.js and audit_base_plus_two.js, 4 players.
+     "ever trades below its own base price", in % of games. */
+  belowBase: {
+    UT: [19, 44], RE: [39, 86], HO: [35, 75],
+    MA: [8, 11], HC: [9, 23], TE: [3, 17],
+  },
+  pinnedFloor: [2, 3],        // % of all quarters sitting on the floor
+  pinnedCeiling: [0, 1],      // ...and on the ceiling
+  takingsGrowth: 83,          // % more money earned per game
+  scoreDrift: 2,              // % the winning score moved, having fixed the rate
+  /* audit_price_swings.js: 1200 games on the OLD rules, in which no price of any
+     industry reached the $10 ceiling even once. Scoped to that run deliberately -
+     it is not a claim about every game ever simulated, most of which were played
+     on other rulesets. */
+  ceilingNeverReached: 1200,
+  /* The economy this post is about ARRIVING at. Asserted against the engine. */
+  after: { min: 2, max: 12, rate: 50, base: { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 } },
+  before: { min: 1, max: 10, rate: 20, base: { UT: 2, RE: 2, HO: 3, MA: 3, HC: 4, TE: 4 } },
+  /* Games actually simulated across the study, by audit. Summed rather than
+     rounded to a headline, because the headline is the claim. */
+  games: { priceSwings: 300 * 4, retirementRule: 200 * 4 * 5, fullDollar: 200 * 5 * 2,
+           floorAndBases: 150 * 4 * 2 * 4, wholeProposal: 150 * 5 * 3,
+           personaFactorial: 400 * 8 + 1600 * 2, personaTournament: 2400 * 2,
+           cashComponents: 150 * 5 },
+};
+{
+  const a = STUDY.after;
+  const mismatch = a.min !== E.PRICE_MIN || a.max !== E.PRICE_MAX || a.rate !== E.CASH_PER_EP
+    || E.INDUSTRIES.some((i) => a.base[i] !== E.BASE_PRICE[i]);
+  if (mismatch) {
+    console.error("post 13 records an economy the engine no longer runs - "
+      + `recorded $${a.min}..$${a.max} at $${a.rate}/EP, engine says `
+      + `$${E.PRICE_MIN}..$${E.PRICE_MAX} at $${E.CASH_PER_EP}/EP. `
+      + "Re-run the audits and update STUDY, or drop the post.");
+    process.exit(2);
+  }
+}
+const GAMES_RUN = Object.values(STUDY.games).reduce((a, b) => a + b, 0);
+/* Round DOWN to the nearest thousand for the headline, so the figure on the
+   slide is one the run can always cover. */
+const GAMES_ROUND = (Math.floor(GAMES_RUN / 1000) * 1000).toLocaleString("en-US");
+
+add("13_study/1.png", shell(1080, 1350, `
+  <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div class="kicker">The symptom</div>
+    <div class="big" style="margin-top:30px;color:${E.IND_COLOR.TE}">${STUDY.belowBase.TE[0]}%</div>
+    <p style="margin-top:30px;font-size:34px">of games in which Technology ever traded
+      <b>below its own base price</b>.</p>
+    <p style="margin-top:34px;font-size:31px;color:${MUTE}">Not thirty. Three.</p>
+    <p style="margin-top:30px;font-size:29px;color:#C9CFDA">Which means the market this whole
+      game is about reading was, for half the board, not really a market.</p>
+  </div>
+  ${foot(1, 4)}`));
+
+add("13_study/2.png", shell(1080, 1350, `
+  <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:26px">
+    <div class="kicker">The diagnosis</div>
+    <h2>Two problems.<br>Opposite ends.</h2>
+    <div style="background:${CARD};border:1px solid ${LINE};border-radius:20px;padding:30px">
+      <div style="font-size:30px;font-weight:820;color:${GOLD}">Nothing could climb</div>
+      <div style="font-size:27px;color:#C9CFDA;margin-top:10px">Prices moved half a dollar at a time.
+        Across ${STUDY.ceilingNeverReached.toLocaleString("en-US")} games on those rules, no price of any
+        industry reached the $${STUDY.before.max} ceiling <b>even once</b>.</div>
+    </div>
+    <div style="background:${CARD};border:1px solid ${LINE};border-radius:20px;padding:30px">
+      <div style="font-size:30px;font-weight:820;color:${E.IND_COLOR.RE}">Nothing could fall</div>
+      <div style="font-size:27px;color:#C9CFDA;margin-top:10px">Retail and Utilities opened at
+        $${STUDY.before.base.RE} on a track whose floor was $${STUDY.before.min} &mdash; one dollar
+        from the bottom. They spent half of every game pinned there, where selling paid exactly
+        what binning the goods paid.</div>
+    </div>
+  </div>
+  ${foot(2, 4)}`));
+
+const changeRow = (label, was, now) => `
+  <div style="display:flex;align-items:center;gap:18px;padding:16px 0;border-bottom:1px solid ${LINE}">
+    <div style="flex:1;font-size:27px;font-weight:720">${label}</div>
+    <div class="mono" style="width:150px;text-align:right;font-size:27px;color:${MUTE}">${was}</div>
+    <div style="width:34px;text-align:center;font-size:24px;color:${MUTE}">&rarr;</div>
+    <div class="mono" style="width:150px;text-align:right;font-size:29px;font-weight:840;color:${MINT}">${now}</div>
+  </div>`;
+
+add("13_study/3.png", shell(1080, 1350, `
+  <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div class="kicker">The change</div>
+    <h2 style="margin-top:18px">Four numbers.</h2>
+    <div style="margin-top:34px">
+      ${changeRow("Every base price", "$2 / $3 / $4", "$4 / $5 / $6")}
+      ${changeRow("The track", `$${STUDY.before.min}–$${STUDY.before.max}`, `$${E.PRICE_MIN}–$${E.PRICE_MAX}`)}
+      ${changeRow("One company built", "&frac12; a dollar", "a whole dollar")}
+      ${changeRow("Cash scores at", `$${STUDY.before.rate} / point`, `$${E.CASH_PER_EP} / point`)}
+    </div>
+    <p style="margin-top:36px;font-size:28px;color:#C9CFDA">That last one isn't cosmetic. Double the
+      market and you double the money &mdash; and if points-per-dollar doesn't move with it,
+      <b style="color:${GOLD}">hoarding quietly starts outscoring building.</b></p>
+    <p style="margin-top:16px;font-size:26px;color:${MUTE}">It has happened to this game twice.</p>
+  </div>
+  ${foot(3, 4)}`));
+
+add("13_study/4.png", shell(1080, 1350, `
+  <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div class="kicker">The result</div>
+    <h2 style="margin-top:18px">Every good has<br>a market now.</h2>
+    <p style="margin-top:26px;font-size:25px;color:${MUTE}">
+      Share of games each good ever trades below its own base price</p>
+    <div style="margin-top:24px">
+      ${E.INDUSTRIES.map((i) => {
+        const [was, now] = STUDY.belowBase[i];
+        return `<div style="display:flex;align-items:center;gap:16px;margin-bottom:14px">
+          <div style="width:20px;height:20px;border-radius:5px;background:${E.IND_COLOR[i]};flex:none"></div>
+          <div style="flex:1;font-size:25px;font-weight:700">${E.IND_NAME[i]}</div>
+          <div class="mono" style="width:70px;text-align:right;font-size:25px;color:${MUTE}">${was}%</div>
+          <div style="width:28px;text-align:center;font-size:20px;color:${MUTE}">&rarr;</div>
+          <div class="mono" style="width:80px;text-align:right;font-size:27px;font-weight:830;
+               color:${E.IND_COLOR[i]}">${now}%</div>
+        </div>`;
+      }).join("")}
+    </div>
+    <p style="margin-top:26px;font-size:27px;color:#C9CFDA">Both ends of the track are reachable and
+      neither is a wall. The winning score landed within ${STUDY.scoreDrift}% of where it started.</p>
+    <p style="margin-top:26px;font-size:30px;font-weight:820;color:${GOLD}">
+      ${GAMES_ROUND}+ simulated games<br>to change four numbers.</p>
+  </div>
+  ${foot(4, 4)}`));
+
+
 /* ---------------------------------------------------------------- reels */
 /* Self-contained animated pages at Reel size. Screen-record to get the video. */
 const REEL_CSS = `

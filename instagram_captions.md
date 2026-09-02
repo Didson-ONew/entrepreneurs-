@@ -371,55 +371,27 @@ comment you will definitely get:
 
 ---
 
-## 13 · Carousel — the month I rebuilt the economy (SUGGESTED)
-*Not generated — this one wants your own screenshots of the audit output, which
-is the whole aesthetic. Four slides.*
+## 13 · Carousel — the month I rebuilt the economy
+`13_study/1–4.png`
 
-This is the strongest post available to you and it is the one nobody else in this
-space can make, because it needs the measurements to exist. It is also honest
-about being wrong twice, which is what makes it worth reading.
+This is the strongest post available to you and the one nobody else in this space
+can make, because it needs the measurements to exist. It is also honest about
+being wrong twice, which is what makes it worth reading.
 
-**Slide 1 — the symptom**
+*A note on where these numbers live. Every other slide in this kit reads the
+engine, so it cannot contradict the game. This post is the one exception, and it
+has to be: half of what it reports measures a ruleset the engine no longer
+contains — there is no way to ask the current build what Technology's price used
+to do. So the "before" figures are recorded in `make_instagram.mjs` with the
+audit and sample that produced each, the "after" figures are read live, and a
+guard checks the recorded after-state still matches the engine. Change the
+economy again and this post stops the build rather than telling a story about a
+game nobody is playing.*
 
-> Technology traded below its own base price in **3% of games**.
->
-> Not 30. Three.
->
-> Which means the market I'd built — the one the whole game is supposed to be
-> about reading — was, for half the industries on the board, not really a market.
-
-**Slide 2 — the diagnosis**
-
-> Two problems, opposite ends.
->
-> Prices moved half a dollar at a time, so nothing ever went far. And Retail and
-> Utilities started at $2 on a track whose floor was $1 — one dollar from the
-> bottom — so they spent half of every game pinned there, at a price where
-> selling was worth exactly what binning the goods was worth.
->
-> Half the goods couldn't fall. The other half couldn't move.
-
-**Slide 3 — the change**
-
-> Four numbers.
->
-> Every base price up $2. The track from $1–$10 to **$2–$12**. Every build worth
-> a whole dollar instead of half. And cash scoring at $50 a point instead of $20.
->
-> That last one isn't cosmetic. Doubling the market doubles the money, and if
-> points-per-dollar doesn't move with it, hoarding quietly starts outscoring
-> building. It's happened to this game twice.
-
-**Slide 4 — the result**
-
-> Technology now trades below base in **17%** of games. Healthcare 23%. Retail
-> 86%. Both ends of the track are reachable and neither is a wall.
->
-> The winning score landed within 2% of where it started.
->
-> 12,000 simulated games to change four numbers.
-
----
+**Slide 1** — 3%, the share of games Technology ever traded below its own base
+price. **Slide 2** — the two problems, at opposite ends of the track. **Slide 3**
+— the four numbers, before → after. **Slide 4** — every good's below-base rate,
+before and after, and the 26,000 games it took.
 
 **Caption for the set:**
 
@@ -459,6 +431,10 @@ about being wrong twice, which is what makes it worth reading.
 admits two errors without being self-flagellating about either, and the closing
 line is genuinely useful to the people you want following you. Post it as the
 anchor of the "I predicted X and was wrong" series — it is the best entry in it.*
+
+*If you'd rather it looked hand-made than designed, screenshot the real terminal
+output of `audit_base_plus_two.js` and use that as slide 4 instead. The generated
+version is cleaner; the screenshot is more convincing. Both are true.*
 
 ---
 
