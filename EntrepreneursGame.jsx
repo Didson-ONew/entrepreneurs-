@@ -7,7 +7,7 @@ import SiteChrome from "./Rulebook.jsx";
 const BP_DATA = [{"code": "UT-01", "ind": "UT", "name": "Solar Field I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "HO", "val": 4}], "prod": 4}, {"code": "UT-02", "ind": "UT", "name": "Hydro-Farm Initiative I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "HO", "val": 4}], "prod": 4}, {"code": "UT-03", "ind": "UT", "name": "Wind Farm I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "TE", "val": 4}], "prod": 4}, {"code": "UT-04", "ind": "UT", "name": "Biomass Plant I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "TE", "val": 4}], "prod": 4}, {"code": "UT-05", "ind": "UT", "name": "Tidal Generator I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "HC", "val": 4}], "prod": 4}, {"code": "UT-06", "ind": "UT", "name": "Fusion Conduit Hub II", "lvl": 2, "setup": 20, "opex": 7, "deps": [{"ind": "HO", "val": 4}, {"ind": "TE", "val": 3}], "prod": 8}, {"code": "UT-07", "ind": "UT", "name": "Smart Grid Node II", "lvl": 2, "setup": 20, "opex": 7, "deps": [{"ind": "HO", "val": 4}, {"ind": "HC", "val": 3}], "prod": 8}, {"code": "UT-08", "ind": "UT", "name": "Oceanic Turbine II", "lvl": 2, "setup": 20, "opex": 7, "deps": [{"ind": "TE", "val": 4}, {"ind": "HC", "val": 3}], "prod": 8}, {"code": "UT-09", "ind": "UT", "name": "Geothermal Supernode III", "lvl": 3, "setup": 30, "opex": 10, "deps": [{"ind": "HO", "val": 4}, {"ind": "TE", "val": 3}, {"ind": "HC", "val": 3}], "prod": 16}, {"code": "UT-10", "ind": "UT", "name": "Antimatter Reactor III", "lvl": 3, "setup": 30, "opex": 10, "deps": [{"ind": "HO", "val": 4}, {"ind": "TE", "val": 3}, {"ind": "HC", "val": 3}], "prod": 16}, {"code": "RE-01", "ind": "RE", "name": "Corner Store I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "TE", "val": 5}], "prod": 4}, {"code": "RE-02", "ind": "RE", "name": "Pop-Up Kiosk I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "TE", "val": 5}], "prod": 4}, {"code": "RE-03", "ind": "RE", "name": "Local Market I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "HO", "val": 5}], "prod": 4}, {"code": "RE-04", "ind": "RE", "name": "Strip Mall I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "HO", "val": 5}], "prod": 4}, {"code": "RE-05", "ind": "RE", "name": "Vending Network I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "MA", "val": 5}], "prod": 4}, {"code": "RE-06", "ind": "RE", "name": "Supermarket II", "lvl": 2, "setup": 15, "opex": 9, "deps": [{"ind": "TE", "val": 5}, {"ind": "HO", "val": 4}], "prod": 8}, {"code": "RE-07", "ind": "RE", "name": "Department Store II", "lvl": 2, "setup": 15, "opex": 9, "deps": [{"ind": "TE", "val": 5}, {"ind": "MA", "val": 4}], "prod": 8}, {"code": "RE-08", "ind": "RE", "name": "Outlet Center II", "lvl": 2, "setup": 15, "opex": 9, "deps": [{"ind": "HO", "val": 5}, {"ind": "MA", "val": 4}], "prod": 8}, {"code": "RE-09", "ind": "RE", "name": "Mega-Mall III", "lvl": 3, "setup": 25, "opex": 14, "deps": [{"ind": "TE", "val": 6}, {"ind": "HO", "val": 4}, {"ind": "MA", "val": 4}], "prod": 16}, {"code": "RE-10", "ind": "RE", "name": "Omni-Channel Hub III", "lvl": 3, "setup": 25, "opex": 14, "deps": [{"ind": "TE", "val": 6}, {"ind": "HO", "val": 4}, {"ind": "MA", "val": 4}], "prod": 16}, {"code": "HO-01", "ind": "HO", "name": "Motel I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 3}, {"code": "HO-02", "ind": "HO", "name": "Bed & Breakfast I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 3}, {"code": "HO-03", "ind": "HO", "name": "Transit Hostel I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "HC", "val": 6}], "prod": 3}, {"code": "HO-04", "ind": "HO", "name": "Roadside Inn I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "HC", "val": 6}], "prod": 3}, {"code": "HO-05", "ind": "HO", "name": "Capsule Hotel I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "RE", "val": 6}], "prod": 3}, {"code": "HO-06", "ind": "HO", "name": "Business Hotel II", "lvl": 2, "setup": 15, "opex": 10, "deps": [{"ind": "MA", "val": 6}, {"ind": "HC", "val": 4}], "prod": 6}, {"code": "HO-07", "ind": "HO", "name": "Resort Lodge II", "lvl": 2, "setup": 15, "opex": 10, "deps": [{"ind": "MA", "val": 6}, {"ind": "RE", "val": 4}], "prod": 6}, {"code": "HO-08", "ind": "HO", "name": "Boutique Hotel II", "lvl": 2, "setup": 15, "opex": 10, "deps": [{"ind": "HC", "val": 6}, {"ind": "RE", "val": 4}], "prod": 6}, {"code": "HO-09", "ind": "HO", "name": "Luxury Casino III", "lvl": 3, "setup": 25, "opex": 16, "deps": [{"ind": "MA", "val": 6}, {"ind": "HC", "val": 5}, {"ind": "RE", "val": 5}], "prod": 12}, {"code": "HO-10", "ind": "HO", "name": "Orbit Resort III", "lvl": 3, "setup": 25, "opex": 16, "deps": [{"ind": "MA", "val": 6}, {"ind": "HC", "val": 5}, {"ind": "RE", "val": 5}], "prod": 12}, {"code": "MA-01", "ind": "MA", "name": "Assembly Workshop I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "HC", "val": 4}], "prod": 3}, {"code": "MA-02", "ind": "MA", "name": "Parts Fabricator I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "HC", "val": 4}], "prod": 3}, {"code": "MA-03", "ind": "MA", "name": "Textile Mill I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "RE", "val": 4}], "prod": 3}, {"code": "MA-04", "ind": "MA", "name": "Canning Facility I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "RE", "val": 4}], "prod": 3}, {"code": "MA-05", "ind": "MA", "name": "Injection Molder I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "UT", "val": 4}], "prod": 3}, {"code": "MA-06", "ind": "MA", "name": "Auto Plant II", "lvl": 2, "setup": 35, "opex": 7, "deps": [{"ind": "HC", "val": 4}, {"ind": "RE", "val": 3}], "prod": 6}, {"code": "MA-07", "ind": "MA", "name": "Microchip Foundry II", "lvl": 2, "setup": 35, "opex": 7, "deps": [{"ind": "HC", "val": 4}, {"ind": "UT", "val": 3}], "prod": 6}, {"code": "MA-08", "ind": "MA", "name": "Chemical Plant II", "lvl": 2, "setup": 35, "opex": 7, "deps": [{"ind": "RE", "val": 4}, {"ind": "UT", "val": 3}], "prod": 6}, {"code": "MA-09", "ind": "MA", "name": "Heavy Robotics III", "lvl": 3, "setup": 60, "opex": 10, "deps": [{"ind": "HC", "val": 4}, {"ind": "RE", "val": 3}, {"ind": "UT", "val": 3}], "prod": 12}, {"code": "MA-10", "ind": "MA", "name": "Orbital Shipyard III", "lvl": 3, "setup": 60, "opex": 10, "deps": [{"ind": "HC", "val": 4}, {"ind": "RE", "val": 3}, {"ind": "UT", "val": 3}], "prod": 12}, {"code": "HC-01", "ind": "HC", "name": "Urgent Care Clinic I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "RE", "val": 5}], "prod": 2}, {"code": "HC-02", "ind": "HC", "name": "Pharmacy I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "RE", "val": 5}], "prod": 2}, {"code": "HC-03", "ind": "HC", "name": "Dental Office I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "UT", "val": 5}], "prod": 2}, {"code": "HC-04", "ind": "HC", "name": "Wellness Center I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "UT", "val": 5}], "prod": 2}, {"code": "HC-05", "ind": "HC", "name": "Physical Therapy I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "TE", "val": 5}], "prod": 2}, {"code": "HC-06", "ind": "HC", "name": "General Hospital II", "lvl": 2, "setup": 35, "opex": 9, "deps": [{"ind": "RE", "val": 5}, {"ind": "UT", "val": 4}], "prod": 4}, {"code": "HC-07", "ind": "HC", "name": "Trauma Center II", "lvl": 2, "setup": 35, "opex": 9, "deps": [{"ind": "RE", "val": 5}, {"ind": "TE", "val": 4}], "prod": 4}, {"code": "HC-08", "ind": "HC", "name": "Specialized Clinic II", "lvl": 2, "setup": 35, "opex": 9, "deps": [{"ind": "UT", "val": 5}, {"ind": "TE", "val": 4}], "prod": 4}, {"code": "HC-09", "ind": "HC", "name": "Biotech Campus III", "lvl": 3, "setup": 60, "opex": 14, "deps": [{"ind": "RE", "val": 6}, {"ind": "UT", "val": 4}, {"ind": "TE", "val": 4}], "prod": 8}, {"code": "HC-10", "ind": "HC", "name": "Cybernetics Inst. III", "lvl": 3, "setup": 60, "opex": 14, "deps": [{"ind": "RE", "val": 6}, {"ind": "UT", "val": 4}, {"ind": "TE", "val": 4}], "prod": 8}, {"code": "TE-01", "ind": "TE", "name": "App Startup I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "UT", "val": 6}], "prod": 2}, {"code": "TE-02", "ind": "TE", "name": "Data Center I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "UT", "val": 6}], "prod": 2}, {"code": "TE-03", "ind": "TE", "name": "Server Farm I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 2}, {"code": "TE-04", "ind": "TE", "name": "IT Support Firm I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 2}, {"code": "TE-05", "ind": "TE", "name": "Cloud Provider I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "HO", "val": 6}], "prod": 2}, {"code": "TE-06", "ind": "TE", "name": "Software Campus II", "lvl": 2, "setup": 25, "opex": 10, "deps": [{"ind": "UT", "val": 6}, {"ind": "MA", "val": 4}], "prod": 4}, {"code": "TE-07", "ind": "TE", "name": "Network Hub II", "lvl": 2, "setup": 25, "opex": 10, "deps": [{"ind": "UT", "val": 6}, {"ind": "HO", "val": 4}], "prod": 4}, {"code": "TE-08", "ind": "TE", "name": "Telecom Provider II", "lvl": 2, "setup": 25, "opex": 10, "deps": [{"ind": "MA", "val": 6}, {"ind": "HO", "val": 4}], "prod": 4}, {"code": "TE-09", "ind": "TE", "name": "Sentient AI Cluster III", "lvl": 3, "setup": 40, "opex": 16, "deps": [{"ind": "UT", "val": 6}, {"ind": "MA", "val": 5}, {"ind": "HO", "val": 5}], "prod": 8}, {"code": "TE-10", "ind": "TE", "name": "Quantum Computing III", "lvl": 3, "setup": 40, "opex": 16, "deps": [{"ind": "UT", "val": 6}, {"ind": "MA", "val": 5}, {"ind": "HO", "val": 5}], "prod": 8}];
 
 const INDUSTRIES = ["UT", "RE", "HO", "MA", "HC", "TE"];
-const BASE_PRICE = { UT: 2, RE: 2, HO: 3, MA: 3, HC: 4, TE: 4 };
+const BASE_PRICE = { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 };
 const SCALING = { UT: "H", MA: "H", TE: "H", RE: "V", HO: "V", HC: "V" };
 const IND_COLOR = { UT: "#E8B330", RE: "#3FAE6A", HO: "#D65B4A", MA: "#9066C8", HC: "#3E8FD0", TE: "#D6428B" };
 const IND_NAME = { UT: "Utilities", RE: "Retail", HO: "Hospitality", MA: "Manufacturing", HC: "Healthcare", TE: "Technology" };
@@ -926,11 +926,23 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
 
 
 /* ---------------------------- the price track ----------------------------
-   One marker per industry on a track running $1 to $10, with a BLANK CELL between
-   each number - so nineteen cells, and half a dollar per cell.
+   One marker per industry on a track running $2 to $12. Every event is worth a
+   WHOLE DOLLAR - one company built takes its own good down $1, one supplier
+   appearance takes that supplier up $1 - so the marker lands on a number every
+   time and the blank cells the track used to carry are gone.
 
-       cell   0   1   2   3   4  ...  18
-       reads $1  $2  $2  $3  $3  ...  $10
+   The cell arithmetic below is kept because saved games are stored in cells and
+   because it is what makes the migration from the old half-dollar track work.
+   Two cells to the dollar, and both constants move two cells, so odd cells are
+   simply never occupied in a new game.
+
+       cell   0   2   4   6  ...  20
+       reads $2  $3  $4  $5  ...  $12
+
+   $1 is no longer a price. It is what the bank pays for production the demand
+   board could not absorb, and the floor now sits a full dollar above it - so a
+   flooded good is still worth twice what binning it is worth, which was not true
+   when the track bottomed out at the recycling rate.
 
    A marker on a blank cell reads as the NEXT number up, which is what makes the
    halves work out: from $3 one company built leaves it still reading $3, and the
@@ -957,7 +969,7 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
    dollar out of its own. The city inflated. One cell each way keeps the visible
    track and the hard stops - which were the real improvements - without that.
    See audit_price_track.js. */
-const PRICE_MIN = 1, PRICE_MAX = 10;
+const PRICE_MIN = 2, PRICE_MAX = 12;
 const CELL_MIN = 0, CELL_MAX = (PRICE_MAX - PRICE_MIN) * 2;   // 18
 const cellOfPrice = (p) => (p - PRICE_MIN) * 2;
 const clampCell = (c) => Math.max(CELL_MIN, Math.min(CELL_MAX, c));
@@ -987,7 +999,7 @@ function moveMarker(pm, ind, cells) {
 /* Building a company: its own industry down one cell, every industry it lists as a
    supplier up two. A Blueprint with two suppliers therefore lifts $2 of price into
    the city and takes half a dollar out of its own. */
-const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;
+const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;
 function onLaunch(pm, ind, depInds) {
   moveMarker(pm, ind, BUILT_CELLS);
   depInds.forEach((d) => moveMarker(pm, d, SUPPLIER_CELLS));
@@ -1226,11 +1238,18 @@ function scoreCompanyOnCompletion(state, p, biz) {
   biz.scored = true;
 }
 
+/* What the bank pays for a company that is not being forced out. An upgraded
+   structure fetches its full setup because the upgrades were paid for on top of
+   it; anything else fetches half. */
+const voluntarySalePrice = (b) => (b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2));
 function sellCompany(p, b, solvency = false) {
   let recv;
   if (solvency) recv = b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4);
-  else recv = b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2);
+  else recv = voluntarySalePrice(b);
   p.cash += recv; b.distressed = true;
+  /* Remember the payout: buying the shell back as it stands costs exactly what
+     the bank handed over for it. See reclaimCost. */
+  b.distressPayout = recv;
   return recv;
 }
 function sellBpFromHand(state, p, bp, solvency = false) {
@@ -1288,7 +1307,7 @@ function landEPWeight(state, p) {
    Measured in audit_price_track.js. The final-scoring line used to hardcode 10 rather
    than read this constant, so the two could have drifted apart unnoticed; it reads the
    constant now. */
-const CASH_PER_EP = 20;
+const CASH_PER_EP = 50;
 
 /* What will this industry pay ME, once my own company is standing in it?
 
@@ -1621,7 +1640,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "2ed8acd2";
+const ENGINE_VERSION = "3c949ec1";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent is NOT an extra bill: a company pays its OPEX and
@@ -2252,7 +2271,18 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   if (prev) prev.businesses = prev.businesses.filter((b) => b !== distressedBiz);
   p.cash -= cost;
   distressedBiz.distressed = false;
+  delete distressedBiz.distressPayout;   // back in service: the old payout is spent
   distressedBiz.bp = bp;
+  /* A RENOVATION MOVES THE MARKET; A RECLAIM DOES NOT.
+
+     Renovating puts a DIFFERENT Blueprint into the structure, so a genuinely new
+     company enters the market: it starts producing a good that was not being
+     produced here and starts buying from suppliers that were not being bought
+     from. That is a launch, and it moves the markers like one. Reclaiming buys
+     the same company exactly as it stands - same Blueprint, same output, same
+     suppliers - so nothing about supply or demand has changed and no marker
+     moves. Which is also what stops a sale and a buy-back from being a pump. */
+  onLaunch(state.pm, bp.ind, bp.deps.map((d) => d.ind));
   distressedBiz.level = bp.lvl;
   distressedBiz.upgraded = false;
   distressedBiz.scored = false;
@@ -2268,8 +2298,24 @@ function doRenovate(state, p, distressedBiz, bp, log) {
 /* A distressed company can also simply be bought out of the bank as it stands, for half
    its own setup cost, keeping its Blueprint and level. Renovating with a card from hand
    is the alternative when you want to change what the structure is. */
+/* BUYING A SHELL AS IT STANDS COSTS WHAT THE BANK PAID FOR IT.
+
+   This used to be half the structure's setup no matter how it went distressed,
+   which meant an UPGRADED company was a money printer: selling one pays its full
+   setup, and buying the same building straight back cost half. Every round trip
+   banked half a setup and left the board exactly as it was. Now the payout is
+   recorded when the company goes distressed and charged back on reclaim, so a
+   sale and a buy-back net to zero and the only thing spent is the actions.
+
+   A company a Megacorp absorbed was never paid for, so there is no payout to
+   charge. It is priced at what it would have fetched had it been sold, which is
+   the same schedule - otherwise merging four companies would leave four
+   buildings on the board free for anyone to pick up.
+
+   The fallback keeps games saved before this existed loadable. */
 function reclaimCost(biz) {
-  return Math.floor(bizSetup(biz) / 2);
+  if (typeof biz.distressPayout === "number") return biz.distressPayout;
+  return voluntarySalePrice(biz);
 }
 function canReclaim(state, p, biz) {
   if (!biz || !biz.distressed) return false;
@@ -2285,6 +2331,7 @@ function doReclaim(state, p, biz, log) {
   if (prev) prev.businesses = prev.businesses.filter((b) => b !== biz);
   p.cash -= cost;
   biz.distressed = false;
+  delete biz.distressPayout;   // back in service: the old payout is spent
   biz.scored = false;          // it scores again for its new owner
   biz.quarterBuilt = state.quarter;
   scoreCompanyOnCompletion(state, p, biz);
@@ -2630,12 +2677,15 @@ function botResolveOneAction(state, p, track, rng, log) {
         if (pick && doBuyPlot(state, p, pick.k, log)) return;
       }
     }
-    // A company whose price has fallen to the floor earns about what recycling earns,
-    // while still costing full OPEX every quarter. Holding it is worse than selling it
-    // and freeing the slot, the disc and the cash for something the table is short of.
+    // A company whose price has fallen to the floor of the track earns the least
+    // the market will ever pay it, while still costing full OPEX every quarter.
+    // Holding it is worse than selling it and freeing the slot, the disc and the
+    // cash for something the table is short of. Both figures read the floor from
+    // PRICE_MIN rather than assuming it: hardcoding $1 made this branch dead code
+    // the moment the track stopped going that low.
     const collapsed = activeBiz(p).find((b) => {
-      if (price(state.pm, bizInd(b)) > 1) return false;
-      const net = bizProd(b) * 1 - bizOpex(b) - RENT_PER_LEVEL * b.level;   // $1/unit is recycling money
+      if (price(state.pm, bizInd(b)) > PRICE_MIN) return false;
+      const net = bizProd(b) * PRICE_MIN - bizOpex(b) - RENT_PER_LEVEL * b.level;
       return net < 0;
     });
     // ...but only when there is something better to put in its place: the company still
@@ -2646,7 +2696,7 @@ function botResolveOneAction(state, p, track, rng, log) {
       && p.cash + bizSetup(collapsed) / 2 >= bp.setup);
     if (collapsed && replacement && state.quarter <= 9) {
       const got = sellCompany(p, collapsed, false);
-      log(`${p.name} sells ${collapsed.bp.name}: ${bizInd(collapsed)} has collapsed to $1 and it was losing money (+$${got}).`, p.id);
+      log(`${p.name} sells ${collapsed.bp.name}: ${bizInd(collapsed)} has collapsed to $${PRICE_MIN} and it was losing money (+$${got}).`, p.id);
       return;
     }
     const dead = activeBiz(p).find((b) => !businessCanProduce(state, b));
@@ -2764,7 +2814,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     const landIsPoints = discsFree(state, p) > reserveForCompanies
       && p.cash > committedOpex(p) * 1.5 + 10
       // either the awards pay often enough to chase all game, or it is late and the
-      // money is otherwise going to convert at a flat $10 per EP
+      // money is otherwise going to convert at the flat CASH_PER_EP rate
       && (landEPWeight(state, p) >= 3 || endgameSpendMode(state, p));
     if (unowned.length && ((mayBuyLand && (freeOwnedByMe < maxNeeded || landIsPoints)) || mayBuyGrowth)) {
       const ownedByMe = Object.entries(state.board.owner).filter(([k, v]) => v === p.id).map(([k]) => k);
@@ -4387,9 +4437,9 @@ const TUTORIAL = [
              "So an industry nobody serves quietly piles up money"] },
 
   { title: "Prices move as the city is built", target: "prices", art: ArtPrices,
-    body: "Build a company and you push your own industry's price DOWN \u2014 more supply. Every supplier you now pay gets pushed UP \u2014 more demand. Two steps in either direction move the price by $1.",
-    points: ["A crowded industry can fall to $1, barely above recycling",
-             "A neglected one can climb past $8 per unit",
+    body: "Build a company and you push your own industry's price DOWN \u2014 more supply. Every supplier you now pay gets pushed UP \u2014 more demand. Each of those is a whole dollar.",
+    points: [`A crowded industry can fall to $${PRICE_MIN}, still twice what recycling pays`,
+             `A neglected one can climb to $${PRICE_MAX} per unit`,
              "Reading this strip is the main skill in the game"] },
 
   { title: "Placing workers: last in, first out", target: "tracks", art: ArtFilo,

@@ -216,9 +216,24 @@ section("Both quarters are played out in full, then final scoring runs");
   check("the log says why", lines.some((m) => /launched 2 Megacorps/.test(m)),
     lines.filter((m) => /Megacorps/.test(m)).slice(-1)[0] || "(no line)");
   st.phase = "resolution";
+  /* Give everyone cash worth scoring. These seats never traded, and starting
+     capital alone is below the rate at which cash converts to points, so without
+     this the scoring below has nothing to write and proves nothing. */
+  st.players.forEach((q) => { q.cash = E.CASH_PER_EP * 3; });
   E.finishQuarterAfterRepay(st, quiet, E.mulberry32(1));
   check("and the game is over one quarter later", st.phase === "gameover", `phase ${st.phase}`);
-  check("final scoring ran", st.players.every((q) => (q.epLog || []).some((e) => /Cash on hand|Unpaid loans|Real-Estate Mogul|Omnipresent|Ground rent/.test(e.label))));
+  /* Scoring only writes a "Cash on hand" line when the cash is worth at least a
+     whole point, so a player holding less than the rate legitimately gets none.
+     The check is therefore conditional on having something to score - asserting
+     a line for every player made this fail the moment the rate went up, which is
+     the test being wrong rather than the scoring. */
+  const scorable = (q) => q.cash >= E.CASH_PER_EP;
+  const scored = (q) => (q.epLog || []).some((e) =>
+    /Cash on hand|Unpaid loans|Real-Estate Mogul|Omnipresent|Ground rent/.test(e.label));
+  check("final scoring ran for everyone who had anything to score",
+    st.players.every((q) => !scorable(q) || scored(q)),
+    st.players.map((q) => `$${Math.round(q.cash)}${scored(q) ? "\u2713" : "\u2717"}`).join(" "));
+  check("and at least one player actually scored", st.players.some(scored));
 }
 
 section("One Megacorp still plays the full three years");

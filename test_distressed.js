@@ -1,8 +1,10 @@
 /* A company you sold is not gone - it stands in the city as a Distressed Asset, and
    anyone may take it over. Including you.
 
-   Two ways in: buy it as it stands for half its own setup, keeping its Blueprint and
-   level, or renovate it with a card from your hand for half that card's setup. Buying
+   Two ways in: buy it as it stands for exactly what the bank paid its last owner,
+   keeping its Blueprint and level, or renovate it with a card from your hand for half
+   THAT card's setup - the two prices answer different questions, which is why they are
+   worked out differently. Buying
    it as it stands needs no card at all, which is the case the M&A panel used to hide:
    it only listed a distressed structure if you happened to hold a matching Blueprint,
    so a player who sold a company and simply wanted it back could never see the button.
@@ -24,7 +26,7 @@ function loadEngine() {
     box.exports = { initGame, BP_DATA, SCALING, doLaunch, doSellCompany, doReclaim, canReclaim,
       doRenovate, renovationEligible, findDistressedTargets, activeBiz, discsFree, byId,
       companySlotsUsed, COMPANY_SLOTS, bizSetup, mulberry32, maWouldAchieveSomething,
-      scoreCompanyOnCompletion, levelEP };
+      scoreCompanyOnCompletion, levelEP, reclaimCost, price, INDUSTRIES };
   `, sandbox);
   return box.exports;
 }
@@ -84,6 +86,75 @@ section("You may buy your own back, as it stands");
   check("and it scores again for you, as a fresh build",
     (me.epLog || []).some((e) => String(e.label).startsWith("Company:") && e.amount === biz.level * E.levelEP(st)),
     (me.epLog || []).filter((e) => String(e.label).startsWith("Company:")).map((e) => `+${e.amount}`).join(" "));
+}
+
+/* THE ROUND TRIP MUST NET ZERO.
+
+   Reclaim used to cost half the structure's setup however it went distressed,
+   while selling an UPGRADED company pays its full setup. That made a company you
+   had upgraded into a money printer: sell it for the full setup, buy the same
+   building straight back for half, keep the building and half the setup, repeat.
+   Reclaim now charges exactly what the bank paid out, so the only thing a round
+   trip costs is the actions it took. */
+section("Selling and buying straight back is not a money printer");
+{
+  const { st, me, biz } = tableWith("HC", 1);
+  me.hand = [];
+  const setup = E.bizSetup(biz);
+
+  // an UPGRADED company: the bank pays its full setup for it
+  biz.upgraded = true;
+  const cash0 = me.cash;
+  E.doSellCompany(me, biz, quiet);
+  check("selling an upgraded company pays its full setup",
+    me.cash - cash0 === setup, `paid $${me.cash - cash0}, setup $${setup}`);
+
+  const cash1 = me.cash;
+  check("and buying it back is quoted at that same figure",
+    E.reclaimCost(biz) === setup, `quoted $${E.reclaimCost(biz)}`);
+  E.doReclaim(st, me, biz, quiet);
+  check("which is what it actually charges",
+    cash1 - me.cash === setup, `paid $${cash1 - me.cash}`);
+  check("so the whole round trip nets nothing", me.cash === cash0,
+    `started $${cash0}, ended $${me.cash}`);
+  check("and the company is trading again, same Blueprint and level",
+    biz.distressed === false && biz.bp.ind === "HC" && biz.level === 1);
+  check("the payout record is cleared, so a later sale sets a fresh one",
+    biz.distressPayout === undefined);
+}
+
+section("A forced sale is cheaper to undo, because it paid less");
+{
+  const { st, me, biz } = tableWith("HC", 1);
+  me.hand = [];
+  const setup = E.bizSetup(biz);
+  const cash0 = me.cash;
+  E.doSellCompany(me, biz, quiet, true);            // solvency: a quarter of setup
+  const got = me.cash - cash0;
+  check("a forced sale of an un-upgraded company pays a quarter",
+    got === Math.floor(setup / 4), `paid $${got}, setup $${setup}`);
+  check("and buying it back costs that quarter, not half",
+    E.reclaimCost(biz) === got, `quoted $${E.reclaimCost(biz)}`);
+  const cash1 = me.cash;
+  E.doReclaim(st, me, biz, quiet);
+  check("round trip still nets nothing", me.cash === cash0,
+    `started $${cash0}, ended $${me.cash}`);
+  check("charged exactly the payout", cash1 - me.cash === got);
+}
+
+section("A company a Megacorp ate was never paid for");
+{
+  const { st, me, biz } = tableWith("HC", 1);
+  me.hand = [];
+  // a merger sets `distressed` directly and hands over no cash at all
+  biz.distressed = true;
+  check("with no payout on record it is priced as if it had been sold",
+    E.reclaimCost(biz) === Math.floor(E.bizSetup(biz) / 2),
+    `quoted $${E.reclaimCost(biz)}, setup $${E.bizSetup(biz)}`);
+  biz.upgraded = true;
+  check("and an upgraded one at its full setup, so merging does not leave "
+    + "free buildings on the board",
+    E.reclaimCost(biz) === E.bizSetup(biz), `quoted $${E.reclaimCost(biz)}`);
 }
 
 section("Or renovate it into something else");
@@ -154,6 +225,37 @@ section("The bots know it is worth an action");
   me.cash = 1;
   check("and not worth it when nothing at all can be done",
     E.maWouldAchieveSomething(st, me) === false);
+}
+
+/* A renovation is a new company entering the market; a reclaim is not. */
+section("Renovating moves the price markers, reclaiming does not");
+{
+  const { st, me, biz } = tableWith("HC", 1);
+  E.doSellCompany(me, biz, quiet);
+  const before = {};
+  E.INDUSTRIES.forEach((i) => (before[i] = E.price(st.pm, i)));
+  E.doReclaim(st, me, biz, quiet);
+  const same = E.INDUSTRIES.every((i) => E.price(st.pm, i) === before[i]);
+  check("buying the same company back as it stands moves nothing", same,
+    E.INDUSTRIES.map((i) => `${i}$${E.price(st.pm, i)}`).join(" "));
+}
+{
+  const { st, me, biz } = tableWith("HC", 1);
+  E.doSellCompany(me, biz, quiet);
+  const card = E.BP_DATA.find((x) => x.lvl === 1 && x.ind !== "HC" && E.renovationEligible(biz, x));
+  me.hand = [card];
+  const before = {};
+  E.INDUSTRIES.forEach((i) => (before[i] = E.price(st.pm, i)));
+  E.doRenovate(st, me, biz, card, quiet);
+  check("renovating into another industry pushes that industry's price down",
+    E.price(st.pm, card.ind) <= before[card.ind],
+    `${card.ind} $${before[card.ind]} -> $${E.price(st.pm, card.ind)}`);
+  const deps = card.deps.map((d) => d.ind);
+  check("and lifts every supplier it now buys from",
+    deps.length === 0 || deps.every((d) => E.price(st.pm, d) >= before[d]),
+    deps.map((d) => `${d} $${before[d]}->$${E.price(st.pm, d)}`).join(" "));
+  check("something actually moved",
+    E.INDUSTRIES.some((i) => E.price(st.pm, i) !== before[i]));
 }
 
 console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed\n");
