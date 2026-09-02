@@ -13,14 +13,22 @@
    not a measurement.
 
    Measured properly - 1600 games at each end, and the noise on a DIFFERENCE of
-   two estimates - the spread is 8.7 before and 8.6 after. Of the six personas
-   only two move past their own error bars, and they move in opposite directions:
-   the Resort Developer, historically the weakest, gains about 4 points, and the
-   White-Label Supplier loses about 4.
+   two estimates - the spread is 8.7 before and 8.6 after.
 
-   The eight-cell grid below still earns its place: it says the three changes
-   contribute roughly +3, +3 and 0 points of spread, that they ADD rather than
-   interact, and that all of it sits inside the noise.
+   USE tourney_personas.js FOR THE ACTUAL PERSONA RATES, NOT THIS. That is the
+   purpose-built instrument: it puts every bot on the same balanced policy and
+   rotates all six personas through every seat, so the persona is the only thing
+   that differs. This probe plays ordinary games in which bots also carry
+   different ARCHETYPES, so its per-persona rates are personas confounded with
+   policy - good enough to compare eight cells against each other, not good
+   enough to say what a persona's win rate is. The two disagreed on the Resort
+   Developer by four points, and the tournament was right: 19% before and 19%
+   after, unchanged, where this probe read a gain.
+
+   What this probe is still the right tool for is attributing the difference
+   between cells to a factor: the three changes contribute roughly +3, +3 and 0
+   points of spread, they ADD rather than interact, and all of it sits inside the
+   noise.
 
    Three binary factors, every combination, eight worlds:
 
