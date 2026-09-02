@@ -43,30 +43,41 @@ eighteen supply lines, not six. That is a better fact than the one in the draft:
 a ring has an obvious upstream and downstream, but a 3-regular web means no
 industry is anyone's only customer *or* only source. The reel draws the real graph.
 
-**3. One build no longer drops a price.** Post 3 says *"Build a Retail shop →
-Retail's price drops."* Since the price track shipped, it takes **two** companies
-to move a price a dollar, and two supplier appearances to move it back up.
+**3. One build drops a price by a whole dollar.** This went back and forth: the
+half-dollar track shipped for a while, so an older draft said it took *two*
+companies. It doesn't any more — one company built takes its industry down $1,
+and one supplier appearance takes that supplier up $1.
 
-**4. Prices are capped at $10.** The draft says a neglected industry "can climb
-past $8 a unit." The track runs $1–$10 with hard stops at both ends.
+**4. The track runs $2 to $12, with hard stops at both ends.** Not $1–$10, and
+not open-ended. $1 still exists but is no longer a price: it's what the bank
+pays for goods the demand board couldn't absorb, so the worst the market can do
+is still twice what scrapping pays.
 
-**5. The persona win rates changed — re-run and confirmed.** 29/27/26/26/23/21%
-was measured before this cycle changed the price rules and the cash rate. I re-ran
-the 400-game tournament on the shipped build:
+**5. Use the numbers on the slide, not any you remember.** The persona table has
+been re-measured on the shipped build with the purpose-built tournament — 2400
+games, every persona rotating through every seat, every bot on the same policy so
+the persona is the only difference:
 
 ```
-Systems Architect      TE   28%        Supply Chain Expert     RE   22%
-Concession Holder      UT   27%        Public Health Director  HC   22%
-White-Label Supplier   MA   27%        Resort Developer        HO   21%
+Supply Chain Expert     RE   31%        White-Label Supplier   MA   21%
+Systems Architect       TE   27%        Concession Holder      UT   21%
+Public Health Director  HC   27%        Resort Developer       HO   19%
 ```
 
-**The 7-point spread survived**, which is the claim the post rests on. The order
-changed, so use the numbers on `05_balance/2.png` — they are parsed from the run,
-not typed.
+**The spread is 12 points, and it was 10 before the economy changed** — measured
+the same way, on the same instrument. Each of those rates carries about ±2
+points. `05_balance/2.png` parses these from the run rather than having them
+typed, so the slide cannot go stale.
 
-**6. Hospitality finished LAST, not third from bottom.** The Resort Developer is
-now bottom of the table at 21%. That makes the post stronger, not weaker: you
-predicted the strongest industry's persona would dominate, and it came dead last.
+Don't claim a 7-point spread. That figure came from a smaller run read against a
+different measurement, and a best-minus-worst of six noisy rates is biased upward
+anyway — see post 13 below, which is about exactly this.
+
+**6. Hospitality finished LAST — and it was last before the change too.** The
+Resort Developer sits at 19% both before and after, so the post's claim is about
+the game's design rather than about this cycle. That makes it stronger: you
+predicted the strongest industry's persona would dominate, and it has been dead
+last through two different economies.
 
 Two things I could not verify and you should confirm yourself: the black-pyramid
 Megacorp piece (a physical prototype choice, not in the code) and the historical
@@ -118,14 +129,14 @@ Megacorp piece (a physical prototype choice, not in the code) and the historical
 > Prices aren't a track that drifts. They're the sum of what everyone at the
 > table has built.
 >
-> Each industry has one marker on a track from $1 to $10, with a blank cell
-> between every number. Build **two** companies in an industry → its marker slides
-> down a dollar. Get named as a supplier **twice** → it climbs a dollar.
+> Each industry has one marker on a track from **$2 to $12**. Build a company in
+> an industry → its marker slides down a dollar. That company pays its suppliers
+> every quarter, and each of those climbs a dollar.
 >
 > An industry built as often as it's needed doesn't move at all.
 >
-> Flood one and it collapses to $1 — where selling is worth exactly what throwing
-> the goods away is worth. Read the market before you commit.
+> Flood one and it collapses to $2. Goods you can't sell recycle for $1, so even
+> a wrecked market beats scrapping — but only just. Read it before you commit.
 
 ---
 
@@ -149,12 +160,13 @@ hands-on-table footage — real components will always beat a rendered mock.*
 
 > I don't guess whether my game is balanced. I measure it.
 >
-> 400 simulated four-player games, every persona rotating through every seat.
-> Win rates: 28 / 27 / 27 / 22 / 22 / 21% against a fair share of 25%.
+> 2400 simulated four-player games, every persona rotating through every seat,
+> every bot on the same policy so the persona is the only thing that differs.
+> Win rates: 31 / 27 / 27 / 21 / 21 / 19% against a fair share of 25%.
 >
-> A 7-point spread, on numbers that each carry about ±5 points of noise. Not
-> because I got lucky — because I could run it, read it, and fix what the numbers
-> said was broken.
+> A 12-point spread, on numbers that each carry about ±2 points. Not perfect —
+> and I know it isn't, which is the whole point. I can run it, read it, and see
+> exactly which specialist is carrying an edge.
 >
 > Playtesting tells you how a game feels. Simulation tells you whether it's fair.
 > You need both; they answer different questions.
@@ -178,7 +190,8 @@ hands-on-table footage — real components will always beat a rendered mock.*
 > The designer's instinct was worse than the data. Test the thing.
 
 *Confirmed on the shipped build: the Resort Developer is bottom of the table at
-21%, against a 25% fair share.*
+19%, against a 25% fair share — and it was bottom before the economy changed too,
+on 19%. Two different economies, same answer.*
 
 ---
 
@@ -316,15 +329,6 @@ search throws those out and takes the fullest game that still reaches Q12.*
 
 ---
 
-> **These cuts play the proposed economy, not the live one.** The track runs
-> $2–$12, every base is $2 higher, one build moves a price a whole dollar, and
-> cash scores at $50 per EP. The game online still runs the old numbers, so do
-> not post these next to post 3 (the price carousel) until the change lands —
-> they describe different games. Set `RULESET = "shipped"` in
-> `make_instagram.mjs` to re-cut them on the live rules.
-
----
-
 ## 12b · The same reel, at every table size
 `reels_mp4/12_twelve-quarters_2p.mp4` · `_3p` · `_4p` · `_5p` ·
 plus the six-player cut above
@@ -367,6 +371,97 @@ comment you will definitely get:
 
 ---
 
+## 13 · Carousel — the month I rebuilt the economy (SUGGESTED)
+*Not generated — this one wants your own screenshots of the audit output, which
+is the whole aesthetic. Four slides.*
+
+This is the strongest post available to you and it is the one nobody else in this
+space can make, because it needs the measurements to exist. It is also honest
+about being wrong twice, which is what makes it worth reading.
+
+**Slide 1 — the symptom**
+
+> Technology traded below its own base price in **3% of games**.
+>
+> Not 30. Three.
+>
+> Which means the market I'd built — the one the whole game is supposed to be
+> about reading — was, for half the industries on the board, not really a market.
+
+**Slide 2 — the diagnosis**
+
+> Two problems, opposite ends.
+>
+> Prices moved half a dollar at a time, so nothing ever went far. And Retail and
+> Utilities started at $2 on a track whose floor was $1 — one dollar from the
+> bottom — so they spent half of every game pinned there, at a price where
+> selling was worth exactly what binning the goods was worth.
+>
+> Half the goods couldn't fall. The other half couldn't move.
+
+**Slide 3 — the change**
+
+> Four numbers.
+>
+> Every base price up $2. The track from $1–$10 to **$2–$12**. Every build worth
+> a whole dollar instead of half. And cash scoring at $50 a point instead of $20.
+>
+> That last one isn't cosmetic. Doubling the market doubles the money, and if
+> points-per-dollar doesn't move with it, hoarding quietly starts outscoring
+> building. It's happened to this game twice.
+
+**Slide 4 — the result**
+
+> Technology now trades below base in **17%** of games. Healthcare 23%. Retail
+> 86%. Both ends of the track are reachable and neither is a wall.
+>
+> The winning score landed within 2% of where it started.
+>
+> 12,000 simulated games to change four numbers.
+
+---
+
+**Caption for the set:**
+
+> I spent this month changing four numbers, and about 12,000 simulated games
+> deciding which four.
+>
+> The problem was that my market wasn't a market. Technology — an industry
+> everybody needs and nobody wants to build — traded below its base price in 3%
+> of games. Meanwhile Retail sat on the floor in half of them, at a price where
+> selling and scrapping paid the same.
+>
+> The fix was four numbers, and the fourth is the one I want to talk about. Cash
+> converts to points at a fixed rate. Make the economy bigger and leave that rate
+> alone, and you haven't rebalanced anything — you've just made not-spending
+> better. I have made that exact mistake before on this game. So the rate moved
+> with the money.
+>
+> **Two things I got wrong on the way, both worth more than the fix:**
+>
+> I thought making a sale push prices up would add depth. I measured it: 83% of
+> the time it would have fired on a *merger*, not a sale, and it needed twelve
+> marker adjustments in one action while five people watched. Killed it.
+>
+> Then I thought the change had broken persona balance — the gap between best
+> and worst specialist looked like it had doubled. It hadn't. "Best minus worst
+> of six noisy numbers" is a statistic that reads high even when everything is
+> perfectly fair, and I'd compared one sample of it to a half-remembered figure
+> from a different run. Measured properly with the right instrument: the gap was
+> 10 points before and 12 after. Basically unchanged.
+>
+> The second mistake is the one I'd want another designer to take from this. It
+> is very easy to measure the wrong thing carefully and feel rigorous doing it.
+>
+> 🏗️
+
+*Why this post works: it is a debugging story with a number at every step, it
+admits two errors without being self-flagellating about either, and the closing
+line is genuinely useful to the people you want following you. Post it as the
+anchor of the "I predicted X and was wrong" series — it is the best entry in it.*
+
+---
+
 # Suggested changes to the sequence
 
 The draft is strong — posts 5 through 8 are genuinely unusual and are the reason
@@ -384,9 +479,10 @@ a player should care is that it makes the market readable — you can see who is
 about to get rich. The caption above adds that line.
 
 **Nothing in the sequence shows a decision.** Twelve posts explain systems; none
-puts the viewer in a turn. A thirteenth — *"Here's the board. You have $20 and one
-free disc. What do you build?"*, answer next day — is the most comment-generating
-post available to you, and the board renderer to make it already exists.
+puts the viewer in a turn. A *"Here's the board. You have $20 and one free disc.
+What do you build?"* post, answer next day, is the most comment-generating one
+available to you, and the board renderer to make it already exists. Number it 14
+now that 13 is taken.
 
 **Post 10 asks too early.** By post 10 you have shown the game exists, not that it
 is fun. Move the ask after the personas post, or fold it into a comment.

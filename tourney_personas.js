@@ -1,7 +1,26 @@
 /* 400 four-player games. All six personas rotate through every seat; two sit out each
    game. Bots all use the same 'balanced' policy so the persona is the only difference. */
 const fs=require("fs");
-const src=fs.readFileSync("EntrepreneursGame.jsx","utf8");
+let src=fs.readFileSync("EntrepreneursGame.jsx","utf8");
+/* `old` reverts the four constants of the new price economy, so the same
+   instrument can measure the same thing before and after. This tournament is
+   the purpose-built one - every bot runs the same 'balanced' policy so the
+   persona is the ONLY difference - which makes it the right tool for a
+   before/after on persona balance, and a general game audit the wrong one. */
+if (process.argv[3] === "old") {
+  const SUBS = [
+    ["const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;", "const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;"],
+    ["const PRICE_MIN = 2, PRICE_MAX = 12;", "const PRICE_MIN = 1, PRICE_MAX = 10;"],
+    ["const BASE_PRICE = { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 };",
+     "const BASE_PRICE = { UT: 2, RE: 2, HO: 3, MA: 3, HC: 4, TE: 4 };"],
+    ["const CASH_PER_EP = 50;", "const CASH_PER_EP = 20;"],
+  ];
+  for (const [a, b] of SUBS) {
+    if (!src.includes(a)) { console.error("constant moved: " + a); process.exit(2); }
+    src = src.replace(a, b);
+  }
+  console.log("(reverted to the pre-change economy)");
+}
 const cut=src.indexOf("/* ============================== REACT UI ============================== */");
 const vm=require("vm");const box={};const sb={console,Math,Set,Object,Array,JSON,box};
 vm.createContext(sb);
@@ -43,7 +62,7 @@ function play(seed, personas){
   return st;
 }
 
-const N=400;
+const N=parseInt(process.argv[2]||"400",10);   // games; raise it when a difference needs settling
 for(let g=0;g<N;g++){
   const start=g%K.length;
   const four=[0,1,2,3].map(i=>K[(start+i)%K.length]);
