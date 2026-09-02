@@ -62,69 +62,37 @@ const MERGE_PATCH = `  match.have.forEach((b) => {
     b.absorbedBy = name;
   });`;
 
-/* THE PROPOSED ECONOMY, for reel 12 only.
-
-   Reel 12 plays a real game and draws what happened in it, so it has to be
-   played under some ruleset. These constants are the measured proposal - the
-   track running $2..$12, every base up $2, one build worth a whole dollar, and
-   cash scoring at $50 per EP - which is NOT what the engine currently ships.
-
-   Everything else in this kit still reads the shipped rules, so the price
-   carousel and reel 12 describe different games until the proposal lands. Hold
-   the twelve-quarters cuts back until it does, or post them alongside a caption
-   that says which rules they are. RULESET below is the one switch: set it to
-   "shipped" and the reel goes back to the live game. */
-const RULESET = "proposed";
-const RULE_NEEDLES = {
-  step: "const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;",
-  track: "const PRICE_MIN = 1, PRICE_MAX = 10;",
-  base: "const BASE_PRICE = { UT: 2, RE: 2, HO: 3, MA: 3, HC: 4, TE: 4 };",
-  rate: "const CASH_PER_EP = 20;",
-  /* the delivery line, hooked so the city's takings can be totalled per quarter */
-  sale: "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;",
-};
-const RULE_PATCHES = {
-  step: "const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;",
-  track: "const PRICE_MIN = 2, PRICE_MAX = 12;",
-  base: "const BASE_PRICE = { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 };",
-  rate: "const CASH_PER_EP = 50;",
-};
-for (const [k, v] of Object.entries(RULE_NEEDLES)) {
-  if (!SRC.includes(v)) { console.error(`the ${k} constants have moved - update this script`); process.exit(2); }
+/* ONE ENGINE. Reel 12 briefly read a second, patched copy while the new price
+   economy was still a proposal; that economy has shipped, so the kit reads the
+   live rules again and every asset agrees with every other. The sale hook is
+   kept because the city-economy label under reel 12's map needs to total what
+   the table actually sold. */
+const SALE_NEEDLE = "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;";
+if (!SRC.includes(SALE_NEEDLE)) {
+  console.error("the delivery line has moved - update this script");
+  process.exit(2);
 }
 const SALE_HOOK = "  const leftover = Math.max(0, remaining);\n"
   + "  if (typeof __econ !== 'undefined') __econ.sale(earned);\n"
   + "  p.cash += earned + leftover * 1;";
 
-/* Two engines. The kit at large reads the shipped one; reel 12 reads whichever
-   RULESET names, with the sale hook so the economy label has something real to
-   count. Only the sandbox copies are patched - the repo file is never touched. */
-function buildEngine({ proposed, hook }) {
-  let logic = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "")
-    .replace(MERGE_NEEDLE, MERGE_PATCH);
-  if (proposed) for (const k of ["step", "track", "base", "rate"]) {
-    logic = logic.replace(RULE_NEEDLES[k], RULE_PATCHES[k]);
-  }
-  if (hook) logic = logic.replace(RULE_NEEDLES.sale, SALE_HOOK);
-  const box = {};
-  const econ = { quarterEarned: 0 };
-  const sandbox = { console, Math, Set, Map, Object, Array, JSON, box, String, Number,
-    __econ: { sale: (earned) => { econ.quarterEarned += earned; } } };
-  vm.createContext(sandbox);
-  vm.runInContext(logic + `
-    box.E = { BP_DATA, INDUSTRIES, IND_NAME, IND_COLOR, BASE_PRICE, PERSONAS,
-              MEGACORPS_TO_END, DISCS_PER_PLAYER, CASH_PER_EP, SCALING,
-              PRICE_MIN, PRICE_MAX, RENT_PER_LEVEL, PLAYER_COLORS, COORDS };
-    box.E2 = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
-               activeBiz, megacorpHQs, bizInd, price };
-  `, sandbox);
-  return { E: box.E, E2: box.E2, econ };
-}
-
-const SHIPPED = buildEngine({ proposed: false, hook: false });
-const REEL12 = buildEngine({ proposed: RULESET === "proposed", hook: true });
-const E = SHIPPED.E;
-const E2 = SHIPPED.E2;
+const box = {};
+const econ = { quarterEarned: 0 };
+const sandbox = { console, Math, Set, Map, Object, Array, JSON, box, String, Number,
+  __econ: { sale: (earned) => { econ.quarterEarned += earned; } } };
+vm.createContext(sandbox);
+vm.runInContext(SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "")
+  .replace(MERGE_NEEDLE, MERGE_PATCH)
+  .replace(SALE_NEEDLE, SALE_HOOK) + `
+  box.E = { BP_DATA, INDUSTRIES, IND_NAME, IND_COLOR, BASE_PRICE, PERSONAS,
+            MEGACORPS_TO_END, DISCS_PER_PLAYER, CASH_PER_EP, SCALING,
+            PRICE_MIN, PRICE_MAX, RENT_PER_LEVEL, PLAYER_COLORS, COORDS };
+  box.E2 = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
+             activeBiz, megacorpHQs, bizInd, price };
+`, sandbox);
+const E = box.E;
+const E2 = box.E2;
+const REEL12 = { E, E2, econ };
 
 /* Who buys from whom, straight off the cards. */
 const SUPPLIES = {};      // ind -> the industries that list it as a supplier
@@ -231,17 +199,20 @@ add("01_what-is/4.png", shell(1080, 1350, `
 /* The track, drawn honestly: 19 cells, blanks between the numbers. */
 /* Where a marker sits for a given price, the way the engine lays the track out.
    Typing cell numbers by hand is how a slide ends up contradicting the rules. */
-const cellOf = (price) => (price - E.PRICE_MIN) * 2;
-function trackRow(ind, cell, label) {
+/* ONE CELL PER DOLLAR. The track used to carry a blank between every number,
+   because an event was worth half a dollar and the marker had to be able to
+   stop between them. Every event is a whole dollar now, so the blanks are gone
+   and the strip is simply the prices it can take. Both ends read from the
+   engine, so this cannot drift from the rules again. */
+function trackRow(ind, atPrice, label) {
   const cells = [];
-  for (let c = 0; c <= (E.PRICE_MAX - E.PRICE_MIN) * 2; c++) {
-    const isNum = c % 2 === 0;
-    const here = c === cell;
-    cells.push(`<div style="flex:1;height:${isNum ? 54 : 34}px;border-radius:6px;
-      background:${here ? E.IND_COLOR[ind] : isNum ? "#1C1F26" : "#15181D"};
+  for (let v = E.PRICE_MIN; v <= E.PRICE_MAX; v++) {
+    const here = v === atPrice;
+    cells.push(`<div style="flex:1;height:54px;border-radius:6px;
+      background:${here ? E.IND_COLOR[ind] : "#1C1F26"};
       border:1px solid ${here ? E.IND_COLOR[ind] : LINE};display:flex;align-items:center;
       justify-content:center;font-size:19px;font-weight:800;
-      color:${here ? "#0E1013" : "#5A616E"}">${isNum ? "$" + (1 + c / 2) : ""}</div>`);
+      color:${here ? "#0E1013" : "#5A616E"}">$${v}</div>`);
   }
   return `<div style="margin-bottom:34px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px">
@@ -258,11 +229,11 @@ add("03_prices/1.png", shell(1080, 1350, `
     <h2 style="margin-top:26px">Not a track that drifts.</h2>
     <p style="margin-top:24px">The sum of what everyone<br>at the table has built.</p>
     <div style="margin-top:56px">
-      ${trackRow("RE", cellOf(E.BASE_PRICE.RE) - 2, "two shops built → down $1")}
-      ${trackRow("TE", cellOf(E.BASE_PRICE.TE) + 2, "needed twice → up $1")}
+      ${trackRow("RE", E.BASE_PRICE.RE - 1, "one shop built &rarr; down $1")}
+      ${trackRow("TE", E.BASE_PRICE.TE + 1, "needed once &rarr; up $1")}
     </div>
     <p style="margin-top:10px;font-size:26px;color:${MUTE}">
-      Nineteen cells. A blank between every number.<br>Two moves either way is a dollar.</p>
+      $${E.PRICE_MIN} to $${E.PRICE_MAX}. One marker an industry.<br>Every move is a whole dollar.</p>
   </div>
   ${foot(1, 3)}`));
 
@@ -270,12 +241,12 @@ add("03_prices/2.png", shell(1080, 1350, `
   <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:30px">
     <div class="kicker">Both directions</div>
     <div style="background:${CARD};border:1px solid ${LINE};border-radius:20px;padding:34px">
-      <div style="font-size:34px;font-weight:820;color:${E.IND_COLOR.RE}">Build two Retail shops</div>
+      <div style="font-size:34px;font-weight:820;color:${E.IND_COLOR.RE}">Build one Retail shop</div>
       <div style="font-size:30px;color:#C9CFDA;margin-top:10px">Retail's marker slides down a dollar.<br>More supply.</div>
     </div>
     <div style="background:${CARD};border:1px solid ${LINE};border-radius:20px;padding:34px">
-      <div style="font-size:34px;font-weight:820;color:${E.IND_COLOR.TE}">Those shops pay Technology, every quarter</div>
-      <div style="font-size:30px;color:#C9CFDA;margin-top:10px">Technology's marker climbs.<br>More demand.</div>
+      <div style="font-size:34px;font-weight:820;color:${E.IND_COLOR.TE}">That shop pays Technology, every quarter</div>
+      <div style="font-size:30px;color:#C9CFDA;margin-top:10px">Technology's marker climbs a dollar.<br>More demand.</div>
     </div>
     <p style="font-size:27px;color:${MUTE}">An industry built as often as it's needed<br>doesn't move at all.</p>
   </div>
@@ -283,11 +254,13 @@ add("03_prices/2.png", shell(1080, 1350, `
 
 add("03_prices/3.png", shell(1080, 1350, `
   <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
-    <div class="big" style="color:${GOLD}">$1</div>
+    <div class="big" style="color:${GOLD}">$${E.PRICE_MIN}</div>
     <h2 style="margin-top:30px">The floor.</h2>
-    <p style="margin-top:26px;max-width:760px">Flood an industry and it collapses here — where selling is worth
-      exactly what throwing the goods away is worth.</p>
-    <p style="margin-top:40px;font-size:32px;font-weight:800;color:${MINT}">Read the market before you commit.</p>
+    <p style="margin-top:26px;max-width:760px">Flood an industry and it collapses here. Still twice the $1 you get
+      for scrapping goods you could not sell &mdash; so selling always beats binning.</p>
+    <p style="margin-top:18px;max-width:760px;color:${MUTE};font-size:27px">
+      And $${E.PRICE_MAX} at the other end, on an industry everybody needs and nobody builds.</p>
+    <p style="margin-top:34px;font-size:32px;font-weight:800;color:${MINT}">Read the market before you commit.</p>
   </div>
   ${foot(3, 3)}`));
 
@@ -312,10 +285,19 @@ if (winRows.length !== 6) {
     + "re-run tourney_personas.js > /tmp/personas.txt before building the balance slide");
   process.exit(2);
 }
+/* The sample size comes off the run too, so a bigger tournament cannot leave a
+   slide claiming a smaller one. */
+const TOURNEY_N = (/^(\d[\d,]*) games/m.exec(TOURNEY) || [, "400"])[1];
+/* And the error bar, from the number of games each persona actually played.
+   It was typed as "±5 points" when the tournament was 400 games; at 2400 it is
+   ±2, and a slide whose whole point is that the numbers are real must not carry
+   a stale one. Two standard errors on a proportion at the fair share. */
+const TOURNEY_PER = +((/every persona plays (\d+) of them/.exec(TOURNEY) || [, "266"])[1]);
+const TOURNEY_ERR = Math.round(100 * 2 * Math.sqrt(0.25 * 0.75 / TOURNEY_PER));
 const best = Math.max(...winRows.map((r) => r.win)), worst = Math.min(...winRows.map((r) => r.win));
 add("05_balance/2.png", shell(1080, 1350, `
   <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center">
-    <div class="kicker">400 four-player games</div>
+    <div class="kicker">${TOURNEY_N} four-player games</div>
     <h2 style="margin-top:20px">Every persona,<br>every seat.</h2>
     <div style="margin-top:44px;display:flex;flex-direction:column;gap:16px">
       ${winRows.map((r) => `
@@ -323,7 +305,7 @@ add("05_balance/2.png", shell(1080, 1350, `
           <div style="width:22px;height:22px;border-radius:6px;background:${E.IND_COLOR[r.ind]};flex:none"></div>
           <div style="flex:1;font-size:26px;font-weight:730">${r.name}</div>
           <div style="width:330px;height:26px;background:#171A20;border-radius:6px;overflow:hidden">
-            <div style="width:${(r.win / 40 * 100).toFixed(1)}%;height:100%;background:${E.IND_COLOR[r.ind]}"></div>
+            <div style="width:${(r.win / Math.max(40, best + 5) * 100).toFixed(1)}%;height:100%;background:${E.IND_COLOR[r.ind]}"></div>
           </div>
           <div class="mono" style="width:76px;text-align:right;font-size:30px;font-weight:830">${r.win}%</div>
         </div>`).join("")}
@@ -334,7 +316,7 @@ add("05_balance/2.png", shell(1080, 1350, `
       <div style="flex:1;height:1px;background:${LINE}"></div>
     </div>
     <p style="margin-top:26px;font-size:26px;color:${MUTE}">
-      ${best - worst}-point spread, against ±5 points of noise<br>on every one of those numbers.</p>
+      ${best - worst}-point spread, against &plusmn;${TOURNEY_ERR} points of noise<br>on every one of those numbers.</p>
   </div>
   ${foot(2, 4)}`));
 
@@ -376,7 +358,12 @@ add("06_wrong/1.png", shell(1080, 1350, `
       more plots should have compounded that.</p>
     <div style="margin-top:44px;background:${CARD};border:1px solid ${E.IND_COLOR.HO};
                 border-radius:20px;padding:34px">
-      <div style="font-size:44px;font-weight:850;color:${E.IND_COLOR.HO}">It finished third from bottom.</div>
+      <div style="font-size:44px;font-weight:850;color:${E.IND_COLOR.HO}">${(() => {
+        const rank = winRows.findIndex((r) => r.ind === "HO") + 1;
+        const ho = winRows.find((r) => r.ind === "HO");
+        return rank === winRows.length ? `It finished last, on ${ho.win}%.`
+          : `It finished ${rank}th of six, on ${ho.win}%.`;
+      })()}</div>
     </div>
     <p style="margin-top:36px;font-size:29px;color:${MUTE}">Spreading dilutes the per-neighbour bonus
       instead of concentrating it — and every extra plot is a disc that can't hold a company.</p>
@@ -672,7 +659,6 @@ function reelPieces() {
    the reel wants a game that plays itself. Passing the table size straight
    through asked for a seven player game, and STARTING has no row past six. */
 function playOneGame(seed, seats) {
-  /* Reel 12 plays under RULESET, not necessarily the shipped rules. */
   const { E: RE, E2: R2, econ } = REEL12;
   const st = R2.initGame(seats - 1, seed, ["Seat 1"], undefined, true, undefined);
   if (st.players.length !== seats) throw new Error(`asked for ${seats} seats, got ${st.players.length}`);
