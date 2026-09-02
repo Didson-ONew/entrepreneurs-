@@ -26,7 +26,7 @@ function loadEngine() {
     box.exports = { initGame, BP_DATA, SCALING, doLaunch, doSellCompany, doReclaim, canReclaim,
       doRenovate, renovationEligible, findDistressedTargets, activeBiz, discsFree, byId,
       companySlotsUsed, COMPANY_SLOTS, bizSetup, mulberry32, maWouldAchieveSomething,
-      scoreCompanyOnCompletion, levelEP, reclaimCost };
+      scoreCompanyOnCompletion, levelEP, reclaimCost, price, INDUSTRIES };
   `, sandbox);
   return box.exports;
 }
@@ -225,6 +225,37 @@ section("The bots know it is worth an action");
   me.cash = 1;
   check("and not worth it when nothing at all can be done",
     E.maWouldAchieveSomething(st, me) === false);
+}
+
+/* A renovation is a new company entering the market; a reclaim is not. */
+section("Renovating moves the price markers, reclaiming does not");
+{
+  const { st, me, biz } = tableWith("HC", 1);
+  E.doSellCompany(me, biz, quiet);
+  const before = {};
+  E.INDUSTRIES.forEach((i) => (before[i] = E.price(st.pm, i)));
+  E.doReclaim(st, me, biz, quiet);
+  const same = E.INDUSTRIES.every((i) => E.price(st.pm, i) === before[i]);
+  check("buying the same company back as it stands moves nothing", same,
+    E.INDUSTRIES.map((i) => `${i}$${E.price(st.pm, i)}`).join(" "));
+}
+{
+  const { st, me, biz } = tableWith("HC", 1);
+  E.doSellCompany(me, biz, quiet);
+  const card = E.BP_DATA.find((x) => x.lvl === 1 && x.ind !== "HC" && E.renovationEligible(biz, x));
+  me.hand = [card];
+  const before = {};
+  E.INDUSTRIES.forEach((i) => (before[i] = E.price(st.pm, i)));
+  E.doRenovate(st, me, biz, card, quiet);
+  check("renovating into another industry pushes that industry's price down",
+    E.price(st.pm, card.ind) <= before[card.ind],
+    `${card.ind} $${before[card.ind]} -> $${E.price(st.pm, card.ind)}`);
+  const deps = card.deps.map((d) => d.ind);
+  check("and lifts every supplier it now buys from",
+    deps.length === 0 || deps.every((d) => E.price(st.pm, d) >= before[d]),
+    deps.map((d) => `${d} $${before[d]}->$${E.price(st.pm, d)}`).join(" "));
+  check("something actually moved",
+    E.INDUSTRIES.some((i) => E.price(st.pm, i) !== before[i]));
 }
 
 console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed\n");

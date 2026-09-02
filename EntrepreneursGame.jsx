@@ -1628,7 +1628,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "87792388";
+const ENGINE_VERSION = "096e51e3";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent is NOT an extra bill: a company pays its OPEX and
@@ -2261,6 +2261,16 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   distressedBiz.distressed = false;
   delete distressedBiz.distressPayout;   // back in service: the old payout is spent
   distressedBiz.bp = bp;
+  /* A RENOVATION MOVES THE MARKET; A RECLAIM DOES NOT.
+
+     Renovating puts a DIFFERENT Blueprint into the structure, so a genuinely new
+     company enters the market: it starts producing a good that was not being
+     produced here and starts buying from suppliers that were not being bought
+     from. That is a launch, and it moves the markers like one. Reclaiming buys
+     the same company exactly as it stands - same Blueprint, same output, same
+     suppliers - so nothing about supply or demand has changed and no marker
+     moves. Which is also what stops a sale and a buy-back from being a pump. */
+  onLaunch(state.pm, bp.ind, bp.deps.map((d) => d.ind));
   distressedBiz.level = bp.lvl;
   distressedBiz.upgraded = false;
   distressedBiz.scored = false;
