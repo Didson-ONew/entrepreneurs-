@@ -121,4 +121,34 @@ services:
       - key: ENT_SEED_BACKUP
         sync: false
 
+      # --- voice relay -------------------------------------------------------
+      # Without these the voice call uses free public STUN only. That finds a
+      # path between two laptops on home broadband, and it CANNOT find one
+      # between two phones on mobile data: carrier NAT gives out a different
+      # public port per destination, so the address STUN reports is dead before
+      # the other player tries it. A TURN relay is the only thing that gets
+      # through, and it is what the "could not connect" in the Voice tab means.
+      #
+      # ENT_TURN_URLS  is the relay, comma separated:
+      #                  turn:relay.example.com:3478,turns:relay.example.com:5349
+      # then EITHER
+      # ENT_TURN_SECRET  a shared secret, if the relay speaks coturn's REST
+      #                  scheme - preferred, because the server then mints a
+      #                  credential per player that expires within the hour
+      # OR
+      # ENT_TURN_USER / ENT_TURN_PASS   a fixed username and password
+      #
+      # All `sync: false`: a relay credential is a password, and this repository
+      # is public. Set them in the Render dashboard. Leaving them unset is fine
+      # and is the state the service is in today - the boot log says which.
+      # HOSTING_GUIDE.md has the whole explanation and where to get a relay.
+      - key: ENT_TURN_URLS
+        sync: false
+      - key: ENT_TURN_SECRET
+        sync: false
+      - key: ENT_TURN_USER
+        sync: false
+      - key: ENT_TURN_PASS
+        sync: false
+
       # PORT is set by Render and read by server.js. Do not set it here.

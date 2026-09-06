@@ -599,6 +599,13 @@ const store = {
    only relays the handshake; the audio itself flows directly between players and
    never touches the host. */
 
+/* The fallback used until /api/ice answers, and if it never does. STUN alone
+   finds a path between two laptops on ordinary broadband; it cannot find one
+   between two phones on mobile networks, because carrier NAT gives out a
+   different public port per destination and the address STUN reports is
+   therefore useless to the other player. A TURN relay is the only thing that
+   gets through that, and the host configures one in the environment - see
+   iceconfig.js for the whole story and the variable names. */
 const STUN = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:global.stun.twilio.com:3478" }];
 
 /* Can this page get a microphone at all? Browsers only expose one on a secure
@@ -623,12 +630,20 @@ function insecureReason() {
 function useVoice(me, active) {
   const [on, setOn] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [peers, setPeers] = useState([]);      // [{seat, name, speaking}]
+  const [peers, setPeers] = useState([]);      // [{seat, name, state}]
   const [error, setError] = useState("");
+  const [relay, setRelay] = useState(null);    // null = not asked yet
   const localStream = useRef(null);
   const conns = useRef(new Map());             // seat -> RTCPeerConnection
   const audios = useRef(new Map());            // seat -> HTMLAudioElement
+  const pending = useRef(new Map());           // seat -> ICE candidates held back
+  const restarted = useRef(new Set());         // seats whose ICE we already retried
+  const ice = useRef(STUN);
   const pollRef = useRef(null);
+  const polling = useRef(false);
+
+  const setPeerState = (seat, state) =>
+    setPeers((ps) => ps.map((p) => (p.seat === seat ? { ...p, state } : p)));
 
   const post = (body) =>
     fetch("/api/signal", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -649,56 +664,95 @@ function useVoice(me, active) {
 
   function makeConn(seat) {
     if (conns.current.has(seat)) return conns.current.get(seat);
-    const pc = new RTCPeerConnection({ iceServers: STUN });
+    const pc = new RTCPeerConnection({ iceServers: ice.current });
     if (localStream.current) localStream.current.getTracks().forEach((t) => pc.addTrack(t, localStream.current));
     pc.onicecandidate = (e) => { if (e.candidate) post({ kind: "ice", to: seat, payload: e.candidate }); };
     pc.ontrack = (e) => attach(seat, e.streams[0]);
     pc.onconnectionstatechange = () => {
-      if (["failed", "closed", "disconnected"].includes(pc.connectionState)) {
-        setPeers((ps) => ps.map((p) => (p.seat === seat ? { ...p, failed: pc.connectionState === "failed" } : p)));
+      const s = pc.connectionState;
+      if (s === "connected") { setPeerState(seat, "connected"); return; }
+      if (s === "failed") {
+        /* One retry, and only from the side that made the offer, so the two ends
+           cannot both renegotiate at once. A failure that survives the retry is
+           a network with no path through it, not a hiccup. */
+        if (seat > me.seat && !restarted.current.has(seat)) {
+          restarted.current.add(seat);
+          setPeerState(seat, "connecting");
+          callPeer(seat, true);
+        } else {
+          setPeerState(seat, "failed");
+        }
+      } else if (s === "disconnected") {
+        setPeerState(seat, "connecting");   // often temporary; ICE recovers on its own
       }
     };
     conns.current.set(seat, pc);
     return pc;
   }
 
-  async function callPeer(seat) {
+  async function callPeer(seat, iceRestart = false) {
     const pc = makeConn(seat);
-    const offer = await pc.createOffer();
+    const offer = await pc.createOffer(iceRestart ? { iceRestart: true } : undefined);
     await pc.setLocalDescription(offer);
     post({ kind: "offer", to: seat, payload: offer });
+  }
+
+  /* A candidate cannot be added before the description it belongs to has been
+     set - addIceCandidate throws, and this used to swallow that in an empty
+     catch. Since signals arrive in batches, an offer and the candidates that
+     follow it land together, so that was not a rare race: it was most of them.
+     Holding them here and flushing after setRemoteDescription is the fix. */
+  async function flushPending(seat, pc) {
+    const held = pending.current.get(seat) || [];
+    pending.current.delete(seat);
+    for (const c of held) {
+      try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
+    }
   }
 
   async function handle(msg) {
     if (msg.kind === "presence") {
       setPeers((ps) => {
         const rest = ps.filter((p) => p.seat !== msg.from);
-        return msg.on ? [...rest, { seat: msg.from, name: msg.name }] : rest;
+        return msg.on ? [...rest, { seat: msg.from, name: msg.name, state: "connecting" }] : rest;
       });
       if (!msg.on) {
         const pc = conns.current.get(msg.from);
         if (pc) { pc.close(); conns.current.delete(msg.from); }
         const el = audios.current.get(msg.from);
         if (el) { el.remove(); audios.current.delete(msg.from); }
+        pending.current.delete(msg.from);
+        restarted.current.delete(msg.from);
       } else if (msg.from > me.seat) {
         // deterministic tie-break: the lower seat always makes the offer
-        callPeer(msg.from);
+        await callPeer(msg.from);
       }
       return;
     }
     if (msg.kind === "offer") {
       const pc = makeConn(msg.from);
       await pc.setRemoteDescription(new RTCSessionDescription(msg.payload));
+      await flushPending(msg.from, pc);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       post({ kind: "answer", to: msg.from, payload: answer });
-      setPeers((ps) => (ps.some((p) => p.seat === msg.from) ? ps : [...ps, { seat: msg.from, name: msg.name }]));
+      setPeers((ps) => (ps.some((p) => p.seat === msg.from)
+        ? ps : [...ps, { seat: msg.from, name: msg.name, state: "connecting" }]));
     } else if (msg.kind === "answer") {
       const pc = conns.current.get(msg.from);
-      if (pc && pc.signalingState !== "stable") await pc.setRemoteDescription(new RTCSessionDescription(msg.payload));
+      if (pc && pc.signalingState !== "stable") {
+        await pc.setRemoteDescription(new RTCSessionDescription(msg.payload));
+        await flushPending(msg.from, pc);
+      }
     } else if (msg.kind === "ice") {
       const pc = conns.current.get(msg.from);
-      if (pc) { try { await pc.addIceCandidate(new RTCIceCandidate(msg.payload)); } catch (_) {} }
+      if (!pc || !pc.remoteDescription) {
+        const held = pending.current.get(msg.from) || [];
+        held.push(msg.payload);
+        pending.current.set(msg.from, held);
+        return;
+      }
+      try { await pc.addIceCandidate(new RTCIceCandidate(msg.payload)); } catch (_) {}
     }
   }
 
@@ -725,17 +779,37 @@ function useVoice(me, active) {
       return;
     }
     setOn(true);
+
+    /* Ask the host which STUN and TURN servers to use, before any peer
+       connection is built - an RTCPeerConnection cannot be given a relay after
+       the fact. If the request fails the call still goes ahead on STUN, which
+       is what it always did. */
+    try {
+      const res = await fetch(`/api/ice?code=${me.code}&token=${me.token}`, { cache: "no-store" });
+      const d = await res.json();
+      if (d && Array.isArray(d.iceServers) && d.iceServers.length) ice.current = d.iceServers;
+      setRelay(!!(d && d.relay));
+    } catch (_) { setRelay(false); }
+
     const r = await post({ type: "join" });
     (r.peers || []).forEach((p) => {
-      setPeers((ps) => (ps.some((x) => x.seat === p.seat) ? ps : [...ps, p]));
+      setPeers((ps) => (ps.some((x) => x.seat === p.seat) ? ps : [...ps, { ...p, state: "connecting" }]));
       if (p.seat > me.seat) callPeer(p.seat);   // lower seat offers
     });
+    /* One batch at a time, in order, and awaited. Without the await the loop
+       fired every handler at once, so candidates overtook the offer they
+       belonged to and were thrown away - and two polls could overlap and
+       process the same handshake twice. */
     pollRef.current = setInterval(async () => {
+      if (polling.current) return;
+      polling.current = true;
       try {
         const res = await fetch(`/api/signals?code=${me.code}&token=${me.token}`, { cache: "no-store" });
         const d = await res.json();
-        for (const m of d.mail || []) handle(m);
-      } catch (_) {}
+        for (const m of d.mail || []) {
+          try { await handle(m); } catch (_) {}
+        }
+      } catch (_) { } finally { polling.current = false; }
     }, 900);
   }
 
@@ -744,6 +818,7 @@ function useVoice(me, active) {
     clearInterval(pollRef.current);
     conns.current.forEach((pc) => pc.close()); conns.current.clear();
     audios.current.forEach((el) => el.remove()); audios.current.clear();
+    pending.current.clear(); restarted.current.clear();
     if (localStream.current) localStream.current.getTracks().forEach((t) => t.stop());
     localStream.current = null;
     setPeers([]); setOn(false); setMuted(false);
@@ -759,7 +834,7 @@ function useVoice(me, active) {
   useEffect(() => () => { if (on) stop(); }, []);          // clean up on unmount
   useEffect(() => { if (!active && on) stop(); }, [active]);
 
-  return { on, muted, peers, error, start, stop, toggleMute };
+  return { on, muted, peers, error, relay, start, stop, toggleMute };
 }
 
 function TablePanel({ me, chat, onSend }) {
@@ -890,10 +965,27 @@ function TablePanel({ me, chat, onSend }) {
                         You {voice.muted && <span style={{ color: "#fca5a5" }}>(muted)</span>}
                       </div>
                       {voice.peers.map((p) => (
-                        <div key={p.seat} style={{ fontSize: 12, color: p.failed ? "#fca5a5" : "#d5d9e0" }}>
-                          {p.name}{p.failed ? " \u2014 could not connect" : ""}
+                        <div key={p.seat} style={{ fontSize: 12,
+                          color: p.state === "failed" ? "#fca5a5"
+                            : p.state === "connected" ? "#d5d9e0" : "#8b93a3" }}>
+                          {p.name}
+                          {p.state === "failed" && " \u2014 could not connect"}
+                          {p.state === "connecting" && " \u2014 connecting\u2026"}
                         </div>
                       ))}
+                      {/* Without a relay a call between two mobile networks
+                          almost always fails, and it is not the player's fault
+                          or their microphone's. Say so where they are looking,
+                          rather than leaving "could not connect" to be read as
+                          a bug in their phone. */}
+                      {voice.relay === false && voice.peers.some((p) => p.state === "failed") && (
+                        <div style={{ fontSize: 11, color: "#e0b060", lineHeight: 1.45, marginTop: 6 }}>
+                          No relay is set up on this server, so a direct path has to exist
+                          between the two of you. Mobile networks usually block one. On wifi
+                          it should connect; otherwise use chat, or ask the host to configure
+                          a TURN relay.
+                        </div>
+                      )}
                       {!voice.peers.length && (
                         <div style={{ fontSize: 11, color: "#6b7280", fontStyle: "italic", marginTop: 3 }}>
                           Waiting for someone else to join&hellip;
