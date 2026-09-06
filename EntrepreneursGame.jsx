@@ -3569,6 +3569,185 @@ function computeFootprintOverlays(board, players) {
   return { outlines, connectors };
 }
 
+/* ---------------------------------------------------------------------------
+   THE BOARD IN A WINDOW YOU CAN ZOOM AND PAN.
+
+   The board is a fixed 746px square, because every plot, road and district is
+   positioned absolutely in board pixels and that is what keeps the geometry
+   honest. A phone is 390px wide. Something has to reconcile those, and it used
+   to be a CSS media query that scaled the board by
+   `scale(calc((100vw - 3.2rem) / 746))` - which is invalid: a length over a
+   number is a length, and scale() wants a unitless number, so the browser threw
+   the declaration away. The `overflow: hidden` sitting beside it was valid, so
+   the full-size board was simply CLIPPED to the screen: two districts of
+   sixteen, and no way to reach the other fourteen.
+
+   A container width can only become a scale factor by measuring the container,
+   so this does it in JavaScript, and having measured it, gives the player real
+   zoom and pan on top:
+
+     FIT       the whole board, always, on any screen. This is the default and
+               it is what the broken rule was trying to be.
+     ZOOM      up to 3x, for tapping a single plot with a thumb.
+     PAN       drag when zoomed in; pinch with two fingers at any time.
+
+   The viewport keeps a CONSTANT height - the board at fit scale - so zooming
+   never reflows the page underneath it. Panning is clamped so the board always
+   covers the window and you cannot lose it off an edge.
+
+   A drag must not eat a tap: pointer movement under DRAG_SLOP pixels is left
+   alone and reaches the plot underneath, which is how you select a plot at all.
+--------------------------------------------------------------------------- */
+const ZOOM_MIN = 1, ZOOM_MAX = 3, ZOOM_STEP = 0.5, DRAG_SLOP = 8;
+
+function BoardViewport({ size, children }) {
+  const outerRef = useRef(null);
+  const [vw, setVw] = useState(size);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panning, setPanning] = useState(false);
+  const drag = useRef(null);
+  const pinch = useRef(null);
+
+  /* Measure the space actually available. ResizeObserver rather than a resize
+     listener, because the board also has to re-fit when the sidebar collapses
+     or a panel above it grows, neither of which resizes the window. */
+  useEffect(() => {
+    const el = outerRef.current;
+    if (!el) return;
+    const measure = () => setVw(el.clientWidth || size);
+    measure();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+      return () => window.removeEventListener("resize", measure);
+    }
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [size]);
+
+  const fit = Math.min(1, vw / size);          // never blow the board up past 1:1
+  const scale = fit * zoom;
+  const vpH = size * fit;                      // constant: zoom must not reflow
+  const content = size * scale;
+
+  /* Keep the board covering the window. When it is smaller than the window on
+     an axis it is centred there instead, which is what makes the fit view sit
+     in the middle rather than jammed against the left edge. */
+  const clamp = useCallback((p, sc) => {
+    const c = size * sc;
+    const ax = (w) => (c <= w ? (w - c) / 2 : Math.min(0, Math.max(w - c, p.x)));
+    const ay = (h) => (c <= h ? (h - c) / 2 : Math.min(0, Math.max(h - c, p.y)));
+    return { x: ax(vw), y: ay(vpH) };
+  }, [size, vw, vpH]);
+
+  useEffect(() => { setPan((p) => clamp(p, fit * zoom)); }, [clamp, fit, zoom]);
+
+  /* Zoom about a point, so the thing under your fingers stays under them. */
+  const zoomTo = useCallback((next, ox, oy) => {
+    const z = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, next));
+    setZoom((prev) => {
+      if (z === prev) return prev;
+      const from = fit * prev, to = fit * z;
+      const cx = ox === undefined ? vw / 2 : ox;
+      const cy = oy === undefined ? vpH / 2 : oy;
+      setPan((p) => clamp({
+        x: cx - ((cx - p.x) / from) * to,
+        y: cy - ((cy - p.y) / from) * to,
+      }, to));
+      return z;
+    });
+  }, [clamp, fit, vw, vpH]);
+
+  const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
+  const onTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      pinch.current = { d: dist(e.touches), z: zoom };
+      drag.current = null;
+    } else if (e.touches.length === 1 && zoom > 1) {
+      const t = e.touches[0];
+      drag.current = { x: t.clientX, y: t.clientY, px: pan.x, py: pan.y, moved: false };
+    }
+  };
+  const onTouchMove = (e) => {
+    if (pinch.current && e.touches.length === 2) {
+      const r = dist(e.touches) / (pinch.current.d || 1);
+      const box = outerRef.current.getBoundingClientRect();
+      zoomTo(pinch.current.z * r,
+        (e.touches[0].clientX + e.touches[1].clientX) / 2 - box.left,
+        (e.touches[0].clientY + e.touches[1].clientY) / 2 - box.top);
+      e.preventDefault();
+      return;
+    }
+    const d = drag.current;
+    if (d && e.touches.length === 1) {
+      const t = e.touches[0];
+      const dx = t.clientX - d.x, dy = t.clientY - d.y;
+      if (!d.moved && Math.hypot(dx, dy) < DRAG_SLOP) return;   // still a tap
+      d.moved = true;
+      setPanning(true);
+      setPan(clamp({ x: d.px + dx, y: d.py + dy }, scale));
+      e.preventDefault();
+    }
+  };
+  const endTouch = () => { pinch.current = null; drag.current = null; setPanning(false); };
+
+  /* Mouse dragging, for a desktop zoomed in past the fit. */
+  const onMouseDown = (e) => {
+    if (zoom <= 1 || e.button !== 0) return;
+    drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y, moved: false };
+  };
+  useEffect(() => {
+    if (!drag.current) return undefined;
+    const move = (e) => {
+      const d = drag.current;
+      if (!d) return;
+      const dx = e.clientX - d.x, dy = e.clientY - d.y;
+      if (!d.moved && Math.hypot(dx, dy) < DRAG_SLOP) return;
+      d.moved = true;
+      setPanning(true);
+      setPan(clamp({ x: d.px + dx, y: d.py + dy }, scale));
+    };
+    const up = () => { drag.current = null; setPanning(false); };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    return () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
+  });
+
+  /* A drag that moved must not also select the plot it finished on. */
+  const swallowClick = (e) => {
+    if (drag.current && drag.current.moved) { e.stopPropagation(); e.preventDefault(); }
+  };
+
+  const cls = "board-viewport" + (zoom > 1 ? " is-zoomed" : "") + (panning ? " is-panning" : "");
+  return (
+    <>
+      <div ref={outerRef} className={cls} style={{ height: vpH }}
+           onTouchStart={onTouchStart} onTouchMove={onTouchMove}
+           onTouchEnd={endTouch} onTouchCancel={endTouch}
+           onMouseDown={onMouseDown} onClickCapture={swallowClick}>
+        <div style={{
+          width: size, height: size, transformOrigin: "0 0",
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+        }}>
+          {children}
+        </div>
+      </div>
+      <div className="board-zoom">
+        <button type="button" onClick={() => zoomTo(zoom - ZOOM_STEP)}
+                disabled={zoom <= ZOOM_MIN} aria-label="Zoom out">&minus;</button>
+        <span className="pct">{Math.round(scale * 100)}%</span>
+        <button type="button" onClick={() => zoomTo(zoom + ZOOM_STEP)}
+                disabled={zoom >= ZOOM_MAX} aria-label="Zoom in">+</button>
+        <button type="button" onClick={() => { setZoom(1); }}
+                disabled={zoom === 1} aria-label="Fit the whole board">Fit</button>
+        <span className="hint">{zoom > 1 ? "drag to pan" : "pinch or + to zoom"}</span>
+      </div>
+    </>
+  );
+}
+
 function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot, selectMode, selectCtx, onSelectForLaunch, deliverInfo, onDeliver, onHoverBiz }) {
   const eligible = computeEligiblePlots(board, selectMode, selectCtx);
   const { outlines, connectors } = computeFootprintOverlays(board, players);
@@ -3679,10 +3858,12 @@ function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot
   ));
 
   return (
-    <div data-tut="board" className="board-shell inline-block rounded-lg p-2" style={{ backgroundColor: "#0b0c0f", border: "1px solid #262a33" }}>
-      <div style={{ position: "relative", width: BOARD_PX, height: BOARD_PX, overflow: "hidden", borderRadius: 2 }}>
-        {layers}
-      </div>
+    <div data-tut="board" className="board-shell rounded-lg p-2" style={{ backgroundColor: "#0b0c0f", border: "1px solid #262a33" }}>
+      <BoardViewport size={BOARD_PX}>
+        <div style={{ position: "relative", width: BOARD_PX, height: BOARD_PX, overflow: "hidden", borderRadius: 2 }}>
+          {layers}
+        </div>
+      </BoardViewport>
       <div className="flex flex-wrap gap-2 mt-2">
         {Object.entries(DIST_TYPE_LABEL).map(([k, label]) => (
           <div key={k} className="flex items-center gap-1">
@@ -4924,9 +5105,13 @@ function GameScreens({ online }) {
   return (
     <div className="w-full min-h-screen p-4" style={{ backgroundColor: "#0e1014", fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div className="flex items-center gap-2">
+        {/* Wraps on a narrow screen. Without flex-wrap the price ticker was pushed
+            off the right edge of a phone instead of dropping below the title -
+            the prices are the most-consulted thing on the page, so half of them
+            being past the edge is not a small problem. */}
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div style={{ minWidth: 0 }}>
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-lg font-bold text-white tracking-tight">ENTREPRENEURS</h1>
               <button onClick={() => setTutorial(true)} title="How to play"
                 className="text-[10px] px-2 py-0.5 rounded"
