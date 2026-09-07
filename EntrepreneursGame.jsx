@@ -4455,7 +4455,13 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
         <div>
           <div className="flex gap-2 flex-wrap">
             <button disabled={!!blocked}
-              onClick={() => { if (state.ipoTileClaimed && megacorpMatch) return setMode("hq"); if (NET) return NET.send("act", { type: "megacorp" }); claimMegacorp(state, human, log); finish(); }}
+              /* Always ask which company keeps the building. This used to be
+                 gated on `state.ipoTileClaimed`, so the FIRST player to go
+                 public - the one the IPO tile is waiting for - had the engine's
+                 pickHQ choose for them and never saw the screen. Whether
+                 somebody already took the IPO tile has nothing to do with whose
+                 building this is. */
+              onClick={() => { if (megacorpMatch) return setMode("hq"); if (NET) return NET.send("act", { type: "megacorp" }); claimMegacorp(state, human, log); finish(); }}
               className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
               {megacorpMatch
                 ? `Go Public \u2014 form "${megacorpMatch.tile[0]}" (+${megacorpMatch.tile[2]} EP${!state.ipoTileClaimed ? " +5 IPO" : ""})`
@@ -4483,6 +4489,12 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
           <div className="flex flex-wrap gap-2">
             {megacorpMatch.have.map((b) => {
               const nbrs = hqNeighbours(state, b);
+              /* The brand banks its industry's price DIVIDED BY THE TILE'S TIER,
+                 rounded down. This card used to print the undivided price, which
+                 is not what the company would earn and can rank the choices
+                 wrongly: on a tier 2 tile a $7 good and a $6 good both pay 3. */
+              const tier = tierOfTile(megacorpMatch.tile);
+              const perQ = brandEPFor(price(state.pm, b.bp.ind), tier);
               return (
                 <button key={b.id} onClick={() => { if (NET) return NET.send("act", { type: "megacorp", hqId: b.id }); claimMegacorp(state, human, log, b); finish(); }}
                   className="text-left rounded-md p-2" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}77`, width: 150 }}>
@@ -4491,9 +4503,17 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                     <span className="text-[10px] font-mono text-gray-400">L{b.level}</span>
                   </div>
                   <div className="text-[10px] font-semibold text-gray-100 leading-tight">{b.bp.name}</div>
-                  <div className="text-[9px] font-mono mt-0.5" style={{ color: "#8fd3b6" }}>
-                    {price(state.pm, b.bp.ind)} EP/quarter &middot; {nbrs} neighbour{nbrs === 1 ? "" : "s"} (+{nbrs * MEGACORP_NEIGHBOUR_EP} EP)
+                  <div className="text-[9px] font-mono mt-0.5" style={{ color: perQ ? "#8fd3b6" : "#8b93a3" }}>
+                    {perQ} EP/quarter{tier > 1 ? ` ($${price(state.pm, b.bp.ind)} ÷ ${tier})` : ""}
                   </div>
+                  <div className="text-[9px] font-mono" style={{ color: "#8b93a3" }}>
+                    {nbrs} neighbour{nbrs === 1 ? "" : "s"} (+{nbrs * MEGACORP_NEIGHBOUR_EP} EP at the end)
+                  </div>
+                  {!perQ && (
+                    <div className="text-[9px]" style={{ color: "#e0b060" }}>
+                      banks nothing until ${b.bp.ind} reaches ${tier}
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -4866,13 +4886,27 @@ function GameScreens({ online }) {
     if (state && state.phase === "placingLH" && (!pickMode || pickMode.kind !== "lh")) setPickMode({ kind: "lh", selected: [] });
   }, [state && state.phase]);
 
-  // total time this match has been running
+  /* Total time this match has been running.
+
+     This used to take Date.now() when the component mounted and keep it in a
+     ref, so RELOADING THE PAGE RESTARTED THE CLOCK - and in an online game no
+     two players ever saw the same number, because each was timing their own
+     tab. The match has one start, and it belongs to the match:
+
+       online  the server has held room.startedAt all along and now sends it
+               with every state frame, so every player and every watcher reads
+               the same clock and a reload changes nothing.
+       solo    a single-player game is not saved anywhere, so reloading starts a
+               new game - and the clock restarting with it is correct. */
   useEffect(() => {
     if (!state || state.phase === "gameover") return;
+    if (online && online.startedAt) startedAt.current = online.startedAt;
     if (startedAt.current === null) startedAt.current = Date.now();
-    const id = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt.current) / 1000)), 1000);
+    const tick = () => setElapsed(Math.floor((Date.now() - startedAt.current) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [state && state.phase === "gameover"]);
+  }, [state && state.phase === "gameover", online && online.startedAt]);
 
   // how long the table has been waiting on the same player
   const awaitedRef = useRef(null);
@@ -5537,8 +5571,31 @@ function GameScreens({ online }) {
                         </div>
                         <div className="font-mono font-bold" style={{ color: "#8fd3b6" }}>{epTotal(p).toFixed(0)} EP</div>
                       </div>
+                      {/* This row used to read "Nbiz ... Ndisc", where the biz
+                          count was activeBiz - which EXCLUDES Megacorp HQs. So
+                          merging three companies into a Megacorp dropped you
+                          from "3biz" to "0biz" with the Megacorp shown nowhere,
+                          and the disc number was discsInBank (LOAN discs only)
+                          while the player board's "DISCS USED" counts plots,
+                          companies AND loans. Two different quantities, both
+                          labelled "disc", that could never be reconciled.
+                          Megacorps are now counted, and the discs shown here are
+                          the same used-of-twelve the player board shows. */}
                       <div className="flex items-center justify-between text-[9px] font-mono text-gray-500 mt-0.5">
-                        <span>${Math.round(p.cash)} &middot; {activeBiz(p).length}biz &middot; {p.hand.length}BP &middot; {p.discsInBank}disc</span>
+                        <span>
+                          ${Math.round(p.cash)} &middot;{" "}
+                          <span title="Active companies">{activeBiz(p).length}biz</span>
+                          {megacorpHQs(p).length > 0 && (
+                            <span title={`Megacorp HQ: ${megacorpHQs(p).map((b) => b.megacorpName).join(", ")}`}
+                              style={{ color: "#f5d76e" }}> +{megacorpHQs(p).length}MC</span>
+                          )} &middot; {p.hand.length}BP &middot;{" "}
+                          <span title={`Discs committed: ${plotsOwned(state, p)} on land, ${companySlotsUsed(p)} on companies, ${p.discsInBank} pledged for loans`}>
+                            {discsUsed(state, p)}/{DISCS_PER_PLAYER} discs
+                          </span>
+                          {p.discsInBank > 0 && (
+                            <span title="Loan discs - 5 EP each at game end" style={{ color: "#fca5a5" }}> ({p.discsInBank} loan)</span>
+                          )}
+                        </span>
                       </div>
                       {p.persona && PERSONAS[p.persona] && (
                         <div className="text-[9px] mt-0.5" style={{ color: IND_COLOR[PERSONAS[p.persona].ind] }}
@@ -6106,6 +6163,29 @@ function FinalQuarterNotice({ state, human, onClose }) {
   );
 }
 
+/* How long the match has been running, as a clock.
+
+   This used to be built inline in two places from three variables, and the
+   minutes were TOTAL minutes rather than minutes within the hour:
+
+     const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
+     {hh > 0 ? `${hh}:` : ""}{mm}:{ss}
+
+   so a game two hours and ten minutes old rendered as "2:130:45" - the hours
+   counted once as 2 and again inside the 130. Past a day it grew a third digit
+   and stopped looking like a time at all. One function now, used by both. */
+function formatElapsed(seconds) {
+  const s = Math.max(0, Math.floor(seconds || 0));
+  const d = Math.floor(s / 86400);
+  const h = Math.floor(s / 3600) % 24;
+  const m = Math.floor(s / 60) % 60;
+  const ss = String(s % 60).padStart(2, "0");
+  const mm = String(m).padStart(2, "0");
+  if (d > 0) return `${d}d ${h}:${mm}:${ss}`;
+  if (h > 0) return `${h}:${mm}:${ss}`;
+  return `${mm}:${ss}`;
+}
+
 /* A small stack of pips reads faster than "L3" when scanning a list of Megacorp
    requirements: one filled block per level, so height maps to company size. */
 function LevelBadge({ level }) {
@@ -6151,9 +6231,7 @@ function MatchTracker({ state, elapsed }) {
       border: `1px solid ${on ? "#3f8a70" : "#262a33"}`,
     }}>{label}</span>
   );
-  const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
-  const ss = String(elapsed % 60).padStart(2, "0");
-  const hh = Math.floor(elapsed / 3600);
+  const clock = formatElapsed(elapsed);
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono" style={{ fontSize: 10.5 }}>
       <span className="flex items-center gap-1">
@@ -6169,24 +6247,20 @@ function MatchTracker({ state, elapsed }) {
       </span>
       {detail && <span style={{ color: "#8fd3b6" }}>({detail})</span>}
       <span style={{ color: "#3a4152" }}>|</span>
-      <span title="Time played" style={{ color: "#8b93a3" }}>
-        {hh > 0 ? `${hh}:` : ""}{mm}:{ss}
-      </span>
+      <span title="Time played" style={{ color: "#8b93a3" }}>{clock}</span>
     </div>
   );
 }
 function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
   const ranked = [...state.players].sort(finalRank);
-  const mm = String(Math.floor((elapsed || 0) / 60)).padStart(2, "0");
-  const ss = String((elapsed || 0) % 60).padStart(2, "0");
-  const hh = Math.floor((elapsed || 0) / 3600);
+  const clock = formatElapsed(elapsed || 0);
   return (
     <div className="w-full min-h-screen flex items-start justify-center p-4 overflow-y-auto" style={{ backgroundColor: "#0e1014" }}>
       <div className="w-full rounded-xl p-6" style={{ maxWidth: 1200, backgroundColor: "#14161a", border: "1px solid #262a33" }}>
         <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
           <h1 className="text-xl font-bold text-white">Game Over</h1>
           <span className="text-xs font-mono text-gray-500">
-            match time {hh > 0 ? `${hh}:` : ""}{mm}:{ss}
+            match time {clock}
           </span>
         </div>
         <p className="text-sm text-gray-400 mb-5">{ranked[0].name} wins with {ranked[0].epBank.toFixed(0)} EP.</p>

@@ -122,7 +122,11 @@ function log(room) {
 function payloadFor(room) {
   const v = room.version || 0;
   return room.state
-    ? `{"type":"state","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))},"state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
+    /* startedAt goes out with every state frame so the match clock is the
+       ROOM's, not the browser tab's. It used to be started from Date.now() when
+       the page mounted, so a reload set it back to zero and no two players ever
+       saw the same time. */
+    ? `{"type":"state","v":${v},"engine":"${E.ENGINE_VERSION}","startedAt":${room.startedAt || 0},"chat":${JSON.stringify(room.chat.slice(-60))},"watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))},"state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
     : `{"type":"lobby","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"members":${JSON.stringify(room.members.map((m) => ({ name: m.name, seat: m.seat, host: m.host })))},"bots":${room.bots},"personas":${room.personas ? "true" : "false"},"variants":${JSON.stringify(room.variants)},"code":"${room.code}","watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))}}`;
 }
 /* Every finished game is written down exactly once. This hangs off broadcast

@@ -1039,6 +1039,10 @@ function OnlineTable({ onTable }) {
   const [lobby, setLobby] = useState(null);
   const [state, setState] = useState(null);
   const [logs, setLogs] = useState([]);
+  /* When this MATCH began, as the server tells it. The clock was a Date.now()
+     taken when the page mounted, so a reload restarted it and two players never
+     agreed on it. */
+  const [startedAt, setStartedAt] = useState(0);
   const [conn, setConn] = useState("connecting");
   const [toast, setToast] = useState("");
   const [checking, setChecking] = useState(true);
@@ -1122,6 +1126,7 @@ function OnlineTable({ onTable }) {
         for (const k of Object.keys(st.board.graph)) g[k] = new Set(st.board.graph[k]);
         st.board.graph = g;
         setState(st);
+        if (msg.startedAt) setStartedAt(msg.startedAt);
         setLogs((msg.logs || []).map((l, i) => ({ id: i, msg: l.msg, pid: l.pid })));
       }
     };
@@ -1219,7 +1224,7 @@ function OnlineTable({ onTable }) {
         }}>{toast}</div>
       )}
       <Game online={{
-        state, seat: me.seat, logs, host: !!me.host, spectator: !!me.spectator,
+        state, seat: me.seat, logs, host: !!me.host, spectator: !!me.spectator, startedAt,
         onKick: async (seat) => {
           const r = await api("/api/kick", { code: me.code, token: me.token, seat });
           if (r.body && r.body.error) { setToast(r.body.error); setTimeout(() => setToast(""), 2600); }
