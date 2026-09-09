@@ -1091,7 +1091,7 @@ let bizIdCounter = 1;
    which way a company grows, so a Technology company that spread to two plots and was
    then upgraded vertically stands two storeys on one plot and one on the other.
 
-   That matters for rent: a landlord collects $3 for every level standing on their plot,
+   That matters for rent: a landlord collects $2 for every level standing on their plot,
    so the two-storey corner pays $6 and the neighbour pays $3. Recording the levels per
    plot is the only way the rent can be right, and it keeps the total at $3 x level. */
 function startingLevels(bp, footprint) {
@@ -1352,7 +1352,7 @@ function launchScore(state, p, bp, archetype) {
   const totalOutlay = bp.setup + mustBuy * 3;   // mid-board plots run about $3
 
   // --- what it earns every quarter it stands ---
-  // Rent is $3 per level, so a business on land you own returns that rent to you,
+  // Rent is $2 per level, so a business on land you own returns that rent to you,
   // which materially narrows the gap between cheap-OPEX and expensive-OPEX industries.
   const rent = RENT_PER_LEVEL * bp.lvl;
   const rentBack = owned >= nPlots ? rent : 0;
@@ -1640,7 +1640,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "3c949ec1";
+const ENGINE_VERSION = "503c4432";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent is NOT an extra bill: a company pays its OPEX and
@@ -1712,7 +1712,7 @@ function doSellBP(state, p, bp, log, solvency = false) {
 
 /* What a Megacorp headquarters costs its owner every quarter. It has no Blueprint and
    therefore no OPEX, but it still stands on somebody's land, and the owner pays that rent
-   out of pocket - $3 for every level standing on a plot, exactly as any other building
+   out of pocket - $2 for every level standing on a plot, exactly as any other building
    pays it. Land the owner holds themselves costs nothing: the money would only go round
    in a circle. */
 function hqRentDue(state, p) {
@@ -1789,7 +1789,7 @@ function runProduction(state, log) {
       }
       p.cash -= cost;
       const rentTotal = RENT_PER_LEVEL * b.level;
-      /* $3 for every level standing on a plot, paid to whoever owns that plot. A
+      /* $2 for every level standing on a plot, paid to whoever owns that plot. A
          two-storey corner pays its landlord $6 while the single-storey neighbour
          collects $3, and the total still comes to $3 x level. */
       for (const plot of b.footprint) {

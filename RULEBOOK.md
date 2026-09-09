@@ -1,6 +1,6 @@
 # Entrepreneurs - Rulebook
 
-*Rulebook v16. The complete rules, with the designer's notes on why each one exists.*
+*Rulebook v17. The complete rules, with the designer's notes on why each one exists.*
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
@@ -35,9 +35,9 @@ You are a founder building a city's economy. You buy land, build companies on it
 
 ### The one idea underneath everything
 
-Every company pays OPEX each quarter, and that money does not vanish - it goes to the industries printed on its Blueprint as suppliers. So the industry nobody is building is quietly collecting everyone else's money, and its price is climbing while the crowded industries sink toward $1. Reading that pressure is the game.
+Every company pays OPEX each quarter, and that money does not vanish - it goes to the industries printed on its Blueprint as suppliers. So the industry nobody is building is quietly collecting everyone else's money, and its price is climbing while the crowded industries sink toward $2. Reading that pressure is the game.
 
-> **Designer's note.** The economy is a closed loop on purpose. There is no faucet other than the bank loan and the $1 recycling floor, so a table that all builds the same thing genuinely impoverishes itself. Every playtest that felt flat was a table that had not noticed this yet.
+> **Designer's note.** The economy is a closed loop on purpose. There is no faucet other than the bank loan and the $1 a unit paid for recycling, so a table that all builds the same thing genuinely impoverishes itself. Every playtest that felt flat was a table that had not noticed this yet.
 
 ---
 
@@ -158,11 +158,19 @@ Going to the Board Meeting costs ALL of your workers for the quarter and buys a 
 ### M&A
 
 - LAUNCH - build a Blueprint from your hand onto empty plots, paying its setup cost. The first time you ever build in an industry you bank 3 EP immediately.
-- BUY - take any unowned plot at its current value, or take over a Distressed Asset. You may buy a distressed structure as it stands for half its own setup cost, keeping its Blueprint and level, or renovate it with a card from your hand for half that card's setup cost. Any distressed structure is fair game, including one you sold yourself - buying it back as it stands needs no card at all.
+- BUY - take any unowned plot at its current value, or take over a Distressed Asset. There are two ways to take one: RECLAIM it as it stands for exactly what the bank paid for it, keeping its Blueprint and level and needing no card at all, or RENOVATE it with a card from your hand for half that card's setup cost. Any distressed structure is fair game, including one you sold yourself.
+
+Reclaiming costs what the bank paid, so read that price off how the building got there. A company sold through Raise Capital was paid half its setup, or the full setup if it had been upgraded - so that is what it costs to take back. A company the bank seized in Solvency fetched half what a planned sale would have paid, and is correspondingly cheap to take back. A company a Megacorp absorbed was never paid for at all, so it is priced at what it would have fetched had its owner sold it.
+
+> **Designer's note.** This was a money printer for one version. Selling an upgraded company banked its FULL setup and buying it straight back cost only HALF, so a player could sell and reclaim the same building every quarter and simply be paid for it, with the board unchanged at the end. Charging back exactly what was handed over makes the round trip net to zero: the only thing it costs now is the two actions, which is as it should be - undoing a decision should be possible and should not be free.
 
 You may build on plots owned by another player. They collect the rent every quarter, but the company is yours.
 
 A renovation has to fit the shell that is already standing. The card must match the distressed structure's level, and from level 2 upwards its scaling type as well: a level-2 or level-3 horizontal structure spreads across several plots and cannot be rebuilt as a vertical one, nor the other way round. At level 1 both kinds occupy a single plot, so a level-1 shell is open to any level-1 Blueprint.
+
+Renovating moves the price markers exactly as launching does - the industry you build goes DOWN $1 and every supplier the new card names goes UP $1 - because a renovation puts a genuinely new business into the city. Reclaiming a shell as it stands moves nothing. The building never changed, and neither did what the city can supply or needs to buy.
+
+> **Designer's note.** That difference is the whole reason to keep the two as separate moves rather than one "take it over" action. Reclaim is the cheap, quiet way to undo a sale; renovate is the expensive one that changes what the city produces, and it should cost the market something to do it.
 
 ### R&D
 
@@ -225,9 +233,9 @@ Every industry has one market price that everybody sells at. It starts at its ba
 
 Each industry has one marker on a price track running from $2 to $12. Every event is worth a whole dollar: one company built takes its own industry DOWN $1, and each supplier that company now pays goes UP $1. The marker lands on a number every time.
 
-Launching a company moves TWO markers. Every industry printed as a SUPPLIER on its Blueprint goes UP one cell. The industry of the company itself goes DOWN one cell. So it takes two of either to move a whole dollar, and an industry that is built as often as it is needed sits exactly where it is.
+Launching a company moves TWO markers, and both a whole dollar. Every industry printed as a SUPPLIER on its Blueprint goes UP $1, because the new company will be buying from them. The industry of the company itself goes DOWN $1, because there is now more of that good for sale. An industry that is built as often as it is needed sits exactly where it is.
 
-Because a blank reads as the number above it, the first supplier appearance shows the dollar straight away and the second adds nothing on top, while the first company built shows nothing and the second takes the dollar off. The rate is the same in both directions.
+There is nothing to remember between events and nothing hidden: one company built, one dollar off its own industry; one supplier named, one dollar onto that supplier. The rate is the same in both directions, and the marker always lands on a printed number.
 
 A marker stops at the ends. On $12 it will not climb further, and on $2 it will not fall further, but it moves the other way the moment something pushes it - a marker sitting on $12 comes off $12 as soon as one company is built there.
 
@@ -488,8 +496,8 @@ Personas are asymmetric powers, one tied to each industry. They are dealt by def
 | --- | --- |
 | Systems Architect (TE) | Your Technology companies upgrade vertically, stacking on one plot instead of needing a free neighbour. |
 | Public Health Director (HC) | Your Healthcare companies ignore the level restriction: a level-1 clinic may serve any column of a Healthcare row. |
-| White-Label Supplier (MA) | When your Manufacturing cross-sells into another industry's row, it is paid that industry's price instead of its own. |
-| Resort Developer (HO) | Your Hospitality companies upgrade horizontally, spreading across plots so more businesses and hubs sit next to them. |
+| White-Label Supplier (MA) | When your Manufacturing cross-sells into another industry's row, it is paid that industry's price rather than its own. |
+| Resort Developer (HO) | Your Hospitality companies upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them. |
 | Supply Chain Expert (RE) | At the start of Revenue, raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. |
 | Concession Holder (UT) | Your Utilities production sells for $1 above the current price. |
 

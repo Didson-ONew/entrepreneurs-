@@ -244,58 +244,59 @@ const doc = new Document({
 
       H("The six industries"),
       grid(["Industry", "Scaling", "Price", "Signature ability"], [
-        [{ t: "Utilities", bold: true, color: IND_COLOR.UT }, "Horizontal", "$2", "Reads demand across a block of districts as wide as its level. No hubs."],
-        [{ t: "Retail", bold: true, color: IND_COLOR.RE }, "Vertical", "$2", "Sells into one extra district per level, owner's choice. No hubs."],
-        [{ t: "Hospitality", bold: true, color: IND_COLOR.HO }, "Vertical", "$3", "One extra unit per adjacent business or hub, per level. Thrives in density."],
-        [{ t: "Manufacturing", bold: true, color: IND_COLOR.MA }, "Horizontal", "$3", "The only industry that can fill another industry's demand row."],
-        [{ t: "Healthcare", bold: true, color: IND_COLOR.HC }, "Vertical", "$4", "Uses the whole hub network natively, without touching a hub."],
-        [{ t: "Technology", bold: true, color: IND_COLOR.TE }, "Horizontal", "$4", "Delivers 2 units per icon, paid for both — clears production on half the demand."],
+        [{ t: "Utilities", bold: true, color: IND_COLOR.UT }, "Horizontal", "$4", "Reads demand across a block of districts as wide as its level. No hubs."],
+        [{ t: "Retail", bold: true, color: IND_COLOR.RE }, "Vertical", "$4", "Sells into one extra district per level, owner's choice. No hubs."],
+        [{ t: "Hospitality", bold: true, color: IND_COLOR.HO }, "Vertical", "$5", "One extra unit per adjacent business or hub, per level. Thrives in density."],
+        [{ t: "Manufacturing", bold: true, color: IND_COLOR.MA }, "Horizontal", "$5", "The only industry that can fill another industry's demand row."],
+        [{ t: "Healthcare", bold: true, color: IND_COLOR.HC }, "Vertical", "$6", "Uses the whole hub network natively, without touching a hub."],
+        [{ t: "Technology", bold: true, color: IND_COLOR.TE }, "Horizontal", "$6", "Delivers 2 units per icon, paid for both — clears production on half the demand."],
       ], [2100, 1500, 900, TEXT_WIDTH - 4500], { size: 17 }),
 
       H("In the box"),
       P("1 city board · 20 district tiles · 60 Blueprint cards · 16 Megacorp tiles · 1 IPO tile · 6 portfolio boards · 3 auxiliary boards · 270 cubes · 12 hub discs · 72 player discs (12 each) · EP tokens · currency.",
         { size: 18, after: 60 }),
-      P("Cube counts and auxiliary boards are what I would expect to negotiate first. The Blueprint deck is the component that sets the player ceiling: at six players 72% of the sixty cards are consumed by the end of Year 3, which is why six is the maximum rather than an arbitrary choice.",
+      P("Cube counts and auxiliary boards are what I would expect to negotiate first. The Blueprint deck is the component that sets the player ceiling: at six players 69% of the sixty cards are consumed by the end of Year 3, which is why six is the maximum rather than an arbitrary choice.",
         { size: 17, italics: true, color: MUTED }),
 
       H("The map does the balancing"),
       P("Every district shows four demand rows drawn from the six industries, one of which it wants twice — so each district has an appetite of its own. Where an industry can sell at all is deliberately uneven.", { size: 18 }),
       grid(["Industry", "Where its demand lives", "Price"], [
-        ["Utilities · Retail", "Almost everywhere, including the cheap outer ring", "$2"],
-        ["Hospitality · Manufacturing", "Spread across both suburbs and centre", "$3"],
-        ["Healthcare · Technology", "City Centre, plus one suburb row each — both locked until Q5", "$4"],
+        ["Utilities · Retail", "Almost everywhere, including the cheap outer ring", "$4"],
+        ["Hospitality · Manufacturing", "Spread across both suburbs and centre", "$5"],
+        ["Healthcare · Technology", "City Centre, plus one suburb row each — both locked until Q5", "$6"],
       ], [3100, TEXT_WIDTH - 4000, 900], { size: 17 }),
       gap(120),
-      P("For all of Year 1 the $4 industries can only sell in the centre, where land runs $4–$6 a plot against $1 at the rim. The premium is paid twice: in land, and in waiting.", { size: 18 }),
+      P("For all of Year 1 the $6 industries can only sell in the centre, where land runs $4–$6 a plot against $1 at the rim. The premium is paid twice: in land, and in waiting.", { size: 18 }),
 
       H("Balance, measured"),
       /* Source: 250 complete games at EVERY table size (2-6), on the shipped
-         ruleset, re-measured after rent moved to $2 and demand icons began
-         absorbing their own column. Reproduce with audit_state_of_play.js.
+         ruleset, re-measured for v17 - after every base rose $2, the track
+         became $2..$12, an event moved a whole dollar and cash began converting
+         at $50 per EP. Reproduce with audit_state_of_play.js.
          The bars are the mean across all five counts; the per-count spreads
          quoted underneath are the finding that matters. */
       P("Tuned against a simulation harness rather than by feel. Across 250 complete games at every table size from two to six, how often each industry appeared in the winner's portfolio, averaged over all five counts. Two standard errors is about ±6 points, so most of this list is one flat band — the point is that none of the six is dead.",
         { size: 18 }),
       grid(null, [
         ["Hospitality", "████████████████", "60%"],
-        ["Retail", "██████████████", "55%"],
-        ["Manufacturing", "██████████████", "53%"],
-        ["Healthcare", "█████████████", "49%"],
-        ["Utilities", "███████████", "42%"],
-        ["Technology", "███████████", "42%"],
+        ["Retail", "███████████████", "58%"],
+        ["Healthcare", "█████████████", "51%"],
+        ["Manufacturing", "█████████████", "49%"],
+        ["Technology", "███████████", "41%"],
+        ["Utilities", "██████████", "40%"],
       ], [2600, TEXT_WIDTH - 3500, 900], { size: 17 }),
       gap(120),
-      P("The spread narrows as the table fills. At six players the six industries sit inside 10 points of each other — entirely within the noise, so they are interchangeable. At two players they are 30 points apart, with Utilities and Technology measurably weaker: both are the industries that want a big board and other people's demand to sell into, and a two-player city has neither.",
+      P("The spread narrows as the table fills. At six players the six sit inside 16 points of each other, most of that inside the noise. At two players they are 40 points apart, with Technology and Utilities measurably weaker: both want a big board and other people's demand to sell into, and a two-player city has neither.",
         { size: 17, italics: true, color: MUTED }),
 
       H("What the harness says about table size"),
-      P("The economy scales itself. Cash on the table grows almost exactly linearly with the player count — $195 at two seats to $525 at six — while cash per seat stays flat at $80–$98 and the mean industry price rises from $3 in Year 1 to $4 in Year 3 from three seats up. No rule needs to change with the number of players except the two extra track slots and which Megacorp tiers come out.",
+      P("The economy scales itself. Cash on the table grows almost exactly linearly with the player count — $370 at two seats to $1,016 at six — while cash per seat stays flat at $154–$194 and the mean industry price climbs from $5 in Year 1 to $7–$8 in Year 3. No rule needs to change with the number of players except the two extra track slots and which Megacorp tiers come out.",
         { size: 18 }),
-      P("What binds first changes at five seats. Below that it is the twelve discs; at five and six it is the Blueprint deck, which is what sets the player ceiling at six — 72% of the sixty cards are consumed by the end of Year 3. The city itself is never the limit: at most 38% of plots are ever owned and at most 21% of the open demand slots ever filled. Two players play in a noticeably empty city, which is the one count where a smaller map would tighten the game.",
+      P("What binds first changes at the top of the range. Through four seats it is the twelve discs; at five the discs and the Blueprint deck are a dead heat at 60% and 59% consumed; at six the deck binds outright, which is what sets the player ceiling — 69% of the sixty cards are gone by the end of Year 3. The city itself is never the limit: at most 40% of plots are ever owned and at most 23% of the open demand slots ever filled. Two players play in a noticeably empty city, which is the one count where a smaller map would tighten the game.",
         { size: 18, after: 40 }),
 
       H("No runaway winners"),
-      P("The player leading at the halfway mark goes on to win 65% of two-player games, 35% of four-player and 20% of six-player ones — against the 50%, 25% and 17% that chance alone would give. Holding a lead the whole way is rarer still: leading at both Q4 and Q8 and going on to win happens in 49% of two-player games but only 11% of six-player ones. An early lead is worth having and never close to decisive.",
+      P("The player leading at the halfway mark goes on to win 68% of two-player games, 40% of four-player and 36% of six-player ones — against the 50%, 25% and 17% that chance alone would give. Holding a lead the whole way is rarer: leading at both Q4 and Q8 and going on to win happens in 55% of two-player games and 19% of six-player ones, and somebody from the bottom half at the halfway mark still wins between a fifth and a third of every game. A halfway lead is worth roughly double what chance would hand you, and it is not the game.",
         { size: 18, after: 40 }),
 
       P("Full figures: audit_state_of_play.js and audit_economy_size.js.", { size: 17, italics: true, color: MUTED }),
