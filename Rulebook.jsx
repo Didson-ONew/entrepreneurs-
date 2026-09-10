@@ -238,7 +238,11 @@ export function useLiveCounts() {
         const r = await fetch(`/api/presence?id=${encodeURIComponent(id)}`, { cache: "no-store" });
         if (!r.ok) throw new Error("no presence endpoint");
         const j = await r.json();
-        if (!stop) setCounts({ online: j.online | 0, matches: j.matches | 0, waiting: j.waiting | 0 });
+        /* accounts and who are only sent to an admin, so they are simply absent
+           for everyone else and the pill shows what it always showed. */
+        if (!stop) setCounts({ online: j.online | 0, matches: j.matches | 0, waiting: j.waiting | 0,
+          accounts: typeof j.accounts === "number" ? j.accounts : null,
+          who: Array.isArray(j.who) ? j.who : null });
       } catch (_) {
         if (!stop) setCounts(null);
       }
@@ -255,20 +259,66 @@ export function useLiveCounts() {
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 export function LiveCounts({ counts }) {
+  /* The names are shown to an admin and to nobody else - the server only sends
+     them to one - so this is a display of what arrived, not a decision about who
+     may see it. The gate is on the server, where it belongs. */
+  const [open, setOpen] = useState(false);
   if (!counts) return null;
-  const title = counts.waiting
-    ? `${plural(counts.waiting, "room is", "rooms are")} waiting for players`
-    : "Everyone currently on the site, and the games under way";
+  const who = counts.who;
+
+  const names = who && who.length
+    ? who.map((w) => `${w.name}${w.registered ? "" : " (guest)"}${w.tabs > 1 ? ` \u00d7${w.tabs}` : ""}`)
+    : null;
+  /* A title is a hover, and a hover does not exist on a phone - so the same list
+     is a tap away as well. */
+  const title = names
+    ? `Online now:\n${names.join("\n")}`
+    : counts.waiting
+      ? `${plural(counts.waiting, "room is", "rooms are")} waiting for players`
+      : "Everyone currently on the site, and the games under way";
+
   return (
-    <span title={title} style={{ display: "inline-flex", alignItems: "center", gap: 7,
-      fontSize: 11, color: INK.dim, padding: "4px 9px", borderRadius: 999,
-      backgroundColor: INK.bg, border: `1px solid ${INK.edge}`, whiteSpace: "nowrap" }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#3ddc97",
-        boxShadow: "0 0 6px #3ddc9799", flexShrink: 0 }} />
-      <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.online}</span> online
-      <span style={{ color: "#3a4152" }}>|</span>
-      <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.matches}</span>
-      {counts.matches === 1 ? " match" : " matches"}
+    <span style={{ position: "relative", display: "inline-flex" }}>
+      <span title={title}
+        onClick={who ? () => setOpen((v) => !v) : undefined}
+        style={{ display: "inline-flex", alignItems: "center", gap: 7,
+          fontSize: 11, color: INK.dim, padding: "4px 9px", borderRadius: 999,
+          backgroundColor: INK.bg, border: `1px solid ${INK.edge}`, whiteSpace: "nowrap",
+          cursor: who ? "pointer" : "default" }}>
+        <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#3ddc97",
+          boxShadow: "0 0 6px #3ddc9799", flexShrink: 0 }} />
+        <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.online}</span> online
+        <span style={{ color: "#3a4152" }}>|</span>
+        <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.matches}</span>
+        {counts.matches === 1 ? " match" : " matches"}
+        {counts.accounts !== null && counts.accounts !== undefined && (<>
+          <span style={{ color: "#3a4152" }}>|</span>
+          <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.accounts}</span>
+          {counts.accounts === 1 ? " account" : " accounts"}
+        </>)}
+      </span>
+
+      {open && who && (
+        <span onClick={() => setOpen(false)}
+          style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 9999,
+            minWidth: 170, maxHeight: 260, overflowY: "auto", textAlign: "left",
+            padding: "7px 10px", borderRadius: 8, backgroundColor: "#14161a",
+            border: `1px solid ${INK.edge}`, boxShadow: "0 8px 24px rgba(0,0,0,0.55)",
+            fontSize: 11, color: INK.dim, cursor: "pointer" }}>
+          <span style={{ display: "block", fontWeight: 700, color: "#8b93a3", marginBottom: 4 }}>
+            ON THE SITE NOW
+          </span>
+          {who.length === 0 && <span style={{ fontStyle: "italic" }}>Nobody, apparently.</span>}
+          {who.map((w, i) => (
+            <span key={i} style={{ display: "block", lineHeight: 1.6,
+              color: w.registered ? "#d5d9e0" : "#8b93a3" }}>
+              {w.name}
+              {!w.registered && <span style={{ color: "#6b7280" }}> (guest)</span>}
+              {w.tabs > 1 && <span style={{ color: "#6b7280" }}> &times;{w.tabs}</span>}
+            </span>
+          ))}
+        </span>
+      )}
     </span>
   );
 }
