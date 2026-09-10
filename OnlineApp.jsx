@@ -1263,21 +1263,27 @@ function OnlineTable({ onTable }) {
           but you cannot take actions.
         </div>
       )}
+      {/* The page and the server disagree about the rules.
+
+          This used to be rendered TWICE - two identical fixed banners stacked on
+          top of each other - and it always blamed the server, which is the less
+          likely of the two. A player's browser holding an old page is much more
+          common, and it is the only one of the two a PLAYER can do anything
+          about. Telling them to upload EntrepreneursGame.jsx was advice for the
+          host shown to everybody at the table. */}
       {serverEngine && serverEngine !== getEngineVersion() && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 9998,
           backgroundColor: "#3a2415", borderBottom: "1px solid #7a6a3f",
           color: "#f5d76e", fontSize: 12, padding: "6px 10px", textAlign: "center" }}>
-          This server is running older game rules than this page
-          (<code>{serverEngine}</code> vs <code>{getEngineVersion()}</code>). Upload the current
-          <strong> EntrepreneursGame.jsx </strong> alongside <strong>server.js</strong> and restart it.
-        </div>
-      )}
-      {serverEngine && serverEngine !== getEngineVersion() && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 9998,
-          backgroundColor: "#3a2415", borderBottom: "1px solid #7a6a3f",
-          color: "#f5d76e", fontSize: 12, padding: "6px 10px", textAlign: "center" }}>
-          This server is running older game rules than this page (<code>{serverEngine}</code> vs <code>{getEngineVersion()}</code>).
-          Upload the current <strong>EntrepreneursGame.jsx</strong> next to <strong>server.js</strong> and restart it.
+          This page and the server are on different rules
+          (page <code>{getEngineVersion()}</code>, server <code>{serverEngine}</code>).{" "}
+          <button onClick={() => window.location.reload(true)}
+            style={{ background: "none", border: "none", padding: 0, font: "inherit",
+              color: "#f5d76e", textDecoration: "underline", cursor: "pointer" }}>
+            Reload the page
+          </button>
+          {" "}\u2014 that fixes it almost every time. If it comes back, the host needs to
+          redeploy.
         </div>
       )}
       <div style={{ position: "fixed", top: 6, right: 8, zIndex: 90, display: "flex", gap: 6, alignItems: "center" }}>

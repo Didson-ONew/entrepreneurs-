@@ -1488,13 +1488,33 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // static files
+  /* ---- static files ----
+     These went out with NO cache headers at all, which does not mean "do not
+     cache" - it means the browser guesses, and a phone will happily keep serving
+     a page it fetched days ago. So a deploy could leave somebody running the old
+     page against the new server for as long as their browser felt like it, which
+     is what the "older game rules" banner was actually reporting.
+
+     `no-cache` is the fix and is not the same as `no-store`: the copy is still
+     kept, but the browser must ask before using it. With an ETag that question
+     is answered by a 304 carrying no body, so nothing is re-downloaded until it
+     genuinely changes - and a deploy is picked up on the next load, every time. */
   let file = p === "/" ? "/online.html" : p;
   const fp = path.join(ROOT, path.normalize(file).replace(/^(\.\.[/\\])+/, ""));
-  fs.readFile(fp, (err, data) => {
-    if (err) { res.writeHead(404); return res.end("Not found"); }
-    res.writeHead(200, { "Content-Type": MIME[path.extname(fp)] || "application/octet-stream" });
-    res.end(data);
+  fs.stat(fp, (statErr, st) => {
+    if (statErr || !st.isFile()) { res.writeHead(404); return res.end("Not found"); }
+    const etag = `W/"${st.size.toString(16)}-${st.mtimeMs.toString(36)}"`;
+    const headers = {
+      "Content-Type": MIME[path.extname(fp)] || "application/octet-stream",
+      "Cache-Control": "no-cache",
+      ETag: etag,
+    };
+    if (req.headers["if-none-match"] === etag) { res.writeHead(304, headers); return res.end(); }
+    fs.readFile(fp, (err, data) => {
+      if (err) { res.writeHead(404); return res.end("Not found"); }
+      res.writeHead(200, headers);
+      res.end(data);
+    });
   });
 });
 
