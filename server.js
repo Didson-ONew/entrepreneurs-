@@ -87,6 +87,9 @@ function newRoom(hostName, bots, hostPid) {
     createdAt: Date.now(),
   };
   rooms.set(c, room);
+  /* Nothing has broadcast yet - a table with one person waiting in it has not -
+     so without this a room created and left alone was written down nowhere. */
+  saveGamesSoon();
   return room;
 }
 
@@ -189,7 +192,12 @@ function recordIfFinished(room) {
    of quiet, or a shutdown, and it goes down. */
 const GAMES_FILE = datadir.resolve("games.json", "GAMES_FILE");
 let saveTimer = null;
+/* The rooms changed, so write them down - to games.json AND to the durable
+   store. Keeping both in one function is the point: games.json lives in the
+   folder every deploy replaces, so saving only there is saving nowhere that
+   matters, and the two were allowed to drift apart once already. */
 function saveGamesSoon() {
+  scheduleRemoteSave();
   if (saveTimer) return;
   saveTimer = setTimeout(() => { saveTimer = null; livegames.save(rooms, GAMES_FILE); }, 2000);
 }
@@ -648,6 +656,7 @@ function retireIdleRooms(now = Date.now()) {
    A save is never awaited by the request that triggered it: nobody's turn
    should wait on GitHub. */
 const REMOTE_SAVE_DELAY = 20 * 1000;
+const REMOTE_SAVE_MAX = 90 * 1000;   // never let a busy table postpone a write past this
 /* Writing what we just read back is pointless, and this instance sleeps after
    fifteen idle minutes - so without this it would commit to the backup repo
    every time somebody wakes it, several times a day, saying nothing. Held up
@@ -657,6 +666,9 @@ let restoringFromStore = false;
 let remoteTimer = null;
 let remoteSaving = false;
 let remoteDirty = false;
+/* When the oldest unsaved change happened, so a burst of activity cannot push
+   the write off forever. See scheduleRemoteSave. */
+let dirtySince = 0;
 
 function currentBackupFile() {
   return backup.build({
@@ -671,6 +683,8 @@ async function saveRemoteNow() {
   if (!remotestore.configured() || remoteSaving) return;
   remoteSaving = true;
   remoteDirty = false;
+  dirtySince = 0;
+  if (remoteTimer) { clearTimeout(remoteTimer); remoteTimer = null; }
   try {
     await remotestore.save(currentBackupFile());
   } finally {
@@ -680,9 +694,20 @@ async function saveRemoteNow() {
   }
 }
 
+/* Debounced, BUT WITH A CEILING.
+
+   A plain debounce resets its timer on every change, which is right for a burst
+   and wrong for a game: a table where somebody moves every fifteen seconds would
+   push the write back every fifteen seconds and never actually write. So the
+   time of the OLDEST unsaved change is remembered, and once that is
+   REMOTE_SAVE_MAX old the save happens whatever else is going on. Quiet bursts
+   still cost one write; a busy game costs one every ninety seconds. */
 function scheduleRemoteSave() {
   if (!remotestore.configured() || restoringFromStore) return;
+  const now = Date.now();
+  if (!remoteDirty) dirtySince = now;
   remoteDirty = true;
+  if (now - dirtySince >= REMOTE_SAVE_MAX) { saveRemoteNow(); return; }
   if (remoteTimer) clearTimeout(remoteTimer);
   remoteTimer = setTimeout(() => { remoteTimer = null; saveRemoteNow(); }, REMOTE_SAVE_DELAY);
   /* Do not hold the process open for this - shutdown flushes it anyway. */
@@ -1591,8 +1616,14 @@ server.listen(PORT, () => {
       if (!file) { console.log("Backup store: nothing to restore yet."); return; }
       let result;
       restoringFromStore = true;
-      try { result = mergeBackup(file); } finally { restoringFromStore = false; }
-      if (result.error) { console.error(`Backup store: ${result.error}`); return; }
+      try { result = mergeBackup(file); } catch (e) {
+        restoringFromStore = false;
+        console.error(`Backup store: ${e.message}`); return;
+      }
+      if (result.error) {
+        restoringFromStore = false;
+        console.error(`Backup store: ${result.error}`); return;
+      }
       console.log(`Backup store: ${backup.describe(result)}`);
       /* Only write back if THIS server holds something the store does not - a
          game that finished in the seconds before the last restart, say. On an
@@ -1608,11 +1639,17 @@ server.listen(PORT, () => {
         } catch (e) { console.error(`could not revive room ${saved && saved.code}: ${e.message}`); }
       }
       if ((result.newRooms || []).length) saveGamesSoon();
+      /* Only now: reviving the rooms goes through saveGamesSoon, which schedules
+         a durable save, and writing back what we have just read is the pointless
+         write this whole guard exists to stop. */
+      restoringFromStore = false;
 
       const had = file.counts || {};
+      const liveRooms = [...rooms.values()].filter((r) => livegames.worthKeeping(r)).length;
       const ahead = MATCHES.length > (had.matches || 0)
         || ACCOUNTS.users.length > (had.accounts || 0)
-        || (FEEDBACK.entries || []).length > (had.feedback || 0);
+        || (FEEDBACK.entries || []).length > (had.feedback || 0)
+        || liveRooms > (had.rooms || 0);
       if (ahead) {
         console.log("Backup store: this server is ahead of the store - writing it back.");
         scheduleRemoteSave();
