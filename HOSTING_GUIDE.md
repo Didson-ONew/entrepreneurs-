@@ -91,8 +91,10 @@ fame. The old single-file variables still work and still win if you set them:
 
 To back it up, copy the folder. To move the game to another machine, copy the folder.
 
-A game in progress is not saved — it lives in memory and ends when the server stops,
-either way.
+Games in progress are saved too, in `games.json`, and picked up where they were left
+when the server starts again. One nobody has touched for 48 hours is closed on its own,
+and what was played in it is written to the record book first — marked unfinished, so it
+never counts towards the statistics.
 
 ---
 
@@ -152,8 +154,8 @@ activity costs one write rather than six, and it flushes on the way out when a
 deploy stops the server. Restoring is a *merge* that only ever adds what is
 missing, so a copy a few minutes stale can never undo a password change made on
 the live site. If GitHub is unreachable it logs a line and carries on; a game
-night does not stop because of it. **A game in progress is still lost** — that
-lives in memory and is not part of the backup.
+night does not stop because of it. **Games in progress ride along too**, so a deploy no
+longer ends everybody's game — they are picked up where they were left.
 
 ---
 
@@ -574,7 +576,9 @@ up and it is not their phone's fault.
 | "That game already started" | No longer an error — they join as a watcher instead. A player who was already in just reopens the same link on the same device to resume |
 | A player left / closed their browser and the game is stuck on them | The host sees **"Replace &lt;name&gt; with a bot"** on the waiting screen (and on the draft screen). A bot takes over their seat and play continues. They cannot rejoin afterwards |
 | Someone needs removing before the game starts | Host clicks **remove** next to their name in the waiting room |
-| I closed my tab and want back into my game | Just reopen the link on the **same device and browser** — you are put straight back in. (This only fails if the host already replaced you with a bot) |
+| I closed my tab and want back into my game | **Signed in?** Open the site anywhere, sign in, and every table you are sitting at is listed under **Your games** — tap one. **Guest?** Reopen the link on the **same device and browser**, which is the only thing that remembers your seat |
+| I want to play more than one game at once | You can. Create or join as many as you like; signed in, they all appear under **Your games** with whose turn it is, and you switch between them from there |
+| A game we abandoned is still listed | It closes itself after 48 hours with nobody playing. What was played is still recorded, marked unfinished, so it never counts towards the statistics |
 | A player is stuck on the waiting screen after the host pressed Start | Fixed in the current build. If it still happens, check the small pill at the top right of their screen: **live** or **syncing** are both fine; **offline** means their browser can't reach the server at all — have them reopen the link |
 | A yellow "older game rules" bar appears | Your `EntrepreneursGame.jsx` on the server is out of date — upload the current one and restart |
 | A rule I asked for doesn't seem to apply online | Same cause: the rules live in `EntrepreneursGame.jsx`, which the server loads at boot. Check the boot log for the `Rules engine ...` line |

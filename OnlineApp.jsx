@@ -284,6 +284,32 @@ function Lobby({ onEnter }) {
     setBusy(false);
   };
 
+  /* Every game this ACCOUNT is sitting in, wherever it was started.
+
+     A seat is held by a per-room token kept in one browser, which is why
+     resuming used to mean "reopen the link on the same device". For a signed-in
+     player the account is the proof of who they are, so the server will hand
+     their own seat back on any device - and will list every table they are at,
+     rather than the one room this browser happens to remember. */
+  const [mine, setMine] = useState({ games: [], signedIn: false, idleHours: 48 });
+  useEffect(() => {
+    let stop = false;
+    const pull = () => fetch("/api/mygames", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (!stop && d) setMine(d); })
+      .catch(() => {});
+    pull();
+    const t = setInterval(pull, 20000);      // so "your turn" does not go stale
+    return () => { stop = true; clearInterval(t); };
+  }, [account && account.name]);
+
+  const resumeGame = (g) => go(async () => {
+    const r = await api("/api/claim", { code: g.code });
+    if (r.body.error) return setErr(r.body.error);
+    onEnter({ code: r.body.code, token: r.body.token, seat: r.body.seat,
+      host: !!r.body.host, name: r.body.name });
+  });
+
   const create = () => go(async () => {
     const r = await api("/api/create", { name: name.trim(), bots });
     if (r.body.error) return setErr(r.body.error);
@@ -298,6 +324,49 @@ function Lobby({ onEnter }) {
       name: name.trim(), spectator: !!r.body.spectator });
   });
 
+  /* "2d 5h", "5h", "12 min" - close enough for a list you only glance at. */
+  const untilRetired = (at) => {
+    const ms = (at || 0) - Date.now();
+    if (ms <= 0) return "any moment";
+    const h = Math.round(ms / 3600000);
+    if (h >= 24) return `${Math.floor(h / 24)}d ${h % 24}h`;
+    if (h >= 1) return `${h}h`;
+    return `${Math.max(1, Math.round(ms / 60000))} min`;
+  };
+
+  const yourGames = mine.signedIn && mine.games.length ? (
+    <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#101318", border: "1px solid #2c5f4f" }}>
+      <div className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: "#8fd3b6" }}>
+        Your games ({mine.games.length})
+      </div>
+      <div className="text-[10px] text-gray-500 mb-2">
+        Every table you are sitting at. Open any of them from any device while you are signed in.
+      </div>
+      {mine.games.map((g) => (
+        <button key={g.code} onClick={() => resumeGame(g)} disabled={busy}
+          className="w-full text-left rounded-md p-2 mb-1.5"
+          style={{ backgroundColor: "#1c1f26",
+            border: `1px solid ${g.yourTurn ? "#3f8a70" : "#262a33"}`, cursor: "pointer" }}>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px]" style={{ color: "#d5d9e0" }}>{g.code}</span>
+            {g.yourTurn
+              ? <span className="text-[10px] font-bold" style={{ color: "#8fd3b6" }}>your turn</span>
+              : <span className="text-[10px]" style={{ color: "#6b7280" }}>
+                  {g.started ? "waiting on someone else" : "not started"}
+                </span>}
+          </div>
+          <div className="text-[10px] mt-0.5" style={{ color: "#8b93a3" }}>
+            {g.started ? `Year ${Math.ceil(g.quarter / 4)}, Q${g.quarter}` : "in the waiting room"}
+            {" \u00b7 "}{g.players.join(", ")}
+          </div>
+          <div className="text-[9px] mt-0.5" style={{ color: "#6b7280" }}>
+            closes in {untilRetired(g.retiresAt)} if nobody plays
+          </div>
+        </button>
+      ))}
+    </div>
+  ) : null;
+
   return (
     <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
       <div className="rounded-xl p-6" style={{ ...box, width: "100%", maxWidth: 420 }}>
@@ -306,6 +375,8 @@ function Lobby({ onEnter }) {
 
         <AccountPanel account={account} setAccount={(u) => { setAccount(u); if (!u) setNick(null); }}
           onName={(n) => { setName(n); setReturning(false); }} />
+
+        {yourGames}
 
         {/* Signed in, the name is your account's and not a free-text field: changing it
             here would only mean being refused at Create room. Sign out to play as a guest. */}
@@ -365,6 +436,14 @@ function Lobby({ onEnter }) {
             onChange={(e) => setCode(e.target.value)} />
           <button onClick={join} disabled={busy} style={btn("#20232c", "#e5e7eb")}>Join room</button>
         </div>
+
+        {/* Said before anybody starts a game rather than discovered afterwards. A
+            table that goes quiet is closed, and what was played in it is kept. */}
+        <p className="text-[10px] mt-3" style={{ color: "#6b7280", lineHeight: 1.5 }}>
+          A game nobody touches for {mine.idleHours || 48} hours is closed, so abandoned tables do not
+          pile up. What was played in it is still recorded &mdash; it just does not count
+          towards the statistics, because it never finished.
+        </p>
 
         {err && <div className="text-xs mt-3" style={{ color: "#fca5a5" }}>{err}</div>}
       </div>
