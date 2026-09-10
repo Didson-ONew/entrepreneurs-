@@ -26,12 +26,25 @@
    forward that many draws on the way back in. See rngFactory just below.
 
    A room is dropped rather than kept when the game is over, or when nothing has
-   happened in it for a fortnight. Neither is worth carrying forever.
+   happened in it for forty-eight hours. Neither is worth carrying forever, and
+   an abandoned one is written to the match log on its way out.
    ========================================================================== */
 const fs = require("fs");
 
 const FORMAT = 1;
-const KEEP_MS = 14 * 24 * 60 * 60 * 1000;      // a fortnight of silence and it is gone
+/* Forty-eight hours of silence and a room is retired.
+
+   It was a fortnight, which sounds generous and mostly is not: a table where one
+   person stopped answering sits there for two weeks looking like a live game,
+   and the people in it keep half-expecting it to resume. Two days is long enough
+   to cover a night, a working day and a second night - which covers every real
+   "we will finish it tomorrow" - and short enough that an abandoned room stops
+   pretending.
+
+   Nothing is thrown away when one is retired: the play in it is written to the
+   match log first, stamped as unfinished so it stays out of the statistics that
+   assume a finished game. See server.js retireIdleRooms. */
+const KEEP_MS = 48 * 60 * 60 * 1000;
 
 /* The generator, and the count that makes it restorable.
 
@@ -87,6 +100,7 @@ function pack(room) {
     version: room.version || 0,
     rng: room.rng ? { seed: room.rng.seed, calls: room.rng.calls } : null,
     touchedAt: room.touchedAt || Date.now(),
+    createdAt: room.createdAt || null,
   };
 }
 
@@ -109,15 +123,21 @@ function unpack(saved, makeRng) {
     rng: saved.rng ? makeRng(saved.rng.seed, saved.rng.calls) : null,
     clients: new Set(),
     touchedAt: saved.touchedAt || Date.now(),
+    createdAt: saved.createdAt || saved.touchedAt || Date.now(),
   };
 }
 
 /* Which rooms are worth keeping. A finished game has already been written to the
    record book, so the room itself is spent. */
+function lastActive(room) {
+  /* createdAt matters: touchedAt is only set when a room broadcasts, so a table
+     somebody has just made has none, and falling through to 0 would read as
+     "idle since 1970". */
+  return room.touchedAt || room.startedAt || room.createdAt || 0;
+}
 function worthKeeping(room, now = Date.now()) {
   if (room.state && room.state.phase === "gameover") return false;
-  const seen = room.touchedAt || room.startedAt || 0;
-  return now - seen < KEEP_MS;
+  return now - lastActive(room) < KEEP_MS;
 }
 
 function save(rooms, file) {
@@ -159,4 +179,4 @@ function load(file, makeRng) {
   return out;
 }
 
-module.exports = { FORMAT, KEEP_MS, rngFactory, save, load, pack, unpack, worthKeeping, plainState, reviveState };
+module.exports = { FORMAT, KEEP_MS, rngFactory, save, load, pack, unpack, worthKeeping, lastActive, plainState, reviveState };

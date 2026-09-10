@@ -26,7 +26,11 @@ const FORMAT = 1;
 /* What goes in the file. `engine` is the ruleset the server was running when the
    copy was taken - not used when putting it back, but it dates the file in terms
    that mean something here. */
-function build({ accounts, matches, feedback, engine }) {
+/* `rooms` is games IN PROGRESS - packed by livegames, not the finished-game log,
+   which is `matches`. Carrying them is what stops a deploy ending everybody's
+   game on hosting with no permanent disk. Optional: a file written before this
+   existed has none, and an older server ignores the field. */
+function build({ accounts, matches, feedback, engine, rooms }) {
   return {
     format: FORMAT,
     at: new Date().toISOString(),
@@ -37,10 +41,12 @@ function build({ accounts, matches, feedback, engine }) {
       accounts: (accounts && accounts.users ? accounts.users.length : 0),
       matches: (matches || []).length,
       feedback: (feedback && feedback.entries ? feedback.entries.length : 0),
+      rooms: (rooms || []).length,
     },
     accounts: accounts && Array.isArray(accounts.users) ? accounts.users : [],
     matches: Array.isArray(matches) ? matches : [],
     feedback: feedback && Array.isArray(feedback.entries) ? feedback.entries : [],
+    rooms: Array.isArray(rooms) ? rooms : [],
   };
 }
 
@@ -101,12 +107,27 @@ function apply(file, current) {
   }
   feedback.entries.sort((a, b) => new Date(a.at || 0) - new Date(b.at || 0));
 
+  /* ---- games in progress: by room code, and only ones not already here ----
+     Never replaces a live room. A room being played right now is always more
+     current than a copy in a file, so the copy loses. */
+  const fileRooms = Array.isArray(file.rooms) ? file.rooms : [];
+  const haveRoom = new Set((current.roomCodes || []).map((c) => String(c).toUpperCase()));
+  const newRooms = [];
+  for (const r of fileRooms) {
+    if (!r || !r.code || haveRoom.has(String(r.code).toUpperCase())) continue;
+    haveRoom.add(String(r.code).toUpperCase());
+    newRooms.push(r);
+  }
+
   return {
     newMatches,
-    added: { accounts: accountsAdded, matches: newMatches.length, feedback: notesAdded },
+    newRooms,
+    added: { accounts: accountsAdded, matches: newMatches.length, feedback: notesAdded,
+      rooms: newRooms.length },
     skipped: { accounts: accountsKept,
       matches: file.matches.length - newMatches.length,
-      feedback: file.feedback.length - notesAdded },
+      feedback: file.feedback.length - notesAdded,
+      rooms: fileRooms.length - newRooms.length },
     takenAt: file.at || null,
   };
 }
@@ -118,6 +139,7 @@ function describe(result) {
   if (result.added.matches) bits.push(say(result.added.matches, "game", "games"));
   if (result.added.accounts) bits.push(say(result.added.accounts, "account", "accounts"));
   if (result.added.feedback) bits.push(say(result.added.feedback, "note", "notes"));
+  if (result.added.rooms) bits.push(say(result.added.rooms, "game in progress", "games in progress"));
   const added = bits.length ? `${bits.join(", ")} added` : "Nothing new to add";
 
   const already = [];

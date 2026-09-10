@@ -43,7 +43,17 @@ const BUCKETS = ["industries", "companies", "megacorps", "ipo", "land", "rent", 
 
 /* `E` is the engine (for epTotal/activeBiz/bizInd), `room` supplies the table's
    own context: who sat down, how long it took, which rules build ran it. */
-function buildRecord(E, room) {
+/* `ended` describes how the game stopped. Omit it for a game that ran to its
+   own end; pass { unfinished: true, why: "idle" } for one the server retired
+   because everybody walked away.
+
+   An unfinished record is kept because the play in it is real data - what got
+   built, what the prices did, how far the game got before people lost interest -
+   and that is worth more than nothing. But it is NOT a game: its EP totals are a
+   snapshot mid-quarter, its "winner" is whoever happened to be ahead when the
+   room went quiet, and mixing those into the statistics would quietly drag every
+   average down. So it is stamped, and the stamp is what keeps it out. */
+function buildRecord(E, room, ended = null) {
   const st = room.state;
   const seatMember = {};
   (room.members || []).forEach((m) => { seatMember[m.seat] = m; });
@@ -98,6 +108,11 @@ function buildRecord(E, room) {
     at: Date.now(),
     engine: E.ENGINE_VERSION,
     code: room.code,
+    /* Absent on a game that finished, so every record already written stays
+       exactly as it was and reads as finished. */
+    ...(ended && ended.unfinished
+      ? { unfinished: true, endedBecause: ended.why || "unknown" }
+      : {}),
     quarters: st.quarter,
     durationMs: room.startedAt ? Date.now() - room.startedAt : null,
     personas: !!room.personas,
@@ -230,6 +245,11 @@ function editions(matches) {
    does not apply is worse than an empty table, because the numbers still look real. */
 function selectMatches(matches, filter = {}) {
   let out = matches.filter((m) => m && Array.isArray(m.players));
+  /* Games nobody finished are excluded unless they are asked for by name. Their
+     scores are a mid-game snapshot, so counting them would understate every
+     winning score, every industry share and every persona - and it would do it
+     silently, which is the worst way for a number to be wrong. */
+  if (!filter.unfinished) out = out.filter((m) => !m.unfinished);
   if (filter.engine) out = out.filter((m) => (m.engine || "unknown") === filter.engine);
   if (filter.standard) out = out.filter((m) => !(m.variants || []).length);
   if (filter.people) out = out.filter((m) => (m.humans || 0) > 1);

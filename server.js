@@ -80,6 +80,11 @@ function newRoom(hostName, bots, hostPid) {
     spectators: [],
     state: null, rng: null, clients: new Set(), logs: [], version: 0, chat: [], personas: true,
     variants: E.normaliseVariants(null), startedAt: null, recorded: false,
+    /* When the room came into being. touchedAt is only set by broadcast, and a
+       room that has just been created has not been broadcast yet - so without
+       this a brand-new lobby reads as idle since the epoch, and the sweeper
+       would retire it seconds after somebody made it. */
+    createdAt: Date.now(),
   };
   rooms.set(c, room);
   return room;
@@ -173,6 +178,19 @@ function broadcast(room) {
   for (const res of room.clients) {
     try { res.write(`data: ${payload}\n\n`); } catch (_) { room.clients.delete(res); }
   }
+}
+
+/* Which seat the game is waiting on, or null. The client works this out for
+   itself to light up its own turn; this is the same reading, for the list of
+   games a player is in. */
+function awaitingSeat(st) {
+  if (!st) return null;
+  if (st.phase === "drafting") return st.awaitingPlayerId;
+  if (st.phase === "planning") return st.planningQueue && st.planningQueue[0];
+  if (st.phase === "resolving") return st.pendingHumanAction ? st.pendingHumanAction.playerId : null;
+  if (["delivering", "liquidating", "repayingLoans"].includes(st.phase)) return st.awaitingPlayerId;
+  if (st.phase === "placingLH") return st.turnOrder && st.turnOrder[0];
+  return null;
 }
 
 /* Auto-resolve everything that does not need a human, then stop and wait. */
@@ -549,6 +567,47 @@ function mergeBackup(file) {
   return result;
 }
 
+/* A room nobody has touched for livegames.KEEP_MS is retired.
+
+   The play in it is written down first - stamped unfinished, so it stays out of
+   every statistic that assumes a game reached its own end, while the data it
+   holds is still there to look at. Then the room goes, because a table where
+   somebody stopped answering two days ago is not a live game and should stop
+   presenting itself as one.
+
+   Runs hourly and once at boot rather than on a timer per room: there are never
+   many rooms, and a sweep is easier to reason about than a hundred timeouts. */
+const RETIRE_EVERY = 60 * 60 * 1000;
+
+function retireIdleRooms(now = Date.now()) {
+  let gone = 0;
+  for (const [code, room] of [...rooms.entries()]) {
+    if (livegames.worthKeeping(room, now)) continue;
+    const finished = room.state && room.state.phase === "gameover";
+    /* A finished game has already been recorded by recordIfFinished; only a game
+       that stopped halfway needs writing down here, and only if it started. */
+    if (!finished && room.state && !room.recorded) {
+      try {
+        const rec = matchlog.buildRecord(E, room, { unfinished: true, why: "idle" });
+        if (matchlog.append(rec)) {
+          MATCHES.push(rec);
+          STATS_CACHE = null;
+          const idleHours = Math.round((now - livegames.lastActive(room)) / 3600000);
+          console.log(`room ${code} retired after ${idleHours}h idle at Q${room.state.quarter}`
+            + ` - recorded as unfinished (${rec.players.length} seats)`);
+        }
+      } catch (e) {
+        console.error(`could not record abandoned room ${code}: ${e.message}`);
+      }
+    }
+    for (const res of room.clients || []) { try { res.end(); } catch (_) {} }
+    rooms.delete(code);
+    gone += 1;
+  }
+  if (gone) { saveGamesSoon(); scheduleRemoteSave(); }
+  return gone;
+}
+
 /* Keeping the durable copy up to date.
 
    Written after anything worth keeping - a finished match, a playtest note, a
@@ -573,6 +632,9 @@ let remoteDirty = false;
 function currentBackupFile() {
   return backup.build({
     accounts: ACCOUNTS, matches: MATCHES, feedback: FEEDBACK, engine: E.ENGINE_VERSION,
+    /* Games in progress too, so a deploy stops ending everybody's game. Only the
+       ones still worth keeping - a finished or long-abandoned room is not. */
+    rooms: [...rooms.values()].filter((r) => livegames.worthKeeping(r)).map(livegames.pack),
   });
 }
 
@@ -1091,6 +1153,11 @@ const server = http.createServer(async (req, res) => {
     if (!allowed.ok) return json(res, { error: allowed.error }, 403);
     const me = rememberName(req, b.name);
     const room = newRoom(b.name, b.bots, me.id);
+    /* Whose seat this is, if they were signed in. The per-room token is still
+       what authorises every move; this only lets the owner ASK for that token
+       back from another browser. A guest has none, and resumes as before - on
+       the same device, with the token their browser is holding. */
+    if (allowed.user) room.members[0].account = allowed.user.id;
     return json(res, { code: room.code, token: room.members[0].token, seat: 0 }, 200, me.header);
   }
 
@@ -1118,6 +1185,7 @@ const server = http.createServer(async (req, res) => {
     }
     const me2 = rememberName(req, b.name);
     const m = { token: token(), name: b.name || `Player ${room.members.length + 1}`, seat: room.members.length, host: false, pid: me2.id };
+    if (allowedJoin.user) m.account = allowedJoin.user.id;
     room.members.push(m);
     broadcast(room);
     return json(res, { code: room.code, token: m.token, seat: m.seat }, 200, me2.header);
@@ -1130,6 +1198,54 @@ const server = http.createServer(async (req, res) => {
     const me = anyMember(room, b.token);
     if (!me) return json(res, { error: "Unknown player." }, 403);
     return json(res, { ok: true, seat: me.seat, name: me.name, host: !!me.host, started: !!room.state });
+  }
+
+  /* ---- your games, from any device ----
+     A seat is held by a per-room token kept in one browser, which is why
+     resuming used to mean "reopen the link on the same device". A signed-in
+     player is a different case: the account IS the proof of who they are, so
+     they can ask for their own seat back anywhere, and can see every game they
+     are in at once rather than one saved room at a time. */
+  if (p === "/api/mygames") {
+    const me = accountOf(req);
+    if (!me) return json(res, { games: [], signedIn: false });
+    const mine = [];
+    for (const room of rooms.values()) {
+      const seat = (room.members || []).find((m) => m.account === me.id);
+      if (!seat) continue;
+      const st = room.state;
+      mine.push({
+        code: room.code,
+        seat: seat.seat,
+        name: seat.name,
+        host: !!seat.host,
+        started: !!st,
+        quarter: st ? st.quarter : null,
+        phase: st ? st.phase : "lobby",
+        yourTurn: st ? awaitingSeat(st) === seat.seat : false,
+        players: (room.members || []).map((m) => m.name),
+        humans: (room.members || []).length,
+        lastActive: livegames.lastActive(room),
+        retiresAt: livegames.lastActive(room) + livegames.KEEP_MS,
+      });
+    }
+    mine.sort((a2, b2) => (b2.lastActive || 0) - (a2.lastActive || 0));
+    return json(res, { games: mine, signedIn: true, idleHours: Math.round(livegames.KEEP_MS / 3600000) });
+  }
+
+  /* Hand a signed-in player the token for their own seat. This is the whole of
+     "log in anywhere": the token is not new, so the device that already had it
+     keeps working - it is the same person either way. */
+  if (p === "/api/claim" && req.method === "POST") {
+    const b = await body(req);
+    const me = accountOf(req);
+    if (!me) return json(res, { error: "Sign in to pick a game up on another device." }, 403);
+    const room = rooms.get((b.code || "").toUpperCase());
+    if (!room) return json(res, { error: "That room no longer exists." }, 404);
+    const seat = (room.members || []).find((m) => m.account === me.id);
+    if (!seat) return json(res, { error: "You do not have a seat at that table." }, 403);
+    return json(res, { code: room.code, token: seat.token, seat: seat.seat, name: seat.name,
+      host: !!seat.host, started: !!room.state });
   }
 
   if (p === "/api/leave" && req.method === "POST") {
@@ -1416,6 +1532,16 @@ server.listen(PORT, () => {
          ordinary wake the store is already the fuller copy and there is nothing
          to say, and this instance sleeps after fifteen idle minutes, so an
          unconditional save here would commit several times a day for nothing. */
+      /* Games in progress the store was holding. Revived the same way the boot
+         file is, and never on top of a room already here. */
+      for (const saved of result.newRooms || []) {
+        try {
+          const room = livegames.unpack(saved, seededRng);
+          if (livegames.worthKeeping(room)) rooms.set(room.code, room);
+        } catch (e) { console.error(`could not revive room ${saved && saved.code}: ${e.message}`); }
+      }
+      if ((result.newRooms || []).length) saveGamesSoon();
+
       const had = file.counts || {};
       const ahead = MATCHES.length > (had.matches || 0)
         || ACCOUNTS.users.length > (had.accounts || 0)
@@ -1449,6 +1575,11 @@ server.listen(PORT, () => {
     }
     console.log("");
   }
+
+  /* Retire whatever went quiet while the server was down, then keep sweeping. */
+  const retired = retireIdleRooms();
+  if (retired) console.log(`Retired ${retired} idle room${retired === 1 ? "" : "s"}.\n`);
+  setInterval(retireIdleRooms, RETIRE_EVERY).unref();
 });
 
 /* A deploy stops the process with SIGTERM. Write the games down before going, so
