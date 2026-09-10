@@ -94,13 +94,42 @@ function newRoom(hostName, bots, hostPid) {
    Every page pings /api/presence on a timer, from every screen including the join
    page, so the counters can report the whole site rather than only the people who
    have already sat down at a table. A client that stops pinging ages out. */
-const presence = new Map();          // client id -> last time we heard from it
+const presence = new Map();          // client id -> { at, name, account }
 const PRESENCE_TTL = 30000;
 const PRESENCE_MAX = 10000;          // ids are client-supplied; do not grow without bound
-function countOnline() {
+function sweepPresence() {
   const cutoff = Date.now() - PRESENCE_TTL;
-  for (const [id, seen] of presence) if (seen < cutoff) presence.delete(id);
-  return presence.size;
+  for (const [id, v] of presence) if ((v && v.at ? v.at : 0) < cutoff) presence.delete(id);
+}
+function countOnline() { sweepPresence(); return presence.size; }
+
+/* WHO is here, for the admin panel only.
+
+   Two tabs are two client ids and one person, so a signed-in player is folded
+   together by account. Guests cannot be folded - there is nothing to fold them
+   by that is not simply their typed name - so they are counted per browser and
+   said to be guests, because a room full of people all typing "Bob" is a real
+   thing and pretending otherwise would be worse than saying it.
+
+   NEVER returned to anyone but an admin. Who is on the site is not public. */
+function whoIsOnline() {
+  sweepPresence();
+  const byKey = new Map();
+  for (const v of presence.values()) {
+    if (!v) continue;
+    const key = v.account ? `a:${v.account}` : `g:${v.name || ""}`;
+    const prev = byKey.get(key);
+    if (prev) { prev.tabs += 1; prev.at = Math.max(prev.at, v.at || 0); continue; }
+    byKey.set(key, {
+      name: v.name || "(no name yet)",
+      registered: !!v.account,
+      tabs: 1,
+      at: v.at || 0,
+    });
+  }
+  return [...byKey.values()]
+    .sort((x, y) => (y.registered - x.registered) || x.name.localeCompare(y.name))
+    .map(({ name, registered, tabs }) => ({ name, registered, tabs }));
 }
 /* A room is a match once it has a game state and that game is not over; before
    that it is a lobby still looking for people. */
@@ -815,9 +844,27 @@ const server = http.createServer(async (req, res) => {
      the join page, where the visitor has no room and no token yet. */
   if (p === "/api/presence") {
     const id = url.searchParams.get("id");
-    if (id && (presence.has(id) || presence.size < PRESENCE_MAX)) presence.set(id, Date.now());
+    const me = accountOf(req);
+    if (id && (presence.has(id) || presence.size < PRESENCE_MAX)) {
+      /* Who this ping is, so the admin panel can say. identityOf is the name
+         cookie, which is a convenience and proves nothing - which is exactly why
+         a guest is labelled one. */
+      const guest = identityOf(req);
+      presence.set(id, {
+        at: Date.now(),
+        name: me ? me.name : ((guest && guest.name) || ""),
+        account: me ? me.id : null,
+      });
+    }
     const { matches, waiting, seated } = countRooms();
-    return json(res, { online: countOnline(), matches, waiting, seated });
+    const out = { online: countOnline(), matches, waiting, seated };
+    /* Admins get two extra things, and nobody else does: how many accounts are
+       registered, and who is on the site. */
+    if (isAdmin(me)) {
+      out.accounts = ACCOUNTS.users.length;
+      out.who = whoIsOnline();
+    }
+    return json(res, out);
   }
 
   /* Statistics and the hall of fame, drawn from every match the server has run.
