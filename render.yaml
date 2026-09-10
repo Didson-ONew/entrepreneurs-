@@ -122,6 +122,26 @@ services:
         sync: false
 
       # --- voice relay -------------------------------------------------------
+      # THE TWO BELOW ARE THE ONES TO SET. Cloudflare Realtime's TURN service
+      # is free for the first 1,000 GB a month, and relayed voice runs about
+      # 50 kbps each way per pair of players - an evening of six-player games
+      # is measured in hundreds of megabytes, so this never leaves the free
+      # tier in practice.
+      #
+      #   Cloudflare dashboard -> Realtime -> TURN -> Create
+      #   Copy the Turn Token ID and the API Token into these two:
+      #
+      # ENT_TURN_CF_KEY_ID      the TURN key's id
+      # ENT_TURN_CF_API_TOKEN   its API token - a password, keep it here only
+      #
+      # The server holds the key and asks Cloudflare to mint a short-lived
+      # credential per call; the key itself never reaches a browser.
+      - key: ENT_TURN_CF_KEY_ID
+        sync: false
+      - key: ENT_TURN_CF_API_TOKEN
+        sync: false
+      #
+      # --- or any other TURN provider, if you would rather not use Cloudflare -
       # Without these the voice call uses free public STUN only. That finds a
       # path between two laptops on home broadband, and it CANNOT find one
       # between two phones on mobile data: carrier NAT gives out a different

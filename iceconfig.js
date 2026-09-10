@@ -81,6 +81,98 @@ function urlList(raw) {
     .filter(Boolean);
 }
 
+/* ------------------------------------------------------------ Cloudflare ---
+   Cloudflare Realtime's TURN service is the relay this game is set up for: a
+   thousand gigabytes a month free, which an evening of six-player games does
+   not come close to. It does NOT speak coturn's HMAC scheme, though. You hold a
+   long-lived TURN key on the server and ask Cloudflare to mint a short-lived
+   credential from it, and the key must never reach the browser - which suits
+   this app, because the browser already asks the server for its ICE list.
+
+     ENT_TURN_CF_KEY_ID      the TURN key's id
+     ENT_TURN_CF_API_TOKEN   its API token
+
+   Two endpoints exist and they answer in different shapes: /generate returns a
+   single iceServers OBJECT, /generate-ice-servers returns an ARRAY with the
+   STUN entry separated out. We ask for the array and normalise anyway, so
+   either shape works and a change at their end cannot silently produce an
+   RTCPeerConnection configured with nothing. */
+const CF_ENDPOINT = (keyId) =>
+  `https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(keyId)}/credentials/generate-ice-servers`;
+
+function cloudflareConfigured(env = process.env) {
+  return !!(String(env.ENT_TURN_CF_KEY_ID || "").trim()
+    && String(env.ENT_TURN_CF_API_TOKEN || "").trim());
+}
+
+/* Whatever Cloudflare answers, hand back a plain array of RTCIceServer. */
+function normaliseCloudflare(body) {
+  const ice = body && body.iceServers;
+  if (!ice) return null;
+  const list = Array.isArray(ice) ? ice : [ice];
+  const out = list
+    .filter((s) => s && (s.urls || s.url))
+    .map((s) => {
+      const urls = s.urls || s.url;
+      const e = { urls: Array.isArray(urls) ? urls : [urls] };
+      if (s.username) e.username = s.username;
+      if (s.credential) e.credential = s.credential;
+      return e;
+    })
+    .filter((s) => s.urls.length);
+  if (!out.length) return null;
+  // it is only a relay if something in there is actually a turn: URL
+  const hasTurn = out.some((s) => s.urls.some((u) => /^turns?:/i.test(u)));
+  return hasTurn ? out : null;
+}
+
+/* Cached, because every player asks for this when they join a call and the
+   credential is good for hours. A failure is never cached: if Cloudflare is
+   having a bad minute the next player tries again rather than inheriting it. */
+let cfCache = null;    // { at, iceServers }
+const CF_TTL = 7200;             // ask for two hours
+const CF_REUSE_MS = 3600 * 1000; // hand the same one out for the first hour
+
+async function fetchCloudflare(env = process.env, now = Date.now(), fetchImpl = fetch) {
+  if (!cloudflareConfigured(env)) return null;
+  if (cfCache && now - cfCache.at < CF_REUSE_MS) return cfCache.iceServers;
+  try {
+    const res = await fetchImpl(CF_ENDPOINT(String(env.ENT_TURN_CF_KEY_ID).trim()), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${String(env.ENT_TURN_CF_API_TOKEN).trim()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ttl: CF_TTL }),
+    });
+    if (!res || !res.ok) {
+      console.error(`TURN: Cloudflare refused the credential request (HTTP ${res && res.status})`);
+      return null;
+    }
+    const servers = normaliseCloudflare(await res.json());
+    if (!servers) { console.error("TURN: Cloudflare answered with no usable relay"); return null; }
+    cfCache = { at: now, iceServers: servers };
+    return servers;
+  } catch (e) {
+    console.error(`TURN: could not reach Cloudflare (${(e && e.message) || e})`);
+    return null;
+  }
+}
+
+/* Everything the browser needs, for whichever relay is configured. Async
+   because Cloudflare has to be asked; the other two paths are pure. */
+async function resolve(env = process.env, name = "player", now = Date.now(), fetchImpl = fetch) {
+  if (cloudflareConfigured(env)) {
+    const iceServers = await fetchCloudflare(env, now, fetchImpl);
+    /* Falling back to STUN rather than failing the call: without a relay two
+       phones will not connect, but everyone on wifi still can, and the panel
+       says which of the two states it is in. */
+    if (iceServers) return { iceServers: [...STUN, ...iceServers], relay: true, via: "cloudflare" };
+    return { ...build(env, name, now), cloudflareFailed: true };
+  }
+  return build(env, name, now);
+}
+
 /* Everything the browser needs, in the shape RTCPeerConnection wants.
    `relay` is the flag the UI reads: false means a phone-to-phone call is
    likely to fail, and the player should be told that up front rather than
@@ -112,16 +204,32 @@ function build(env = process.env, name = "player", now = Date.now()) {
   return { iceServers, relay, via };
 }
 
-/* For the boot log, so the host can see at a glance which of the three states
-   the service is in without reading the environment back by hand. */
+/* For the boot log, so the host can see at a glance which state the service is
+   in without reading the environment back by hand. */
 function describe(cfg) {
+  if (cfg.via === "cloudflare") return "STUN + Cloudflare Realtime TURN (credentials minted per call)";
+  if (cfg.cloudflareFailed) {
+    return "STUN only - Cloudflare is configured but would not mint a credential; "
+      + "check ENT_TURN_CF_KEY_ID and ENT_TURN_CF_API_TOKEN";
+  }
   if (!cfg.relay) {
     return "STUN only - no TURN relay configured, so calls between two mobile "
-      + "networks will usually fail (set ENT_TURN_URLS; see iceconfig.js)";
+      + "networks will usually fail (see iceconfig.js for how to set one up)";
   }
   const n = cfg.iceServers[cfg.iceServers.length - 1].urls.length;
   return `STUN + ${n} TURN relay URL${n === 1 ? "" : "s"} (${
     cfg.via === "secret" ? "time-limited credentials" : "fixed credentials"})`;
 }
 
-module.exports = { build, describe, restCredential, STUN, TTL_SECONDS };
+/* Which relay the environment asks for, without contacting anything. The boot
+   log uses this so starting the server never waits on a network call. */
+function plan(env = process.env) {
+  if (cloudflareConfigured(env)) return "Cloudflare Realtime TURN (credentials minted per call)";
+  return describe(build(env));
+}
+
+module.exports = {
+  build, resolve, describe, plan, restCredential, STUN, TTL_SECONDS,
+  cloudflareConfigured, normaliseCloudflare, fetchCloudflare,
+  _resetCache: () => { cfCache = null; },
+};
