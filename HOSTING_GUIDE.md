@@ -96,6 +96,67 @@ either way.
 
 ---
 
+## Keeping the records across a deploy (hosted only)
+
+Free hosting rebuilds the application folder on every restart, and `data` is
+inside it — so the hall of fame, the playtest notes and the accounts are wiped
+every deploy, and again every time the service wakes from sleep. That used to
+mean pressing **Download** before a deploy and **Put a copy back** afterwards,
+which is exactly the sort of thing that gets forgotten on the one deploy that
+mattered.
+
+The server can now keep its own copy instead. Set two variables and there is
+nothing to remember, before or after, ever again.
+
+**Step 1 — make a private repo.** On GitHub, **New repository** → name it
+something like `entrepreneurs-data` → **Private** → Create. Leave it empty.
+
+> It must be **private**. The backup holds password hashes and email addresses.
+> A *secret* gist is not private — it is unlisted, and anyone with the link can
+> read it — which is why this uses a repo.
+
+**Step 2 — make a token that can touch only that repo.** GitHub **Settings** →
+**Developer settings** → **Personal access tokens** → **Fine-grained tokens** →
+**Generate new token**. Set:
+
+- **Repository access:** Only select repositories → the repo you just made
+- **Permissions:** Repository permissions → **Contents** → **Read and write**
+
+Nothing else. Copy the token — it is shown once.
+
+**Step 3 — paste both into Render.** Service page → **Environment** →
+**+ Add Environment Variable**, twice:
+
+| Key | Value |
+|---|---|
+| `ENT_BACKUP_REPO` | `your-name/entrepreneurs-data` |
+| `ENT_BACKUP_TOKEN` | the fine-grained token |
+
+**Save, rebuild, and deploy.**
+
+**Step 4 — check the log.** At boot it prints where it is keeping things:
+
+```
+Backup store: your-name/entrepreneurs-data/backup.json
+Backup store: nothing to restore yet.
+```
+
+After the first game finishes it writes, and the next deploy will say something
+like `Backup store: 12 games, 3 notes added.` If it says `off`, the variables
+have not reached the server; if it says `misconfigured`, it names which one is
+wrong.
+
+**What it does and does not do.** It writes about twenty seconds after anything
+worth keeping — a finished game, a playtest note, a new account — so a burst of
+activity costs one write rather than six, and it flushes on the way out when a
+deploy stops the server. Restoring is a *merge* that only ever adds what is
+missing, so a copy a few minutes stale can never undo a password change made on
+the live site. If GitHub is unreachable it logs a line and carries on; a game
+night does not stop because of it. **A game in progress is still lost** — that
+lives in memory and is not part of the backup.
+
+---
+
 ## Reserving your name (optional)
 
 The hall of fame remembers players by the name they type. That is fine among friends,
