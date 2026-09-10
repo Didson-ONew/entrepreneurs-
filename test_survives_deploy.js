@@ -81,12 +81,28 @@ const api = async (p, opt) => {
   });
   check("a playtest note was accepted", fb.status === 200 || fb.status === 201, `HTTP ${fb.status}`);
 
+  /* A GAME IN PROGRESS, made the way a player makes one.
+
+     This is the case the first version of this test missed: it triggered a save
+     with a playtest note and then checked that matches and feedback came back,
+     which is checking that a save HAPPENED rather than that the room was in it.
+     A room only reached the store when something else happened to write, so a
+     game played on its own was lost - and nothing here noticed. */
+  const made = await api("/api/create", { method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "Ana", bots: 1 }) });
+  const roomCode = made.body.code;
+  check("a room was created", !!roomCode, roomCode || JSON.stringify(made.body));
+
   console.log("   waiting for the debounced save…");
   await sleep(23000);
   check("the store was written", writes > 0, `${writes} write(s)`);
   const saved = stored ? JSON.parse(stored) : null;
   check("it holds the playtest note", !!saved && saved.counts.feedback >= 1,
     saved ? `${saved.counts.feedback} note(s)` : "nothing stored");
+  check("AND it holds the game in progress",
+    !!saved && Array.isArray(saved.rooms) && saved.rooms.some((r) => r.code === roomCode),
+    saved && saved.rooms ? `${saved.rooms.length} room(s): ${saved.rooms.map((r) => r.code).join(",")}` : "no rooms field");
 
   console.log("\nDEPLOY - stop, and wipe the data directory the way Render does");
   srv.kill("SIGTERM");
@@ -108,6 +124,11 @@ const api = async (p, opt) => {
   const notes = fs.existsSync(fbFile) ? (JSON.parse(fs.readFileSync(fbFile, "utf8")).entries || []) : [];
   check("the playtest note came back", notes.length >= 1, `${notes.length} note(s)`);
   check("and it is the same note", notes.some((e) => /fits my phone/.test(e.text || "")));
+
+  const resumed = await api(`/api/mygames`);   // just to touch the server
+  const rooms2 = await api("/api/presence?id=probe");
+  check("the game in progress came back too", rooms2.body.waiting + rooms2.body.matches >= 1,
+    `${rooms2.body.waiting} waiting, ${rooms2.body.matches} playing`);
 
   const writesBefore = writes;
   await sleep(23000);
