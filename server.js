@@ -1156,7 +1156,7 @@ const server = http.createServer(async (req, res) => {
     if (!room) return json(res, { error: "No such room." }, 404);
     const me = anyMember(room, url.searchParams.get("token"));
     if (!me) return json(res, { error: "Unknown player." }, 403);
-    const cfg = iceconfig.build(process.env, me.name);
+    const cfg = await iceconfig.resolve(process.env, me.name);
     return json(res, { iceServers: cfg.iceServers, relay: cfg.relay });
   }
 
@@ -1330,7 +1330,7 @@ server.listen(PORT, () => {
   console.log(`Entrepreneurs server on http://localhost:${PORT}`);
   console.log(`Rules engine ${E.ENGINE_VERSION} (loaded from EntrepreneursGame.jsx)`);
   console.log(`Mail: ${mailer.describe(MAIL)}`);
-  console.log(`Voice: ${iceconfig.describe(iceconfig.build(process.env))}`);
+  console.log(`Voice: ${iceconfig.plan(process.env)}`);
   console.log(`Admins: ${[...ADMINS].join(", ") || "(none)"} - set ENT_ADMINS to change`);
   console.log("");
   /* Before the count is printed, so the report below reflects what was seeded

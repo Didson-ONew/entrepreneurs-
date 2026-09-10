@@ -422,15 +422,60 @@ path to be found. Retrying cannot invent one.
 The only thing that gets through is a **TURN relay**: both browsers connect outward to
 it, and it forwards the audio between them. Set one up and the failures stop.
 
-**Where to get one.** Any TURN provider works. Some have free tiers big enough for a
-game night — search for "TURN server free tier"; Cloudflare, Metered and Twilio all
-sell one, and `coturn` is the standard package if you would rather run your own on a
-cheap VPS. Relayed audio is roughly 50 kbps per direction per pair, so an evening of
-six-player games is measured in hundreds of megabytes, not gigabytes.
+**Use Cloudflare.** Their Realtime TURN service is free for the first 1,000 GB a month,
+and relayed voice runs about 50 kbps each way per pair of players — an evening of
+six-player games is hundreds of megabytes, so in practice you will never leave the free
+tier. This game has direct support for it: you paste two values and it does the rest.
 
-**How to switch it on.** Set these in the Render dashboard (Environment → Add), exactly
-as you did for `ENT_SEED_BACKUP` — never in a file in the repository, because this one
-is public:
+**Step 1 — get the key from Cloudflare.**
+
+1. Sign up or sign in at **https://dash.cloudflare.com** (a free account is enough).
+2. In the left sidebar choose **Realtime**, then the **TURN** tab.
+3. Click **Create** and give the key any name you like, e.g. `entrepreneurs`.
+4. It shows you a **Turn Token ID** and an **API Token**. Copy both now — the API
+   token is only shown once, exactly like a password.
+
+**Step 2 — paste them into Render.**
+
+1. Go to **https://dashboard.render.com** and click the **entrepreneurs** service.
+   The address bar should read `dashboard.render.com/web/srv-…`. If it says
+   `/project/prj-…` you are on the project page, not the service — click the service
+   name first.
+2. In the service's left sidebar click **Environment**. (On a phone the sidebar is
+   behind the **☰** button.) You can also just add `/env` to the end of that URL.
+3. **+ Add Environment Variable**, twice:
+
+| Key | Value |
+|---|---|
+| `ENT_TURN_CF_KEY_ID` | the Turn Token ID |
+| `ENT_TURN_CF_API_TOKEN` | the API Token |
+
+4. **Save, rebuild, and deploy.**
+
+Set them here and nowhere else. The API token is a password, and this repository is
+public.
+
+**Step 3 — check the boot log.** It prints one line:
+
+```
+Voice: STUN + Cloudflare Realtime TURN (credentials minted per call)
+```
+
+If it still says `STUN only`, the variables have not reached the server. If it says
+Cloudflare *"would not mint a credential"*, the two values are set but wrong — most
+often the API token was truncated when copying.
+
+**Why it works this way.** A relay credential has to reach the browser to be usable at
+all, so anyone at your table could read one out of their developer tools. Your
+Cloudflare key never goes there: the server holds it and asks Cloudflare for a
+short-lived credential per call, so the worst anyone can copy expires in a couple of
+hours. If Cloudflare is unreachable when someone joins, the call quietly falls back to
+STUN rather than failing — people on wifi still connect, and the Voice tab says a relay
+is not available.
+
+**If you would rather use something else,** any TURN provider works. Metered and Twilio
+both sell one, and `coturn` is the standard package for running your own on a cheap VPS.
+Set these instead of the two Cloudflare variables:
 
 | Variable | Value |
 |---|---|
@@ -438,11 +483,8 @@ is public:
 | `ENT_TURN_SECRET` | The shared secret, **if** your provider offers one (coturn calls this `use-auth-secret`) |
 | `ENT_TURN_USER` / `ENT_TURN_PASS` | A fixed username and password, if it does not |
 
-**Prefer the secret.** A relay credential has to be handed to the browser or it cannot be
-used, so anyone at your table can read it out of their developer tools. A fixed username
-and password copied that way works for a stranger forever. With a secret, the server
-mints a fresh credential per player that expires within the hour, so the copy they take
-goes stale on its own. Same exposure, far less of it.
+Prefer the secret over a fixed password, for the reason above: a fixed one copied out of
+a browser works for a stranger forever, and a secret-derived one goes stale on its own.
 
 Nothing else changes: audio still goes peer to peer whenever a direct path exists, and
 only falls back to the relay when there isn't one.
