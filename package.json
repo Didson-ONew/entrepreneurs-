@@ -5,8 +5,9 @@
   "scripts": {
     "start": "node server.js",
     "build": "node make_rulebook.mjs && node build.mjs",
-    "rulebook": "node make_rulebook.mjs",
-    "docx": "node make_docx.mjs --both"
+    "rulebook": "node check_rulebook.mjs && node make_rulebook.mjs",
+    "docx": "node make_docx.mjs --both",
+    "check-rulebook": "node check_rulebook.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.1",

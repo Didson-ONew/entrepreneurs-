@@ -4,7 +4,7 @@
    A .tar.gz is useless on a phone and a folder of PNGs is awkward to move
    around. This builds ONE self-contained HTML file with every slide inlined as
    a data URI, every caption in a copy-to-clipboard block, and the four Reels
-   embedded as live animated frames you can screen-record straight off the page.
+   embedded as live animated previews. The finished videos are .mp4 files.
 
    Nothing is fetched at runtime: no network, no CDN images, no dependencies.
    Open it anywhere, forever, including offline.
@@ -138,12 +138,14 @@ const postCard = (p) => {
   const reelBlock = reel ? `
     <div class="reelrow">
       <div class="reelwrap">
-        <iframe title="${esc(reel.name)} — animated, screen-record this"
+        <iframe title="${esc(reel.name)} — a live preview of the reel"
           srcdoc="${esc(reel.srcdoc).replace(/"/g, "&quot;")}" scrolling="no" loading="lazy"></iframe>
       </div>
       <div class="reelmeta">
         <p class="lbl">Live reel</p>
-        <p>Playing at full Reel size, scaled to fit. Screen-record it full-screen for the video — it loops.</p>
+        <p>A live preview at full Reel size, scaled to fit. <b>Do not screen-record it</b> &mdash;
+          the finished video is an .mp4 in <code>instagram/reels_mp4/</code>, rendered frame by frame
+          at a constant rate. Upload that.</p>
         ${reel.cover ? `<p><a class="btn" href="${reel.cover}" target="_blank" rel="noopener">Open cover frame</a></p>` : ""}
         <p class="file">${esc(reel.name)}</p>
       </div>

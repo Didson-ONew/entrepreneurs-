@@ -248,17 +248,45 @@ html, body { background-color: #0e1014; }
   .board-col, .side-col { grid-column: 1 / -1; }
 }
 
-@media (max-width: 820px) {
-  /* scale the whole board down proportionally so nothing sits underneath it */
-  .board-shell > div:first-child {
-    transform: scale(calc((100vw - 3.2rem) / 746));
-    transform-origin: top left;
-  }
-  .board-shell {
-    height: calc((100vw - 3.2rem) + 3.2rem);
-    overflow: hidden;
-  }
+/* THE BOARD IS SCALED IN JAVASCRIPT, NOT HERE.
+
+   This used to be a media query that scaled the board with
+   `transform: scale(calc((100vw - 3.2rem) / 746))`. That is invalid CSS: a
+   length divided by a number is a LENGTH, and scale() takes a unitless number,
+   so the whole declaration was dropped. The `overflow: hidden` beside it was
+   perfectly valid though - so on a phone the board rendered at its full 746px
+   and was CLIPPED to the width of the screen. Two districts of sixteen, with no
+   way to reach the rest.
+
+   A width can only be turned into a scale factor by measuring the container,
+   which CSS cannot do here, so BoardViewport does it with a ResizeObserver and
+   owns the zoom and pan as well. These rules only style the frame it renders. */
+.board-viewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #0b0c0f;
+  touch-action: pan-y;          /* the page still scrolls; pinch is ours */
 }
+.board-viewport.is-zoomed { touch-action: none; cursor: grab; }
+.board-viewport.is-panning { cursor: grabbing; }
+.board-zoom {
+  display: flex; align-items: center; gap: 4px;
+  margin-top: 6px;
+}
+.board-zoom button {
+  min-width: 34px; height: 30px; padding: 0 8px;
+  border-radius: 6px; border: 1px solid #333a47; background: #171a21;
+  color: #d7dce5; font-size: 15px; font-weight: 700; line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+.board-zoom button:disabled { opacity: .35; }
+.board-zoom .pct {
+  min-width: 52px; text-align: center;
+  font-size: 12px; font-weight: 700; color: #8b93a3;
+  font-variant-numeric: tabular-nums;
+}
+.board-zoom .hint { font-size: 11px; color: #6b7280; margin-left: 2px; }
 
 @media (max-width: 520px) {
   .max-w-6xl { padding-left: 0.25rem; padding-right: 0.25rem; }

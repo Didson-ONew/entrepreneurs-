@@ -402,10 +402,62 @@ Two honest limitations:
    and greys the button out, instead of letting them press it and reporting a
    microphone problem that does not exist. If you want voice, use option B or C below;
    both give you an https address.
-2. Roughly one connection in ten fails on strict company or mobile-carrier networks. The
-   call uses free public STUN servers, which cover most homes but cannot punch through
-   every firewall; the fix is a paid TURN relay. A player who can't connect is shown
-   "could not connect" and can keep using chat.
+2. **Two players on mobile data will usually not connect to each other.** This is not
+   a rare edge case, and the guide used to under-sell it as "roughly one in ten". See
+   the next section for what causes it and what fixes it.
+
+## Why two phones can't hear each other, and how to fix it
+
+For a call to open, each browser needs an address the other one can actually reach.
+Out of the box the game uses **STUN**, which is free: it tells a browser what its own
+address looks like from the outside. That is enough between two laptops on ordinary
+home broadband.
+
+It is not enough between two phones on mobile data. Carriers put their subscribers
+behind CGNAT, which hands out **a different public port for every destination you talk
+to**. So the address STUN reports back is the one the carrier opened towards the STUN
+server, and it is already dead by the time the other player tries it. There is no direct
+path to be found. Retrying cannot invent one.
+
+The only thing that gets through is a **TURN relay**: both browsers connect outward to
+it, and it forwards the audio between them. Set one up and the failures stop.
+
+**Where to get one.** Any TURN provider works. Some have free tiers big enough for a
+game night — search for "TURN server free tier"; Cloudflare, Metered and Twilio all
+sell one, and `coturn` is the standard package if you would rather run your own on a
+cheap VPS. Relayed audio is roughly 50 kbps per direction per pair, so an evening of
+six-player games is measured in hundreds of megabytes, not gigabytes.
+
+**How to switch it on.** Set these in the Render dashboard (Environment → Add), exactly
+as you did for `ENT_SEED_BACKUP` — never in a file in the repository, because this one
+is public:
+
+| Variable | Value |
+|---|---|
+| `ENT_TURN_URLS` | Your relay's addresses, comma separated, e.g. `turn:relay.example.com:3478,turns:relay.example.com:5349` |
+| `ENT_TURN_SECRET` | The shared secret, **if** your provider offers one (coturn calls this `use-auth-secret`) |
+| `ENT_TURN_USER` / `ENT_TURN_PASS` | A fixed username and password, if it does not |
+
+**Prefer the secret.** A relay credential has to be handed to the browser or it cannot be
+used, so anyone at your table can read it out of their developer tools. A fixed username
+and password copied that way works for a stranger forever. With a secret, the server
+mints a fresh credential per player that expires within the hour, so the copy they take
+goes stale on its own. Same exposure, far less of it.
+
+Nothing else changes: audio still goes peer to peer whenever a direct path exists, and
+only falls back to the relay when there isn't one.
+
+**Checking it worked.** The boot log prints one line:
+
+```
+Voice: STUN + 2 TURN relay URLs (time-limited credentials)
+```
+
+If it instead says `STUN only - no TURN relay configured`, the variables have not
+reached the server. Half a setup counts as none — URLs with no credentials, or
+credentials with no URLs, are ignored rather than handed to the browser to be refused
+by. Players who then fail to connect are told, in the Voice tab, that no relay is set
+up and it is not their phone's fault.
 
 ## When something goes wrong
 
@@ -424,7 +476,8 @@ Two honest limitations:
 | A yellow "older game rules" bar appears | Your `EntrepreneursGame.jsx` on the server is out of date — upload the current one and restart |
 | A rule I asked for doesn't seem to apply online | Same cause: the rules live in `EntrepreneursGame.jsx`, which the server loads at boot. Check the boot log for the `Rules engine ...` line |
 | Voice button does nothing / no permission prompt | The page must be on **https** (your Render link) or `localhost`. Microphone access is blocked on plain http addresses |
-| One player can't be heard | Their firewall may be blocking peer connections; their name shows "could not connect". Chat still works |
+| One player can't be heard | Their name shows "could not connect". On wifi this is usually a strict firewall. If either of you is on mobile data, it is CGNAT and no amount of retrying will help — set up a TURN relay (see "Why two phones can't hear each other") |
+| Everyone on phones, nobody can hear anyone | Almost certainly no TURN relay. Check the `Voice:` line in the boot log |
 | Someone clicked **Create room** when they meant to join | On their waiting-room screen click **"Cancel this room and go back"** — that returns them to the lobby so they can enter your code. (Closing the browser tab completely and reopening the link also works.) |
 | Render link takes ages the first time | Free tier waking up — normal, ~30s, then fast |
 | Everything is weird / stuck | Host: Ctrl+C the server, `node server.js` again, everyone reopens, make a new room |

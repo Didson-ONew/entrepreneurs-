@@ -17,6 +17,7 @@ const feedback = require("./feedback.js");
 const backup = require("./backup.js");
 const livegames = require("./livegames.js");
 const mailer = require("./mailer.js");
+const iceconfig = require("./iceconfig.js");
 
 const PORT = process.env.PORT || 8080;
 const ROOT = __dirname;
@@ -121,7 +122,11 @@ function log(room) {
 function payloadFor(room) {
   const v = room.version || 0;
   return room.state
-    ? `{"type":"state","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))},"state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
+    /* startedAt goes out with every state frame so the match clock is the
+       ROOM's, not the browser tab's. It used to be started from Date.now() when
+       the page mounted, so a reload set it back to zero and no two players ever
+       saw the same time. */
+    ? `{"type":"state","v":${v},"engine":"${E.ENGINE_VERSION}","startedAt":${room.startedAt || 0},"chat":${JSON.stringify(room.chat.slice(-60))},"watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))},"state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
     : `{"type":"lobby","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"members":${JSON.stringify(room.members.map((m) => ({ name: m.name, seat: m.seat, host: m.host })))},"bots":${room.bots},"personas":${room.personas ? "true" : "false"},"variants":${JSON.stringify(room.variants)},"code":"${room.code}","watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))}}`;
 }
 /* Every finished game is written down exactly once. This hangs off broadcast
@@ -1130,8 +1135,29 @@ const server = http.createServer(async (req, res) => {
     if (!target) return json(res, { error: "No such player." }, 404);
     target.inbox = target.inbox || [];
     target.inbox.push({ kind: b.kind, from: me.seat, name: me.name, payload: b.payload });
-    if (target.inbox.length > 60) target.inbox.shift();
+    /* The cap used to be 60 with a plain shift(), which threw away the OLDEST
+       message. The oldest message is the offer - the one thing a call cannot be
+       set up without. A six-seat table gathers candidates from five peers at
+       once and goes past sixty easily, so the overflow that was meant to protect
+       the server was quietly cutting the handshake off at the knees instead.
+       Candidates are the disposable ones: ICE keeps trying the rest. */
+    if (target.inbox.length > 240) {
+      const i = target.inbox.findIndex((m) => m.kind === "ice");
+      target.inbox.splice(i === -1 ? 0 : i, 1);
+    }
     return json(res, { ok: true });
+  }
+
+  /* Which STUN and TURN servers this browser may use. Behind a room token
+     because a TURN credential costs the host bandwidth, and there is no reason
+     to hand one to a passer-by who is not at a table. */
+  if (p === "/api/ice") {
+    const room = rooms.get((url.searchParams.get("code") || "").toUpperCase());
+    if (!room) return json(res, { error: "No such room." }, 404);
+    const me = anyMember(room, url.searchParams.get("token"));
+    if (!me) return json(res, { error: "Unknown player." }, 403);
+    const cfg = iceconfig.build(process.env, me.name);
+    return json(res, { iceServers: cfg.iceServers, relay: cfg.relay });
   }
 
   if (p === "/api/signals") {
@@ -1304,6 +1330,7 @@ server.listen(PORT, () => {
   console.log(`Entrepreneurs server on http://localhost:${PORT}`);
   console.log(`Rules engine ${E.ENGINE_VERSION} (loaded from EntrepreneursGame.jsx)`);
   console.log(`Mail: ${mailer.describe(MAIL)}`);
+  console.log(`Voice: ${iceconfig.describe(iceconfig.build(process.env))}`);
   console.log(`Admins: ${[...ADMINS].join(", ") || "(none)"} - set ENT_ADMINS to change`);
   console.log("");
   /* Before the count is printed, so the report below reflects what was seeded
