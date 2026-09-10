@@ -42,16 +42,20 @@
 #
 #   ...and set ENT_DATA_DIR to /var/lib/entrepreneurs so it matches the mount.
 #
-# WHAT CARRIES THE ACCOUNTS ACROSS A DEPLOY INSTEAD: ENT_SEED_BACKUP, below. It
-# holds a backup file - accounts only - and the server merges it at boot, so a
-# wiped data directory comes back with everyone still registered. It cannot
-# overwrite an account that is already there, so it is safe on every restart.
+# WHAT KEEPS ALL OF IT ANYWAY: ENT_BACKUP_REPO and ENT_BACKUP_TOKEN, below.
+# The server writes a backup to a private GitHub repository whenever anything
+# worth keeping happens and reads it back at boot, so the wipe still happens and
+# simply stops costing anything. Nothing to remember before or after a deploy.
 #
-# The Backup tab in the Playtest panel is still the way to move the REST: the
-# hall of fame and the playtest notes. Download a copy, and Put a copy back
-# afterwards. Putting one back never deletes anything (see backup.js), so it is
-# safe to press when unsure. A game in progress is the one thing nothing can
-# bring back on this tier.
+# ENT_SEED_BACKUP, also below, predates that and now only covers the accounts.
+# It is worth keeping as a floor: it needs no network at boot, so it still works
+# on the day GitHub is down. Where the two overlap the store wins, because it is
+# never stale.
+#
+# The Backup tab in the Playtest panel is still there for taking a copy away by
+# hand. Putting one back never deletes anything (see backup.js), so it is safe
+# to press when unsure. A game in progress is the one thing nothing can bring
+# back on this tier.
 #
 #   THE BACKUP FILE HOLDS PASSWORD HASHES AND EMAIL ADDRESSES. Keep it as
 #   carefully as a password list, and never commit it - this repository is
@@ -119,6 +123,34 @@ services:
       # `sync: false` is what tells Render to ask for it in the dashboard rather
       # than expecting to find it in this file.
       - key: ENT_SEED_BACKUP
+        sync: false
+
+      # --- keeping the data across a deploy ----------------------------------
+      # THIS IS WHAT MAKES THE WIPE ABOVE STOP MATTERING. The server writes a
+      # backup to a PRIVATE GitHub repository whenever a game finishes, a note
+      # is left or an account changes, and reads it back at boot. Set these two
+      # and there is nothing to remember before or after a deploy.
+      #
+      #   1. New PRIVATE repo on GitHub, e.g. Didson-ONew/entrepreneurs-data.
+      #      It can be completely empty.
+      #   2. Settings -> Developer settings -> Personal access tokens ->
+      #      Fine-grained tokens -> Generate. Repository access: only that one
+      #      repo. Permissions: Contents -> Read and write. Nothing else.
+      #
+      # ENT_BACKUP_REPO   owner/name of that private repo
+      # ENT_BACKUP_TOKEN  the fine-grained token
+      #
+      # IT MUST BE PRIVATE. The file holds password hashes and email addresses.
+      # A secret gist is NOT private - it is unlisted, and anyone with the link
+      # can read it - which is why this uses a repo. Both `sync: false`: the
+      # token is a password and THIS repository is public.
+      #
+      # Restoring is a merge that only ever adds what is missing, so a copy a
+      # few minutes stale can never undo a password change made on the live
+      # site, and a failure never stops the server - it logs and carries on.
+      - key: ENT_BACKUP_REPO
+        sync: false
+      - key: ENT_BACKUP_TOKEN
         sync: false
 
       # --- voice relay -------------------------------------------------------

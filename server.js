@@ -15,6 +15,7 @@ const matchlog = require("./matchlog.js");
 const accounts = require("./accounts.js");
 const feedback = require("./feedback.js");
 const backup = require("./backup.js");
+const remotestore = require("./remotestore.js");
 const livegames = require("./livegames.js");
 const mailer = require("./mailer.js");
 const iceconfig = require("./iceconfig.js");
@@ -141,6 +142,7 @@ function recordIfFinished(room) {
       MATCHES.push(rec);
       STATS_CACHE = null;
       console.log(`match ${rec.id} recorded: ${rec.players.map((p) => `${p.name} ${p.ep}EP`).join(", ")}`);
+      scheduleRemoteSave();
     }
   } catch (e) {
     console.error(`could not build the match record: ${e.message}`);
@@ -517,10 +519,15 @@ let feedbackDirty = false;
 const saveFeedback = () => {
   try { feedback.save(FEEDBACK); feedbackDirty = false; }
   catch (e) { feedbackDirty = true; console.error("could not save feedback:", e.message); }
+  scheduleRemoteSave();
 };
 
 let accountsDirty = false;
-const saveAccounts = () => { try { accounts.save(ACCOUNTS); accountsDirty = false; } catch (e) { accountsDirty = true; console.error("could not save accounts:", e.message); } };
+const saveAccounts = () => {
+  try { accounts.save(ACCOUNTS); accountsDirty = false; }
+  catch (e) { accountsDirty = true; console.error("could not save accounts:", e.message); }
+  scheduleRemoteSave();
+};
 
 /* Merge a backup file into what this server is holding, and write down whatever
    changed. Two things call this and they must not drift: the Backup tab's "Put a
@@ -540,6 +547,55 @@ function mergeBackup(file) {
   if (result.added.feedback) saveFeedback();
   if (result.newMatches.length) STATS_CACHE = null;
   return result;
+}
+
+/* Keeping the durable copy up to date.
+
+   Written after anything worth keeping - a finished match, a playtest note, a
+   new account - but DEBOUNCED, because six players finishing a game is six
+   calls to broadcast and there is no reason to write six times. The last write
+   of a burst is the only one that matters, and it carries everything the
+   earlier ones would have.
+
+   A save is never awaited by the request that triggered it: nobody's turn
+   should wait on GitHub. */
+const REMOTE_SAVE_DELAY = 20 * 1000;
+/* Writing what we just read back is pointless, and this instance sleeps after
+   fifteen idle minutes - so without this it would commit to the backup repo
+   every time somebody wakes it, several times a day, saying nothing. Held up
+   while the boot restore runs, because that restore saves accounts and feedback
+   to disk and those are exactly what schedule a remote save. */
+let restoringFromStore = false;
+let remoteTimer = null;
+let remoteSaving = false;
+let remoteDirty = false;
+
+function currentBackupFile() {
+  return backup.build({
+    accounts: ACCOUNTS, matches: MATCHES, feedback: FEEDBACK, engine: E.ENGINE_VERSION,
+  });
+}
+
+async function saveRemoteNow() {
+  if (!remotestore.configured() || remoteSaving) return;
+  remoteSaving = true;
+  remoteDirty = false;
+  try {
+    await remotestore.save(currentBackupFile());
+  } finally {
+    remoteSaving = false;
+    // something changed while we were writing: go round once more
+    if (remoteDirty) scheduleRemoteSave();
+  }
+}
+
+function scheduleRemoteSave() {
+  if (!remotestore.configured() || restoringFromStore) return;
+  remoteDirty = true;
+  if (remoteTimer) clearTimeout(remoteTimer);
+  remoteTimer = setTimeout(() => { remoteTimer = null; saveRemoteNow(); }, REMOTE_SAVE_DELAY);
+  /* Do not hold the process open for this - shutdown flushes it anyway. */
+  if (remoteTimer.unref) remoteTimer.unref();
 }
 
 /* ENT_SEED_BACKUP - a backup file, accounts only, base64, applied at boot.
@@ -1331,11 +1387,46 @@ server.listen(PORT, () => {
   console.log(`Rules engine ${E.ENGINE_VERSION} (loaded from EntrepreneursGame.jsx)`);
   console.log(`Mail: ${mailer.describe(MAIL)}`);
   console.log(`Voice: ${iceconfig.plan(process.env)}`);
+  console.log(`Backup store: ${remotestore.describe(process.env)}`);
   console.log(`Admins: ${[...ADMINS].join(", ") || "(none)"} - set ENT_ADMINS to change`);
   console.log("");
   /* Before the count is printed, so the report below reflects what was seeded
      rather than what the wiped disk happened to hold. */
   applySeedBackup();
+
+  /* Pull the durable copy back. This is what makes the wipe harmless: the data
+     directory this deploy left behind is empty, and everything that was in it
+     is in the store. It merges rather than replaces, so a copy that is a few
+     minutes stale cannot undo anything already here - including whatever
+     ENT_SEED_BACKUP just seeded.
+
+     Deliberately not awaited before the server starts listening: a slow GitHub
+     should delay the hall of fame, never the health check. */
+  if (remotestore.configured()) {
+    (async () => {
+      const file = await remotestore.load();
+      if (!file) { console.log("Backup store: nothing to restore yet."); return; }
+      let result;
+      restoringFromStore = true;
+      try { result = mergeBackup(file); } finally { restoringFromStore = false; }
+      if (result.error) { console.error(`Backup store: ${result.error}`); return; }
+      console.log(`Backup store: ${backup.describe(result)}`);
+      /* Only write back if THIS server holds something the store does not - a
+         game that finished in the seconds before the last restart, say. On an
+         ordinary wake the store is already the fuller copy and there is nothing
+         to say, and this instance sleeps after fifteen idle minutes, so an
+         unconditional save here would commit several times a day for nothing. */
+      const had = file.counts || {};
+      const ahead = MATCHES.length > (had.matches || 0)
+        || ACCOUNTS.users.length > (had.accounts || 0)
+        || (FEEDBACK.entries || []).length > (had.feedback || 0);
+      if (ahead) {
+        console.log("Backup store: this server is ahead of the store - writing it back.");
+        scheduleRemoteSave();
+      }
+    })();
+  }
+
   /* Say what survived the last restart. An empty store here is the only warning
      anybody gets before a player discovers their account is gone. */
   datadir.report({
@@ -1368,9 +1459,14 @@ function shutdown(signal) {
   leaving = true;
   const n = saveGamesNow();
   console.log(`\n${signal}: saved ${n < 0 ? "no" : n} room${n === 1 ? "" : "s"} in progress. Stopping.`);
-  server.close(() => process.exit(0));
+  /* A deploy sends SIGTERM. Anything the debounce was still holding is written
+     now, or it is the thing that gets lost - which is the whole point of this. */
+  const flush = remoteDirty || remoteTimer
+    ? saveRemoteNow().then(() => console.log("Backup store: flushed on the way out.")).catch(() => {})
+    : Promise.resolve();
+  flush.then(() => server.close(() => process.exit(0)));
   /* Open SSE connections never end on their own, so do not wait on them forever. */
-  setTimeout(() => process.exit(0), 3000).unref();
+  setTimeout(() => process.exit(0), 8000).unref();
 }
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
