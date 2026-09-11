@@ -5460,8 +5460,10 @@ function GameScreens({ online }) {
                 </div>
               )}
 
-              {/* Each industry pays 5 EP once per game, the first year-end a company of
-                  that type is active. Filled = already banked, outline = still available. */}
+              {/* Each industry pays INDUSTRY_DEBUT_EP once per game, the moment the first
+                  company of that type is finished. Filled = already banked, outline = still
+                  available. The figure is read from the engine rather than written out, so
+                  it cannot drift from what the game actually pays again. */}
               <div className="flex items-center gap-1 mb-2">
                 {INDUSTRIES.map((ind) => {
                   const done = (human.industriesScored || []).includes(ind);
@@ -5481,7 +5483,7 @@ function GameScreens({ online }) {
               </div>
               <div className="text-[9px] text-gray-600 mb-2">
                 {(human.industriesScored || []).length}/6 industry bonuses banked
-                <span className="text-gray-700"> &middot; 5 EP each, once per game</span>
+                <span className="text-gray-700"> &middot; {INDUSTRY_DEBUT_EP} EP each, once per game</span>
               </div>
 
               {(() => {
@@ -5557,7 +5559,7 @@ function GameScreens({ online }) {
 
           <div className="side-col space-y-3">
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text="Score = 2 EP per company level, banked the moment you build or upgrade it, plus 3 EP the first time you build in each industry (once per game). Plus land awards at every year end, endgame bonuses, $10 = 1 EP, and -5 EP per unpaid loan disc. A tie is settled by money, then by fewer loan discs. Hover a player for the full breakdown." /></div>
+              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text={`Score = ${levelEP(state)} EP per company level, banked the moment you build or upgrade it, plus ${INDUSTRY_DEBUT_EP} EP the first time you build in each industry (once per game). Plus land awards at every year end, endgame bonuses, $${CASH_PER_EP} = 1 EP, and -5 EP per unpaid loan disc. A tie is settled by money, then by fewer loan discs. Hover a player for the full breakdown.`} /></div>
               <div className="space-y-2">
                 {[...state.players].sort((a, b) => epTotal(b) - epTotal(a)).map((p) => {
                   return (
