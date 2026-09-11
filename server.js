@@ -164,7 +164,7 @@ function payloadFor(room) {
        ROOM's, not the browser tab's. It used to be started from Date.now() when
        the page mounted, so a reload set it back to zero and no two players ever
        saw the same time. */
-    ? `{"type":"state","v":${v},"engine":"${E.ENGINE_VERSION}","startedAt":${room.startedAt || 0},"chat":${JSON.stringify(room.chat.slice(-60))},"watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))},"state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
+    ? `{"type":"state","v":${v},"engine":"${E.ENGINE_VERSION}","startedAt":${room.startedAt || 0},"lastActive":${livegames.lastActive(room)},"idleLimitMs":${livegames.KEEP_MS},"chat":${JSON.stringify(room.chat.slice(-60))},"watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))},"state":${encodeState(room.state)},"logs":${JSON.stringify(room.logs.slice(-120))}}`
     : `{"type":"lobby","v":${v},"engine":"${E.ENGINE_VERSION}","chat":${JSON.stringify(room.chat.slice(-60))},"members":${JSON.stringify(room.members.map((m) => ({ name: m.name, seat: m.seat, host: m.host })))},"bots":${room.bots},"personas":${room.personas ? "true" : "false"},"variants":${JSON.stringify(room.variants)},"code":"${room.code}","watchers":${JSON.stringify((room.spectators || []).map((m) => m.name))}}`;
 }
 /* Every finished game is written down exactly once. This hangs off broadcast
@@ -1324,6 +1324,18 @@ const server = http.createServer(async (req, res) => {
     const b = await body(req);
     const room = rooms.get((b.code || "").toUpperCase());
     if (!room) return json(res, { ok: true });
+    /* A WATCHER CAN ALWAYS LEAVE, and until now could not: this only ever looked
+       in room.members, so a spectator's token never matched, the call answered
+       "ok" and did nothing at all. They stayed on the watchers list for everyone
+       else for as long as the room lived. A watcher holds no seat and owes the
+       table nothing, so there is no reason to keep them. */
+    const sp = (room.spectators || []).findIndex((m) => m.token === b.token);
+    if (sp >= 0) {
+      room.spectators.splice(sp, 1);
+      broadcast(room);
+      return json(res, { ok: true, wasWatching: true });
+    }
+
     const i = room.members.findIndex((m) => m.token === b.token);
     if (i < 0) return json(res, { ok: true });
     // Only allow tidying up before the game starts; mid-game a player must be able

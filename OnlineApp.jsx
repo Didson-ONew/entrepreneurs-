@@ -1122,6 +1122,8 @@ function OnlineTable({ onTable }) {
      taken when the page mounted, so a reload restarted it and two players never
      agreed on it. */
   const [startedAt, setStartedAt] = useState(0);
+  const [lastActive, setLastActive] = useState(0);
+  const [idleLimit, setIdleLimit] = useState(48 * 3600 * 1000);
   const [conn, setConn] = useState("connecting");
   const [toast, setToast] = useState("");
   const [checking, setChecking] = useState(true);
@@ -1206,6 +1208,11 @@ function OnlineTable({ onTable }) {
         st.board.graph = g;
         setState(st);
         if (msg.startedAt) setStartedAt(msg.startedAt);
+        /* When the room last saw anything happen, and how long it may sit idle.
+           Both come from the server so the countdown is the room's, not a
+           guess made from when this tab happened to open. */
+        if (msg.lastActive) setLastActive(msg.lastActive);
+        if (msg.idleLimitMs) setIdleLimit(msg.idleLimitMs);
         setLogs((msg.logs || []).map((l, i) => ({ id: i, msg: l.msg, pid: l.pid })));
       }
     };
@@ -1292,7 +1299,28 @@ function OnlineTable({ onTable }) {
           style={{ fontSize: 11, background: "none", border: "none", cursor: "pointer", color: muted ? "#6b7280" : "#8fd3b6", padding: 0, lineHeight: 1 }}>
           {muted ? "\uD83D\uDD07" : "\uD83D\uDD0A"}
         </button>
-        <button onClick={() => leave(false)} title="Leave this game" style={{ fontSize: 10, color: "#6b7280", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>leave</button>
+        {/* Two different things that used to be one button.
+
+            A WATCHER leaves for good: they hold no seat and owe the table
+            nothing. This has to tell the server, which the old button never did
+            - it called leave(false) - so a watcher stayed on everyone else's
+            list forever however many times they pressed it.
+
+            A PLAYER cannot leave a game in progress without abandoning their
+            seat, and usually does not want to: they want the lobby, to start or
+            open another game. That keeps the seat, and the game is waiting under
+            "Your games" when they come back. */}
+        {me.spectator ? (
+          <button onClick={() => leave(true)} title="Stop watching and go back to the lobby"
+            style={{ fontSize: 10, color: "#6b7280", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+            stop watching
+          </button>
+        ) : (
+          <button onClick={() => leave(false)} title="Back to the lobby. Your seat is kept - the game is under Your games when you want it."
+            style={{ fontSize: 10, color: "#6b7280", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+            lobby
+          </button>
+        )}
         <span style={{
           fontSize: 10, padding: "2px 7px", borderRadius: 999,
           backgroundColor: conn === "offline" ? "#3a1f1f" : conn === "polling" ? "#33301a" : "#14301f",
@@ -1310,6 +1338,7 @@ function OnlineTable({ onTable }) {
       )}
       <Game online={{
         state, seat: me.seat, logs, host: !!me.host, spectator: !!me.spectator, startedAt,
+        lastActive, idleLimit,
         onKick: async (seat) => {
           const r = await api("/api/kick", { code: me.code, token: me.token, seat });
           if (r.body && r.body.error) { setToast(r.body.error); setTimeout(() => setToast(""), 2600); }
