@@ -5153,7 +5153,8 @@ function GameScreens({ online }) {
                 How to play
               </button>
             </div>
-            <MatchTracker state={state} elapsed={elapsed} />
+            <MatchTracker state={state} elapsed={elapsed}
+              lastActive={online && online.lastActive} idleLimit={online && online.idleLimit} />
           </div>
           <PriceTicker pm={state.pm} />
         </div>
@@ -6203,7 +6204,7 @@ function LevelBadge({ level }) {
 }
 /* Shows the whole match at a glance - which year, which quarter, which phase - rather
    than a single line naming only the current step. */
-function MatchTracker({ state, elapsed }) {
+function MatchTracker({ state, elapsed, lastActive, idleLimit }) {
   const year = Math.ceil(state.quarter / 4);
   const qInYear = ((state.quarter - 1) % 4) + 1;
   const PHASES = [
@@ -6248,6 +6249,33 @@ function MatchTracker({ state, elapsed }) {
       {detail && <span style={{ color: "#8fd3b6" }}>({detail})</span>}
       <span style={{ color: "#3a4152" }}>|</span>
       <span title="Time played" style={{ color: "#8b93a3" }}>{clock}</span>
+      {/* How long since anybody did anything, and what happens if that keeps up.
+          A table where somebody stopped answering is closed after idleLimit, and
+          the play in it is written down as unfinished - so the countdown is worth
+          seeing before it runs out rather than after. */}
+      {!!lastActive && !!idleLimit && (() => {
+        /* Date.now() is fresh on every render, and `elapsed` ticks once a second
+           above, so this counts up on its own without a timer of its own. */
+        const idle = Math.max(0, Date.now() - lastActive);
+        const left = idleLimit - idle;
+        const hours = Math.round(idleLimit / 3600000);
+        // quiet until it is worth noticing, then louder as it runs out
+        const colour = left <= 3600000 ? "#fca5a5" : left <= 6 * 3600000 ? "#e0b060" : "#6b7280";
+        return (
+          <>
+            <span style={{ color: "#3a4152" }}>|</span>
+            <span style={{ color: colour }}
+              title={`Nobody has done anything for ${formatElapsed(idle / 1000)}. `
+                + `A game left alone for ${hours} hours is closed, and what was played in it `
+                + `is recorded as unfinished.`}>
+              idle {formatElapsed(idle / 1000)}
+              {left <= 6 * 3600000 && (
+                <span> &middot; closes in {formatElapsed(Math.max(0, left) / 1000)}</span>
+              )}
+            </span>
+          </>
+        );
+      })()}
     </div>
   );
 }
