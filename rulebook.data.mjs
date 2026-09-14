@@ -31,7 +31,7 @@
    building's buy-back price changed from a flat half setup to exactly what the
    bank paid for it. Anyone holding a v16 book is holding a different game, so
    this gets its own number rather than quietly replacing theirs. */
-export const EDITION = "Rulebook v17";
+export const EDITION = "Rulebook v18";
 
 /* Filter the book down to one edition. `edition` is "digital" (the app, which has a
    host, bots and a waiting room) or "table" (a physical game, which has none of them).
@@ -57,7 +57,7 @@ export const RULEBOOK = [
       "The coloured squares inside a district are its demand: what it will buy.",
     ] },
     { h: "The one idea underneath everything" },
-    { p: "Every company pays OPEX each quarter, and that money does not vanish - it goes to the industries printed on its Blueprint as suppliers. So the industry nobody is building is quietly collecting everyone else's money, and its price is climbing while the crowded industries sink toward $2. Reading that pressure is the game." },
+    { p: "Every company pays a supplier bill each quarter, and that money does not vanish - it goes to the industries printed on its Blueprint as suppliers. So the industry nobody is building is quietly collecting everyone else's money, and its price is climbing while the crowded industries sink toward $2. Reading that pressure is the game." },
     { note: "The economy is a closed loop on purpose. There is no faucet other than the bank loan and the $1 a unit paid for recycling, so a table that all builds the same thing genuinely impoverishes itself. Every playtest that felt flat was a table that had not noticed this yet." },
   ],
 },
@@ -73,10 +73,10 @@ export const RULEBOOK = [
     { table: {
       head: ["Players", "Seat 1", "Seat 2", "Seat 3", "Seat 4", "Seat 5", "Seat 6"],
       rows: [
-        ["6", "$25 / 1", "$25 / 2", "$20 / 2", "$20 / 3", "$20 / 3", "$15 / 4"],
-        ["5", "$25 / 1", "$25 / 2", "$20 / 2", "$20 / 3", "$15 / 4", "-"],
-        ["4", "$25 / 1", "$25 / 2", "$20 / 2", "$20 / 3", "-", "-"],
-        ["3", "$25 / 1", "$25 / 2", "$20 / 3", "-", "-", "-"],
+        ["6", "$25 / 1", "$22 / 2", "$22 / 2", "$19 / 3", "$19 / 3", "$16 / 4"],
+        ["5", "$25 / 1", "$22 / 2", "$22 / 2", "$19 / 3", "$16 / 4", "-"],
+        ["4", "$25 / 1", "$22 / 2", "$22 / 2", "$19 / 3", "-", "-"],
+        ["3", "$25 / 1", "$22 / 2", "$19 / 3", "-", "-", "-"],
         ["2", "$20 / 2", "$20 / 2", "-", "-", "-", "-"],
       ],
     } },
@@ -90,7 +90,7 @@ export const RULEBOOK = [
       "Megacorp tiles: sixteen exist in four tiers of four. Two are drawn from each tier that is in play - which is twice the number of players. Tiers 4 and 3 are always in; tier 2 joins at three players, tier 1 only at four.",
       "Personas are dealt to everyone by default - one each, drawn from six. Leave them out for a first game if you like.",
     ] },
-    { note: "Reverse-order drafting is the only catch-up mechanism in the game, and it is deliberately small. Seat 4 in a four-player game opens with $20 and three cards against seat 1's $25 and one card - enough to matter in the first two quarters, not enough to decide a game." },
+    { note: "Reverse-order drafting is the only catch-up mechanism in the game, and it is deliberately small. Seat 4 in a four-player game opens with $19 and three cards against seat 1's $25 and one card - enough to matter in the first two quarters, not enough to decide a game. One more card costs exactly $3, and seats holding the same number of cards hold the same money. That is not how the table used to read: it paid $25/1, $25/2, $20/2, $20/3, which handed the third seat the second seat's cards for $5 less AND the fourth seat's money for a card fewer - strictly the worst chair at the table, with nothing offered for it. Measured over 500 four-player games it barely mattered (the seats ran 20.8 / 28.6 / 23.8 / 26.8 per cent, and swapping the second and third seats' money did not swap their results, so the $5 was never what moved them). It is fixed because a player can SEE it, not because it was costing them games." },
   ],
 },
 
@@ -122,7 +122,7 @@ export const RULEBOOK = [
       rows: [
         ["1. Planning", "Everyone places their workers on the action tracks."],
         ["2. Action", "The tracks resolve and each worker takes its actions."],
-        ["3. Production", "Every active company pays OPEX; rent and supplier pots are paid out of it."],
+        ["3. Production", "Every active company pays its supplier bill into the industry pots, and its ground rent to the landlords it stands on."],
         ["4. Revenue", "You deliver production to demand icons for cash, then the industry pots are shared out."],
         ["5. Closing", "A new Logistic Hub opens. At the end of each year, the two land awards are paid."],
       ],
@@ -205,7 +205,7 @@ export const RULEBOOK = [
     { h: "Footprints" },
     { p: "A vertical company always occupies exactly one plot, whatever its level. A horizontal company occupies one plot per level, and those plots must form a connected cluster of owned, empty land - it need not be your own, though its owner will collect the rent. A level-3 horizontal Blueprint therefore needs three connected empty plots before you can build it at all." },
     { p: "A plot can carry more than one level, and rent follows the levels rather than the plots: $2 for every level standing on a plot, paid to that plot's owner. Where a persona lets a company grow the other way - Technology stacking instead of spreading, Hospitality spreading instead of stacking - you choose which plot of the footprint the new level goes on. Stack it on land you own and the rent for those levels comes back to you." },
-    { note: "Rent was $3 a level and is now $2. Rent is not an extra bill: a company pays its OPEX and nothing else, and the rent is carved OUT of that payment - whatever survives it goes into the supplier pots. So the rate decides a SPLIT, not a cost: at $3 the landlords took 57 cents of every OPEX dollar and the pots got 43; at $2 it is 38 and 62. Measured: the player leading at the halfway mark goes on to win 36% of four-player games instead of 41%, and 28% of six-player games instead of 31%, with the winning score and the industry balance unchanged. THE TWO-PLAYER GAME IS THE EXCEPTION and moves the other way, 60% to 67%: with only two seats there is nobody else for the relief to spread across. $2 is a measured optimum rather than a direction of travel - at $1 the halfway leader wins 47% of four-player games and 38% of six-player ones, worse than $3 ever was, so the gain does not continue downwards. See audit_rent_one.js, audit_rent_scaled.js and audit_rent_flow.js." },
+    { note: "Rent was $3 a level and is now $2. Rent and the supplier bill are charged separately, but together they still come to exactly what the Blueprint charges, so the rate decides a SPLIT rather than a cost: at $3 the landlords took 57 cents of every OPEX dollar and the pots got 43; at $2 it is 38 and 62. Measured: the player leading at the halfway mark goes on to win 36% of four-player games instead of 41%, and 28% of six-player games instead of 31%, with the winning score and the industry balance unchanged. THE TWO-PLAYER GAME IS THE EXCEPTION and moves the other way, 60% to 67%: with only two seats there is nobody else for the relief to spread across. $2 is a measured optimum rather than a direction of travel - at $1 the halfway leader wins 47% of four-player games and 38% of six-player ones, worse than $3 ever was, so the gain does not continue downwards. See audit_rent_one.js, audit_rent_scaled.js and audit_rent_flow.js." },
     { h: "Selling the ground out from under a building" },
     { p: "A company can only produce while every plot it stands on is owned by SOMEBODY - not necessarily by you. Selling one of those plots does not destroy the building, but it stops producing until somebody buys that ground, and whoever does collects its rent from then on." },
     { note: "That rule exists so a desperate player has one more thing to sell without immediately losing the company, and so an opponent's distressed land is worth watching. It is deliberately not a way to attack someone else's building - you can only sell your own." },
@@ -273,11 +273,12 @@ export const RULEBOOK = [
   id: "production",
   title: "Production: paying the bills",
   blocks: [
-    { p: "Every active company pays its OPEX, automatically, whether or not it sells anything afterwards. That money is immediately split:" },
+    { p: "Every active company pays two bills each quarter, automatically, whether or not it sells anything afterwards:" },
     { ul: [
-      "Rent - $2 for every level standing on a plot - goes to whoever owns that plot. A vertical company stacks all its levels on one plot, so its whole rent goes to one landlord; a horizontal one puts a level on each plot it covers, so each landlord collects $2. On your own land it comes straight back to you.",
-      "Everything left over flows into the industry pots of that company's suppliers, divided in proportion to the dependency values on the Blueprint.",
+      "Its SUPPLIER BILL goes into the industry pots of the suppliers printed on its Blueprint, divided in proportion to the dependency values.",
+      "Its GROUND RENT - $2 for every level standing on a plot - goes to whoever owns that plot. A vertical company stacks all its levels on one plot, so its whole rent goes to one landlord; a horizontal one puts a level on each plot it covers, so each landlord collects $2. You pay nothing for standing on your own land.",
     ] },
+    { note: "These used to be one payment split two ways: the company paid its whole OPEX, the landlord took $2 a level out of it, and only the remainder reached the pots - so on your own ground you solemnly paid yourself and took it back. The money is the same. Two bills, each going to one place, is simply what a table can do without a calculator. Megacorp headquarters have always been billed this way, so it is the rest of the board catching up with them. One thing did change: a company standing on ground nobody owns used to be charged rent that reached no landlord at all and vanished. There is no landlord, so now it pays no rent." },
     { h: "If you cannot pay" },
     { p: "Before OPEX is charged, any player whose cash will not cover their whole bill gets a window to choose what to sell. This is a forced sale and everything in it goes at HALF what a planned sale through Raise Capital would fetch: Blueprints $2 / $4 / $6 by level, plots half their value, a company half what it would have paid voluntarily. What you keep control of is which assets go, not the price." },
     { p: "If the bill still cannot be met once a company's OPEX comes due, that company enters SOLVENCY: the bank sells for you, at those same half rates, and the company that triggered it goes to the bank as a Distressed Asset." },
@@ -364,7 +365,7 @@ export const RULEBOOK = [
       "All the others go to the bank as Distressed Assets - anyone may take them over later.",
       "The HQ stops trading: with no Blueprint it produces nothing and pays no OPEX. It still draws its equal share of its industry's pot every B2B - a headquarters that has stopped building has not stopped collecting.",
       "Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry DIVIDED BY THE TILE'S TIER, rounded down. A tier 1 headquarters in an industry at $3 banks 3 EP a quarter; a tier 4 headquarters in the same industry banks nothing at all until that industry reaches $4. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for eight more quarters than one formed in Year 3.",
-      "It has no OPEX to pay its rent out of, so its owner pays the ground rent from pocket every quarter - $2 for every level standing on a plot, to that plot's owner. On your own land nothing moves.",
+      "It has no supplier bill, but it still stands on the ground, so its owner pays ground rent every quarter like any other building - $2 for every level standing on a plot, to that plot's owner. On your own land nothing is owed.",
       "A headquarters is public infrastructure: it counts as a Logistic Hub. Any company built orthogonally beside one joins the network through it, whoever owns them. A monument that only collected would be a monument nobody wanted to build near - and the companies that gather round it are exactly the ones it scores 3 EP each for at the end.",
       "Sell a plot out from under a headquarters and it collects nothing at all - no pot share, no points, and it stops being a hub. A monument still needs its ground.",
       "It keeps its disc, and it permanently locks one of your five company slots. Every Megacorp you form narrows how wide you can operate.",

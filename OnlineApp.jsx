@@ -1259,17 +1259,18 @@ function OnlineTable({ onTable }) {
     </>
   );
 
+  /* Read once: the banner needs it to decide whether to show, and the control cluster
+     needs it to decide how far down to sit. */
+  const rulesMismatch = !!serverEngine && serverEngine !== getEngineVersion();
+
   return (
     <>
       {tablePanel}
-      {me.spectator && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 9996,
-          backgroundColor: "#1c2733", borderBottom: "1px solid #3a4152",
-          color: "#8fd3b6", fontSize: 12, padding: "5px 10px", textAlign: "center" }}>
-          You are <strong>watching</strong> this game. You can chat and join the voice call,
-          but you cannot take actions.
-        </div>
-      )}
+      {/* A watcher used to be told they were watching by a full-width fixed banner at
+          top 0, over the top of the room code, the chime toggle and the button out.
+          Being unable to leave is a strange thing to be told by the thing covering the
+          way out, so the notice is now a chip in that same cluster and the controls are
+          never underneath anything. */}
       {/* The page and the server disagree about the rules.
 
           This used to be rendered TWICE - two identical fixed banners stacked on
@@ -1278,7 +1279,7 @@ function OnlineTable({ onTable }) {
           common, and it is the only one of the two a PLAYER can do anything
           about. Telling them to upload EntrepreneursGame.jsx was advice for the
           host shown to everybody at the table. */}
-      {serverEngine && serverEngine !== getEngineVersion() && (
+      {rulesMismatch && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 9998,
           backgroundColor: "#3a2415", borderBottom: "1px solid #7a6a3f",
           color: "#f5d76e", fontSize: 12, padding: "6px 10px", textAlign: "center" }}>
@@ -1293,7 +1294,19 @@ function OnlineTable({ onTable }) {
           redeploy.
         </div>
       )}
-      <div style={{ position: "fixed", top: 6, right: 8, zIndex: 90, display: "flex", gap: 6, alignItems: "center" }}>
+      {/* Above every banner, and below the one banner that is still full width: the
+          rules-mismatch notice is rare and wants the whole top edge, so the cluster
+          steps down out of its way rather than hiding beneath it. */}
+      <div style={{ position: "fixed", top: rulesMismatch ? 34 : 6, right: 8, zIndex: 9999,
+        display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end",
+        maxWidth: "calc(100vw - 16px)" }}>
+        {me.spectator && (
+          <span title="You can chat and join the voice call, but you cannot take actions."
+            style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, cursor: "help",
+              backgroundColor: "#1c2733", border: "1px solid #3a4152", color: "#8fd3b6" }}>
+            watching
+          </span>
+        )}
         <span style={{ fontSize: 10, fontFamily: "ui-monospace, monospace", color: "#6b7280" }}>room {me.code}</span>
         <button onClick={() => setMuted((v) => !v)} title={muted ? "Turn the turn chime on" : "Turn the turn chime off"}
           style={{ fontSize: 11, background: "none", border: "none", cursor: "pointer", color: muted ? "#6b7280" : "#8fd3b6", padding: 0, lineHeight: 1 }}>
