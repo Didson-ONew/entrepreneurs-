@@ -892,10 +892,19 @@ const server = http.createServer(async (req, res) => {
     }
     const { matches, waiting, seated } = countRooms();
     const out = { online: countOnline(), matches, waiting, seated };
-    /* Admins get two extra things, and nobody else does: how many accounts are
-       registered, and who is on the site. */
+    /* Admins get three extra things, and nobody else does: how many accounts are
+       registered, how many people have actually finished a game, and who is on the
+       site right now.
+
+       The two counts are different numbers on purpose, and showing only the first
+       made the pill look broken. Registering is optional - a guest types a name in
+       the lobby and plays - so the register can say 2 while the hall of fame lists
+       three people. This is read from hallOfFame over the same finished games the
+       leaderboard uses, so the pill's figure is literally that board's row count
+       and the two can never disagree. */
     if (isAdmin(me)) {
       out.accounts = ACCOUNTS.users.length;
+      out.players = matchlog.hallOfFame(matchlog.selectMatches(MATCHES)).length;
       out.who = whoIsOnline();
     }
     return json(res, out);
