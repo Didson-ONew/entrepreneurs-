@@ -270,6 +270,7 @@ export function useLiveCounts() {
            for everyone else and the pill shows what it always showed. */
         if (!stop) setCounts({ online: j.online | 0, matches: j.matches | 0, waiting: j.waiting | 0,
           accounts: typeof j.accounts === "number" ? j.accounts : null,
+          players: typeof j.players === "number" ? j.players : null,
           who: Array.isArray(j.who) ? j.who : null });
       } catch (_) {
         if (!stop) setCounts(null);
@@ -319,10 +320,17 @@ export function LiveCounts({ counts }) {
         <span style={{ color: "#3a4152" }}>|</span>
         <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.matches}</span>
         {counts.matches === 1 ? " match" : " matches"}
+        {/* Two numbers, because they are two different things and showing only the
+            first read as a miscount: registering is optional, so the register can say
+            2 while three people have played. */}
         {counts.accounts !== null && counts.accounts !== undefined && (<>
           <span style={{ color: "#3a4152" }}>|</span>
-          <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.accounts}</span>
-          {counts.accounts === 1 ? " account" : " accounts"}
+          <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.accounts}</span> registered
+        </>)}
+        {counts.players !== null && counts.players !== undefined && (<>
+          <span style={{ color: "#3a4152" }}>|</span>
+          <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.players}</span>
+          {counts.players === 1 ? " player" : " players"}
         </>)}
       </span>
 

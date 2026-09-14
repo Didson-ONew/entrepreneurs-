@@ -84,6 +84,25 @@ const rid = () => Math.random().toString(16).slice(2, 10);
       (seen.who || []).some((w) => w.registered === false));
     check("the ordinary counts are still there",
       typeof seen.online === "number" && typeof seen.matches === "number");
+
+    /* Two numbers, not one. Registering is optional - a guest types a name in the
+       lobby and plays - so the register can read 2 while three people are on the hall
+       of fame, and showing only the first made the pill look like it was miscounting.
+       The players figure is read off the same finished games the leaderboard uses, so
+       the two can never disagree. */
+    check("a count of people who have actually played comes back",
+      typeof seen.players === "number", String(seen.players));
+    check("and it is never fewer than the leaderboard has rows",
+      seen.players >= 0, String(seen.players));
+    {
+      const board = await admin("/api/stats");
+      const rows = board.body && board.body.hallOfFame;
+      check("the hall of fame came back to compare against", Array.isArray(rows),
+        Array.isArray(rows) ? `${rows.length} rows` : Object.keys(board.body || {}).join(", ") || "empty");
+      check("the pill's figure IS the leaderboard's row count",
+        Array.isArray(rows) && seen.players === rows.length,
+        `pill ${seen.players} vs board ${Array.isArray(rows) ? rows.length : "?"}`);
+    }
   }
 
   section("NOBODY ELSE IS TOLD EITHER OF THOSE");
@@ -91,6 +110,7 @@ const rid = () => Math.random().toString(16).slice(2, 10);
     const r = await player(`/api/presence?id=player-${rid()}`);
     check("a signed-in player gets no account count", r.body.accounts === undefined,
       String(r.body.accounts));
+    check("nor a count of who has played", r.body.players === undefined, String(r.body.players));
     check("and no list of names", r.body.who === undefined, JSON.stringify(r.body.who));
     check("but still sees the counters", typeof r.body.online === "number");
 
