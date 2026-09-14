@@ -1,6 +1,6 @@
 # Entrepreneurs - How to play
 
-*Rulebook v17. Everything you need to play, and nothing you don't.*
+*Rulebook v18. Everything you need to play, and nothing you don't.*
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
@@ -35,7 +35,7 @@ You are a founder building a city's economy. You buy land, build companies on it
 
 ### The one idea underneath everything
 
-Every company pays OPEX each quarter, and that money does not vanish - it goes to the industries printed on its Blueprint as suppliers. So the industry nobody is building is quietly collecting everyone else's money, and its price is climbing while the crowded industries sink toward $2. Reading that pressure is the game.
+Every company pays a supplier bill each quarter, and that money does not vanish - it goes to the industries printed on its Blueprint as suppliers. So the industry nobody is building is quietly collecting everyone else's money, and its price is climbing while the crowded industries sink toward $2. Reading that pressure is the game.
 
 ---
 
@@ -51,10 +51,10 @@ Seating is randomised - you are not automatically first. Your starting money and
 
 | Players | Seat 1 | Seat 2 | Seat 3 | Seat 4 | Seat 5 | Seat 6 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 6 | $25 / 1 | $25 / 2 | $20 / 2 | $20 / 3 | $20 / 3 | $15 / 4 |
-| 5 | $25 / 1 | $25 / 2 | $20 / 2 | $20 / 3 | $15 / 4 | - |
-| 4 | $25 / 1 | $25 / 2 | $20 / 2 | $20 / 3 | - | - |
-| 3 | $25 / 1 | $25 / 2 | $20 / 3 | - | - | - |
+| 6 | $25 / 1 | $22 / 2 | $22 / 2 | $19 / 3 | $19 / 3 | $16 / 4 |
+| 5 | $25 / 1 | $22 / 2 | $22 / 2 | $19 / 3 | $16 / 4 | - |
+| 4 | $25 / 1 | $22 / 2 | $22 / 2 | $19 / 3 | - | - |
+| 3 | $25 / 1 | $22 / 2 | $19 / 3 | - | - | - |
 | 2 | $20 / 2 | $20 / 2 | - | - | - | - |
 
 ### The draft
@@ -97,7 +97,7 @@ All twelve quarters run the same five phases. You only make decisions in the fir
 | --- | --- |
 | 1. Planning | Everyone places their workers on the action tracks. |
 | 2. Action | The tracks resolve and each worker takes its actions. |
-| 3. Production | Every active company pays OPEX; rent and supplier pots are paid out of it. |
+| 3. Production | Every active company pays its supplier bill into the industry pots, and its ground rent to the landlords it stands on. |
 | 4. Revenue | You deliver production to demand icons for cash, then the industry pots are shared out. |
 | 5. Closing | A new Logistic Hub opens. At the end of each year, the two land awards are paid. |
 
@@ -257,10 +257,10 @@ The three are not equally common: across the ten Blueprints of an industry, the 
 
 ## Production: paying the bills
 
-Every active company pays its OPEX, automatically, whether or not it sells anything afterwards. That money is immediately split:
+Every active company pays two bills each quarter, automatically, whether or not it sells anything afterwards:
 
-- Rent - $2 for every level standing on a plot - goes to whoever owns that plot. A vertical company stacks all its levels on one plot, so its whole rent goes to one landlord; a horizontal one puts a level on each plot it covers, so each landlord collects $2. On your own land it comes straight back to you.
-- Everything left over flows into the industry pots of that company's suppliers, divided in proportion to the dependency values on the Blueprint.
+- Its SUPPLIER BILL goes into the industry pots of the suppliers printed on its Blueprint, divided in proportion to the dependency values.
+- Its GROUND RENT - $2 for every level standing on a plot - goes to whoever owns that plot. A vertical company stacks all its levels on one plot, so its whole rent goes to one landlord; a horizontal one puts a level on each plot it covers, so each landlord collects $2. You pay nothing for standing on your own land.
 
 ### If you cannot pay
 
@@ -356,7 +356,7 @@ Whoever forms the first Megacorp of the game also takes the IPO tile: a sixth co
 - All the others go to the bank as Distressed Assets - anyone may take them over later.
 - The HQ stops trading: with no Blueprint it produces nothing and pays no OPEX. It still draws its equal share of its industry's pot every B2B - a headquarters that has stopped building has not stopped collecting.
 - Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry DIVIDED BY THE TILE'S TIER, rounded down. A tier 1 headquarters in an industry at $3 banks 3 EP a quarter; a tier 4 headquarters in the same industry banks nothing at all until that industry reaches $4. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for eight more quarters than one formed in Year 3.
-- It has no OPEX to pay its rent out of, so its owner pays the ground rent from pocket every quarter - $2 for every level standing on a plot, to that plot's owner. On your own land nothing moves.
+- It has no supplier bill, but it still stands on the ground, so its owner pays ground rent every quarter like any other building - $2 for every level standing on a plot, to that plot's owner. On your own land nothing is owed.
 - A headquarters is public infrastructure: it counts as a Logistic Hub. Any company built orthogonally beside one joins the network through it, whoever owns them. A monument that only collected would be a monument nobody wanted to build near - and the companies that gather round it are exactly the ones it scores 3 EP each for at the end.
 - Sell a plot out from under a headquarters and it collects nothing at all - no pot share, no points, and it stops being a hub. A monument still needs its ground.
 - It keeps its disc, and it permanently locks one of your five company slots. Every Megacorp you form narrows how wide you can operate.

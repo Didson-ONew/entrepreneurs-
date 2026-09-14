@@ -42,8 +42,23 @@ const section = (t) => console.log(`\n${t}`);
 /* ---------------------------------------------------------------- setup */
 section("Setup - starting capital by seat");
 check("2p: $20+2BP each", JSON.stringify(E.STARTING[2]) === JSON.stringify([[20, 2], [20, 2]]));
-check("3p: 25/1, 25/2, 20/3", JSON.stringify(E.STARTING[3]) === JSON.stringify([[25, 1], [25, 2], [20, 3]]));
-check("4p: 25/1, 25/2, 20/2, 20/3", JSON.stringify(E.STARTING[4]) === JSON.stringify([[25, 1], [25, 2], [20, 2], [20, 3]]));
+/* One more card costs $3, and seats on the same number of cards hold the same money.
+   The old table (25/1, 25/2, 20/2, 20/3) handed the third seat the second seat's cards
+   for $5 less AND the fourth seat's money for a card fewer - a chair strictly worse than
+   both its neighbours. Ties are fine here; being dominated is not. */
+check("3p: 25/1, 22/2, 19/3", JSON.stringify(E.STARTING[3]) === JSON.stringify([[25, 1], [22, 2], [19, 3]]));
+check("4p: 25/1, 22/2, 22/2, 19/3", JSON.stringify(E.STARTING[4]) === JSON.stringify([[25, 1], [22, 2], [22, 2], [19, 3]]));
+/* The property that actually matters, checked rather than trusted to the literals: no
+   seat may be at least as good as another on both money AND cards while beating it on
+   one. */
+for (const [n, rows] of Object.entries(E.STARTING)) {
+  let dominated = null;
+  rows.forEach((a2, i) => rows.forEach((b2, j) => {
+    if (i === j) return;
+    if (b2[0] >= a2[0] && b2[1] >= a2[1] && (b2[0] > a2[0] || b2[1] > a2[1])) dominated = `seat ${i + 1} by seat ${j + 1}`;
+  }));
+  check(`${n} seats: no seat is strictly worse than another`, !dominated, dominated || "");
+}
 
 /* --------------------------------------------------------- the six industries */
 section("The six industries - setup / OPEX / production per level");

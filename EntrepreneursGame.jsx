@@ -1128,7 +1128,8 @@ const byId = (state, id) => state.players.find((p) => p.id === id);
 function humansNeedingLiquidation(state) {
   return state.turnOrder.filter((id) => {
     const p = byId(state, id);
-    return p.isHuman && committedOpex(p) > 0 && p.cash < committedOpex(p);
+    const bill = quarterBill(state, p);
+    return p.isHuman && bill > 0 && p.cash < bill;
   });
 }
 function humansNeedingDelivery(state) {
@@ -1175,6 +1176,47 @@ const COMPANY_SLOTS = 5;
 const companySlotsFor = (p) => COMPANY_SLOTS + (p.ipoTile ? 1 : 0);
 const canLaunchMore = (p) => companySlotsUsed(p) < companySlotsFor(p);
 const committedOpex = (p) => activeBiz(p).reduce((s, b) => s + bizOpex(b), 0);
+/* Ground rent used to be carved OUT of OPEX: the player paid the card's whole bill, the
+   landlord took $2 a level from inside it, and only the remainder reached the suppliers'
+   pots. Same money either way - but the table had to split one payment two ways, every
+   quarter, for every building, and rent onto your own land was solemnly paid to yourself
+   and handed straight back.
+
+   Megacorp headquarters never worked like that. hqRentDue and payHqRent have always
+   billed rent on its own and skipped ground the player already owns. So this is not a new
+   rule so much as every company being made to work the way HQs always have.
+
+   The arithmetic is unchanged wherever every plot has an owner. Where it differs is a plot
+   nobody owns: the old sum subtracted rent for it from the pot share and then paid it to
+   nobody, destroying the money. Now there is no landlord, so there is nothing to pay. */
+const bizPotBill = (b) => Math.max(0, bizOpex(b) - RENT_PER_LEVEL * b.level);
+/* What each supplier is actually handed, in whole dollars: its share of the supplier bill
+   in proportion to what the card owes it, with the odd dollars going to the largest
+   dependency first so the whole bill leaves the player's hands. The screen reads this too,
+   so what a card says it will pay and what the quarter really pays cannot drift apart. */
+function potShares(b) {
+  const deps = b.bp.deps || [];
+  const bill = bizPotBill(b);
+  if (!deps.length || bill <= 0) return deps.map(() => 0);
+  const depTotal = deps.reduce((s, d) => s + d.val, 0) || 1;
+  const shares = deps.map((d) => Math.floor((bill * d.val) / depTotal));
+  let rest = bill - shares.reduce((s, v) => s + v, 0);
+  const biggestFirst = deps.map((d, i) => i).sort((x, y) => deps[y].val - deps[x].val);
+  for (let k = 0; rest > 0; k = (k + 1) % biggestFirst.length) { shares[biggestFirst[k]] += 1; rest--; }
+  return shares;
+}
+const bizGroundRent = (state, p, b) => b.footprint.reduce((s, plot) => {
+  const ownerId = state.board.owner[plot];
+  if (ownerId === undefined || ownerId === p.id) return s;
+  return s + RENT_PER_LEVEL * levelsOn(b, plot);
+}, 0);
+/* Every dollar of rent this player owes, companies and headquarters together. */
+const groundRentDue = (state, p) =>
+  activeBiz(p).reduce((s, b) => s + bizGroundRent(state, p, b), 0) + hqRentDue(state, p);
+/* Everything owed at the close of this quarter: the supplier bills plus the rent. This is
+   what a player has to be able to cover, and what the warning before a purchase tests. */
+const quarterBill = (state, p) =>
+  activeBiz(p).reduce((s, b) => s + bizPotBill(b), 0) + groundRentDue(state, p);
 function safeToSpend(p, spend, addedOpex = 0, buffer = 0.4) {
   return p.cash - spend >= (committedOpex(p) + addedOpex) * buffer;
 }
@@ -1640,13 +1682,13 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "503c4432";
+const ENGINE_VERSION = "43531fd8";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
-   It was $3 and is now $2. Rent is NOT an extra bill: a company pays its OPEX and
-   nothing else, and rent is carved out of that payment - whatever survives it goes
-   to the supplier pots. So the rate decides a SPLIT, not a cost: at $3 landlords
-   take 57% of every OPEX dollar and the pots get 43%; at $2 it is 38% and 62%.
+   It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
+   two together still come to exactly what the Blueprint charges, so the rate decides a
+   SPLIT rather than a cost: at $3 landlords take 57% of what a company pays and the
+   pots get 43%; at $2 it is 38% and 62%.
    Measured in audit_rent_scaled.js - companies covering OPEX plus rent go 91% to
    94% at four seats, trade income and the winning score stay flat, and the
    industry spread is unchanged.
@@ -1746,7 +1788,7 @@ function payHqRent(state, p, log) {
 function runProduction(state, log) {
   const { players, board, pm } = state;
   for (const p of players) {
-    let bill = committedOpex(p) + hqRentDue(state, p);
+    let bill = quarterBill(state, p);
     while (p.cash < bill && p.hand.length) {
       const bp = p.hand.reduce((a, b) => ((BP_SELL_PRICE[a.lvl] || 4) < (BP_SELL_PRICE[b.lvl] || 4) ? a : b));
       sellBpFromHand(state, p, bp, false);
@@ -1755,20 +1797,24 @@ function runProduction(state, log) {
       const cheapPlot = cheapestOwnedPlot(state, p);
       if (!cheapPlot) break;
       doSellPlot(state, p, cheapPlot, log, false);
-      bill = committedOpex(p) + hqRentDue(state, p);
+      bill = quarterBill(state, p);
     }
     while (p.cash < bill) {
       const worst = worstRoiBusiness(p, pm, state.quarter, 0);
       if (!worst) break;
       sellCompany(p, worst, false);
-      bill = committedOpex(p) + hqRentDue(state, p);
+      bill = quarterBill(state, p);
     }
     if (p.cash < bill) { p.cash += 20; p.discsInBank += 1; }
   }
   for (const p of players) payHqRent(state, p, log);
   for (const p of players) {
     for (const b of activeBiz(p)) {
-      const cost = bizOpex(b);
+      /* Two bills now, not one payment split afterwards: what the suppliers are owed,
+         and what the landlords are owed. */
+      const supplierBill = bizPotBill(b);
+      const rentBill = bizGroundRent(state, p, b);
+      const cost = supplierBill + rentBill;
       if (p.cash < cost) {
         state.solvencyEvents++;
         let debt = cost - p.cash; p.cash = 0;
@@ -1788,38 +1834,35 @@ function runProduction(state, log) {
         continue;
       }
       p.cash -= cost;
-      const rentTotal = RENT_PER_LEVEL * b.level;
       /* $2 for every level standing on a plot, paid to whoever owns that plot. A
-         two-storey corner pays its landlord $6 while the single-storey neighbour
-         collects $3, and the total still comes to $3 x level. */
+         two-storey corner pays its landlord $4 while the single-storey neighbour
+         collects $2, and the total still comes to $2 x level.
+
+         Your own ground is skipped rather than paid and refunded: the saving is the
+         same, and it is still recorded, because "what owning your own land saved you"
+         is worth showing even though no money moved. */
       for (const plot of b.footprint) {
         const due = RENT_PER_LEVEL * levelsOn(b, plot);
+        if (due <= 0) continue;
         const ownerId = board.owner[plot];
         if (ownerId === undefined) continue;
         const owner = players.find((pl) => pl.id === ownerId);
         if (!owner) continue;
+        if (owner.id === p.id) { p.rentSaved = (p.rentSaved || 0) + due; continue; }
         owner.cash += due;
-        /* Rent onto your own land is a wash - it left this player's hand a line above
-           and comes straight back - but it is exactly the saving that owning the ground
-           under your own building buys, so it is worth recording as its own thing. */
-        if (owner.id === p.id) p.rentSaved = (p.rentSaved || 0) + due;
-        else { owner.rentIn = (owner.rentIn || 0) + due; p.rentOut = (p.rentOut || 0) + due; }
+        owner.rentIn = (owner.rentIn || 0) + due;
+        p.rentOut = (p.rentOut || 0) + due;
       }
-      /* Whatever survives rent flows into each supplier's industry pot, split in
+      /* The supplier bill flows into each supplier's industry pot, split in
          proportion to what this business owes them. Whole dollars only: each supplier
          takes its share rounded down, and the odd dollars go to the largest dependency
          first, so the company's whole bill still leaves its hands. Pots used to hold
          fractions of a dollar, which no table can pay and which then leaked out through
          the Megacorp siphon. */
       if (!state.pots) state.pots = Object.fromEntries(INDUSTRIES.map((i) => [i, 0]));
-      const toPots = Math.max(0, cost - rentTotal);
       const deps = b.bp.deps;
-      if (deps.length && toPots > 0) {
-        const depTotal = deps.reduce((s2, d) => s2 + d.val, 0) || 1;
-        const shares = deps.map((d) => Math.floor((toPots * d.val) / depTotal));
-        let rest = toPots - shares.reduce((s2, v) => s2 + v, 0);
-        const biggestFirst = deps.map((d, i) => i).sort((x, y) => deps[y].val - deps[x].val);
-        for (let k = 0; rest > 0; k = (k + 1) % biggestFirst.length) { shares[biggestFirst[k]] += 1; rest--; }
+      if (deps.length && supplierBill > 0) {
+        const shares = potShares(b);
         deps.forEach((d, i) => { state.pots[d.ind] += shares[i]; });
       }
     }
@@ -3136,12 +3179,29 @@ function humanCompleteResolutionAction(state, rng, log) {
 }
 
 /* Later seats trade money for cards - reverse-order drafting is the only catch-up the
-   game has, and it is deliberately small. Seats 5 and 6 continue the same slope. */
+   game has, and it is deliberately small. Seats 5 and 6 continue the same slope.
+
+   The trade has to be a TRADE. The old table paid $25/1, $25/2, $20/2, $20/3, which left
+   the third seat holding the second seat's cards for $5 less AND the fourth seat's money
+   for a card fewer - strictly worse than both neighbours, with nothing offered in return.
+   Three seats did that at six players, and at three players the FIRST seat was the
+   dominated one ($25 and one card against $25 and two).
+
+   So the rule now is: one more card costs exactly $3, and seats holding the same number
+   of cards hold the same money. A tie is fine - a player can see it is a tie. Being
+   handed the strictly worse chair is not, whatever it does to the win rate.
+
+   And it does very little: measured over 500 four-player games the seats ran 20.8 / 28.6
+   / 23.8 / 26.8 per cent against a 25 per cent chance line, and swapping the second and
+   third seats' capital - the exact test of whether money is what moves them - left the
+   order unchanged. Whatever advantages the second seat, it is not the $5. This table is
+   for the player reading it, not for the results. See audit_runaway.js for the seat that
+   actually is a little light (the first). */
 const STARTING = {
-  6: [[25, 1], [25, 2], [20, 2], [20, 3], [20, 3], [15, 4]],
-  5: [[25, 1], [25, 2], [20, 2], [20, 3], [15, 4]],
-  4: [[25, 1], [25, 2], [20, 2], [20, 3]],
-  3: [[25, 1], [25, 2], [20, 3]],
+  6: [[25, 1], [22, 2], [22, 2], [19, 3], [19, 3], [16, 4]],
+  5: [[25, 1], [22, 2], [22, 2], [19, 3], [16, 4]],
+  4: [[25, 1], [22, 2], [22, 2], [19, 3]],
+  3: [[25, 1], [22, 2], [19, 3]],
   2: [[20, 2], [20, 2]],
 };
 
@@ -4055,8 +4115,8 @@ function BizTooltip({ state, hover }) {
             <span key={p.id} className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PLAYER_COLORS[p.id] }} />{p.name}</span>
           )) : <span className="text-red-400">none (can't produce)</span>}
         </div>
-        <div>Setup: ${bizSetup(b)} &middot; Opex: ${bizOpex(b)}</div>
-        <div>Split: {b.bp.deps.map((d) => `${d.ind} $${d.val}${b.upgraded ? "\u00d72" : ""}`).join(", ") || "\u2014"}</div>
+        <div>Setup: ${bizSetup(b)} &middot; Suppliers: ${bizPotBill(b)} &middot; Ground rent: ${RENT_PER_LEVEL * b.level}</div>
+        <div>Split: {b.bp.deps.map((d, i) => `${d.ind} $${potShares(b)[i]}`).join(", ") || "\u2014"}</div>
         <div>Production: {bizProd(b)}/qtr</div>
         {!canProduce && <div className="text-red-400">Land unowned — not producing</div>}
       </div>
@@ -4186,7 +4246,7 @@ function TrackBoard({ state, human }) {
 }
 
 function LiquidationPanel({ state, human, log, onContinue }) {
-  const needed = committedOpex(human);
+  const needed = quarterBill(state, human);
   const short = Math.max(0, needed - human.cash);
   const ownedPlots = Object.entries(state.board.owner).filter(([k, v]) => v === human.id).map(([k]) => k);
   return (
@@ -4250,7 +4310,7 @@ function LiquidationPanel({ state, human, log, onContinue }) {
   );
 }
 
-function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy }) {
+function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy, guardSpend }) {
   const entry = state.pendingHumanAction;
   const [mode, setMode] = useState(null);
   useEffect(() => { setMode(null); }, [entry?.track, entry?.actionsRemaining]);
@@ -4355,13 +4415,13 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                   <div className="flex flex-wrap gap-1.5">
                     {/* take it over exactly as it stands, keeping its Blueprint and level */}
                     <button disabled={!canReclaim(state, human, db)}
-                      onClick={() => { if (NET) return NET.send("act", { type: "reclaim", bizId: db.id }); doReclaim(state, human, db, log); finish(); }}
+                      onClick={() => guardSpend(reclaimCost(db), bizPotBill(db), `Buying back ${db.bp.name}`, () => { if (NET) return NET.send("act", { type: "reclaim", bizId: db.id }); doReclaim(state, human, db, log); finish(); })}
                       className="text-[10px] px-2 py-1 rounded disabled:opacity-30"
                       style={{ backgroundColor: "#1c2733", border: `1px solid ${IND_COLOR[db.bp.ind]}`, color: "#e5e7eb" }}>
                       Buy as-is: {db.bp.name} <span style={{ color: "#8fd3b6" }}>${reclaimCost(db)}</span>
                     </button>
                     {bps.map((bp, i) => (
-                      <button key={i} onClick={() => { if (NET) return NET.send("act", { type: "renovate", bizId: db.id, index: human.hand.indexOf(bp) }); doRenovate(state, human, db, bp, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#e5e7eb" }}>
+                      <button key={i} onClick={() => guardSpend(Math.floor(bp.setup / 2), Math.max(0, bp.opex - RENT_PER_LEVEL * bp.lvl), `Renovating into ${bp.name}`, () => { if (NET) return NET.send("act", { type: "renovate", bizId: db.id, index: human.hand.indexOf(bp) }); doRenovate(state, human, db, bp, log); finish(); })} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#e5e7eb" }}>
                         Renovate into {bp.name} <span style={{ color: "#a5d6f3" }}>${Math.floor(bp.setup / 2)}</span>
                       </button>
                     ))}
@@ -4435,7 +4495,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
               return (
                 <div key={b.id} style={{ width: 170 }}>
                   <button disabled={!!why}
-                    onClick={() => { if (NET) return NET.send("act", { type: "upgrade", bizId: b.id }); const ok = doUpgrade(state, human, b, rng, log); if (ok) finish(); }}
+                    onClick={() => guardSpend(bizSetup(b), bizPotBill({ ...b, upgraded: true, level: b.level + 1 }) - bizPotBill(b), `Upgrading ${b.bp.name}`, () => { if (NET) return NET.send("act", { type: "upgrade", bizId: b.id }); const ok = doUpgrade(state, human, b, rng, log); if (ok) finish(); })}
                     className="text-[10px] px-2 py-1 rounded w-full text-left disabled:opacity-30"
                     style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
                     {b.bp.name} <span className="text-gray-500">L{b.level}&rarr;{b.level + 1}</span> <span style={{ color: "#a5d6f3" }}>${bizSetup(b)}</span>
@@ -4662,7 +4722,7 @@ const TUTORIAL = [
     body: "Each of the 12 quarters runs the same five phases. You only make decisions in the first two.",
     points: ["PLANNING \u2014 place your workers",
              "ACTION \u2014 tracks resolve and you act",
-             "PRODUCTION \u2014 OPEX and rent are paid automatically",
+             "PRODUCTION \u2014 supplier bills and ground rent are paid automatically",
              "REVENUE \u2014 deliver production to demand icons for cash",
              "CLOSING \u2014 a Logistic Hub is placed; years end with scoring"] },
 
@@ -4835,6 +4895,10 @@ function GameScreens({ online }) {
   const [hover, setHover] = useState(null);
   const [epHover, setEpHover] = useState(null);
   const [pickMode, setPickMode] = useState(null); // {kind:'launch', bp, nPlots, selected:[]} | {kind:'buy', selected:[]}
+  /* Spending yourself under the quarter's bills is almost always a misread rather than a
+     plan, and the game's answer to it is to sell your buildings at half price. So it asks
+     first. {what, cash, bill, go} - go() is the purchase, held until the player says yes. */
+  const [riskyConfirm, setRiskyConfirm] = useState(null);
   const [waitSecs, setWaitSecs] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   // Personas are on by default in v13: they are one line each and give every seat
@@ -4978,7 +5042,18 @@ function GameScreens({ online }) {
     setPickMode((pm) => pm ? { ...pm, selected: [...pm.selected, plotKeyStr] } : pm);
   }
   function handleCancelPick() { setPickMode(null); }
-  function handleConfirmPick() {
+  /* Would this purchase leave the player unable to pay at the close of the quarter? The
+     added bill is what the thing being bought will itself cost from next quarter on - a
+     new company brings its own supplier bill with it, so testing only today's would wave
+     through exactly the purchases most likely to sink someone. Ground rent on the new
+     building is not counted: which plots it will stand on is not settled yet. */
+  function guardSpend(cost, addedBill, what, go) {
+    const cash = human.cash - cost;
+    const bill = quarterBill(state, human) + addedBill;
+    if (cash >= bill) return go();
+    setRiskyConfirm({ what, cash, bill, go });
+  }
+  function doConfirmPick() {
     if (!state || !pickMode) return;
     if (NET) {
       if (pickMode.kind === "launch") NET.send("act", { type: "launch", index: human.hand.indexOf(pickMode.bp), footprint: pickMode.selected });
@@ -4997,6 +5072,20 @@ function GameScreens({ online }) {
     humanCompleteResolutionAction(state, rngRef.current, log);
     setState({ ...state });
     if (state.phase === "gameover") setScreen("gameover");
+  }
+  /* Launching and buying ground both arrive here once the plots are chosen, so the
+     warning sits on the one door they share. */
+  function handleConfirmPick() {
+    if (!state || !pickMode) return;
+    if (pickMode.kind === "launch") {
+      const bp = pickMode.bp;
+      return guardSpend(bp.setup, Math.max(0, bp.opex - RENT_PER_LEVEL * bp.lvl),
+        `Launching ${bp.name}`, doConfirmPick);
+    }
+    if (pickMode.kind === "buy") {
+      return guardSpend(plotValue(state, pickMode.selected[0]), 0, "Buying that plot", doConfirmPick);
+    }
+    doConfirmPick();
   }
 
   if (!online && screen === "setup") return (
@@ -5240,7 +5329,36 @@ function GameScreens({ online }) {
                 </div>
               </div>
             )}
-            {isHumanResolving && !pickMode && <ActionPanel state={state} human={human} rng={rngRef.current} log={log} onDone={handleResolutionDone} onStartLaunch={handleStartLaunch} onStartBuy={handleStartBuy} />}
+            {riskyConfirm && (
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#2a1a1a", border: "1px solid #7a3f3f" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#fca5a5" }}>
+                  {riskyConfirm.what} leaves you short at the end of this quarter
+                </div>
+                <div className="text-[11px] text-gray-300 mb-2">
+                  You would be left with ${Math.max(0, Math.round(riskyConfirm.cash))} against bills of
+                  ${Math.round(riskyConfirm.bill)} &mdash; ${Math.round(riskyConfirm.bill - riskyConfirm.cash)} short.
+                  If you cannot cover it, the bank sells for you at half price and the company
+                  that triggers it goes to the board as a Distressed Asset.
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => { const go = riskyConfirm.go; setRiskyConfirm(null); go(); }}
+                    className="text-[11px] font-semibold px-3 py-1.5 rounded"
+                    style={{ backgroundColor: "#7a3f3f", color: "#ffe4e4" }}>
+                    Do it anyway
+                  </button>
+                  <button onClick={() => setRiskyConfirm(null)}
+                    className="text-[11px] px-3 py-1.5 rounded"
+                    style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* The panel stays mounted underneath the warning: the held purchase closes over
+                that panel's own finish(), so unmounting it would leave the callback firing
+                into a component that no longer exists. Pressing another action simply
+                replaces the warning with the one for that action. */}
+            {isHumanResolving && !pickMode && <ActionPanel state={state} human={human} rng={rngRef.current} log={log} onDone={handleResolutionDone} onStartLaunch={handleStartLaunch} onStartBuy={handleStartBuy} guardSpend={guardSpend} />}
             {isHumanSupplyChain && scOptions.length > 0 && (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
@@ -5487,13 +5605,15 @@ function GameScreens({ online }) {
               </div>
 
               {(() => {
-                const opex = committedOpex(human);
-                const after = human.cash - opex;
+                const suppliers = activeBiz(human).reduce((s, b) => s + bizPotBill(b), 0);
+                const rent = groundRentDue(state, human);
+                const after = human.cash - (suppliers + rent);
                 const discs = human.discsInBank;
                 const tiles = [
                   { label: "CASH", value: `$${Math.round(human.cash)}`, color: "#8fd3b6" },
-                  { label: "OPEX / QTR", value: `$${Math.round(opex)}`, color: "#f3b0a5" },
-                  { label: "AFTER OPEX", value: `${after < 0 ? "\u2212" : ""}$${Math.abs(Math.round(after))}`, color: after < 0 ? "#fca5a5" : "#e5e7eb" },
+                  { label: "SUPPLIERS / QTR", value: `$${Math.round(suppliers)}`, color: "#f3b0a5" },
+                  { label: "GROUND RENT", value: `$${Math.round(rent)}`, color: rent > 0 ? "#e0b060" : "#6b7280" },
+                  { label: "AFTER BILLS", value: `${after < 0 ? "\u2212" : ""}$${Math.abs(Math.round(after))}`, color: after < 0 ? "#fca5a5" : "#e5e7eb" },
                   { label: "LOAN DISCS", value: `${discs}`, sub: discs ? `\u2212${discs * 5} EP` : "none", color: discs ? "#fca5a5" : "#6b7280" },
                   { label: "DISCS USED", value: `${discsUsed(state, human)}/${DISCS_PER_PLAYER}`,
                     sub: `${plotsOwned(state, human)} land \u00b7 ${activeBiz(human).length} biz \u00b7 ${discs} loan`,
@@ -5512,10 +5632,10 @@ function GameScreens({ online }) {
                 );
               })()}
 
-              {committedOpex(human) > human.cash && (
+              {quarterBill(state, human) > human.cash && (
                 <div className="rounded p-1.5 mb-3" style={{ backgroundColor: "#2a1a1a", border: "1px solid #7a3f3f" }}>
                   <div className="text-[9px] font-bold" style={{ color: "#fca5a5" }}>
-                    Short ${Math.round(committedOpex(human) - human.cash)} for next quarter's OPEX &mdash; raise cash or you'll be forced to liquidate.
+                    Short ${Math.round(quarterBill(state, human) - human.cash)} for next quarter's bills &mdash; raise cash or you'll be forced to liquidate.
                   </div>
                 </div>
               )}
@@ -5544,7 +5664,7 @@ function GameScreens({ online }) {
                       </div>
                       <div className="text-xs font-semibold text-gray-100 leading-tight mb-1" style={{ minHeight: 28 }}>{b.bp.name}</div>
                       <div className="flex items-center justify-between text-[9px] font-mono">
-                        <span style={{ color: "#f3b0a5" }}>opex ${bizOpex(b)}</span>
+                        <span style={{ color: "#f3b0a5" }}>bill ${bizPotBill(b) + bizGroundRent(state, human, b)}</span>
                         <span className="text-gray-400">prod {bizProd(b)}</span>
                       </div>
                       {!canProd && <div className="text-[9px] text-red-400 mt-0.5">Land unowned &mdash; can't produce</div>}
@@ -5867,7 +5987,7 @@ function IndustryReference({ state }) {
     <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
       <div data-tut="pots" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">
         Industries
-        <Help text={"POT \u2014 when a company pays OPEX, that money (minus rent) lands in its suppliers' pots. Each quarter every pot is split evenly among the active businesses of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative.\n\nDECK \u2014 " + deckHelp} />
+        <Help text={"POT \u2014 a company's supplier bill lands in its suppliers' pots (its ground rent is billed separately, to landlords). Each quarter every pot is split evenly among the active businesses of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative.\n\nDECK \u2014 " + deckHelp} />
       </div>
       <div className="text-[9px] text-gray-500 mb-2">
         Pot, then the top Blueprint. Hover an industry for what it does.
