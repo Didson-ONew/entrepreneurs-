@@ -19,6 +19,7 @@
 15. [Rule variants (optional)](#variants)
 16. [Playing online](#online)
 17. [Quick reference](#quickref)
+18. [The words on the board](#glossary)
 
 ---
 
@@ -515,3 +516,63 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Industry debut | 3 EP the first time you build in each industry, banked at once |
 | Land awards | 5 EP to the outright leader in plots, and in districts, at every year end |
 | Logistic Hub | one per quarter, on an empty plot; reaches its own district; joins orthogonally |
+
+---
+
+<a id="glossary"></a>
+
+## The words on the board
+
+Almost every term in this game is a real one, used the way a real business uses it. That is not decoration. A player who learns what OPEX means here knows what it means on a balance sheet, and a player who already knows can read half the rules off the vocabulary before anybody explains them.
+
+### The four action tracks
+
+| Term | Meaning, and use in play |
+| --- | --- |
+| M&A | Mergers and Acquisitions - the department that buys, builds and combines businesses. In the game: where you launch a company, buy ground, or take a distressed building back off the bank. |
+| R&D | Research and Development - spending now for capability later. In the game: draw Blueprints, or upgrade a company you already own. Nothing on this track pays out this quarter. |
+| Raise Capital | Going to lenders or investors for money, against interest or a share of the firm. In the game: take a $20 loan against a disc, or sell an asset for cash. |
+| Board Meeting | Where the owners, not the managers, decide - restructures, flotations, who chairs the table. In the game: go public to form a Megacorp, or reposition yourself to first in turn order. Costs both your workers. |
+
+### Money in and money out
+
+| Term | Meaning, and use in play |
+| --- | --- |
+| OPEX | Operating expenditure - the recurring cost of running what you already own. Wages, power, stock: the things that bill you again next month whether or not you sold anything. In the game: your supplier bill, charged every quarter per company, paid to the industries your Blueprint lists as suppliers. |
+| Setup cost | Capital expenditure, or CAPEX - what it costs to build the thing in the first place, paid once. In the game: the price on the Blueprint, paid again in full to upgrade. |
+| Ground rent | What a tenant pays a freeholder for standing on their land, regardless of trade. In the game: $2 for every company level, to whoever owns each plot it stands on. Nothing on land you own yourself. |
+| Liquidity | Having cash to hand, as opposed to wealth tied up in things you would have to sell. In the game: the reason a board full of buildings can still lose you the game - bills are paid in cash, not in assets. |
+| Solvency | Being able to meet your debts as they fall due; failing to is insolvency. In the game: when you cannot cover a company's bill, the bank sells your assets for you at half price and that company goes to the board as distressed. |
+| Liquidation | Selling assets off, usually under pressure and usually below worth. In the game: the forced sale itself - everything goes at half what a planned sale would have fetched. |
+
+### Companies and what happens to them
+
+| Term | Meaning, and use in play |
+| --- | --- |
+| Blueprint | A specification - the thing you would actually build. In the game: a card, carrying its industry, level, setup cost, OPEX, suppliers and output. |
+| Portfolio | Everything an owner holds, considered together rather than one at a time. In the game: your built companies. Five slots, six if you take the IPO tile. |
+| Distressed asset | A business in trouble, sold cheap by a creditor who wants out rather than a fair price. In the game: a company the bank holds after a solvency or a merger. Anybody may buy it back for what the bank paid. |
+| IPO | Initial Public Offering - the first sale of a company's shares to the public, a one-time event that changes what the company is. In the game: going public first wins the IPO tile and a sixth company slot. Only the first player to do it gets one. |
+| Megacorp | A conglomerate: several businesses merged under one holding company. In the game: merge the exact combination of company levels a tile asks for. One becomes the headquarters; the rest go distressed. |
+| HQ | Head office - it directs and owns, it does not make the product. In the game: the merged company that stops trading but keeps banking EP from its industry's price every quarter. |
+| Brand | The name itself as an asset, earning regardless of what the factories do. In the game: what a Megacorp HQ banks each quarter - its industry's price divided by its tile's tier. |
+
+### The market
+
+| Term | Meaning, and use in play |
+| --- | --- |
+| Supply chain | The line of firms each buying from the one before it, all the way to the customer. In the game: printed on every Blueprint. Your OPEX is your place in somebody else's chain. |
+| B2B | Business to business - selling to other firms rather than to the public. In the game: the Revenue step where the industry pots are shared out. That money came from other players' bills, not from the districts. |
+| Industry pot | A sector's total spend, which the firms in it divide between them. In the game: every company in an industry draws one equal share, whatever its size. Supplying an industry nobody has built in is very lucrative. |
+| Demand | What the market will actually buy, at a price, right now. In the game: the coloured squares in each district. First come, first served. |
+| Vertical integration | Growing by owning more of your own supply chain - upward, on one site. In the game: how Retail, Hospitality and Healthcare upgrade, stacking the new level on a plot the company already holds. |
+| Horizontal integration | Growing by taking more ground at the same stage - outward, across sites. In the game: how Utilities, Manufacturing and Technology upgrade, each new level needing an empty plot of yours beside the building. |
+| Logistic Hub | A distribution centre - it moves goods rather than making them. In the game: opens on an empty plot each quarter and extends what the companies beside it can reach. |
+
+### Time and score
+
+| Term | Meaning, and use in play |
+| --- | --- |
+| Fiscal year | The twelve months a company reports on, which need not match the calendar. In the game: three of them, four quarters each. Accounts are settled at the end of every year. |
+| Quarter | A three-month reporting period; public companies report four times a year. In the game: one round - plan, act, produce, sell, close. |
+| EP | Not a real term - the game's own score. Entrepreneurial Points: buildings, industry debuts, Megacorps, land and leftover cash all convert to it. |
