@@ -206,9 +206,18 @@ function saveGamesNow() {
   return livegames.save(rooms, GAMES_FILE);
 }
 
-function broadcast(room) {
+/* `touchedAt` is what the idle clock shows and what the 48-hour sweeper reads, so it has
+   to mean "somebody played", not "a frame went out".
+
+   Sending a frame is not activity. Attaching to the stream - a tab opening, or the same
+   tab reattaching after a reload - is not somebody playing, and counting it had two
+   consequences. Every player's idle clock snapped back to zero whenever ANYONE loaded
+   the page, which is what made it look like it restarted on reload. And a room nobody
+   was playing could be kept alive indefinitely by one stale tab reconnecting, so the
+   sweep it was written for would never come. */
+function broadcast(room, { activity = true } = {}) {
   recordIfFinished(room);
-  room.touchedAt = Date.now();
+  if (activity) room.touchedAt = Date.now();
   saveGamesSoon();
   room.version = (room.version || 0) + 1;
   const payload = payloadFor(room);
@@ -1568,7 +1577,9 @@ const server = http.createServer(async (req, res) => {
     room.clients.add(res);
     const ka = setInterval(() => { try { res.write(": keepalive\n\n"); } catch (_) {} }, 20000);
     req.on("close", () => { clearInterval(ka); room.clients.delete(res); });
-    broadcast(room);
+    /* The new client needs the current state, but attaching is not playing - see
+       broadcast(). This is the one caller that must not count as activity. */
+    broadcast(room, { activity: false });
     return;
   }
 

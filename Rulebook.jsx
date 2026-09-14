@@ -115,6 +115,14 @@ export function Rulebook({ onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  /* Filtering changes what is under you, not where you are. Searching while scrolled
+     halfway down left the reading pane at that offset in a much shorter document, so the
+     matches were above the fold and the book looked like it had found nothing. */
+  useEffect(() => {
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    if (shown.length) setActive(shown[0].id);
+  }, [q]);   // eslint-disable-line react-hooks/exhaustive-deps
+
   // highlight whichever section is currently under the top of the reading pane
   const onScroll = () => {
     const pane = bodyRef.current;
@@ -136,6 +144,26 @@ export function Rulebook({ onClose }) {
 
   return (
     <Portal>
+      {/* The contents list is a 196px column, which is half a phone. Below 620px it
+          becomes a short strip across the top and the rules get the whole width back -
+          otherwise the book renders in a ~180px gutter, three words to a line, with the
+          tables clipped. The width lives here rather than inline so a media query can
+          reach it. */}
+      <style>{`
+        .rb-panes { display: flex; min-height: 0; flex: 1; }
+        .rb-toc { width: 196px; flex-shrink: 0; overflow-y: auto; }
+        @media (max-width: 620px) {
+          .rb-panes { flex-direction: column; }
+          /* A header cell that cannot wrap sets the column's minimum width, so one long
+             heading drags the whole table off the side of a phone. Let them wrap. */
+          .rb-panes th { white-space: normal !important; }
+          .rb-toc {
+            width: 100%; max-height: 27vh; flex-shrink: 0;
+            border-right: none !important;
+            border-bottom: 1px solid ${INK.edge};
+          }
+        }
+      `}</style>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 10040,
         backgroundColor: "rgba(6,8,11,.82)", backdropFilter: "blur(2px)" }} />
       <div role="dialog" aria-label="Rulebook" onClick={(e) => e.stopPropagation()} style={{
@@ -160,9 +188,9 @@ export function Rulebook({ onClose }) {
             color: INK.dim, fontSize: 18, lineHeight: 1, cursor: "pointer", padding: "0 2px" }}>&times;</button>
         </div>
 
-        <div style={{ display: "flex", minHeight: 0, flex: 1 }}>
+        <div className="rb-panes">
           {/* contents */}
-          <nav className="rb-toc" style={{ width: 196, flexShrink: 0, overflowY: "auto",
+          <nav className="rb-toc" style={{
             borderRight: `1px solid ${INK.edge}`, padding: "10px 8px", backgroundColor: INK.panel }}>
             {shown.map((s, i) => (
               <button key={s.id} onClick={() => jump(s.id)} style={{
