@@ -35,7 +35,11 @@ const path = require("path");
 const vm = require("vm");
 
 const GAMES = parseInt(process.argv[2] || "400", 10);
-const SEATS = process.argv.slice(3).map(Number).filter(Boolean);
+/* A second run on a DIFFERENT block of seeds is how you tell a real effect from a
+   lucky one, so the block is selectable: node audit_land_awards.js 800 5 6 --seeds=50000 */
+const seedArg = process.argv.find((a) => a.startsWith("--seeds="));
+const SEED0 = seedArg ? parseInt(seedArg.slice(8), 10) : 1;
+const SEATS = process.argv.slice(3).filter((a) => !a.startsWith("--")).map(Number).filter(Boolean);
 const TABLES = SEATS.length ? SEATS : [5, 6];
 
 const src = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
@@ -130,8 +134,13 @@ function run(arm, seats, n) {
     plotsW: [], districtsW: [],
     plotLeaderWon: 0, districtLeaderWon: 0, clearPlotLeader: 0, clearDistrictLeader: 0,
     q6LeaderWon: 0, q6Clear: 0,
+    /* Land pays at every year end, so how MANY year ends a game reaches is the
+       thing that decides how much land can compound. That is the suspected reason
+       five and six seats answer differently. */
+    landRounds: [], reachedQ12: 0,
+    q6WonLong: 0, q6ClearLong: 0, q6WonShort: 0, q6ClearShort: 0,
   };
-  for (let seed = 1; out.games < n && seed < n * 5; seed++) {
+  for (let seed = SEED0; out.games < n && seed < SEED0 + n * 5; seed++) {
     let st;
     box.snaps.length = 0;
     try {
@@ -172,13 +181,25 @@ function run(arm, seats, n) {
       if (st.players[byDist.indexOf(topDist)] === winner) out.districtLeaderWon++;
     }
 
+    /* How many times the land awards actually paid in this game. */
+    const rounds = new Set();
+    st.players.forEach((p) => (p.epLog || []).forEach((e) => {
+      if (LAND_LABELS.includes(e.label)) rounds.add(e.quarter);
+    }));
+    out.landRounds.push(rounds.size);
+    const long = st.quarter >= 12;
+    if (long) out.reachedQ12++;
+
     /* Q6 is the halfway mark; the snapshot nearest it that exists. */
     const snap = box.snaps.filter((s) => s.q <= 6).pop();
     if (snap) {
       const top = Math.max(...snap.ep);
       if (snap.ep.filter((v) => v === top).length === 1) {
         out.q6Clear++;
-        if (snap.ep.indexOf(top) === order[0][0]) out.q6LeaderWon++;
+        const won = snap.ep.indexOf(top) === order[0][0];
+        if (won) out.q6LeaderWon++;
+        if (long) { out.q6ClearLong++; if (won) out.q6WonLong++; }
+        else { out.q6ClearShort++; if (won) out.q6WonShort++; }
       }
     }
   }
@@ -218,6 +239,20 @@ for (const seats of TABLES) {
   row("district leader won", (r) => f1(pct(r.districtLeaderWon, r.clearDistrictLeader)) + "%");
   console.log("");
   row("Q6 leader went on to win", (r) => f1(pct(r.q6LeaderWon, r.q6Clear)) + "%");
+  row("  ...in games reaching Q12", (r) => f1(pct(r.q6WonLong, r.q6ClearLong)) + "%");
+  row("  ...in games that ended early", (r) => f1(pct(r.q6WonShort, r.q6ClearShort)) + "%");
+  console.log("");
+  row("land paid this many times", (r) => f1(mean(r.landRounds)));
+  row("games reaching Q12", (r) => f1(pct(r.reachedQ12, r.games)) + "%");
+
+  /* The number that actually decides the question is C minus A, and the band on a
+     DIFFERENCE of two proportions is the two bands in quadrature - not either alone. */
+  const A = res[0].r, C = res[2].r;
+  const p1 = pct(A.q6LeaderWon, A.q6Clear), p2 = pct(C.q6LeaderWon, C.q6Clear);
+  const se = Math.sqrt((p1 * (100 - p1)) / A.q6Clear + (p2 * (100 - p2)) / C.q6Clear);
+  const diff = p2 - p1;
+  console.log(`\n  RUNAWAY COST of the change (C - A): ${diff >= 0 ? "+" : ""}${f1(diff)} points, `
+    + `two standard errors +/-${f1(2 * se)}  -> ${Math.abs(diff) > 2 * se ? "REAL" : "inside the noise"}`);
 
   const band = 2 * Math.sqrt(0.25 * 0.75 / GAMES) * 100;
   console.log(`\n  Two standard errors on a percentage here is about ${f1(band)} points.`);
