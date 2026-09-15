@@ -27,8 +27,29 @@
 
    C is the honest measurement of the proposal. B is here to show that it is.
 
+   THE SECOND PROPOSAL: STOP RANKING. Every ranked prize has the same problem - the
+   expected value of chasing land is roughly the prize divided by the number of
+   players, so a prize big enough to matter at six seats is overwhelming at two, and
+   one tuned for two seats disappears at six. Paying for what you actually hold has
+   no such term in it: hold four plots, collect four, whoever else is holding what.
+   It scales itself.
+
+     D  granular, bots unaware   1 EP per plot and 1 EP per district, every payout
+     E  granular, bots aware     the same, and the bots price a plot accordingly
+
+   AND A GRANULAR RULE THAT COUNTS SOMETHING HARDER TO GET. The trouble with paying
+   for raw holdings is that everybody ends up holding roughly the same amount, so the
+   award pays out enormously and separates nobody. Counting ground you actually
+   CONTROL - districts where you own more plots than any single opponent - is the same
+   kind of rule, just as countable, but it is a thing you can be denied.
+
+     F  controlled ground, bots unaware   1 EP per plot in a district you control,
+                                          plus 2 EP per controlled district
+     G  the same, bots aware
+
    Run: node audit_land_awards.js [games] [seats...]
         node audit_land_awards.js 400 5 6
+        node audit_land_awards.js 800 2 3 4 5 6 --seeds=50000
    ========================================================================== */
 const fs = require("fs");
 const path = require("path");
@@ -63,6 +84,12 @@ const NEEDLES = {
     if (log) log(\`\${p.name} earns \${label} (+\${share} EP).\`, p.id);
   }`,
   quarterEnd: "function finishQuarterAfterLH(state, log, rng) {\n  runClosingRest(state, log);",
+  mogulCall: '(p) => plotCount(state, p), "The Real-Estate Mogul"',
+  omniCall: '(p) => districtCount(state, p), "The Omnipresent"',
+  /* Arm E rewrites this whole function, so its signature has to be exactly here. */
+  weightFn: `function landEPWeight(state, p) {
+  const payouts = landPayouts(state);
+  if (!p) return payouts * LAND_AWARD.sole * 0.5;`,
 };
 for (const [k, v] of Object.entries(NEEDLES)) {
   if (!base.includes(v)) {
@@ -91,17 +118,96 @@ const RANKED_BODY = `  scores.sort((a, b) => b.s - a.s);
     i = j + 1;
   }`;
 
+/* Pay what you hold. awardRanked is called once with plotCount and once with
+   districtCount, so ONE body serves both categories: x.s is already whichever count
+   this call is scoring, and there is no ranking left to do. scores has been filtered
+   to x.s > 0 upstream, so a player holding nothing is simply not in it. */
+const GRAIN = 1;
+const GRANULAR_BODY = `  for (const x of scores) {
+    const share = ${GRAIN} * x.s;
+    addEP(x.p, share, label, state.quarter);
+    if (log) log(\`\${x.p.name} earns \${label} (+\${share} EP).\`, x.p.id);
+  }`;
+
+/* Telling the bots about the granular rule takes more than moving a number. Under a
+   ranked award a plot is worth something only to a player who can still win the race,
+   which is what the 0.6 / 0.35 / 0 ladder in landEPWeight encodes. Under the granular
+   rule that ladder is simply wrong: the marginal plot pays GRAIN per payout to
+   everybody, leader or not. So arm E replaces the function rather than the constant.
+
+   The 1.5 is the plot award plus a part share of the district one - a new plot lands
+   in a district you are not in yet perhaps half the time. Deliberately on the low
+   side: if it is wrong, it under-prices land, and arm E then understates its own
+   proposal rather than flattering it. */
+const GRANULAR_WEIGHT = `function landEPWeight(state, p) {
+  return landPayouts(state) * ${GRAIN} * 1.5;
+}`;
+
+/* Ground you CONTROL: a district where you own strictly more plots than any one
+   opponent. Returns both the plots standing on it and the number of such districts,
+   so the two awards can keep their separate identities. Injected into the engine
+   rather than computed out here, because the award runs inside it. */
+const CONTROL_HELPER = `
+function controlledGround(state, p) {
+  const mine = {}, theirs = {};
+  for (const [plot, id] of Object.entries(state.board.owner)) {
+    const cell = state.board.cellOf[plot];
+    const k = cell.r + "," + cell.c;
+    if (id === p.id) mine[k] = (mine[k] || 0) + 1;
+    else { (theirs[k] = theirs[k] || {})[id] = (theirs[k][id] || 0) + 1; }
+  }
+  let plots = 0, districts = 0;
+  for (const k of Object.keys(mine)) {
+    const best = theirs[k] ? Math.max(...Object.values(theirs[k])) : 0;
+    if (mine[k] > best) { plots += mine[k]; districts++; }
+  }
+  return { plots, districts };
+}
+`;
+
+/* Under arm G a plot is worth chasing only where it buys control, which is roughly
+   half the board, so the rate is halved against arm E's. */
+const CONTROL_WEIGHT = `function landEPWeight(state, p) {
+  return landPayouts(state) * ${GRAIN} * 0.9;
+}`;
+
 const ARMS = [
   { key: "A", name: "as it ships (5 sole)", ranked: false, botsAware: false },
   { key: "B", name: "10/5, bots unaware", ranked: true, botsAware: false },
   { key: "C", name: "10/5, bots aware", ranked: true, botsAware: true },
+  { key: "D", name: "per plot, unaware", granular: true, botsAware: false },
+  { key: "E", name: "per plot, bots aware", granular: true, botsAware: true },
+  { key: "F", name: "controlled, unaware", granular: true, control: true, botsAware: false },
+  { key: "G", name: "controlled, aware", granular: true, control: true, botsAware: true },
 ];
 
 function engineFor(arm) {
   let logic = base;
+  /* First, before any other splice: arm C rewrites the LAND_AWARD line this is
+     anchored to, and a splice that runs after it would quietly do nothing. */
+  logic = logic.replace(NEEDLES.landConst, NEEDLES.landConst + CONTROL_HELPER);
   if (arm.ranked) logic = logic.replace(NEEDLES.awardBody, RANKED_BODY);
+  if (arm.granular) logic = logic.replace(NEEDLES.awardBody, GRANULAR_BODY);
+  if (arm.control) {
+    /* Both award call sites - the year-end one and the one in finalizeGame. */
+    logic = logic.split(NEEDLES.mogulCall)
+      .join('(p) => controlledGround(state, p).plots, "The Real-Estate Mogul"');
+    logic = logic.split(NEEDLES.omniCall)
+      .join('(p) => 2 * controlledGround(state, p).districts, "The Omnipresent"');
+  }
   if (arm.botsAware) {
-    logic = logic.replace(NEEDLES.landConst, "const LAND_AWARD = { sole: 10, two: 5, many: 3 };");
+    if (arm.control) {
+      const at = logic.indexOf(NEEDLES.weightFn);
+      logic = logic.slice(0, at) + CONTROL_WEIGHT + logic.slice(logic.indexOf("\n}", at) + 2);
+    } else if (arm.granular) {
+      /* Replace the body of landEPWeight up to its closing brace. The needle is its
+         first three lines; everything from there to the matching brace goes. */
+      const at = logic.indexOf(NEEDLES.weightFn);
+      const end = logic.indexOf("\n}", at);
+      logic = logic.slice(0, at) + GRANULAR_WEIGHT + logic.slice(end + 2);
+    } else {
+      logic = logic.replace(NEEDLES.landConst, "const LAND_AWARD = { sole: 10, two: 5, many: 3 };");
+    }
   }
   /* Snapshot the standings at every year end so the runaway question can be asked
      of the same games rather than a second run. */
@@ -116,11 +222,13 @@ function engineFor(arm) {
   vm.runInContext(logic + `
     box.ep = epTotal;
     box.exports = { initGame, mulberry32, advancePlanning, advanceDraft, startPlanning,
-      epTotal, activeBiz, plotCount, districtCount };
+      epTotal, activeBiz, plotCount, districtCount,
+      controlled: (s, p) => controlledGround(s, p).plots };
   `, sandbox);
   return { E: box.exports, box };
 }
 
+const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 const LAND_LABELS = ["The Real-Estate Mogul", "The Omnipresent"];
 const landEP = (p) => (p.epLog || [])
   .filter((e) => LAND_LABELS.includes(e.label))
@@ -132,6 +240,10 @@ function run(arm, seats, n) {
     games: 0, winEP: [], margin: [], lastQ: [],
     landWinner: [], landSeat: [], landShare: [],
     plotsW: [], districtsW: [],
+    /* How far ahead the player holding the MOST ground is of the table average.
+       A per-unit award can only ever differentiate by this much, times the rate,
+       times the number of payouts - so if it is small, no rate fixes it. */
+    plotSpread: [], districtSpread: [], ctrlW: [], ctrlSpread: [],
     plotLeaderWon: 0, districtLeaderWon: 0, clearPlotLeader: 0, clearDistrictLeader: 0,
     q6LeaderWon: 0, q6Clear: 0,
     /* Land pays at every year end, so how MANY year ends a game reaches is the
@@ -165,6 +277,13 @@ function run(arm, seats, n) {
     st.players.forEach((p) => out.landSeat.push(landEP(p)));
     out.plotsW.push(E.plotCount(st, winner));
     out.districtsW.push(E.districtCount(st, winner));
+    const allPlots = st.players.map((p) => E.plotCount(st, p));
+    const allDist = st.players.map((p) => E.districtCount(st, p));
+    const allCtrl = st.players.map((p) => E.controlled(st, p));
+    out.ctrlW.push(allCtrl[order[0][0]]);
+    out.ctrlSpread.push(Math.max(...allCtrl) - mean(allCtrl));
+    out.plotSpread.push(Math.max(...allPlots) - mean(allPlots));
+    out.districtSpread.push(Math.max(...allDist) - mean(allDist));
 
     /* Does holding the most ground actually predict winning? Only counted where
        there IS a clear leader - a four-way tie says nothing either way. */
@@ -206,7 +325,6 @@ function run(arm, seats, n) {
   return out;
 }
 
-const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 const pct = (a, b) => (b ? (100 * a) / b : 0);
 const f1 = (x) => x.toFixed(1);
 
@@ -231,10 +349,17 @@ for (const seats of TABLES) {
   console.log("");
   row("land EP, the winner", (r) => f1(mean(r.landWinner)));
   row("land EP, any seat", (r) => f1(mean(r.landSeat)));
+  /* The one that decides whether a land rule is a DECISION or a subsidy: a rule that
+     pays every player the same amount changes no result, however large the amount. */
+  row("land EP, winner over table avg", (r) => f1(mean(r.landWinner) - mean(r.landSeat)));
   row("land as % of winner's score", (r) => f1(mean(r.landShare)) + "%");
   console.log("");
   row("winner's plots held", (r) => f1(mean(r.plotsW)));
   row("winner's districts", (r) => f1(mean(r.districtsW)));
+  row("top plot-holder over table avg", (r) => f1(mean(r.plotSpread)));
+  row("top district-holder over avg", (r) => f1(mean(r.districtSpread)));
+  row("winner's controlled plots", (r) => f1(mean(r.ctrlW)));
+  row("top controller over table avg", (r) => f1(mean(r.ctrlSpread)));
   row("plot leader won", (r) => f1(pct(r.plotLeaderWon, r.clearPlotLeader)) + "%");
   row("district leader won", (r) => f1(pct(r.districtLeaderWon, r.clearDistrictLeader)) + "%");
   console.log("");
@@ -247,12 +372,16 @@ for (const seats of TABLES) {
 
   /* The number that actually decides the question is C minus A, and the band on a
      DIFFERENCE of two proportions is the two bands in quadrature - not either alone. */
-  const A = res[0].r, C = res[2].r;
-  const p1 = pct(A.q6LeaderWon, A.q6Clear), p2 = pct(C.q6LeaderWon, C.q6Clear);
-  const se = Math.sqrt((p1 * (100 - p1)) / A.q6Clear + (p2 * (100 - p2)) / C.q6Clear);
-  const diff = p2 - p1;
-  console.log(`\n  RUNAWAY COST of the change (C - A): ${diff >= 0 ? "+" : ""}${f1(diff)} points, `
-    + `two standard errors +/-${f1(2 * se)}  -> ${Math.abs(diff) > 2 * se ? "REAL" : "inside the noise"}`);
+  const A = res[0].r;
+  const p1 = pct(A.q6LeaderWon, A.q6Clear);
+  console.log("\n  RUNAWAY COST, each arm against A (does the Q6 leader win more often?)");
+  for (const { arm, r } of res.slice(1)) {
+    const p2 = pct(r.q6LeaderWon, r.q6Clear);
+    const se = Math.sqrt((p1 * (100 - p1)) / A.q6Clear + (p2 * (100 - p2)) / r.q6Clear);
+    const diff = p2 - p1;
+    console.log(`    ${arm.key} - A: ${(diff >= 0 ? "+" : "") + f1(diff)} points`.padEnd(26)
+      + `two standard errors +/-${f1(2 * se)}  -> ${Math.abs(diff) > 2 * se ? "REAL" : "inside the noise"}`);
+  }
 
   const band = 2 * Math.sqrt(0.25 * 0.75 / GAMES) * 100;
   console.log(`\n  Two standard errors on a percentage here is about ${f1(band)} points.`);
@@ -261,5 +390,5 @@ for (const seats of TABLES) {
 }
 
 console.log("(Bots play every seat. They buy ground through one heuristic that reads");
-console.log(" LAND_AWARD.sole, so arm C is the closest thing to a table that has read");
-console.log(" the new rule - and arm B is what the same rule looks like if nobody has.)");
+console.log(" LAND_AWARD.sole, so C, E and G are the closest thing to a table that has read");
+console.log(" the new rule - and B, D and F are what the same rules look like if nobody has.)");
