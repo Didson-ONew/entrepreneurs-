@@ -482,10 +482,50 @@ It is the material the account has been missing. The earlier sequence proves the
 is *designed*; these prove it is *real*, and that is a different and easier sell.
 
 **These are lettered A–J rather than numbered into the sequence.** Each one stands
-alone and none of them refers to an earlier post, so they slot into whatever is
-already live, in any order. I could not check what is actually on the grid —
-instagram.com is blocked by this environment's egress policy — so nothing here
-assumes it.
+alone and none of them refers to an earlier post, so they slot in anywhere.
+
+## What is actually live, read off the grid
+
+Eight posts, oldest first. Five of the planned thirteen never went out, and the
+order was changed — the "I was wrong" and bug posts were moved to the front,
+which is what the note at the end of part one suggested.
+
+| # | Post | Format | Views |
+|---|---|---|---|
+| 1 | 1 · Six industries. One city. | carousel | 8 |
+| 2 | 6 · I was wrong about Hospitality | carousel | 6 |
+| 3 | 8 · The bug that hid another bug | carousel | 8 |
+| 4 | **2 · The supply web** | **reel** | **65** |
+| 5 | 7 · Last in, first out | reel | 11 |
+| 6 | 3 · Prices aren't a track that drifts | carousel | 13 |
+| 7 | 11 · The six personas | carousel | 12 |
+| 8 | **12 · A full game in 30 seconds** | **reel** | **127** |
+
+**Still unposted from part one:** 4 (the blocks in hand), 5 (I measured the
+balance), 9 (the print-and-play), 10 (the ask), 12b (the same reel at every
+table size), 13 (the month I rebuilt the economy). Posts 5 and 13 are the two
+strongest of those and both are still worth making.
+
+### What the view counts suggest — and how far to trust it
+
+Posting order against views: `8 · 6 · 8 · 65 · 11 · 13 · 12 · 127`.
+
+The two spikes are both reels, and both are the reels that show *the system
+changing state* — the supply graph drawing itself, and a whole game playing out.
+The reel that did not spike (7, on turn order, 11 views) is mostly static text
+over a diagram. The three carousels sitting between the two spikes are flat at
+11–13, so this is not simply the account growing: if it were, those would rise
+too.
+
+**But n = 3 reels on an account this small.** 65 and 127 views could each be one
+person sharing it. Treat this as a hypothesis worth one deliberate test, not a
+finding — the same standard the balance work in this repo holds itself to. The
+test is cheap: make the next object post a reel and the one after it a carousel,
+from the same photo set, and see whether the gap repeats.
+
+That is why several posts below are now marked **reel** where the earlier draft
+had them as carousels. The photos support it — a turntable on the 3D models, a
+hard cut from blocks to buildings, a flip through the printed sheets.
 
 **Photo keys** used below refer to the batch as shot:
 
@@ -542,7 +582,7 @@ and the most on-brand one.
 
 ---
 
-## A · Carousel — the day it stopped being a PDF
+## A · Reel or carousel — the day it stopped being a PDF
 `P1 · P2 · P3 · P6`
 
 > For months this was a browser tab and a stack of card I cut myself with a craft
@@ -686,7 +726,7 @@ credible thing in the batch.*
 
 ---
 
-## F · Carousel — five people, one table, three hours
+## F · Reel or carousel — five people, one table, three hours
 `P8 · P7 · P9`
 
 > First full tabletop playtest. Four friends, none of whom had seen it before,
@@ -715,7 +755,7 @@ answered.*
 
 ---
 
-## G · Carousel — from pill bottles to buildings
+## G · Reel (was carousel) — from pill bottles to buildings
 `P8` → `P13`
 
 > Left: the company levels in last week's playtest, tracked with translucent
@@ -739,7 +779,7 @@ the "before" is not embarrassing. Do it as two slides, not a slider.*
 
 ---
 
-## H · Carousel — every building is a real business
+## H · Reel (was carousel) — every building is a real business
 `P13 · P14 · P11 · P15 · P12 · P10`
 
 > Eighteen buildings. Six industries, three levels each.
@@ -837,14 +877,22 @@ Two a week, in this order. It alternates a "look at the object" post with a
 "here is how it works" post, so the feed never reads as either a gallery or a
 lecture.
 
+The account has just posted its best-performing thing ever (the full-game reel,
+127 views). The follow-up should ride that rather than reset to an explainer, so
+this order opens on the object and keeps a reel in every week.
+
 ```
-week 1   A (print run)         B (one card)
-week 2   G (before/after)      D (Megacorps)
-week 3   H (the buildings)     C (six founders)
-week 4   F (the playtest)      J (the wrong print run)
-week 5   I (black pyramid)     E (what it costs)
+week 1   G  before/after          REEL   B  one card             carousel
+week 2   A  the print run         reel   D  the Megacorps        carousel
+week 3   H  the buildings         REEL   C  six founders         carousel
+week 4   F  the playtest          reel   J  the wrong print run  static
+week 5   I  the black pyramid     static E  what it costs        reel
 ```
 
-This is an order for these ten relative to each other, not to anything already on
-the grid. Post J lands late on purpose: by then the account has shown the object
+The two capitalised reels are the ones with real motion available to them, and
+they are deliberately first — they are the test of whether the 65/127 pattern is
+real. If neither travels, the hypothesis is dead and the rest can go out as
+carousels with no loss.
+
+Post J lands late on purpose: by then the account has shown the object
 enough times that an admission reads as confidence rather than as a disclaimer.
