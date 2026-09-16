@@ -1,14 +1,28 @@
 /* The reported situation: a player closes their browser for good mid-game and the table
    is stuck. The host must be able to hand that seat to a bot and carry on. Also checks
    that a closed tab no longer loses the session. */
-const { chromium } = require("playwright");
-const URL = "http://127.0.0.1:8080/";
+const { launchBrowser } = require("./testkit.js");
+/* The runner picks a free port rather than assuming 8080 is idle, so read where
+   the server actually is. */
+const BASE = process.env.BASE || "http://127.0.0.1:8080";
+const URL = BASE + "/";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* This test printed its findings and exited 0 whatever they said, so a run reporting
+   "false" still counted as a pass. Assertions now reach the exit code; lines that are
+   genuinely informational stay as console.log. */
+let fails = 0;
+function check(label, ok, detail) {
+  if (!ok) fails++;
+  console.log(" " + (ok ? "ok  " : "FAIL") + "  " + label
+    + (detail !== undefined && detail !== "" ? "  [" + detail + "]" : ""));
+}
+
 async function txt(p){ try { return await p.evaluate(()=> (document.getElementById("root")||{}).innerText || ""); } catch { return ""; } }
 async function waitText(p,re,ms=12000){ const t0=Date.now(); while(Date.now()-t0<ms){ if(re.test(await txt(p))) return true; await sleep(150);} return false; }
 
 (async()=>{
-  const br=await chromium.launch();
+  const br=await launchBrowser();
   const ctxA=await br.newContext({viewport:{width:1500,height:950}});
   let ctxB=await br.newContext({viewport:{width:1500,height:950}});
   const A=await ctxA.newPage();
@@ -31,7 +45,7 @@ async function waitText(p,re,ms=12000){ const t0=Date.now(); while(Date.now()-t0
   await waitText(A,/Bruno/);
   console.log("=== LOBBY KICK ===");
   const removeBtn = A.getByText("remove", { exact: true });
-  console.log("host sees a remove control:", await removeBtn.count() > 0);
+  check("host sees a remove control", await removeBtn.count() > 0);
 
   // --- session survives closing the tab ---
   console.log("\n=== CLOSED TAB ===");
@@ -45,7 +59,7 @@ async function waitText(p,re,ms=12000){ const t0=Date.now(); while(Date.now()-t0
   console.log("\n=== MID-GAME TAKEOVER ===");
   await A.getByText(/Start game/).click();
   const started = await waitText(A,/PLANNING & ACTION TRACKS|Draft your starting/);
-  console.log("host entered the game:", started);
+  check("host entered the game", started);
 
   // Bruno never acts (his browser is gone). Drive Ana only until she is blocked on him.
   let stuckOn=null;
@@ -68,7 +82,7 @@ async function waitText(p,re,ms=12000){ const t0=Date.now(); while(Date.now()-t0
 
   const kickBtn = A.getByText(/Replace .* with a bot/);
   const hasKick = await kickBtn.count() > 0;
-  console.log("host sees the takeover button:", hasKick);
+  check("host sees the takeover button", hasKick);
   if(hasKick){
     A.on("dialog", d => d.accept());
     await kickBtn.first().click({timeout:3000}).catch(()=>{});
@@ -94,8 +108,8 @@ async function waitText(p,re,ms=12000){ const t0=Date.now(); while(Date.now()-t0
       await sleep(300);
     }
     const fin=await txt(A);
-    console.log("game reached normal play:", /PLANNING & ACTION TRACKS/.test(fin));
-    console.log("vanished seat is now a bot:", /Bruno \(bot\)/.test(fin));
+    check("game reached normal play", /PLANNING & ACTION TRACKS/.test(fin));
+    check("vanished seat is now a bot", /Bruno \(bot\)/.test(fin));
     // and the game keeps running on its own
     for(let i=0;i<25;i++){
       const t=await txt(A);
@@ -111,6 +125,7 @@ async function waitText(p,re,ms=12000){ const t0=Date.now(); while(Date.now()-t0
     const q=(await txt(A)).match(/\bQ(\d)\b[\s\S]{0,80}?(Planning|Action|Production|Revenue|Closing)/);
     console.log("play continues normally, now at quarter:", q?q[1]:"?");
   }
-  console.log("\npage errors:", errs.length?errs.slice(0,3):"none");
-  await br.close(); process.exit(0);
+  check("no page errors", errs.length === 0, errs.slice(0, 3).join(" | "));
+  await br.close(); console.log(fails ? "\n" + fails + " check(s) failed" : "\nall checks passed");
+  process.exit(fails);
 })();

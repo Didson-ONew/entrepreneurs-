@@ -14,7 +14,6 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const http = require("http");
-const { chromium } = require("playwright-core");
 const testkit = require("./testkit.js");
 
 const BASE = process.env.BASE || "http://127.0.0.1:8080";
@@ -289,7 +288,7 @@ section("Passwords");
 
   /* ======================================================== in the browser */
   section("In the lobby");
-  const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || "/opt/pw-browsers/chromium" });
+  const browser = await testkit.launchBrowser();
   const ctx = await browser.newContext({ viewport: { width: 900, height: 1000 } });
   const page = await ctx.newPage();
   const errs = [];

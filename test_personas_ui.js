@@ -1,12 +1,38 @@
 /* Host toggles Personas in the waiting room; both players should be dealt one, see
    their own power, and see each other's. A non-host must not be able to toggle it. */
-const { chromium } = require("playwright");
-const URL="http://127.0.0.1:8080/";
+const { launchBrowser } = require("./testkit.js");
+/* The runner picks a free port rather than assuming 8080 is idle, so read where
+   the server actually is. */
+const BASE = process.env.BASE || "http://127.0.0.1:8080";
+const URL = BASE + "/";
 const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
 async function txt(p){try{return await p.evaluate(()=>document.body.innerText||"");}catch{return "";}}
 async function waitText(p,re,ms=12000){const t0=Date.now();while(Date.now()-t0<ms){if(re.test(await txt(p)))return true;await sleep(150);}return false;}
+
+/* This test used to print its findings and exit 0 regardless, so a run that said
+   "host sees the Personas toggle: false" still counted as a pass. Assertions now
+   reach the exit code. */
+let fails=0;
+function check(label,ok,detail){
+  if(!ok)fails++;
+  console.log(`${ok?" ok  ":" FAIL"}  ${label}${detail?"  ["+detail+"]":""}`);
+}
+
+/* The toggle is an OptionToggle: the name and the ON/OFF state are two separate
+   spans inside one box, so there is no single node reading "Personas OFF" to match
+   on. Find the name, then read the box around it - and whether that box is a button
+   is exactly what separates the host from a guest. */
+async function personaRow(p){
+  return await p.evaluate(()=>{
+    const el=[...document.querySelectorAll("span")].find(s=>s.textContent.trim()==="Personas");
+    if(!el)return null;
+    const box=el.closest("button")||el.closest("div[class*='rounded-md']");
+    return box?{text:box.innerText.replace(/\s+/g," ").trim(),clickable:box.tagName==="BUTTON"}:null;
+  });
+}
+async function waitRow(p,re,ms=6000){const t0=Date.now();while(Date.now()-t0<ms){const r=await personaRow(p);if(r&&re.test(r.text))return true;await sleep(150);}return false;}
 (async()=>{
-  const br=await chromium.launch();
+  const br=await launchBrowser();
   const mk=async()=>{const c=await br.newContext({viewport:{width:1500,height:950}});const p=await c.newPage();
     await p.addInitScript(()=>{try{localStorage.setItem("entrepreneurs_tutorial_seen","1");}catch(e){}});return p;};
   const A=await mk(), B=await mk();
@@ -24,12 +50,27 @@ async function waitText(p,re,ms=12000){const t0=Date.now();while(Date.now()-t0<m
   await B.getByText("Join room",{exact:true}).click();
   await waitText(A,/Bruno/);
 
-  console.log("host sees the Personas toggle:", await A.getByText(/Personas OFF/).count()>0);
-  console.log("guest does NOT get a toggle  :", await B.getByText(/Personas OFF/).count()===0);
+  /* Rooms are created with personas ON (server.js, room defaults), so wait for the
+     guest's first lobby frame rather than reading straight away - until it lands the
+     row renders from a null lobby and shows OFF, which is not a disagreement with the
+     host, just an unpopulated client. */
+  check("the guest receives the table rules", await waitRow(B,/ON/,8000));
 
-  await A.getByText(/Personas OFF/).click();
-  console.log("host turned it on            :", await waitText(A,/Personas ON/,5000));
-  console.log("guest is told it is on       :", await waitText(B,/Personas are ON/,6000));
+  const hostRow=await personaRow(A), guestRow=await personaRow(B);
+  check("the host gets a Personas toggle", !!(hostRow&&hostRow.clickable), hostRow&&hostRow.text);
+  check("it starts on, as a new room does", !!(hostRow&&/ON/.test(hostRow.text)), hostRow&&hostRow.text);
+  check("a guest sees the setting but cannot change it",
+    !!(guestRow&&!guestRow.clickable), guestRow&&guestRow.text);
+
+  /* Toggle both ways: off proves the host can change it and that the change reaches
+     the guest, on puts it back so the rest of the test can check the dealing. */
+  const toggle=()=>A.getByRole("button").filter({hasText:"Personas"}).first().click();
+  await toggle();
+  check("the host can turn it off", await waitRow(A,/OFF/,5000));
+  check("and the guest is shown the change", await waitRow(B,/OFF/,6000));
+  await toggle();
+  check("and back on again", await waitRow(A,/ON/,5000));
+  check("which the guest also sees", await waitRow(B,/ON/,6000));
 
   await A.getByText(/Start game/).click();
   await waitText(A,/PLANNING & ACTION TRACKS|Draft your starting/);
@@ -52,9 +93,10 @@ async function waitText(p,re,ms=12000){const t0=Date.now();while(Date.now()-t0<m
   const NAMES=["Systems Architect","Public Health Director","White-Label Supplier","Resort Developer","Supply Chain Expert","Concession Holder"];
   const ta=await txt(A), tb=await txt(B);
   const mineA=NAMES.filter(n=>ta.includes(n)), mineB=NAMES.filter(n=>tb.includes(n));
-  console.log("\\nAna sees personas   :", JSON.stringify(mineA));
-  console.log("Bruno sees personas :", JSON.stringify(mineB));
-  console.log("both players were dealt one and can see both:", mineA.length>=2 && mineB.length>=2);
-  console.log("page errors:", errs.length?errs.slice(0,3):"none");
-  await br.close(); process.exit(0);
+  check("Ana was dealt a persona and can see both", mineA.length>=2, JSON.stringify(mineA));
+  check("Bruno was dealt a persona and can see both", mineB.length>=2, JSON.stringify(mineB));
+  check("no page errors", errs.length===0, errs.slice(0,3).join(" | "));
+  await br.close();
+  console.log(fails?`\n${fails} check(s) failed`:"\nall checks passed");
+  process.exit(fails);
 })();

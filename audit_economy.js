@@ -51,9 +51,14 @@ hook("    state.pots[ind] = pot - share * recipients.length;",
 hook("  claimIndustryBonus(state, p, bp.ind, log);\n  return true;",
   "  __econ.build(state, p, bp, footprint);\n  claimIndustryBonus(state, p, bp.ind, log);\n  return true;", "doLaunch");
 
-// 4. every OPEX bill paid
-hook("      p.cash -= cost;\n      const rentTotal = RENT_PER_LEVEL * b.level;",
-  "      __econ.opex(state, p, b, cost);\n      p.cash -= cost;\n      const rentTotal = RENT_PER_LEVEL * b.level;", "runProduction");
+/* 4. every bill paid. `cost` used to be the card's whole OPEX, with rent carved out
+      of it afterwards; it is now the supplier bill plus whatever rent is owed to OTHER
+      players, which is the same money except on ground nobody owns. The probe still
+      sits where the payment happens, so what it measures is still "what left this
+      player for this company this quarter". `rentTotal` went away with the split, so
+      the anchor is the payment line alone - which is unique in the engine. */
+hook("      p.cash -= cost;",
+  "      __econ.opex(state, p, b, cost);\n      p.cash -= cost;", "runProduction");
 
 // 5. every Megacorp formed
 hook("  b.upgraded = true; b.level += 1;",
@@ -67,8 +72,11 @@ hook("        const due = RENT_PER_LEVEL * levelsOn(b, plot);",
 /* The rent transfer was rewritten when the ground-rent ledger was added, so the
    old one-line `if (owner) owner.cash += due;` no longer exists. This hooks the
    production-side transfer where it now lives, just before the ledger entries. */
-hook("        if (!owner) continue;\n        owner.cash += due;",
-  "        if (!owner) continue;\n        __econ.rentPay(p.id, owner.id, due);\n        owner.cash += due;",
+/* Rent onto your own ground is no longer paid and refunded - it is skipped - so the
+   line that used to follow `if (!owner) continue;` now has the own-land case between
+   them. Anchor on that case instead; it is unique. */
+hook("        if (owner.id === p.id) { p.rentSaved = (p.rentSaved || 0) + due; continue; }\n        owner.cash += due;",
+  "        if (owner.id === p.id) { p.rentSaved = (p.rentSaved || 0) + due; continue; }\n        __econ.rentPay(p.id, owner.id, due);\n        owner.cash += due;",
   "rent payment");
 
 // 7. a snapshot at the close of every quarter, for the cash curve

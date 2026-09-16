@@ -1,8 +1,22 @@
 /* Refresh-resume test: two browsers start a game; browser B refreshes mid-game and
    must land back inside the game (not the lobby) and still be able to act. */
-const { chromium } = require("playwright");
-const URL = "http://127.0.0.1:8080/";
+const { launchBrowser } = require("./testkit.js");
+/* The runner picks a free port rather than assuming 8080 is idle, so read where
+   the server actually is. */
+const BASE = process.env.BASE || "http://127.0.0.1:8080";
+const URL = BASE + "/";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* This test printed its findings and exited 0 whatever they said, so a run reporting
+   "false" still counted as a pass. Assertions now reach the exit code; lines that are
+   genuinely informational stay as console.log. */
+let fails = 0;
+function check(label, ok, detail) {
+  if (!ok) fails++;
+  console.log(" " + (ok ? "ok  " : "FAIL") + "  " + label
+    + (detail !== undefined && detail !== "" ? "  [" + detail + "]" : ""));
+}
+
 async function txt(p) {
   try { return await p.evaluate(() => (document.getElementById("root") || {}).innerText || ""); }
   catch { return ""; }
@@ -14,7 +28,7 @@ async function waitText(p, re, ms = 8000) {
 }
 
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
   const ctxA = await browser.newContext({ viewport: { width: 1500, height: 950 } });
   const ctxB = await browser.newContext({ viewport: { width: 1500, height: 950 } });
   const A = await ctxA.newPage(), B = await ctxB.newPage();
@@ -42,7 +56,7 @@ async function waitText(p, re, ms = 8000) {
   await A.getByText(/Start game/).click();
   const inA = await waitText(A, /PLANNING & ACTION TRACKS|Draft your starting/);
   const inB = await waitText(B, /PLANNING & ACTION TRACKS|Draft your starting/);
-  console.log("both entered the game:", inA && inB);
+  check("both entered the game", inA && inB);
 
   // let a few server updates land
   await sleep(1200);
@@ -54,9 +68,9 @@ async function waitText(p, re, ms = 8000) {
   await B.reload();
   const resumed = await waitText(B, /PLANNING & ACTION TRACKS|Draft your starting/, 10000);
   const notLobby = !/Create room/.test(await txt(B));
-  console.log("B resumed into the game after refresh:", resumed && notLobby);
+  check("B resumed into the game after refresh", resumed && notLobby);
   const roomShown = new RegExp("room " + code).test(await txt(B));
-  console.log("B still shows its room code:", roomShown);
+  check("B still shows its room code", roomShown);
 
   // B can still act when its turn comes: poke both pages briefly
   let bActed = false;
@@ -89,14 +103,17 @@ async function waitText(p, re, ms = 8000) {
     }
     await sleep(180);
   }
-  console.log("B performed an action after resuming:", bActed);
+  check("B performed an action after resuming", bActed);
 
   // the "leave" control clears the session
-  await B.getByText("leave", { exact: true }).click().catch(() => {});
+  /* The one "leave" button became two when watchers got their own: a watcher gets
+     "stop watching", a seated player gets "lobby" (their seat is kept). */
+  await B.getByText("lobby", { exact: true }).click().catch(() => {});
   const backToLobby = await waitText(B, /Create room/, 6000);
-  console.log("leave returns B to the lobby:", backToLobby);
+  check("leave returns B to the lobby", backToLobby);
 
-  console.log("page errors:", errsA.length + errsB.length ? [...errsA, ...errsB].slice(0, 3) : "none");
+  check("no page errors", errsA.length + errsB.length === 0, [...errsA, ...errsB].slice(0, 3).join(" | "));
   await browser.close();
-  process.exit(0);
+  console.log(fails ? "\n" + fails + " check(s) failed" : "\nall checks passed");
+  process.exit(fails);
 })();

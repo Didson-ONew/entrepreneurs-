@@ -1,14 +1,28 @@
 /* Reproduces the reported failure: one player's event stream never delivers (as when a
    proxy or tunnel buffers text/event-stream). That player must still see the game start
    and be able to play, via the polling fallback. */
-const { chromium } = require("playwright");
-const URL = "http://127.0.0.1:8080/";
+const { launchBrowser } = require("./testkit.js");
+/* The runner picks a free port rather than assuming 8080 is idle, so read where
+   the server actually is. */
+const BASE = process.env.BASE || "http://127.0.0.1:8080";
+const URL = BASE + "/";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* This test printed its findings and exited 0 whatever they said, so a run reporting
+   "false" still counted as a pass. Assertions now reach the exit code; lines that are
+   genuinely informational stay as console.log. */
+let fails = 0;
+function check(label, ok, detail) {
+  if (!ok) fails++;
+  console.log(" " + (ok ? "ok  " : "FAIL") + "  " + label
+    + (detail !== undefined && detail !== "" ? "  [" + detail + "]" : ""));
+}
+
 async function txt(p){ try { return await p.evaluate(()=> (document.getElementById("root")||{}).innerText || ""); } catch { return ""; } }
 async function waitText(p,re,ms=12000){ const t0=Date.now(); while(Date.now()-t0<ms){ if(re.test(await txt(p))) return true; await sleep(150);} return false; }
 
 (async()=>{
-  const br=await chromium.launch();
+  const br=await launchBrowser();
   const ctxA=await br.newContext({viewport:{width:1400,height:950}});
   const ctxB=await br.newContext({viewport:{width:1400,height:950}});
   const A=await ctxA.newPage(), B=await ctxB.newPage();
@@ -33,17 +47,19 @@ async function waitText(p,re,ms=12000){ const t0=Date.now(); while(Date.now()-t0
   await B.fill('input[placeholder="Your name"]',"Bruno");
   await B.fill('input[placeholder="ROOM CODE"]',code);
   await B.getByText("Join room",{exact:true}).click();
-  const bInLobby = await waitText(B,/Room code/);
-  console.log("B reaches the waiting room without SSE:", bInLobby);
+  /* The heading is "Room code" in the source but carries an uppercase class, so
+     innerText reads ROOM CODE - a case-sensitive match here never had a chance. */
+  const bInLobby = await waitText(B,/room code/i);
+  check("B reaches the waiting room without SSE", bInLobby);
   const aSeesB = await waitText(A,/Bruno/);
-  console.log("A sees B in the room:", aSeesB);
+  check("A sees B in the room", aSeesB);
 
   console.log("\n--- host presses Start ---");
   await A.getByText(/Start game/).click();
 
   const aIn = await waitText(A,/PLANNING & ACTION TRACKS|Draft your starting/);
   const bIn = await waitText(B,/PLANNING & ACTION TRACKS|Draft your starting/);
-  console.log("A entered the game:", aIn);
+  check("A entered the game", aIn);
   console.log("B entered the game WITHOUT a working stream:", bIn, bIn ? "" : "  <-- the reported bug");
 
   const pill = await B.evaluate(()=>{
@@ -73,13 +89,14 @@ async function waitText(p,re,ms=12000){ const t0=Date.now(); while(Date.now()-t0
     }
     await sleep(250);
   }
-  console.log("B could draft cards:", bActed);
+  check("B could draft cards", bActed);
 
   // and the two stay in sync
   await sleep(2500);
   const qa=(await txt(A)).match(/\bQ(\d)\b[\s\S]{0,80}?(Planning|Action|Production|Revenue|Closing)/);
   const qb=(await txt(B)).match(/\bQ(\d)\b[\s\S]{0,80}?(Planning|Action|Production|Revenue|Closing)/);
   console.log(`quarters - A: ${qa?qa[1]:"draft"} | B: ${qb?qb[1]:"draft"} | in sync: ${JSON.stringify(qa&&qa[1])===JSON.stringify(qb&&qb[1])}`);
-  console.log("page errors:", errs.length?errs.slice(0,3):"none");
-  await br.close(); process.exit(0);
+  check("no page errors", errs.length === 0, errs.slice(0, 3).join(" | "));
+  await br.close(); console.log(fails ? "\n" + fails + " check(s) failed" : "\nall checks passed");
+  process.exit(fails);
 })();

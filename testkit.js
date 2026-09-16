@@ -1,4 +1,5 @@
-/* Shared test plumbing: drive one seat through a whole game over HTTP.
+/* Shared test plumbing: drive one seat through a whole game over HTTP, and open a
+   browser the same way in every test that needs one.
 
    Several tests need a *finished* game on the server - the records, the statistics,
    the nickname check - and they all want the same thing: play the simplest legal move
@@ -9,6 +10,30 @@
 */
 const DEFAULT_BASE = process.env.BASE || "http://127.0.0.1:8080";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* One place that knows how to open a browser.
+
+   This container ships playwright-core and a Chromium at a fixed path, NOT the full
+   playwright package, so `require("playwright")` throws MODULE_NOT_FOUND on the first
+   line. Ten browser tests did exactly that. They were not failing silently - they were
+   failing loudly at nobody, because there was no way to run the suite and so nothing
+   ever ran them. That is what run_tests.mjs is for.
+
+   playwright-core cannot find a browser by itself, which is the whole difference
+   between the two packages, so the path has to be passed in. Keeping it in one place
+   means one line to change when the image moves it.
+
+   CHROMIUM overrides the path; PLAYWRIGHT_BROWSERS_PATH is where this image keeps it. */
+function browserPath() {
+  if (process.env.CHROMIUM) return process.env.CHROMIUM;
+  const root = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  return root ? require("path").join(root, "chromium") : "/opt/pw-browsers/chromium";
+}
+
+async function launchBrowser(opts = {}) {
+  const { chromium } = require("playwright-core");
+  return chromium.launch({ executablePath: browserPath(), ...opts });
+}
 
 /* A cookie jar with the same interface fetch has, so the caller can hand one in or
    leave it out. Kept to name=value, which is all a browser sends back. */
@@ -105,4 +130,4 @@ async function playAGame(name, bots, personas, opts = {}) {
   return null;
 }
 
-module.exports = { playAGame, jar, client, sleep, DEFAULT_BASE };
+module.exports = { playAGame, jar, client, sleep, DEFAULT_BASE, launchBrowser, browserPath };

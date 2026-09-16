@@ -1,7 +1,21 @@
 /* Play Again must open a fresh waiting room with the same players. */
-const { chromium } = require("playwright");
-const URL="http://127.0.0.1:8080/";
+const { launchBrowser } = require("./testkit.js");
+/* The runner picks a free port rather than assuming 8080 is idle, so read where
+   the server actually is. */
+const BASE = process.env.BASE || "http://127.0.0.1:8080";
+const URL = BASE + "/";
 const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+
+/* This test printed its findings and exited 0 whatever they said, so a run reporting
+   "false" still counted as a pass. Assertions now reach the exit code; lines that are
+   genuinely informational stay as console.log. */
+let fails = 0;
+function check(label, ok, detail) {
+  if (!ok) fails++;
+  console.log(" " + (ok ? "ok  " : "FAIL") + "  " + label
+    + (detail !== undefined && detail !== "" ? "  [" + detail + "]" : ""));
+}
+
 async function txt(p){try{return await p.evaluate(()=>(document.getElementById("root")||{}).innerText||"");}catch{return "";}}
 async function waitText(p,re,ms=15000){const t0=Date.now();while(Date.now()-t0<ms){if(re.test(await txt(p)))return true;await sleep(150);}return false;}
 async function act(p){
@@ -31,7 +45,7 @@ async function act(p){
   return false;
 }
 (async()=>{
-  const br=await chromium.launch();
+  const br=await launchBrowser();
   const cA=await br.newContext({viewport:{width:1500,height:950}});
   const cB=await br.newContext({viewport:{width:1500,height:950}});
   const A=await cA.newPage(), B=await cB.newPage();
@@ -63,20 +77,22 @@ async function act(p){
   }
   const over=/Game Over/.test(await txt(A));
   console.log("reached Game Over:",over,"in",steps,"steps");
-  if(!over){console.log("(did not finish in budget - rematch untested)");await br.close();process.exit(0);}
+  if(!over){console.log("(did not finish in budget - rematch untested)");await br.close();console.log(fails ? "\n" + fails + " check(s) failed" : "\nall checks passed");
+  process.exit(fails);}
   const bOver=await waitText(B,/Game Over/,8000);
-  console.log("B also sees Game Over:",bOver);
-  console.log("B sees the waiting-for-host note:", /Waiting for the host to start a rematch/.test(await txt(B)));
+  check("B also sees Game Over", bOver);
+  check("B sees the waiting-for-host note", /Waiting for the host to start a rematch/.test(await txt(B)));
   const btn=A.getByText(/Play again/);
-  console.log("host sees Play again:",await btn.count()>0);
+  check("host sees Play again", await btn.count()>0);
   await btn.first().click({timeout:3000}).catch(()=>{});
   const aBack=await waitText(A,/ROOM CODE|Room code/,10000);
   const bBack=await waitText(B,/ROOM CODE|Room code/,10000);
-  console.log("host back in a waiting room:",aBack);
-  console.log("other player back in the waiting room too:",bBack);
+  check("host back in a waiting room", aBack);
+  check("other player back in the waiting room too", bBack);
   const names=await txt(A);
-  console.log("same players still listed:", /Ana/.test(names)&&/Bruno/.test(names));
-  console.log("host can start again:", await A.getByText(/Start game/).count()>0);
-  console.log("errors:",errs.length?errs.slice(0,2):"none");
-  await br.close();process.exit(0);
+  check("same players still listed", /Ana/.test(names)&&/Bruno/.test(names));
+  check("host can start again", await A.getByText(/Start game/).count()>0);
+  check("no page errors", errs.length === 0, errs.slice(0, 3).join(" | "));
+  await br.close();console.log(fails ? "\n" + fails + " check(s) failed" : "\nall checks passed");
+  process.exit(fails);
 })();

@@ -4082,10 +4082,49 @@ function EPBreakdown({ hover }) {
   );
 }
 
+/* Who owns the ground a building stands on, worked out fresh every render.
+
+   Two things were wrong with reading this through getBizTooltipInfo. It filtered the
+   unowned plots out of the list instead of reporting them, so a building whose land
+   had been SOLD still showed the seller's name and nothing else - the line under the
+   map said "Unowned" and the tooltip disagreed with it. And it matched the business by
+   object identity, which holds in a local game where the engine mutates state in place
+   but not online, where every server push replaces the whole state object: the company
+   the mouse captured is then an orphan from the previous snapshot, no player's array
+   "includes" it, and the tooltip claims nobody owns it.
+
+   Both are fixed by resolving the business out of the CURRENT state by id and counting
+   the plots rather than discarding them.
+
+   This lives here, below the REACT UI marker, on purpose. getBizTooltipInfo sits above
+   it, inside the text ENGINE_VERSION hashes, and editing it would bump the version and
+   show everyone in a running game a rules-mismatch banner over a tooltip fix. The old
+   helper is left untouched and unused; delete it the next time the hash moves for a
+   real rules change. */
+export function liveBiz(state, biz) {
+  if (!biz) return null;
+  for (const p of state.players) {
+    const found = p.businesses.find((x) => x.id === biz.id);
+    if (found) return found;
+  }
+  return biz;
+}
+export function bizPlotOwnership(state, biz) {
+  const b = liveBiz(state, biz);
+  const owner = b.distressed ? null
+    : state.players.find((p) => p.businesses.some((x) => x.id === b.id)) || null;
+  const ids = b.footprint.map((pk) => state.board.owner[pk]);
+  const unowned = ids.filter((v) => v === undefined).length;
+  const holders = [...new Set(ids.filter((v) => v !== undefined))]
+    .map((id) => ({ player: state.players.find((p) => p.id === id), plots: ids.filter((v) => v === id).length }))
+    .filter((x) => x.player);
+  return { biz: b, owner, holders, unowned, total: b.footprint.length };
+}
+
 function BizTooltip({ state, hover }) {
   if (!hover || !hover.biz) return null;
-  const b = hover.biz;
-  const { owner, plotOwners, canProduce } = getBizTooltipInfo(state, b);
+  const { biz: b, owner, holders, unowned, total } = bizPlotOwnership(state, hover.biz);
+  const canProduce = businessCanProduce(state, b);
   const vw = typeof window !== "undefined" ? window.innerWidth : 1400;
   const vh = typeof window !== "undefined" ? window.innerHeight : 900;
   const W = 210, PAD = 10;
@@ -4109,11 +4148,13 @@ function BizTooltip({ state, hover }) {
       <div className="text-xs font-bold text-gray-100 mb-1.5">{b.bp.name}</div>
       <div className="text-[10px] font-mono text-gray-300 space-y-0.5">
         <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: owner ? PLAYER_COLORS[owner.id] : "#666" }} /> Biz owner: {owner ? owner.name : "\u2014"}</div>
-        <div className="flex items-center gap-1 flex-wrap">
-          <span>Plot owner{plotOwners.length !== 1 ? "s" : ""}:</span>
-          {plotOwners.length ? plotOwners.map((p) => (
-            <span key={p.id} className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PLAYER_COLORS[p.id] }} />{p.name}</span>
-          )) : <span className="text-red-400">none (can't produce)</span>}
+<div className="flex items-center gap-1 flex-wrap">
+          <span>Land ({total} plot{total !== 1 ? "s" : ""}):</span>
+          {holders.map(({ player, plots }) => (
+            <span key={player.id} className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PLAYER_COLORS[player.id] }} />{player.name}{total > 1 ? ` \u00d7${plots}` : ""}</span>
+          ))}
+          {unowned > 0 && <span className="text-red-400">{unowned} unowned</span>}
+          {!holders.length && !unowned && <span className="text-gray-500">&mdash;</span>}
         </div>
         <div>Setup: ${bizSetup(b)} &middot; Suppliers: ${bizPotBill(b)} &middot; Ground rent: ${RENT_PER_LEVEL * b.level}</div>
         <div>Split: {b.bp.deps.map((d, i) => `${d.ind} $${potShares(b)[i]}`).join(", ") || "\u2014"}</div>
@@ -6103,7 +6144,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
             </div>
             <div className="text-[11px] text-gray-300 leading-snug">{PERSONAS[human.persona].blurb}</div>
             <div className="text-[10px] mt-1.5" style={{ color: IND_COLOR[PERSONAS[human.persona].ind] }}>
-              Worth weighing as you draft &mdash; but the 5 EP for entering each industry still rewards breadth.
+              Worth weighing as you draft &mdash; but the {INDUSTRY_DEBUT_EP} EP for entering each industry still rewards breadth.
             </div>
           </div>
         )}

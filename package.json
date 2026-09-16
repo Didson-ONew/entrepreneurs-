@@ -7,7 +7,8 @@
     "build": "node make_rulebook.mjs && node build.mjs",
     "rulebook": "node check_rulebook.mjs && node make_rulebook.mjs",
     "docx": "node make_docx.mjs --both",
-    "check-rulebook": "node check_rulebook.mjs"
+    "check-rulebook": "node check_rulebook.mjs",
+    "test": "node run_tests.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.1",
