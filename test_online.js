@@ -2,7 +2,10 @@
    game against the live server. Nothing shares memory: everything goes over HTTP. */
 const http = require("http");
 
-const HOST = "127.0.0.1", PORT = 8080;
+/* `npm test` starts the server on a free port and says where in BASE, so this cannot
+   assume 8080 - an assumption that went unnoticed while nothing ran the suite. */
+const { hostname: HOST, port: PORT } =
+  new URL(process.env.BASE || "http://127.0.0.1:8080");
 
 function post(path, body) {
   return new Promise((res, rej) => {

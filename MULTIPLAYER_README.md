@@ -60,6 +60,33 @@ PORT=3000 node server.js  # or pick a port
 
 Then open `http://localhost:8080`.
 
+## Running the tests
+
+```bash
+npm test                 # the whole suite
+npm test -- accounts     # only tests whose filename contains "accounts"
+npm test -- -v           # print each test's own checks, passing or failing
+npm test -- --keep       # keep the temp data directory to inspect afterwards
+```
+
+`npm test` starts its own server on a free port and its own throwaway
+`ENT_DATA_DIR`, then tears both down. That matters for two reasons. Most of the
+suite talks to a server over HTTP and none of the tests start one, so running a
+test file directly against nothing gives you `ECONNREFUSED` and a red test that
+looks exactly like a product bug. And the tests create accounts and finish games
+on purpose, so pointing them at the real data directory would scribble over it.
+
+If you do want to run a single file by hand, give it both:
+
+```bash
+ENT_DATA_DIR=/tmp/ent-test PORT=8080 node server.js &
+ENT_DATA_DIR=/tmp/ent-test node test_online.js
+```
+
+The browser tests need Chromium. They use `playwright-core` and take the binary's
+path from `CHROMIUM`, or `PLAYWRIGHT_BROWSERS_PATH`, falling back to
+`/opt/pw-browsers/chromium`. One place sets this — `launchBrowser` in `testkit.js`.
+
 ### Playing with friends over the internet
 
 The server is a normal HTTP server, so any of these work:
@@ -175,11 +202,12 @@ Entrepreneurs_Rulebook_v13_Tabletop.docx   the physical game, no app concepts   
 Entrepreneurs_Rulebook_v13.docx   the app's rulebook   <- generated
 Entrepreneurs_Rulebook_v13_Designers_Edition.docx   ...with the notes   <- generated
 Entrepreneurs_Rulebook_v12.docx   the previous edition, hand-written, kept for reference
-test_online.js         two-client end-to-end test — run the server, then this
+run_tests.mjs          the suite runner behind `npm test` — owns the server and the data dir
+test_online.js         two-client end-to-end test (needs a server; `npm test` provides one)
 test_2humans.js        engine-level test: full game with two humans
 test_rulebook_v13.js   conformance: pins the engine to every clause of Rulebook v13
 test_preventive.js     regression test: the Public Health Director rule (engine only)
-test_preventive_ui.js  the same persona through the real page - needs the server
+test_preventive_ui.js  the same persona through the real page (needs a server)
 test_matchlog.js       the match record, the hall of fame and the statistics
 test_records_ui.js     plays real games and reads the records back off the page
 test_variants.js       every optional rule, and that they are all off by default

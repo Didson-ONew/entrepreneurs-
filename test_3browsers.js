@@ -1,8 +1,22 @@
 /* Three independent browsers in one room: verify all three get turns, stay in sync,
    and the game advances. Plays ~2 quarters rather than a full game. */
-const { chromium } = require("playwright");
-const URL = "http://127.0.0.1:8080/";
+const { launchBrowser } = require("./testkit.js");
+/* The runner picks a free port rather than assuming 8080 is idle, so read where
+   the server actually is. */
+const BASE = process.env.BASE || "http://127.0.0.1:8080";
+const URL = BASE + "/";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* This test printed its findings and exited 0 whatever they said, so a run reporting
+   "false" still counted as a pass. Assertions now reach the exit code; lines that are
+   genuinely informational stay as console.log. */
+let fails = 0;
+function check(label, ok, detail) {
+  if (!ok) fails++;
+  console.log(" " + (ok ? "ok  " : "FAIL") + "  " + label
+    + (detail !== undefined && detail !== "" ? "  [" + detail + "]" : ""));
+}
+
 async function txt(p) {
   try { return await p.evaluate(() => (document.getElementById("root") || {}).innerText || ""); }
   catch { return ""; }
@@ -54,7 +68,7 @@ async function tryAct(p) {
 }
 
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
   const pages = [];
   const names = ["Ana", "Bruno", "Cleo"];
   const errs = [];
@@ -84,12 +98,12 @@ async function tryAct(p) {
     await waitText(p, /Room code/);
   }
   const allSeen = await waitText(A, /Cleo/);
-  console.log("host sees all three players:", allSeen);
+  check("host sees all three players", allSeen);
 
   await A.getByText(/Start game/).click();
   let entered = true;
   for (const p of pages) entered = entered && (await waitText(p, /PLANNING & ACTION TRACKS|Draft your starting/));
-  console.log("all three entered the game:", entered);
+  check("all three entered the game", entered);
 
   const acted = { Ana: 0, Bruno: 0, Cleo: 0 };
   let steps = 0, quarter = 0;
@@ -106,13 +120,14 @@ async function tryAct(p) {
   }
   console.log(`reached quarter ${quarter} in ${steps} steps`);
   console.log("actions per player:", JSON.stringify(acted));
-  console.log("every player got turns:", Object.values(acted).every((n) => n > 0));
+  check("every player got turns", Object.values(acted).every((n) => n > 0));
 
   // sync check: all three show the same quarter and standings header
   const t3 = await Promise.all(pages.map(txt));
   const qs = t3.map((t) => (t.match(/\bQ(\d)\b[\s\S]{0,80}?(Planning|Action|Production|Revenue|Closing)/) || [])[1]);
   console.log("quarters shown:", JSON.stringify(qs), "| in sync:", qs.every((q) => q === qs[0]));
-  console.log("page errors:", errs.length ? errs.slice(0, 3) : "none");
+  check("no page errors", errs.length === 0, errs.slice(0, 3).join(" | "));
   await browser.close();
-  process.exit(0);
+  console.log(fails ? "\n" + fails + " check(s) failed" : "\nall checks passed");
+  process.exit(fails);
 })();

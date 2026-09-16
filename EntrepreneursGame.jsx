@@ -6103,7 +6103,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
             </div>
             <div className="text-[11px] text-gray-300 leading-snug">{PERSONAS[human.persona].blurb}</div>
             <div className="text-[10px] mt-1.5" style={{ color: IND_COLOR[PERSONAS[human.persona].ind] }}>
-              Worth weighing as you draft &mdash; but the 5 EP for entering each industry still rewards breadth.
+              Worth weighing as you draft &mdash; but the {INDUSTRY_DEBUT_EP} EP for entering each industry still rewards breadth.
             </div>
           </div>
         )}

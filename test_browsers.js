@@ -1,9 +1,23 @@
 /* Two independent browser windows join the same room and play a real game.
    Nothing is shared between them except the server. */
-const { chromium } = require("playwright");
-const URL = "http://127.0.0.1:8080/";
+const { launchBrowser } = require("./testkit.js");
+/* The runner picks a free port rather than assuming 8080 is idle, so read where
+   the server actually is. */
+const BASE = process.env.BASE || "http://127.0.0.1:8080";
+const URL = BASE + "/";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+
+/* This test printed its findings and never set an exit code at all, so nothing it
+   discovered could fail a run. Assertions now reach the exit code; lines that are
+   genuinely informational stay as console.log. */
+let fails = 0;
+function check(label, ok, detail) {
+  if (!ok) fails++;
+  console.log(" " + (ok ? "ok  " : "FAIL") + "  " + label
+    + (detail !== undefined && detail !== "" ? "  [" + detail + "]" : ""));
+}
 
 async function txt(p) { return p.evaluate(() => document.getElementById("root").innerText); }
 async function waitText(p, re, ms = 8000) {
@@ -160,7 +174,7 @@ async function tryAct(p) { /* returns branch label or null */
 
 const T0 = Date.now();
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
   browser.on("disconnected", () => console.log("!! BROWSER DISCONNECTED after", Date.now() - T0, "ms"));
   const ctxA = await browser.newContext({ viewport: { width: 1400, height: 950 } });
   const ctxB = await browser.newContext({ viewport: { width: 1400, height: 950 } });
@@ -188,18 +202,18 @@ const T0 = Date.now();
   await B.locator('input[placeholder="ROOM CODE"]').fill(code);
   await B.getByRole("button", { name: "Join room" }).click({ timeout: 2500 }).catch(() => {});
   await B.waitForTimeout(700);
-  console.log("Bruno sees room:", /Waiting for the host/.test(await txt(B)));
-  console.log("Ana sees Bruno in the room:", /Bruno/.test(await txt(A)));
+  check("Bruno sees room", /Waiting for the host/.test(await txt(B)));
+  check("Ana sees Bruno in the room", /Bruno/.test(await txt(A)));
 
   console.log("\n=== START ===");
   await A.getByRole("button", { name: /Start game/ }).click({ timeout: 2500 }).catch(() => {});
   const started = await waitText(A, /Quarter 1 of 12|Draft your starting/, 8000)
     && await waitText(B, /Quarter 1 of 12|Draft your starting/, 8000);
-  console.log("both browsers entered the game:", started);
+  check("both browsers entered the game", started);
 
   console.log("\n=== PLAYING ===");
   const stallDump = async () => {  // STALLDUMP
-    const dbg = await fetch(`http://127.0.0.1:8080/api/debug?code=${code}`).then((r) => r.json()).catch(() => null);
+    const dbg = await fetch(`${BASE}/api/debug?code=${code}`).then((r) => r.json()).catch(() => null);
     console.log("SERVER:", JSON.stringify(dbg));
     for (const [nm, P] of [["A", A], ["B", B]]) {
       const t = await txt(P);
@@ -227,7 +241,7 @@ const T0 = Date.now();
        reads "Q1" from the first pill forever and this loop cries stall at a game
        that is running perfectly well. */
     const qNow = steps % 5 === 0
-      ? await fetch(`http://127.0.0.1:8080/api/debug?code=${code}`).then((r) => r.json()).then((d) => d.quarter || 0).catch(() => lastQ)
+      ? await fetch(`${BASE}/api/debug?code=${code}`).then((r) => r.json()).then((d) => d.quarter || 0).catch(() => lastQ)
       : lastQ;
     if (qNow > lastQ) { lastQ = qNow; lastQStep = steps; console.log(`  Q${qNow} at step ${steps}`); }
     if (steps - lastQStep > 150) {
@@ -258,20 +272,22 @@ const T0 = Date.now();
   }
 
   const finalA = await txt(A), finalB = await txt(B);
-  const q = await fetch(`http://127.0.0.1:8080/api/debug?code=${code}`)
+  const q = await fetch(`${BASE}/api/debug?code=${code}`)
     .then((r) => r.json()).then((d) => d.quarter).catch(() => null);   // see the note above
   console.log(`\nactions taken: ${acted} | quarter reached: ${q || "end"}`);
-  console.log("A reached Game Over:", /Game Over/.test(finalA));
-  console.log("B reached Game Over:", /Game Over/.test(finalB));
+  check("A reached Game Over", /Game Over/.test(finalA));
+  check("B reached Game Over", /Game Over/.test(finalB));
 
   // both should show the same standings
   const scoreOf = (t) => (t.match(/(\d+)\s*EP/g) || []).slice(0, 4).join(",");
   console.log("A scores:", scoreOf(finalA));
   console.log("B scores:", scoreOf(finalB));
-  console.log("both browsers agree:", scoreOf(finalA) === scoreOf(finalB));
-  console.log("\npage errors:", errs.length ? JSON.stringify(errs.slice(0, 4)) : "none");
+  check("both browsers agree", scoreOf(finalA) === scoreOf(finalB), scoreOf(finalA));
+  check("no page errors", errs.length === 0, errs.slice(0, 3).join(" | "));
 
   await A.screenshot({ path: "shot_online_A.png" });
   await B.screenshot({ path: "shot_online_B.png" });
   await browser.close();
+  console.log(fails ? "\n" + fails + " check(s) failed" : "\nall checks passed");
+  process.exit(fails);
 })();
