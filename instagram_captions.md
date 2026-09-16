@@ -469,3 +469,382 @@ the repo already — the rent rate, the cash rate, the price climb, and the
 Manufacturing panel no simulation could have caught because bots never touch the
 human path. That is a series, not a post, and it is the thing nobody else in this
 space can copy.
+
+---
+
+# Part two — the physical prototype
+
+Everything above is a generated asset explaining a system. This block is the
+opposite: photographs of the thing existing in the world. A print run, a paper
+board somebody cut by hand, five people around a table, and the first 3D models.
+
+It is the material the account has been missing. The earlier sequence proves the game
+is *designed*; these prove it is *real*, and that is a different and easier sell.
+
+**These are lettered A–J rather than numbered into the sequence.** Each one stands
+alone and none of them refers to an earlier post, so they slot into whatever is
+already live, in any order. I could not check what is actually on the grid —
+instagram.com is blocked by this environment's egress policy — so nothing here
+assumes it.
+
+**Photo keys** used below refer to the batch as shot:
+
+```
+P1  Planning & Action board, in hand at the print shop
+P2  Industry Decks & Pots sheet, same
+P3  The six Founder Portfolio boards, fanned so every persona name shows
+P4  Four Megacorp tiles fanned - Silent Merger, Apex Group, Skyline Consolidated
+P5  Utilities cards fanned, Smart Grid Node in front
+P6  The full paper prototype, set up, before anyone has moved
+P7  The same table mid-game, chips and block stacks everywhere
+P8  Low angle, towers up, the city reading as a city
+P9  Wide room shot - the board, and a cello in the background
+P10 3D: teal tower and purple factory, black pyramid seated on top
+P11 3D: yellow power plant, cooling towers
+P12 3D: peach hotel block
+P13 3D: the whole set laid out - eighteen buildings, four discs, the pyramid
+P14 3D: blue dental clinic, close
+P15 3D: yellow wind farm
+```
+
+---
+
+## ⚠ Read this before you post P1, P2 or P5
+
+Three numbers on that print run no longer match the shipped game. Two are
+printing errors you should correct; the third is a rule that moved after the
+files were made.
+
+**1 · Every base price on the Industry Decks sheet is $2 low.** P2 prints
+UT $2, RE $2, HO $3, MA $3, HC $4, TE $4. The engine and the rulebook both say
+UT $4, RE $4, HO $5, MA $5, HC $6, TE $6. It is a clean −$2 across all six,
+which is the signature of the old $1–$10 price track — these files were built
+before the track moved to $2–$12.
+
+**2 · The industry debut bonus on the Planning & Action board says +5 EP.** P1,
+under 02 M&A → LAUNCH: *"First time in an industry: +5 EP, immediately."* The
+engine pays **3** (`INDUSTRY_DEBUT_EP`). Same stale figure that was sitting in
+the online hover tips until this cycle.
+
+**3 · The OPEX split on every company card is pre-split.** P5's Smart Grid Node
+shows OPEX −$7 and an OPEX SPLIT of HO $4 / HC $3 — the whole bill going to
+suppliers. Since ground rent came out of OPEX, a level-1 copy of that card pays
+**$5** into the pots (HO $3 / HC $2) and $2 per level in ground rent on any plot
+it stands on that it does not own. The card cannot show that without a reprint,
+but a one-line insert in the box covers it.
+
+Everything else I checked on those sheets is correct: the $20 loan, the
+$30 / $35 / $40 buyback, −5 EP per disc left pledged, the scaling directions on
+all six industries, the Megacorp $5 siphon, and the Q4 / Q8 / Q12 year-end rings.
+
+Post J below turns error 1 into content, which is the cheapest fix available
+and the most on-brand one.
+
+---
+
+## A · Carousel — the day it stopped being a PDF
+`P1 · P2 · P3 · P6`
+
+> For months this was a browser tab and a stack of card I cut myself with a craft
+> knife. Today I picked it up off a printer.
+>
+> Six industry decks. Six founder boards. A planning board that finally fits the
+> four action tracks without me apologising for the layout.
+>
+> Nothing about the game changed. It plays exactly as it did on the paper version
+> I've been testing all year. But there is a real difference between asking four
+> friends to sit down in front of something you glued together and asking them to
+> sit down in front of something that looks like a game.
+>
+> Half of a prototype's job is getting people to take it seriously for the first
+> twenty minutes. Then the rules have to do the rest.
+>
+> 🏗️
+
+*Slide order matters: lead on P1 held in the hand, because the hand is what makes
+it read as real rather than as a render. P6 last — it is the payoff.*
+
+---
+
+## B · Carousel — everything on one card
+`P5` plus three crops of the Smart Grid Node
+
+> One card. Eleven numbers. Here is what each one is for.
+>
+> **SETUP $20** — what it costs to put on the board.
+> **OPEX −$7** — what it costs to keep there, every single quarter.
+> **PROD 8** — how many units it makes.
+> **2 PLOTS · HORIZONTAL** — its footprint, and the direction it grows when
+> upgraded. Horizontal companies spread sideways across the city. Vertical ones
+> stack.
+> **SUPPLIERS: HO $4 · HC $3** — and this is the one that matters.
+>
+> That $7 doesn't go to the bank. It goes to Hospitality and Healthcare — into
+> pots that the players who built *there* collect from. Your overheads are
+> somebody else's revenue.
+>
+> Which means you can look at a card before you buy it and know exactly who you
+> are about to start paying, and how much, for the rest of the game.
+>
+> There are sixty of these. Ten per industry.
+>
+> 🏗️
+
+*This is the strongest teaching image in the whole batch — the card is legible at
+feed size and every number on it has a consequence. If you make only one carousel
+from this set, make this one.*
+
+*Correct the supplier line before you post: under the current rules a level-1
+copy pays $5 into the pots, not $7 — the rest is ground rent. Either reshoot with
+a corrected card or phrase it as "HO and HC get most of that $7; the rest is rent
+on the ground it stands on."*
+
+---
+
+## C · Carousel — six founders, one sentence each
+`P3` plus a slide per persona
+
+> Four friends played this for the first time last week without personas. The
+> thing they all said afterwards: they spent the first two quarters trying to
+> understand all six industries before they could decide where to start.
+>
+> That is a real failure, and personas are the fix. Not because they make you
+> stronger — because they give you somewhere to look first.
+>
+> **Concession Holder** (Utilities) — your production sells for $1 above the
+> current price.
+> **Supply Chain Expert** (Retail) — raise one industry you're *not* in, then
+> reach one extra district.
+> **Resort Developer** (Hospitality) — your hotels upgrade sideways, so more
+> businesses end up adjacent to them.
+> **White-Label Supplier** (Manufacturing) — when you cross-sell into another
+> industry's demand, you get paid *that* industry's price.
+> **Public Health Director** (Healthcare) — your companies ignore the level
+> restriction entirely.
+> **Systems Architect** (Technology) — your companies upgrade straight up, on one
+> plot, instead of needing a free one beside them.
+>
+> Six specialists, 2,400 simulated games, and a spread of twelve points between
+> the best and the worst. Not balanced. Balanced enough that the worst one still
+> wins.
+>
+> 🏗️
+
+*The playtest anecdote is the hook — it makes the persona list an answer to a
+problem rather than a feature list. Put P3 first and one persona per slide after.*
+
+---
+
+## D · Carousel — the four-quarter race nobody sees coming
+`P4`
+
+> Sixteen Megacorp tiles. Each one is a merger you have to actually be able to
+> pay for.
+>
+> **Silent Merger — 11 EP.** Three level-2 companies, any industries.
+> **Crossroads Deal — 14 EP.** One L1, three L2, any industries.
+> **Skyline Consolidated — 15 EP.** Three level-3 companies.
+> **Apex Group — 16 EP.** Two L2 and two L3.
+>
+> You merge the companies, all but one get discarded, and the survivor becomes a
+> headquarters. It stops trading. It sits there as a monument, and every quarter
+> it takes **$5 out of the industry pot of every business standing next to it.**
+>
+> So the tile is worth 11 to 16 points, and the HQ is worth whatever the
+> neighbourhood is worth. You are not just picking the biggest number. You are
+> picking a corner and betting the district fills in around it.
+>
+> The first player to form one also takes the IPO tile. Everyone else is racing
+> for what's left.
+>
+> 🏗️
+
+---
+
+## E · Static or Reel — what a paper prototype actually costs
+`P6 · P9`
+
+> This is twenty-odd hours with a craft knife, a colour printer and a cutting mat
+> that has seen things.
+>
+> Every district hand-cut. Every demand tile hand-cut. Company levels tracked with
+> translucent building blocks, because they stack and you can see through them.
+> Player discs are poker chips. Megacorp HQs are, for now, pill bottles.
+>
+> I don't romanticise this part. It is slow and it is boring and the second copy
+> takes as long as the first. But there is no substitute for it: a rule that looks
+> elegant in a simulation can still be the rule that makes five people wait while
+> one person counts.
+>
+> You find that out at a table or you don't find it out.
+>
+> 🏗️
+
+*P9 is the better opener of the two — the cello in the background is the whole
+point. It reads as somebody's living room, not a studio, and that is the most
+credible thing in the batch.*
+
+---
+
+## F · Carousel — five people, one table, three hours
+`P8 · P7 · P9`
+
+> First full tabletop playtest. Four friends, none of whom had seen it before,
+> none of whom I let read the rulebook first.
+>
+> What worked: nobody needed the rules explained twice after the second quarter.
+> The supply web taught itself — the moment one player's overheads visibly landed
+> in another player's pot, everyone understood the whole economy at once.
+>
+> What didn't: the opening. Two quarters of people trying to understand all six
+> industries before committing to one. Two of them said the horizontal companies
+> were one concept too many.
+>
+> What I hadn't expected: they immediately started talking about it as a campaign.
+> A stripped-down version for the first game, more of the machine switched on as
+> people come back to it. That was not my idea and it is better than my idea.
+>
+> Playtesting is the only part of design where you are guaranteed to learn
+> something. Everything else, you can talk yourself into.
+>
+> 🏗️
+
+*Ask a question in the caption's last line to get comments — "designers: what do
+you cut from a first game?" works, and it is a question you genuinely want
+answered.*
+
+---
+
+## G · Carousel — from pill bottles to buildings
+`P8` → `P13`
+
+> Left: the company levels in last week's playtest, tracked with translucent
+> blocks and an empty vitamin bottle.
+>
+> Right: the same eighteen companies, modelled.
+>
+> The blocks worked. That is the uncomfortable part — they were completely legible,
+> you could count a level from across the table, and they cost nothing. If the only
+> question were "does it function", I would stop here.
+>
+> But the board is a city, and a city made of anonymous cubes asks you to remember
+> what every cube is. A dental clinic that looks like a dental clinic does not need
+> remembering. That is a real mechanical benefit, not a cosmetic one, and it is the
+> only argument for spending the money.
+>
+> 🏗️
+
+*This is the highest-performing format in the batch: a genuine before/after where
+the "before" is not embarrassing. Do it as two slides, not a slider.*
+
+---
+
+## H · Carousel — every building is a real business
+`P13 · P14 · P11 · P15 · P12 · P10`
+
+> Eighteen buildings. Six industries, three levels each.
+>
+> A dental clinic. A wind farm. A coal plant with cooling towers. A hotel with
+> balconies on all four sides. None of it is decoration — the board is a city grid
+> and a company's footprint is the ground it actually stands on, so the pieces have
+> to read at a glance from any seat at the table.
+>
+> The Utilities line is my favourite thing here. Level 1 is a small solar plant.
+> Level 3 is a wind farm the size of a district. You can watch somebody's power
+> company grow up over twelve quarters without ever reading their board.
+>
+> 🏗️
+
+*P13 — the full set laid out — is the single best image in this batch for a cold
+audience. It is the one that looks like a product. Consider it as a standalone
+grid post too.*
+
+---
+
+## I · Static — the black pyramid
+`P10`
+
+> One piece on the board is not a building.
+>
+> When you merge companies into a Megacorp, the survivor stops being a business
+> and becomes a headquarters. It never trades again. It just sits there and takes
+> $5 a quarter out of the industry pot of everything built beside it.
+>
+> So it gets the black pyramid, and the pyramid sits on top of whatever the
+> building used to be. You can see at a glance which corner of the city somebody
+> decided to own.
+>
+> At the end of the game it scores again for every company standing next to it —
+> counted at the *end*, not when it formed. Which makes it a bet rather than a
+> snapshot: you pick the corner, and then you either build the district up
+> yourself or watch everybody else refuse to.
+>
+> 🏗️
+
+---
+
+## J · Static — the print run I have to reprint
+`P2`, with the base-price row circled
+
+> I picked up a fresh print run this week. Every base price on the industry sheet
+> is two dollars too low.
+>
+> Not a typo — a fossil. The price track used to run $1 to $10. It runs $2 to $12
+> now, and it has for months. The print files were built from the old economy and
+> I never went back and checked them, because I was reading them as a layout rather
+> than as data.
+>
+> The online version, the rulebook and the engine all agree with each other. The
+> only thing in the whole project that disagrees is the version I just paid to have
+> printed and handed to four people.
+>
+> Two lessons and I only like one of them. The one I like: anything with a number
+> on it should be generated from the source, and the sheets that *are* generated in
+> this project have never once been wrong. The one I don't: I have been carefully
+> validating the parts that were already safe.
+>
+> 🏗️
+
+*This is the strongest post in the block and the one you will be most reluctant to
+make. It belongs to the "I predicted X and was wrong" series, it costs you nothing
+— everyone reprints — and an audience of designers will recognise it instantly as
+the mistake they made last month.*
+
+---
+
+### Hashtags
+
+Rotate, don't repeat the same block. Twelve to fifteen is the useful range.
+
+**Core, every post:**
+`#boardgames #boardgamedesign #tabletop #gamedesign #indiegamedev #boardgamegeek`
+
+**Prototype and process posts (15, 19, 20, 21, 23b):**
+`#prototype #printandplay #gameprototype #playtest #playtesting #designdiary
+#madebyhand #tabletopdesign`
+
+**Component and render posts (16, 18, 22, 23):**
+`#boardgamephotography #gamecomponents #3dmodeling #blender #miniatures
+#componentdesign #graphicdesign`
+
+**Audience and genre (14, 16, 17, 18):**
+`#eurogame #heavyeuro #economicgame #strategygames #bgg #boardgamecommunity
+#tabletopgaming`
+
+### Order to post them in
+
+Two a week, in this order. It alternates a "look at the object" post with a
+"here is how it works" post, so the feed never reads as either a gallery or a
+lecture.
+
+```
+week 1   A (print run)         B (one card)
+week 2   G (before/after)      D (Megacorps)
+week 3   H (the buildings)     C (six founders)
+week 4   F (the playtest)      J (the wrong print run)
+week 5   I (black pyramid)     E (what it costs)
+```
+
+This is an order for these ten relative to each other, not to anything already on
+the grid. Post J lands late on purpose: by then the account has shown the object
+enough times that an admission reads as confidence rather than as a disclaimer.
