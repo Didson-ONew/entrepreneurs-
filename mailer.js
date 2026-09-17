@@ -183,8 +183,15 @@ async function viaWebhook(c, msg, fetchImpl = fetch) {
        version read and threw away. */
     let said = "";
     try { said = (await r.text()).replace(/\s+/g, " ").trim().slice(0, 300); } catch (_) {}
+    /* On a refusal, say which credential headers went out and roughly what shape they
+       were. "Key not found" with no idea whether the header even arrived is a guessing
+       game, and the answer is usually visible in the prefix. */
+    const creds = Object.entries(headers)
+      .filter(([k]) => k.toLowerCase() !== "content-type")
+      .map(([k, v]) => headerShape(k, v));
     return { ok: false, via: "webhook",
-      error: `mail API answered ${r.status}${said ? `: ${said}` : ""}` };
+      error: `mail API answered ${r.status}${said ? `: ${said}` : ""}`
+        + ` - sent ${creds.length ? creds.join(", ") : "NO credential header at all"}` };
   } catch (e) {
     return { ok: false, via: "webhook", error: explain(e) };
   } finally {
@@ -296,6 +303,25 @@ function viaSmtp(c, msg, connect) {
       sock.end();
     })().catch((e) => { fail(e); try { sock.destroy(); } catch (_) {} });
   });
+}
+
+/* Enough about a credential to recognise the wrong one, and not enough to use it.
+
+   A rejected key is the commonest failure here and the least self-evident: the
+   dashboards hand out more than one kind. Brevo's REST keys begin "xkeysib-" and its
+   SMTP-relay keys "xsmtpsib-", and posting the second to the first gets you a 401
+   saying only "Key not found". Brevo also masks the key in its own list view, so a
+   copy made from there is a truncated string that fails identically.
+
+   Both are obvious from the prefix and the length, so those are reported and nothing
+   else. The prefix is shown only when it ends at a dash within the first dozen
+   characters - every key format that marks itself this way does so publicly, and a
+   key with no such marker has nothing revealed but how long it is. */
+function headerShape(name, value) {
+  const v = String(value == null ? "" : value);
+  const dash = v.indexOf("-");
+  const prefix = dash > 0 && dash <= 12 ? v.slice(0, dash + 1) + "\u2026" : "";
+  return `${name.toLowerCase()} (${prefix}${v.length} chars)`;
 }
 
 /* Say what actually went wrong.

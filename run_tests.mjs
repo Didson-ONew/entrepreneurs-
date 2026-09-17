@@ -95,7 +95,12 @@ try {
       let out = "";
       p.stdout.on("data", (d) => { out += d; });
       p.stderr.on("data", (d) => { out += d; });
-      const timer = setTimeout(() => p.kill("SIGKILL"), 240000);
+      /* Generous on purpose. The browser tests play whole games and normally finish
+         inside a minute, but one was killed at exactly this mark during a full run and
+         passed in 57 seconds on its own - so the old ceiling was close enough to
+         ordinary variation to turn contention into a red test. A hang still gets
+         caught; it just takes longer to say so. */
+      const timer = setTimeout(() => p.kill("SIGKILL"), 420000);
       p.on("close", (c) => {
         clearTimeout(timer);
         lastOut = out;

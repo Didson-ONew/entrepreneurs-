@@ -39,6 +39,8 @@ const slice = (startNeedle, endNeedle, keepEnd) => {
    declaration lands in the source twice. */
 const block = slice("const SUPPLY = (() => {", "const TUTORIAL = [", false)
   + slice("const TUTORIAL = [", "\n];", true);
+/* The steps interpolate these when they are built, so they have to be real here. */
+const consts = "const INDUSTRIES_T = INDUSTRIES;";
 
 /* The steps point at little SVG illustrations defined elsewhere in the UI half. They
    are values here, not behaviour, so stub whatever names the block mentions rather
@@ -51,7 +53,8 @@ const box = {}, sb = { console, Math, Set, Object, Array, JSON, String, box };
 vm.createContext(sb);
 vm.runInContext(engine + "\n" + artStubs + "\n" + block + `
   box.e = { TUTORIAL, SUPPLY, MEGACORP_EP, TUT_LEVEL_EP,
-    INDUSTRY_DEBUT_EP, LAND_AWARD, levelEP, BP_DATA, INDUSTRIES, MEGACORP_TILES };`, sb);
+    INDUSTRY_DEBUT_EP, LAND_AWARD, levelEP, BP_DATA, INDUSTRIES, MEGACORP_TILES,
+    SCALING, RENT_PER_LEVEL };`, sb);
 const E = box.e;
 
 const all = E.TUTORIAL.flatMap((s) => [s.title, s.body, ...(s.points || [])]).join("\n");
@@ -101,6 +104,62 @@ check("and the tutorial says that number",
   `each buys from ${degrees[0]}`);
 check("the six-industry ring is gone",
   !/back to UT/.test(all) && !/UT → HO → MA/.test(all));
+
+/* --- the pictures, which is where the last round of this hid -------------------
+
+   Correcting the bullets left both illustrations still saying the old thing: ArtChain
+   drew the six-industry ring, and every number in ArtScoring was the pre-change one.
+   Nobody re-reads a drawing. These read the SOURCE of the art rather than evaluating
+   it - it is JSX and will not run under plain node - which is enough to catch a
+   hardcoded number or a hand-typed ring coming back. */
+const art = (name) => {
+  const at = ui.indexOf(`function ${name}(`);
+  if (at < 0) { console.error(`${name} is gone - update this test`); process.exit(2); }
+  return ui.slice(at, ui.indexOf("\n}", at));
+};
+
+{
+  const chain = art("ArtChain");
+  check("the supply picture is built from the card data, not a typed ring",
+    /SUPPLY_EDGES/.test(chain));
+  check("and no longer draws each industry to the next one round a circle",
+    !/i \+ 1\) \/ 6/.test(chain));
+
+  const scoring = art("ArtScoring");
+  for (const [label, token] of [
+    ["the industry debut bonus", "INDUSTRY_DEBUT_EP"],
+    ["the per-level rate", "TUT_LEVEL_EP"],
+    ["the land award", "LAND_AWARD.sole"],
+    ["the cash rate", "CASH_PER_EP"],
+  ]) check(`the scoring picture reads ${label} from the engine`, scoring.includes(token));
+  check("and hardcodes none of the old figures",
+    !/"5 EP"|"10 EP"|per \$10|per level, yearly/.test(scoring), scoring.match(/"\d+ EP"/g) + "");
+
+  const scaling = art("ArtScaling");
+  check("the scaling picture reads SCALING rather than listing industries by hand",
+    /SCALING\[i\] === "H"/.test(scaling) && /SCALING\[i\] === "V"/.test(scaling));
+  check("and quotes the rent rate from the engine", /RENT_PER_LEVEL/.test(scaling));
+}
+
+/* --- the step a playtester found missing ------------------------------------- */
+{
+  const step = E.TUTORIAL.find((t) => /spread|stack/i.test(t.title));
+  check("there is a step about how companies take up room", !!step, step && step.title);
+  const text = step ? [step.title, step.body, ...(step.points || [])].join("\n") : "";
+  const H = E.INDUSTRIES.filter((i) => E.SCALING[i] === "H");
+  const V = E.INDUSTRIES.filter((i) => E.SCALING[i] === "V");
+  check("it names every horizontal industry", H.every((i) => text.includes(i)), H.join(","));
+  check("it names every vertical industry", V.every((i) => text.includes(i)), V.join(","));
+  check("it says horizontal and vertical in as many words",
+    /HORIZONTAL/.test(text) && /VERTICAL/.test(text));
+  check("it explains what upgrading does to each", /[Uu]pgrad/.test(text));
+  check("and it quotes the ground rent rate", text.includes(`$${E.RENT_PER_LEVEL} per level`),
+    `RENT_PER_LEVEL = ${E.RENT_PER_LEVEL}`);
+  /* The distinction is only worth teaching if the two really do differ. */
+  check("horizontal and vertical are genuinely different in the engine",
+    H.length > 0 && V.length > 0 && H.every((i) => !V.includes(i)),
+    `H ${H.join("/")} vs V ${V.join("/")}`);
+}
 
 /* --- claims that were checked by hand and are correct; pinned so they stay that way --- */
 check("Utilities and Retail still cannot use hubs",

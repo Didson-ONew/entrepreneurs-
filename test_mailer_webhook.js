@@ -124,6 +124,52 @@ const cfg = (over = {}) => ({
     await api.close();
   }
 
+  /* --- a rejected credential should say which one went, and never print it --- */
+  {
+    const SECRET = "xsmtpsib-0123456789abcdef0123456789abcdef-AbCdEf1234";
+    const api = fakeApi({ status: 401, reply: '{"message":"Key not found","code":"unauthorized"}' });
+    const port = await api.listen();
+    const res = await mailer.send({ to: "p@example.com", subject: "s", text: "t" },
+      cfg({ webhook: `http://127.0.0.1:${port}/`, webhookTemplate: BREVO,
+            webhookHeaders: { "api-key": SECRET } }));
+    await api.close();
+
+    check("the provider's refusal comes through", /401/.test(res.error) && /Key not found/.test(res.error));
+    check("and the credential header is named", /api-key/.test(res.error), res.error);
+    check("with the prefix that tells one kind of key from another",
+      /xsmtpsib-/.test(res.error), res.error);
+    check("and its length, so a masked copy is obvious",
+      new RegExp(String(SECRET.length) + " chars").test(res.error), res.error);
+    /* The whole point of reporting a shape rather than a value. */
+    check("but never the key itself", !res.error.includes(SECRET)
+      && !res.error.includes(SECRET.slice(9, 25)), res.error);
+  }
+
+  /* A key with no public prefix must not have its opening characters shown. */
+  {
+    const SECRET = "SGxxSecretWithNoDashesAtAll1234567890";
+    const api = fakeApi({ status: 403, reply: "forbidden" });
+    const port = await api.listen();
+    const res = await mailer.send({ to: "p@example.com", subject: "s", text: "t" },
+      cfg({ webhook: `http://127.0.0.1:${port}/`, webhookTemplate: BREVO,
+            webhookAuth: "Bearer " + SECRET }));
+    await api.close();
+    check("a key with no marker gives up only its length",
+      /authorization \(\d+ chars\)/.test(res.error) && !res.error.includes(SECRET),
+      res.error);
+  }
+
+  /* The mistake of setting no credential at all. */
+  {
+    const api = fakeApi({ status: 401, reply: '{"message":"Key not found"}' });
+    const port = await api.listen();
+    const res = await mailer.send({ to: "p@example.com", subject: "s", text: "t" },
+      cfg({ webhook: `http://127.0.0.1:${port}/`, webhookTemplate: BREVO }));
+    await api.close();
+    check("a missing credential header is called out as missing",
+      /NO credential header at all/.test(res.error), res.error);
+  }
+
   /* --- bad templates fail before anything is sent --- */
   {
     const api = fakeApi();
