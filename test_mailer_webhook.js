@@ -207,8 +207,20 @@ const cfg = (over = {}) => ({
     for (const k of Object.keys(process.env)) if (/^MAIL_/.test(k)) delete process.env[k];
     process.env.MAIL_WEBHOOK_URL = "https://api.brevo.com/v3/smtp/email";
     process.env.MAIL_WEBHOOK_TEMPLATE = BREVO;
-    check("a good template is reported quietly",
-      /using MAIL_WEBHOOK_TEMPLATE/.test(mailer.describe(mailer.config())));
+
+    /* With SMTP configured, MAIL_FROM defaults to the account that authenticated, so
+       it never has to be set. Move to an HTTP provider, delete the SMTP variables, and
+       that default leaves with them - the sender silently becomes a placeholder no
+       provider will take, and the refusal reads like a fault in the message. */
+    check("an unset sender is caught at boot, not by the provider",
+      /MAIL_FROM is not set/.test(mailer.describe(mailer.config())),
+      mailer.describe(mailer.config()));
+
+    process.env.MAIL_FROM = "Entrepreneurs <entrepreneurs.boardgame@gmail.com>";
+    check("a good template and a real sender are reported quietly",
+      /using MAIL_WEBHOOK_TEMPLATE/.test(mailer.describe(mailer.config()))
+      && !/WARNING/.test(mailer.describe(mailer.config())),
+      mailer.describe(mailer.config()));
     process.env.MAIL_WEBHOOK_TEMPLATE = '{"to":"{{to}}",}';
     check("a broken one is flagged at boot, before a player needs it",
       /WARNING/.test(mailer.describe(mailer.config())), mailer.describe(mailer.config()));
