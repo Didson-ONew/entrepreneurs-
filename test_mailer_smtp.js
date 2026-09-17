@@ -178,6 +178,17 @@ const cfg = (over = {}) => ({
       /smtp\.gmail\.com:465/.test(mailer.describe(c)) && !/abcd/.test(mailer.describe(c)),
       mailer.describe(c));
 
+    /* A display name is fine; a different address is the mistake worth catching. */
+    process.env.MAIL_FROM = "Entrepreneurs <me@gmail.com>";
+    check("a display name on the same address is not flagged",
+      !/WARNING/.test(mailer.describe(mailer.config())), mailer.describe(mailer.config()));
+
+    process.env.MAIL_FROM = "Entrepreneurs <noreply@someone-elses-domain.com>";
+    const warned = mailer.describe(mailer.config());
+    check("but sending as a different address is flagged at boot",
+      /WARNING/.test(warned) && /noreply@someone-elses-domain\.com/.test(warned), warned);
+    delete process.env.MAIL_FROM;
+
     process.env.MAIL_WEBHOOK_URL = "https://example.com/send";
     check("SMTP wins over a webhook when both are set", mailer.config().mode === "smtp");
 

@@ -201,9 +201,20 @@ starting the server and it will use it instead:
   3. Set `MAIL_SMTP_HOST=smtp.gmail.com`, `MAIL_SMTP_USER=you@gmail.com`, and
      `MAIL_SMTP_PASS=` that app password — **not** the account password.
 
-  Mail arrives from that address. Gmail will not let it be anything else, so
-  leave `MAIL_FROM` alone unless you know you need it. Port 465 is the default;
-  `MAIL_SMTP_PORT=587` switches to STARTTLS if something blocks 465.
+  A Gmail account made for the game rather than your personal one is worth the
+  two minutes: players see a project address instead of your own, their replies
+  land somewhere you will actually look, and the app password is scoped to an
+  account that holds nothing.
+
+  Mail arrives from that address. Gmail will not send as any other, so a
+  `MAIL_FROM` naming a different address is refused — the server warns about
+  that at startup rather than letting you find out when somebody forgets their
+  password. Adding a display name is fine and reads better:
+
+      MAIL_FROM="Entrepreneurs <entrepreneurs.boardgame@gmail.com>"
+
+  Port 465 is the default; `MAIL_SMTP_PORT=587` switches to STARTTLS if
+  something blocks 465.
 
   Google caps a consumer account at a few hundred recipients a day, which is
   hundreds of forgotten passwords more than a playtest will produce.

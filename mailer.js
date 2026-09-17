@@ -57,7 +57,17 @@ function config() {
 /* One line for the boot banner, so whoever starts the server knows what will
    happen when a player forgets their password - before one does. */
 function describe(c = config()) {
-  if (c.mode === "smtp") return `reset mail: sent over SMTP as ${c.smtpUser} via ${c.smtpHost}:${c.smtpPort}`;
+  if (c.mode === "smtp") {
+    /* A provider will not let you send as somebody else. Gmail answers a mismatched
+       sender with 553, and this is the one setting a person is likely to get wrong -
+       so say it at boot rather than leaving it for the first forgotten password. */
+    const warn = addrOnly(c.from).toLowerCase() !== c.smtpUser.toLowerCase()
+      ? `  <-- WARNING: MAIL_FROM is ${addrOnly(c.from)} but the account is ${c.smtpUser};`
+        + " most providers, Gmail included, will refuse to send as another address."
+        + " A display name is fine, a different address is not."
+      : "";
+    return `reset mail: sent over SMTP as ${c.smtpUser} via ${c.smtpHost}:${c.smtpPort}${warn}`;
+  }
   if (c.mode === "webhook") return `reset mail: POSTed to ${c.webhook}`;
   if (c.mode === "command") return `reset mail: piped to \`${c.command}\``;
   return "reset mail: printed here in this terminal (set MAIL_WEBHOOK_URL or MAIL_COMMAND to send it properly)";
