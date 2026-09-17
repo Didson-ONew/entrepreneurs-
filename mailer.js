@@ -12,9 +12,16 @@
      MAIL_SMTP_PORT     Verification switched on to exist). Port 465 speaks TLS from
                         the first byte, 587 starts plain and upgrades with STARTTLS;
                         465 is the default because fewer hosts interfere with it.
-     MAIL_WEBHOOK_URL   POST {from, to, subject, text} as JSON. Any transactional
-                        mail API that takes that shape, or a small relay of your own.
-                        MAIL_WEBHOOK_AUTH is sent as the Authorization header.
+     MAIL_WEBHOOK_URL   POST to any transactional mail API over HTTPS - which is
+     MAIL_WEBHOOK_TEMPLATE  what a host that blocks SMTP leaves you. Every provider
+     MAIL_WEBHOOK_AUTH      wants its own JSON, so rather than guessing at theirs,
+     MAIL_WEBHOOK_HEADER    the body is a template you copy from their documentation
+                        and fill with {{to}}, {{subject}}, {{text}}, {{from}},
+                        {{from_email}} and {{from_name}}. Without a template the
+                        body is {from, to, subject, text}, as it always was.
+                        MAIL_WEBHOOK_AUTH goes out as Authorization; providers that
+                        use their own header name take MAIL_WEBHOOK_HEADER instead,
+                        "Name: value", one per line.
      MAIL_COMMAND       a command fed the message on stdin, e.g. "sendmail -t".
      (none set)         the link is printed in the server's own terminal.
 
@@ -33,6 +40,7 @@ const env = (k, d = "") => (process.env[k] == null ? d : String(process.env[k]))
 
 function config() {
   const webhook = env("MAIL_WEBHOOK_URL").trim();
+  const webhookTemplate = env("MAIL_WEBHOOK_TEMPLATE").trim();
   const command = env("MAIL_COMMAND").trim();
   const smtpHost = env("MAIL_SMTP_HOST").trim();
   const smtpUser = env("MAIL_SMTP_USER").trim();
@@ -44,6 +52,8 @@ function config() {
        common way to configure this wrongly and get a silent rejection. */
     from: env("MAIL_FROM", smtp ? smtpUser : "entrepreneurs@localhost").trim(),
     webhook,
+    webhookTemplate,
+    webhookHeaders: parseHeaders(env("MAIL_WEBHOOK_HEADER")),
     webhookAuth: env("MAIL_WEBHOOK_AUTH").trim(),
     command,
     smtpHost,
@@ -68,9 +78,67 @@ function describe(c = config()) {
       : "";
     return `reset mail: sent over SMTP as ${c.smtpUser} via ${c.smtpHost}:${c.smtpPort}${warn}`;
   }
-  if (c.mode === "webhook") return `reset mail: POSTed to ${c.webhook}`;
+  if (c.mode === "webhook") {
+    /* A template that cannot produce valid JSON should be found at boot, not by the
+       first player who forgets their password. */
+    const dry = c.webhookTemplate
+      ? fillTemplate(c.webhookTemplate, templateValues(c, { to: "a@b.c", subject: "s", text: "t" }))
+      : null;
+    const shape = !c.webhookTemplate ? " with the default {from, to, subject, text} body"
+      : dry.error ? `  <-- WARNING: ${dry.error}` : " using MAIL_WEBHOOK_TEMPLATE";
+    return `reset mail: POSTed to ${c.webhook}${shape}`;
+  }
   if (c.mode === "command") return `reset mail: piped to \`${c.command}\``;
   return "reset mail: printed here in this terminal (set MAIL_WEBHOOK_URL or MAIL_COMMAND to send it properly)";
+}
+
+/* "api-key: abc123", one per line. Providers that do not use Authorization - Brevo
+   and Postmark among them - need their own header, and there is no reason to make
+   that a code change. */
+function parseHeaders(raw) {
+  const out = {};
+  for (const line of String(raw || "").split(/\r?\n/)) {
+    const at = line.indexOf(":");
+    if (at <= 0) continue;
+    const name = line.slice(0, at).trim();
+    const value = line.slice(at + 1).trim();
+    if (name && value) out[name] = value;
+  }
+  return out;
+}
+
+/* Fill a provider's JSON with this message.
+
+   The values are escaped as JSON string contents - the template supplies the
+   quotes around each placeholder - because the reset mail is several lines long
+   and a raw newline or an apostrophe pasted into JSON produces a body the provider
+   rejects with something unhelpful. Then the result is parsed before it is sent:
+   a template with a typo in it should fail here, saying so, rather than as a 400
+   from somebody else's API. */
+function fillTemplate(tpl, values) {
+  const esc = (v) => JSON.stringify(String(v == null ? "" : v)).slice(1, -1);
+  const missing = [];
+  const filled = tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
+    if (!(key in values)) { missing.push(key); return ""; }
+    return esc(values[key]);
+  });
+  if (missing.length) {
+    return { error: `MAIL_WEBHOOK_TEMPLATE uses {{${missing[0]}}}, which is not one of `
+      + Object.keys(values).map((k) => `{{${k}}}`).join(", ") };
+  }
+  try { JSON.parse(filled); } catch (e) {
+    return { error: `MAIL_WEBHOOK_TEMPLATE did not produce valid JSON (${e.message})` };
+  }
+  return { body: filled };
+}
+
+/* The pieces a template may ask for. */
+function templateValues(c, msg) {
+  const name = String(c.from).replace(/<[^>]*>/, "").trim().replace(/^"|"$/g, "");
+  return {
+    to: msg.to, subject: msg.subject, text: msg.text,
+    from: c.from, from_email: addrOnly(c.from), from_name: name || addrOnly(c.from),
+  };
 }
 
 function rfc822({ from, to, subject, text }, now = new Date()) {
@@ -92,23 +160,36 @@ function rfc822({ from, to, subject, text }, now = new Date()) {
   ].join("\r\n");
 }
 
-function viaWebhook(c, msg) {
-  return new Promise((resolve) => {
-    const headers = { "Content-Type": "application/json" };
-    if (c.webhookAuth) headers.Authorization = c.webhookAuth;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
-    fetch(c.webhook, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ from: c.from, to: msg.to, subject: msg.subject, text: msg.text }),
-      signal: controller.signal,
-    })
-      .then((r) => resolve(r.ok ? { ok: true, via: "webhook" }
-        : { ok: false, via: "webhook", error: `mail webhook answered ${r.status}` }))
-      .catch((e) => resolve({ ok: false, via: "webhook", error: String(e && e.message || e) }))
-      .finally(() => clearTimeout(timer));
-  });
+async function viaWebhook(c, msg, fetchImpl = fetch) {
+  const headers = { "Content-Type": "application/json", ...c.webhookHeaders };
+  if (c.webhookAuth) headers.Authorization = c.webhookAuth;
+
+  let body;
+  if (c.webhookTemplate) {
+    const made = fillTemplate(c.webhookTemplate, templateValues(c, msg));
+    if (made.error) return { ok: false, via: "webhook", error: made.error };
+    body = made.body;
+  } else {
+    body = JSON.stringify({ from: c.from, to: msg.to, subject: msg.subject, text: msg.text });
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const r = await fetchImpl(c.webhook, { method: "POST", headers, body, signal: controller.signal });
+    if (r.ok) return { ok: true, via: "webhook" };
+    /* The status alone is never the useful part. "The from address does not match a
+       verified Sender Identity" is, and it arrives in the body - which the previous
+       version read and threw away. */
+    let said = "";
+    try { said = (await r.text()).replace(/\s+/g, " ").trim().slice(0, 300); } catch (_) {}
+    return { ok: false, via: "webhook",
+      error: `mail API answered ${r.status}${said ? `: ${said}` : ""}` };
+  } catch (e) {
+    return { ok: false, via: "webhook", error: explain(e) };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /* ---- SMTP ----------------------------------------------------------------
