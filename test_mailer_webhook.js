@@ -212,6 +212,24 @@ const cfg = (over = {}) => ({
     process.env.MAIL_WEBHOOK_TEMPLATE = '{"to":"{{to}}",}';
     check("a broken one is flagged at boot, before a player needs it",
       /WARNING/.test(mailer.describe(mailer.config())), mailer.describe(mailer.config()));
+
+    /* A long key pasted into a field that wraps arrives as a second line with no
+       colon. That line used to be skipped in silence and the credential was quietly
+       cut in half - indistinguishable from a mistyped key. */
+    process.env.MAIL_WEBHOOK_TEMPLATE = BREVO;
+    process.env.MAIL_WEBHOOK_HEADER = "api-key: xkeysib-aaaabbbb\nccccddddeeeeffff";
+    const cfg2 = mailer.config();
+    check("a wrapped header keeps only the part before the break",
+      cfg2.webhookHeaders["api-key"] === "xkeysib-aaaabbbb", cfg2.webhookHeaders["api-key"]);
+    check("and the orphaned line is called out at boot rather than dropped quietly",
+      /no "Name: value" colon/.test(mailer.describe(cfg2)), mailer.describe(cfg2));
+    check("without printing what was on it",
+      !mailer.describe(cfg2).includes("ccccddddeeeeffff"), mailer.describe(cfg2));
+
+    process.env.MAIL_WEBHOOK_HEADER = "api-key: xkeysib-all-on-one-line";
+    check("a well-formed header says nothing",
+      !/colon/.test(mailer.describe(mailer.config())));
+    delete process.env.MAIL_WEBHOOK_HEADER;
     for (const k of Object.keys(process.env)) if (/^MAIL_/.test(k)) delete process.env[k];
     Object.assign(process.env, saved);
   }

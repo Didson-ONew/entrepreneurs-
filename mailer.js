@@ -86,7 +86,13 @@ function describe(c = config()) {
       : null;
     const shape = !c.webhookTemplate ? " with the default {from, to, subject, text} body"
       : dry.error ? `  <-- WARNING: ${dry.error}` : " using MAIL_WEBHOOK_TEMPLATE";
-    return `reset mail: POSTed to ${c.webhook}${shape}`;
+    const orphan = c.webhookHeaders && c.webhookHeaders.__dropped;
+    const wrapped = orphan
+      ? `  <-- WARNING: ${orphan.length} line(s) of MAIL_WEBHOOK_HEADER have no "Name: value" colon`
+        + ` (${orphan.join(", ")} characters) and were ignored - a long key wrapped onto a second`
+        + " line arrives exactly like this, and the part that is used is then truncated"
+      : "";
+    return `reset mail: POSTed to ${c.webhook}${shape}${wrapped}`;
   }
   if (c.mode === "command") return `reset mail: piped to \`${c.command}\``;
   return "reset mail: printed here in this terminal (set MAIL_WEBHOOK_URL or MAIL_COMMAND to send it properly)";
@@ -97,13 +103,20 @@ function describe(c = config()) {
    that a code change. */
 function parseHeaders(raw) {
   const out = {};
+  const dropped = [];
   for (const line of String(raw || "").split(/\r?\n/)) {
+    if (!line.trim()) continue;
     const at = line.indexOf(":");
-    if (at <= 0) continue;
+    if (at <= 0) { dropped.push(line.trim().length); continue; }
     const name = line.slice(0, at).trim();
     const value = line.slice(at + 1).trim();
     if (name && value) out[name] = value;
   }
+  /* A line with no colon used to be skipped in silence. If a long key is pasted and
+     something wraps it, the tail arrives as exactly such a line and the credential is
+     quietly truncated - which looks identical to a mistyped key from the outside.
+     Recorded so describe() can say so; the lengths only, never the text. */
+  if (dropped.length) Object.defineProperty(out, "__dropped", { value: dropped, enumerable: false });
   return out;
 }
 
