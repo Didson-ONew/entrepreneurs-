@@ -4677,19 +4677,39 @@ const TUT_CSS = `
             animation:tutPulse 1.8s ease-in-out infinite; transition:all .35s ease; }
 `;
 
+/* Who buys from whom, read off the cards rather than drawn from memory.
+
+   This used to draw a six-industry RING - UT to HO to MA to HC to RE to TE and back -
+   which the game has never been, and the picture went on saying so after the words
+   beside it were corrected. Every industry buys from three others. Eighteen lines are
+   a hairball if you draw them all at equal weight, so they all sit faintly and one
+   industry's three light up at a time: the claim being made is "three each", and that
+   is what you see, six times over. */
+const SUPPLY_EDGES = (() => {
+  const buys = {};
+  for (const bp of BP_DATA) {
+    const set = (buys[bp.ind] = buys[bp.ind] || new Set());
+    (bp.deps || []).forEach((d) => set.add(d.ind));
+  }
+  return buys;
+})();
+
 function ArtChain() {                       // the six industries feeding each other
   const ring = ["UT", "HO", "MA", "HC", "RE", "TE"];
   const R = 42, cx = 100, cy = 52;
+  const at = (ind) => {
+    const i = ring.indexOf(ind);
+    const a = (i / 6) * 2 * Math.PI - Math.PI / 2;
+    return { x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) * 0.62 };
+  };
   return (
     <svg viewBox="0 0 200 104" style={{ width: "100%", height: 104 }}>
-      {ring.map((_, i) => {
-        const a1 = (i / 6) * 2 * Math.PI - Math.PI / 2;
-        const a2 = ((i + 1) / 6) * 2 * Math.PI - Math.PI / 2;
-        return <line key={i} x1={cx + R * Math.cos(a1)} y1={cy + R * Math.sin(a1) * 0.62}
-          x2={cx + R * Math.cos(a2)} y2={cy + R * Math.sin(a2) * 0.62}
-          stroke="#2c5f4f" strokeWidth="1.5"
-          style={{ animation: `tutFlow 3s linear ${i * 0.5}s infinite` }} />;
-      })}
+      {ring.flatMap((ind, i) => [...(SUPPLY_EDGES[ind] || [])].map((dep) => {
+        const a = at(ind), b = at(dep);
+        return <line key={ind + dep} x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+          stroke={IND_COLOR[ind]} strokeWidth="1.2" opacity="0.18"
+          style={{ animation: `tutFlow 6s linear ${i}s infinite` }} />;
+      }))}
       {ring.map((ind, i) => {
         const a = (i / 6) * 2 * Math.PI - Math.PI / 2;
         const x = cx + R * Math.cos(a), y = cy + R * Math.sin(a) * 0.62;
@@ -4746,9 +4766,72 @@ function ArtFilo() {                        // placed left to right, resolved ri
   );
 }
 
+/* Horizontal spreads across plots, vertical stacks on one. The single most important
+   thing the interface never said: the rulebook has it, the printed cards have it, and
+   the online game mentioned it once, in nine-point grey, inside the launch panel -
+   where you are already committed. A player who has not been told reads "2 PLOTS" on
+   a card as decoration.
+
+   Both sides are drawn from SCALING rather than a list typed here, so an industry that
+   changes which way it grows changes this picture too. */
+function ArtScaling() {
+  const H = INDUSTRIES.filter((i) => SCALING[i] === "H");
+  const V = INDUSTRIES.filter((i) => SCALING[i] === "V");
+  const plot = (x, y, fill, stroke, extra = {}) => (
+    <rect x={x} y={y} width="17" height="17" rx="2" fill={fill} stroke={stroke} strokeWidth="1" {...extra} />
+  );
+  const GRID = "#2c3340", EMPTY = "#161920";
+  return (
+    <svg viewBox="0 0 200 104" style={{ width: "100%", height: 104 }}>
+      {/* --- horizontal: one storey on each of three plots --- */}
+      <text x="6" y="10" fontSize="7.5" fontWeight="700" fill="#67e8f9">HORIZONTAL</text>
+      <text x="6" y="19" fontSize="6.5" fill="#8b93a3">{H.join(" \u00b7 ")}</text>
+      {[0, 1, 2, 3].map((i) => plot(6 + (i % 2) * 19, 26 + Math.floor(i / 2) * 19, EMPTY, GRID))}
+      {plot(6, 26, "#67e8f9", "#67e8f9")}
+      {plot(25, 26, "#67e8f9", "#67e8f9")}
+      {/* the upgrade takes one more plot beside it */}
+      {plot(6, 45, "#67e8f9", "#67e8f9", { opacity: 0.55,
+        style: { animation: "tutPop 3s ease-in-out infinite" } })}
+      <text x="50" y="36" fontSize="6.5" fill="#8b93a3">a level 2 card</text>
+      <text x="50" y="45" fontSize="6.5" fill="#8b93a3">needs 2 plots;</text>
+      <text x="50" y="54" fontSize="6.5" fill="#67e8f9">upgrading takes</text>
+      <text x="50" y="63" fontSize="6.5" fill="#67e8f9">a 3rd beside it</text>
+
+      {/* --- vertical: every storey on one plot --- */}
+      <text x="112" y="10" fontSize="7.5" fontWeight="700" fill="#f5a623">VERTICAL</text>
+      <text x="112" y="19" fontSize="6.5" fill="#8b93a3">{V.join(" \u00b7 ")}</text>
+      {[0, 1, 2, 3].map((i) => plot(112 + (i % 2) * 19, 26 + Math.floor(i / 2) * 19, EMPTY, GRID))}
+      {plot(112, 45, "#f5a623", "#f5a623")}
+      {/* storeys stacked above the same plot */}
+      <rect x="114" y="38" width="13" height="5" rx="1" fill="#f5a623" opacity="0.8" />
+      <rect x="116" y="31" width="9" height="5" rx="1" fill="#f5a623" opacity="0.55"
+        style={{ animation: "tutPop 3s ease-in-out infinite" }} />
+      <text x="152" y="36" fontSize="6.5" fill="#8b93a3">any level fits</text>
+      <text x="152" y="45" fontSize="6.5" fill="#8b93a3">on 1 plot;</text>
+      <text x="152" y="54" fontSize="6.5" fill="#f5a623">upgrading</text>
+      <text x="152" y="63" fontSize="6.5" fill="#f5a623">adds a storey</text>
+
+      {/* Two short lines: this box is 200 units wide and the first draft ran off
+          the end of it on both. */}
+      <text x="6" y="82" fontSize="6.5" fill="#8b93a3">
+        Ground rent: ${RENT_PER_LEVEL} per level on a plot, to whoever owns it.
+      </text>
+      <text x="6" y="93" fontSize="6.5" fill="#8b93a3">
+        Spreading splits it between plots; stacking piles it on one.
+      </text>
+    </svg>
+  );
+}
+
 function ArtScoring() {
-  const bars = [["5 EP", "new industry", "#8fd3b6", 78], ["1 EP", "per level, yearly", "#67e8f9", 46],
-                ["10 EP", "most land", "#f5d76e", 62], ["1 EP", "per $10 left", "#a97bd6", 30]];
+  /* Read off the same constants the bullets beside this do. Every number here was
+     wrong - 5, 1-at-year-end, 10 and $10 against an engine paying 3, 2 immediately,
+     5 and $50 - and it stayed wrong after the words were fixed, because a picture is
+     not something anybody thinks to re-read. */
+  const bars = [[`${INDUSTRY_DEBUT_EP} EP`, "new industry", "#8fd3b6", 78],
+                [`${TUT_LEVEL_EP} EP`, "per company level", "#67e8f9", 46],
+                [`${LAND_AWARD.sole} EP`, "most land", "#f5d76e", 62],
+                ["1 EP", `per $${CASH_PER_EP} left`, "#a97bd6", 30]];
   return (
     <svg viewBox="0 0 200 96" style={{ width: "100%", height: 96 }}>
       {bars.map(([amt, label, col, w], i) => (
@@ -4815,6 +4898,21 @@ const TUTORIAL = [
              "Your OPEX lands in your suppliers' industry pots",
              "Each pot is split evenly among that industry's companies",
              "So an industry nobody serves quietly piles up money"] },
+
+  /* Added because a playtester asked where this was written down and the answer was
+     nowhere a player would look: the launch panel says "Horizontal industries at level
+     2+ need a connected cluster" in nine-point grey, once you are already committed,
+     and never says WHICH industries those are. The designer had stopped seeing it. */
+  { title: "Some industries spread, others stack", target: "board", art: ArtScaling,
+    body: "A company's level decides how much room it needs, and half the industries need it sideways. This is the rule that decides how much land you have to buy.",
+    points: [`HORIZONTAL \u2014 ${INDUSTRIES.filter((i) => SCALING[i] === "H").join(", ")}: `
+             + "a level 2 card covers 2 connected plots, a level 3 covers 3",
+             `VERTICAL \u2014 ${INDUSTRIES.filter((i) => SCALING[i] === "V").join(", ")}: `
+             + "any level stands on a single plot",
+             "You can only build on plots you already own, and they must be empty",
+             "Upgrading once: a horizontal company takes another owned plot beside it, "
+             + "a vertical one adds a storey where it stands",
+             `Ground rent is $${RENT_PER_LEVEL} per level on a plot, paid to whoever owns that plot`] },
 
   { title: "Prices move as the city is built", target: "prices", art: ArtPrices,
     body: "Build a company and you push your own industry's price DOWN \u2014 more supply. Every supplier you now pay gets pushed UP \u2014 more demand. Each of those is a whole dollar.",
