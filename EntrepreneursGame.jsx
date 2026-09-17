@@ -4766,6 +4766,41 @@ function ArtScoring() {
    Each step may name a `target`, a data-tut region on screen. When that region exists
    the rest of the interface dims and the region is ringed, so the explanation is
    attached to the thing it describes rather than floating free. */
+/* The numbers in the tutorial are DERIVED, not typed. Every one of them had gone
+   stale: it promised 5 EP for entering an industry when the engine pays 3, 1 EP per
+   company level at the following year end when it is 2 and banked immediately, and
+   10 EP for the land awards when they pay 5. Interpolating them from the same
+   constants the engine scores with is the only thing that stops it happening again. */
+
+/* The supply web, read off the cards. The tutorial used to draw a six-industry RING -
+   UT to HO to MA to HC to RE to TE and back - which the game has never been. Every
+   industry buys from three others and sells to three others: eighteen lines, not six.
+   That is the better fact anyway. A ring has an obvious upstream and downstream; a
+   3-regular web means nobody is anyone's only customer OR only source. */
+const SUPPLY = (() => {
+  const buys = {};
+  for (const bp of BP_DATA) {
+    const set = (buys[bp.ind] = buys[bp.ind] || new Set());
+    (bp.deps || []).forEach((d) => set.add(d.ind));
+  }
+  const degrees = INDUSTRIES.map((i) => (buys[i] ? buys[i].size : 0));
+  return {
+    lines: degrees.reduce((a, b) => a + b, 0),
+    each: degrees.every((d) => d === degrees[0]) ? String(degrees[0]) : "several",
+  };
+})();
+
+const MEGACORP_EP = (() => {
+  const eps = MEGACORP_TILES.map((t) => t[2]);
+  return { lo: Math.min(...eps), hi: Math.max(...eps) };
+})();
+
+/* levelEP reads the heavyLevelEP variant off a live game, and the tutorial also opens
+   from the setup screen where there is no game yet. This is the standard rate, which
+   is what an onboarding overlay should teach; a table that turned the variant on has
+   knowingly left the printed rules behind. */
+const TUT_LEVEL_EP = levelEP({ variants: {} });
+
 const TUTORIAL = [
   { title: "You are building a city's economy", target: "board", art: null,
     body: "Every player is a founder. You buy land, build companies on it, and sell what they produce to the districts around them. Most Entrepreneurial Points at the end of Year 3 wins.",
@@ -4775,7 +4810,8 @@ const TUTORIAL = [
 
   { title: "Six industries that feed each other", target: "pots", art: ArtChain,
     body: "Every company pays OPEX each quarter to companies in other industries \u2014 its suppliers, printed on its Blueprint. Those payments are the heart of the game.",
-    points: ["UT \u2192 HO \u2192 MA \u2192 HC \u2192 RE \u2192 TE \u2192 back to UT",
+    points: [`Every industry buys from ${SUPPLY.each} others \u2014 and sells to ${SUPPLY.each} others`,
+             `${SUPPLY.lines} supply lines in all: no dead ends, and no safe corner`,
              "Your OPEX lands in your suppliers' industry pots",
              "Each pot is split evenly among that industry's companies",
              "So an industry nobody serves quietly piles up money"] },
@@ -4814,10 +4850,10 @@ const TUTORIAL = [
 
   { title: "Winning", target: "standings", art: ArtScoring,
     body: "Score steadily rather than chasing one big move. Breadth pays early, size pays late.",
-    points: ["5 EP the first time you build in each industry \u2014 paid immediately",
-             "1 EP per company level, once, at the first year end after you build or upgrade it",
-             "10 EP for most plots, 10 EP for most districts",
-             "A Megacorp is worth 8\u201322 EP, but eats companies and locks a slot"] },
+    points: [`${INDUSTRY_DEBUT_EP} EP the first time you build in each industry \u2014 paid immediately`,
+             `${TUT_LEVEL_EP} EP per company level, banked the moment you build or upgrade it`,
+             `${LAND_AWARD.sole} EP for most plots and ${LAND_AWARD.sole} for most districts \u2014 at every year end`,
+             `A Megacorp is worth ${MEGACORP_EP.lo}\u2013${MEGACORP_EP.hi} EP, but eats companies and locks a slot`] },
 ];
 
 function Tutorial({ onClose }) {
