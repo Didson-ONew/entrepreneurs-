@@ -238,6 +238,15 @@ starting the server and it will use it instead:
   and `{{from_name}}` are filled in and escaped for you; the server checks the
   template parses at startup and says so if it does not.
 
+  Brevo hands out **two** kinds of credential and they are not interchangeable.
+  The REST API wants an **API key** — `Settings → SMTP & API → API keys`, and it
+  begins `xkeysib-`. The SMTP keys on the neighbouring tab begin `xsmtpsib-` and
+  are for the relay this cannot use. Copy the key when it is first shown: the list
+  view masks it afterwards, and a masked copy fails exactly as a wrong one does.
+  Both mistakes come back as `401 {"message":"Key not found"}`, so on a refusal
+  the server also reports the header it sent, that key's prefix and its length —
+  never the key — which is enough to tell the three apart.
+
   **Brevo** — 300 a day:
 
       MAIL_WEBHOOK_URL=https://api.brevo.com/v3/smtp/email
