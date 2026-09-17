@@ -173,6 +173,45 @@ services:
       - key: ENT_TURN_CF_API_TOKEN
         sync: false
       #
+      # --- PASSWORD RESET MAIL ------------------------------------------------
+      # Without these, a player who forgets their password gets nothing: the
+      # reset link is printed in THIS SERVICE'S LOG, where only you can read it.
+      # Fine while you are handing the game to friends; not fine once strangers
+      # can register.
+      #
+      # The simplest thing that works is an ordinary mail account. With Gmail:
+      #
+      #   1. Turn on 2-Step Verification on the Google account - app passwords
+      #      do not exist without it.
+      #   2. Google Account -> Security -> App passwords -> create one. It is
+      #      sixteen letters in four groups; the spaces do not matter.
+      #   3. Set the three below. MAIL_SMTP_PASS is the APP password, never the
+      #      account password.
+      #
+      # MAIL_SMTP_HOST   smtp.gmail.com
+      # MAIL_SMTP_USER   you@gmail.com
+      # MAIL_SMTP_PASS   the app password
+      #
+      # Mail then arrives FROM that address - Gmail will not let it be anything
+      # else, so MAIL_FROM is left alone unless you know you need it. Port 465
+      # is the default and is what Gmail wants; MAIL_SMTP_PORT=587 switches to
+      # STARTTLS if a host blocks 465.
+      #
+      # A transactional mail API works too, if you have a domain to verify:
+      # MAIL_WEBHOOK_URL takes a JSON POST of {from, to, subject, text} and
+      # MAIL_WEBHOOK_AUTH goes out as the Authorization header.
+      - key: MAIL_SMTP_HOST
+        sync: false
+      - key: MAIL_SMTP_USER
+        sync: false
+      - key: MAIL_SMTP_PASS
+        sync: false
+      #
+      # The reset link is built from this. Without it the server guesses from the
+      # request and can hand out an http:// link that has to redirect.
+      - key: PUBLIC_URL
+        sync: false
+      #
       # --- or any other TURN provider, if you would rather not use Cloudflare -
       # Without these the voice call uses free public STUN only. That finds a
       # path between two laptops on home broadband, and it CANNOT find one

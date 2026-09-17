@@ -191,11 +191,34 @@ computer that is genuinely the simplest thing that works.
 If you host it somewhere permanent and want real emails, set one of these before
 starting the server and it will use it instead:
 
-- `MAIL_COMMAND="sendmail -t"` — if your host has a mail command.
+- **An ordinary mail account, over SMTP.** The least ceremony, and it needs no
+  domain of your own. With Gmail:
+
+  1. Turn on 2-Step Verification on the Google account — app passwords do not
+     exist without it.
+  2. Google Account → Security → App passwords → create one. Sixteen letters in
+     four groups; the spaces do not matter.
+  3. Set `MAIL_SMTP_HOST=smtp.gmail.com`, `MAIL_SMTP_USER=you@gmail.com`, and
+     `MAIL_SMTP_PASS=` that app password — **not** the account password.
+
+  Mail arrives from that address. Gmail will not let it be anything else, so
+  leave `MAIL_FROM` alone unless you know you need it. Port 465 is the default;
+  `MAIL_SMTP_PORT=587` switches to STARTTLS if something blocks 465.
+
+  Google caps a consumer account at a few hundred recipients a day, which is
+  hundreds of forgotten passwords more than a playtest will produce.
+
 - `MAIL_WEBHOOK_URL="https://..."` — any mail service that accepts a JSON POST of
   `{from, to, subject, text}`; add `MAIL_WEBHOOK_AUTH="Bearer your-key"` if it needs
-  a key. Also set `PUBLIC_URL` to the address your friends actually use, so the link
-  in the email points at the right place.
+  a key. Most transactional APIs want their own body shape, so this usually means a
+  provider that happens to match it or a few lines of relay of your own — and all of
+  them want a domain you can verify before they will send to strangers.
+- `MAIL_COMMAND="sendmail -t"` — if your host has a mail command. Most managed
+  hosts, Render included, do not.
+
+Set `PUBLIC_URL` to the address your players actually use, whichever you choose, so
+the link in the email points at the right place rather than being guessed from the
+request.
 
 The server prints which of these it is using when it starts, so you know before
 somebody needs it.
