@@ -87,10 +87,21 @@ function describe(c = config()) {
     const shape = !c.webhookTemplate ? " with the default {from, to, subject, text} body"
       : dry.error ? `  <-- WARNING: ${dry.error}` : " using MAIL_WEBHOOK_TEMPLATE";
     const orphan = c.webhookHeaders && c.webhookHeaders.__dropped;
+    /* Two ways to arrive here, and the message used to assert the rarer one. A value
+       pasted WITHOUT its header name is the common mistake - the whole thing is then
+       one nameless line - and a long key wrapped onto a second line is the other. The
+       count tells them apart: one orphan and no headers at all means the name is
+       missing, an orphan alongside a header that IS set means a wrap. */
+    const named = Object.keys(c.webhookHeaders || {}).length;
     const wrapped = orphan
-      ? `  <-- WARNING: ${orphan.length} line(s) of MAIL_WEBHOOK_HEADER have no "Name: value" colon`
-        + ` (${orphan.join(", ")} characters) and were ignored - a long key wrapped onto a second`
-        + " line arrives exactly like this, and the part that is used is then truncated"
+      ? `  <-- WARNING: ${orphan.length} line(s) of MAIL_WEBHOOK_HEADER have no "Name: value"`
+        + ` colon (${orphan.join(", ")} characters) and were ignored.`
+        + (named
+          ? " A long value wrapped onto a second line arrives exactly like this, and the"
+            + " part that is used is then truncated."
+          : ' Nothing else was set either, so the header has no NAME: it needs to read'
+            + ' "api-key: <key>" for Brevo, or "Authorization: Bearer <key>" - the name,'
+            + " a colon, then the value, on one line.")
       : "";
     return `reset mail: POSTed to ${c.webhook}${shape}${wrapped}`;
   }

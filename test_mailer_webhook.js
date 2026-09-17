@@ -223,6 +223,18 @@ const cfg = (over = {}) => ({
       cfg2.webhookHeaders["api-key"] === "xkeysib-aaaabbbb", cfg2.webhookHeaders["api-key"]);
     check("and the orphaned line is called out at boot rather than dropped quietly",
       /no "Name: value" colon/.test(mailer.describe(cfg2)), mailer.describe(cfg2));
+    check("a wrap is diagnosed as a wrap, because a header IS set",
+      /wrapped onto a second line/.test(mailer.describe(cfg2)));
+
+    /* The commoner mistake, and the one this actually hit: the value pasted with no
+       header name at all. The first version of this warning asserted a wrap either
+       way, which would send the next person looking in the wrong place. */
+    process.env.MAIL_WEBHOOK_HEADER = "xkeysib-" + "a".repeat(81);
+    const nameless = mailer.describe(mailer.config());
+    check("a value with no header name is diagnosed as a missing name",
+      /has no NAME/.test(nameless) && /api-key: <key>/.test(nameless), nameless);
+    check("and not blamed on a wrap", !/wrapped onto a second line/.test(nameless));
+    check("still without printing the value", !nameless.includes("a".repeat(20)));
     check("without printing what was on it",
       !mailer.describe(cfg2).includes("ccccddddeeeeffff"), mailer.describe(cfg2));
 
