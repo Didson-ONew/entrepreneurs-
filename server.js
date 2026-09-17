@@ -1636,6 +1636,13 @@ server.listen(PORT, () => {
   console.log(`Entrepreneurs server on http://localhost:${PORT}`);
   console.log(`Rules engine ${E.ENGINE_VERSION} (loaded from EntrepreneursGame.jsx)`);
   console.log(`Mail: ${mailer.describe(MAIL)}`);
+  /* What a player will actually be asked to click. Without PUBLIC_URL this is
+     guessed from each request and goes out as http://, which works only because the
+     host redirects - and there is nothing in the log to tell you that is happening
+     until somebody reports a link that looks wrong. */
+  console.log(`Reset links: ${process.env.PUBLIC_URL
+    ? `${String(process.env.PUBLIC_URL).replace(/\/+$/, "")}/?reset=...`
+    : "built from each request as http://<host>/?reset=... - set PUBLIC_URL to your https address"}`);
   console.log(`Voice: ${iceconfig.plan(process.env)}`);
   console.log(`Backup store: ${remotestore.describe(process.env)}`);
   console.log(`Admins: ${[...ADMINS].join(", ") || "(none)"} - set ENT_ADMINS to change`);
