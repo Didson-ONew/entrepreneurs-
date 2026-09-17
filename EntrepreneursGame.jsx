@@ -4121,6 +4121,39 @@ export function bizPlotOwnership(state, biz) {
   return { biz: b, owner, holders, unowned, total: b.footprint.length };
 }
 
+/* 1st, 2nd, 3rd, 4th. The same ternary was written out by hand in two other places. */
+export const ordinal = (n) => n + (n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th");
+
+/* The order the table will sell in, and how far through it the quarter is.
+
+   Delivery runs in turn order and demand icons are first come first served, so "does
+   that seat sell before me or after me" is a question every player has in front of
+   them - and nothing on screen answered it. You could usually infer the first player
+   from whoever sat on Board Meeting, and no further than that.
+
+   Which list is authoritative depends on the phase. Once delivery opens it is
+   state.deliveryOrder, snapshotted from turnOrder as the phase begins; before then
+   turnOrder is what that snapshot will be taken from. This reads whichever is live
+   rather than caching either, because REPOSITION rewrites turnOrder the moment it
+   resolves rather than at the end of the quarter.
+
+   Anyone missing from the list is appended rather than dropped: a roster that
+   silently loses a player is worse than one in a surprising order. */
+export function tableOrder(state) {
+  const delivering = state.phase === "delivering"
+    && Array.isArray(state.deliveryOrder) && state.deliveryOrder.length > 0;
+  const ids = delivering ? state.deliveryOrder : (state.turnOrder || []);
+  const seen = new Set();
+  const players = [];
+  for (const id of ids) {
+    const p = (state.players || []).find((q) => q.id === id);
+    if (p && !seen.has(p.id)) { seen.add(p.id); players.push(p); }
+  }
+  for (const p of state.players || []) if (!seen.has(p.id)) players.push(p);
+  /* How many have finished selling; -1 when the question does not apply yet. */
+  return { players, soldThrough: delivering ? (state.deliveryCursor || 0) : -1 };
+}
+
 function BizTooltip({ state, hover }) {
   if (!hover || !hover.biz) return null;
   const { biz: b, owner, holders, unowned, total } = bizPlotOwnership(state, hover.biz);
@@ -5170,6 +5203,8 @@ function GameScreens({ online }) {
     };
     return { plots: mk(plotCount), districts: mk(districtCount) };
   })();
+  /* Who sells before whom, for the bank roster. */
+  const bankOrder = tableOrder(state);
   const myTurn = !online || (!isSpectator && awaitedId === online.seat);
   const awaitedName = awaitedId != null && state.players.find((p) => p.id === awaitedId)
     ? state.players.find((p) => p.id === awaitedId).name : null;
@@ -5786,18 +5821,31 @@ function GameScreens({ online }) {
             </div>
 
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">The Bank <Help text="Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$35/$40. Distressed companies sit here until someone renovates them via M&amp;A - Buy." /></div>
-              <div className="text-[9px] text-gray-500 mb-1.5">Loan discs (−5 EP each at game end):</div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">The Bank <Help text="Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$35/$40. Distressed companies sit here until someone renovates them via M&amp;A - Buy. The players are listed in TURN ORDER: delivery runs in that sequence and demand icons are first come first served, so anyone above you sells before you do. Reposition moves a player to the front of it." /></div>
+              <div className="text-[9px] text-gray-500 mb-1.5">Loan discs (−5 EP each at game end) &middot; <span title="Delivery runs in this order, and demand is first come first served">in turn order</span>:</div>
               <div className="space-y-1 mb-2">
-                {state.players.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between text-[10px] rounded p-1" style={{ backgroundColor: "#1c1f26" }}>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PLAYER_COLORS[p.id] }} />
-                      <span className="text-gray-300">{p.name}</span>
+                {/* Seat order until now, which is fixed for the whole game and tells
+                    nobody anything. This list was the only per-player roster on screen
+                    that was not already sorted by something, so it is where the turn
+                    order goes - no new panel on an already full screen. */}
+                {bankOrder.players.map((p, i) => {
+                  const sold = bankOrder.soldThrough >= 0 && i < bankOrder.soldThrough;
+                  const selling = bankOrder.soldThrough >= 0 && i === bankOrder.soldThrough;
+                  return (
+                    <div key={p.id} className="flex items-center justify-between text-[10px] rounded p-1"
+                      style={{ backgroundColor: "#1c1f26", opacity: sold ? 0.5 : 1,
+                        border: selling ? "1px solid #8fd3b6" : "1px solid transparent" }}>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-[9px]" style={{ color: i === 0 ? "#8fd3b6" : "#4b5563", minWidth: 16 }}>{ordinal(i + 1)}</span>
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PLAYER_COLORS[p.id] }} />
+                        <span className={p.id === human.id ? "text-gray-100 font-semibold" : "text-gray-300"}>{p.name}</span>
+                        {selling && <span className="font-mono text-[8px]" style={{ color: "#8fd3b6" }}>selling</span>}
+                        {sold && <span className="font-mono text-[8px] text-gray-500">sold</span>}
+                      </div>
+                      <span className="font-mono text-gray-400">{p.discsInBank} disc{p.discsInBank === 1 ? "" : "s"}</span>
                     </div>
-                    <span className="font-mono text-gray-400">{p.discsInBank} disc{p.discsInBank === 1 ? "" : "s"}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="text-[9px] text-gray-500 mb-1.5">Distressed companies (renovate via M&A → Buy):</div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 120 }}>
