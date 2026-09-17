@@ -158,6 +158,26 @@ const cfg = (over = {}) => ({
       cfg({ smtpPort: port }), { connect: (o) => net.connect({ host: o.host, port }) });
     check("an unreachable mail server is reported, not thrown",
       res.ok === false && !!res.error, res.error);
+    /* "reported" is not enough: the first real attempt against Gmail came back as the
+       bare word "AggregateError", which is what node calls a failure to reach ANY of
+       the addresses a name resolves to. The wrapper says nothing; the causes are in
+       .errors. An error a person cannot act on is barely better than no error. */
+    check("and the reason is one somebody could act on",
+      /ECONNREFUSED|ETIMEDOUT|ENETUNREACH|EHOSTUNREACH|ENOTFOUND|could not connect/.test(res.error)
+      && res.error !== "AggregateError", res.error);
+  }
+
+  /* The real shape: several addresses, all refused, wrapped in an AggregateError. */
+  {
+    const res = await mailer.send({ to: "p@example.com", subject: "s", text: "t" },
+      cfg({ smtpHost: "127.0.0.1", smtpPort: 9 }),
+      { connect: () => { throw new AggregateError([
+          Object.assign(new Error("x"), { code: "ECONNREFUSED", address: "142.250.1.108", port: 465 }),
+          Object.assign(new Error("x"), { code: "ENETUNREACH", address: "2a00:1450::6c", port: 465 }),
+        ], ""); } });
+    check("an AggregateError is unwrapped into its causes",
+      /ECONNREFUSED/.test(res.error) && /ENETUNREACH/.test(res.error)
+      && /142\.250\.1\.108:465/.test(res.error), res.error);
   }
 
   /* --- configuration --- */

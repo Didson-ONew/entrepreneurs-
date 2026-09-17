@@ -154,7 +154,7 @@ function viaSmtp(c, msg, connect) {
   return new Promise((resolve) => {
     let done = false;
     const finish = (r) => { if (!done) { done = true; resolve(r); } };
-    const fail = (e) => finish({ ok: false, via: "smtp", error: String((e && e.message) || e) });
+    const fail = (e) => finish({ ok: false, via: "smtp", error: explain(e) });
 
     let sock;
     try {
@@ -215,6 +215,33 @@ function viaSmtp(c, msg, connect) {
       sock.end();
     })().catch((e) => { fail(e); try { sock.destroy(); } catch (_) {} });
   });
+}
+
+/* Say what actually went wrong.
+
+   node throws an AggregateError when EVERY address a name resolves to failed to
+   connect - which is what a blocked outbound port looks like, and Gmail resolves to
+   several. Its own message is the bare word "AggregateError"; the causes are in
+   .errors, and reporting the wrapper alone turns the one useful diagnostic into
+   nothing. Which is exactly what it did the first time this was tried for real. */
+function explain(e) {
+  if (!e) return "unknown error";
+  if (Array.isArray(e.errors) && e.errors.length) {
+    const seen = [];
+    for (const inner of e.errors) {
+      const bit = [inner.code, inner.address && `${inner.address}:${inner.port}`]
+        .filter(Boolean).join(" ") || String(inner.message || inner);
+      if (!seen.includes(bit)) seen.push(bit);
+    }
+    /* The overwhelmingly likely cause, and one no amount of re-reading your own
+       settings will reveal: a lot of hosts block outbound SMTP to stop spam being
+       sent from them. Render's free instances refuse 25, 465 and 587 outright. */
+    return `could not connect (${seen.join(", ")})`
+      + " - many hosts block outbound SMTP ports; Render's free tier blocks 25, 465 and 587,"
+      + " so a paid instance or an HTTPS mail API (MAIL_WEBHOOK_URL) is needed there";
+  }
+  const code = e.code ? `${e.code}: ` : "";
+  return code + String(e.message || e);
 }
 
 /* "Name <a@b>" -> "a@b", because the envelope takes the bare address. */

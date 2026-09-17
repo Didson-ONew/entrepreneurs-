@@ -216,6 +216,13 @@ starting the server and it will use it instead:
   Port 465 is the default; `MAIL_SMTP_PORT=587` switches to STARTTLS if
   something blocks 465.
 
+  **This will not work on a free host.** Most block outbound SMTP so that spam
+  cannot be sent from them, and Render's free instances refuse 25, 465 and 587
+  alike, so changing the port does not help. The failure looks like a connection
+  that is refused before any conversation starts; the server says so and names
+  this as the likely reason. A paid instance lifts it — 25 stays blocked
+  everywhere, 465 and 587 work — or send over HTTPS instead, below.
+
   Google caps a consumer account at a few hundred recipients a day, which is
   hundreds of forgotten passwords more than a playtest will produce.
 
