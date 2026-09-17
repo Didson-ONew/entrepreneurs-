@@ -578,6 +578,9 @@ const ADMINS = new Set(String(process.env.ENT_ADMINS || "Dids,Didson")
   .split(",").map((n) => n.trim().toLowerCase()).filter(Boolean));
 const isAdmin = (user) => !!user && ADMINS.has(String(user.name || "").toLowerCase());
 const MAIL = mailer.config();
+/* How the most recent password-reset mail went, for the admin view. Deliberately
+   not persisted: it is a health light, not a record. */
+let lastResetMail = null;
 
 let feedbackDirty = false;
 const saveFeedback = () => {
@@ -906,6 +909,9 @@ const server = http.createServer(async (req, res) => {
       out.accounts = ACCOUNTS.users.length;
       out.players = matchlog.hallOfFame(matchlog.selectMatches(MATCHES)).length;
       out.who = whoIsOnline();
+      /* Never the password, the host or the user - just how it is wired and whether
+         the last one got through. */
+      out.mail = { mode: MAIL.mode, describes: mailer.describe(MAIL), last: lastResetMail };
     }
     return json(res, out);
   }
@@ -1169,6 +1175,10 @@ const server = http.createServer(async (req, res) => {
       const out = await mailer.send(mailer.resetMessage({
         to: started.user.email, name: started.user.name, link, minutes: accounts.RESET_MINUTES,
       }), MAIL);
+      /* Remembered so an admin can see it without reading the service log. Before
+         handing the address to strangers, "did the last reset mail actually go?" is
+         the question, and a silent failure here is the one that loses a player. */
+      lastResetMail = { at: Date.now(), ok: !!out.ok, via: out.via, error: out.ok ? null : String(out.error || "") };
       if (!out.ok) console.error(`reset mail for ${started.user.name} failed (${out.via}): ${out.error}`);
     }
     return json(res, { ok: true, sent: "If there is an account for that, a reset link is on its way." });
