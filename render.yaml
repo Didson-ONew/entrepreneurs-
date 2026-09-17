@@ -197,14 +197,37 @@ services:
       # is the default and is what Gmail wants; MAIL_SMTP_PORT=587 switches to
       # STARTTLS if a host blocks 465.
       #
-      # A transactional mail API works too, if you have a domain to verify:
-      # MAIL_WEBHOOK_URL takes a JSON POST of {from, to, subject, text} and
-      # MAIL_WEBHOOK_AUTH goes out as the Authorization header.
+      # ...EXCEPT THAT IT WILL NOT WORK ON A FREE INSTANCE. Render blocks
+      # outbound SMTP - 25, 465 and 587 alike - so that spam cannot be sent from
+      # here, and no choice of port gets around it. A paid instance lifts the
+      # block on 465 and 587. On the free plan, use the HTTPS route below; it is
+      # an ordinary request to port 443 and nothing stands in its way.
       - key: MAIL_SMTP_HOST
         sync: false
       - key: MAIL_SMTP_USER
         sync: false
       - key: MAIL_SMTP_PASS
+        sync: false
+      #
+      # --- OR A MAIL API OVER HTTPS, which is what works on the free plan ------
+      # No domain needed: Brevo and SendGrid will both verify a single sender
+      # address, which is enough to send to anybody. Each wants its own JSON, so
+      # the body is a template you copy from their docs - {{to}}, {{subject}},
+      # {{text}}, {{from_email}} and {{from_name}} are filled in and escaped.
+      # The server checks it parses at startup. See HOSTING_GUIDE.md for both
+      # templates ready to paste.
+      #
+      # MAIL_WEBHOOK_URL       https://api.brevo.com/v3/smtp/email
+      # MAIL_WEBHOOK_HEADER    api-key: xkeysib-...     (Brevo's own header)
+      # MAIL_WEBHOOK_AUTH      Bearer SG....            (SendGrid uses this one)
+      # MAIL_WEBHOOK_TEMPLATE  the provider's JSON body
+      - key: MAIL_WEBHOOK_URL
+        sync: false
+      - key: MAIL_WEBHOOK_TEMPLATE
+        sync: false
+      - key: MAIL_WEBHOOK_HEADER
+        sync: false
+      - key: MAIL_WEBHOOK_AUTH
         sync: false
       #
       # The reset link is built from this. Without it the server guesses from the

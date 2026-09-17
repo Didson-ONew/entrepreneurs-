@@ -216,14 +216,49 @@ starting the server and it will use it instead:
   Port 465 is the default; `MAIL_SMTP_PORT=587` switches to STARTTLS if
   something blocks 465.
 
+  **This will not work on a free host.** Most block outbound SMTP so that spam
+  cannot be sent from them, and Render's free instances refuse 25, 465 and 587
+  alike, so changing the port does not help. The failure looks like a connection
+  that is refused before any conversation starts; the server says so and names
+  this as the likely reason. A paid instance lifts it — 25 stays blocked
+  everywhere, 465 and 587 work — or send over HTTPS instead, below.
+
   Google caps a consumer account at a few hundred recipients a day, which is
   hundreds of forgotten passwords more than a playtest will produce.
 
-- `MAIL_WEBHOOK_URL="https://..."` — any mail service that accepts a JSON POST of
-  `{from, to, subject, text}`; add `MAIL_WEBHOOK_AUTH="Bearer your-key"` if it needs
-  a key. Most transactional APIs want their own body shape, so this usually means a
-  provider that happens to match it or a few lines of relay of your own — and all of
-  them want a domain you can verify before they will send to strangers.
+- **A mail API over HTTPS.** This is the one that works on a free host, because it
+  is an ordinary request to port 443 and nothing blocks that.
+
+  You do not need a domain. Both providers below will verify a **single sender
+  address** — you click a link in a mail they send to it — which is enough to send
+  to anybody. Free allowances are far beyond what a playtest uses.
+
+  Every provider wants its own JSON, so the body is a template you copy from their
+  documentation. `{{to}}`, `{{subject}}`, `{{text}}`, `{{from}}`, `{{from_email}}`
+  and `{{from_name}}` are filled in and escaped for you; the server checks the
+  template parses at startup and says so if it does not.
+
+  **Brevo** — 300 a day:
+
+      MAIL_WEBHOOK_URL=https://api.brevo.com/v3/smtp/email
+      MAIL_WEBHOOK_HEADER=api-key: xkeysib-your-key
+      MAIL_WEBHOOK_TEMPLATE={"sender":{"email":"{{from_email}}","name":"{{from_name}}"},"to":[{"email":"{{to}}"}],"subject":"{{subject}}","textContent":"{{text}}"}
+
+  **SendGrid** — 100 a day:
+
+      MAIL_WEBHOOK_URL=https://api.sendgrid.com/v3/mail/send
+      MAIL_WEBHOOK_AUTH=Bearer SG.your-key
+      MAIL_WEBHOOK_TEMPLATE={"personalizations":[{"to":[{"email":"{{to}}"}]}],"from":{"email":"{{from_email}}","name":"{{from_name}}"},"subject":"{{subject}}","content":[{"type":"text/plain","value":"{{text}}"}]}
+
+  Those two templates are transcribed from the providers' documentation and are not
+  checked by anything here — if a provider changes its API, correct the template and
+  restart; no deploy is involved. Whatever they answer on a refusal is passed
+  straight through to the log and to the admin view, which is where "the from
+  address does not match a verified Sender Identity" will appear if you skip the
+  verification step.
+
+  With no template the body is `{from, to, subject, text}`, which suits a relay of
+  your own.
 - `MAIL_COMMAND="sendmail -t"` — if your host has a mail command. Most managed
   hosts, Render included, do not.
 
