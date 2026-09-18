@@ -3,6 +3,12 @@ node_modules/
 # screenshots test_browsers.js drops in the working directory
 shot_online_*.png
 
+# what the play loop keeps when it runs out of time: the whole page for each
+# browser, so a run that reproduces can be read afterwards rather than re-run
+stall_*.html
+stall_*.png
+stall_*.txt
+
 # everything a running server must not lose: accounts, the hall of fame, the
 # playtest notes. One directory so it is one thing to mount and one thing to back
 # up - see datadir.js and ENT_DATA_DIR.

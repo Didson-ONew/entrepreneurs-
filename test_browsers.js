@@ -247,6 +247,21 @@ const T0 = Date.now();
   const stallDump = async () => {  // STALLDUMP
     const dbg = await fetch(`${BASE}/api/debug?code=${code}`).then((r) => r.json()).catch(() => null);
     console.log("SERVER:", JSON.stringify(dbg));
+    /* Eight filtered lines of innerText and a truncated button list were not enough to
+       say what the game was actually asking for. Keep the whole page for each browser -
+       rendered HTML and a picture - so a run that reproduces can be read afterwards
+       instead of being reproduced again. */
+    const fs = require("fs");
+    for (const [nm, P] of [["A", A], ["B", B]]) {
+      const stem = `stall_${code}_${nm}`;
+      try {
+        fs.writeFileSync(stem + ".html", await P.content());
+        await P.screenshot({ path: stem + ".png", fullPage: true });
+        const full = await txt(P);
+        fs.writeFileSync(stem + ".txt", full);
+        console.log(`${nm}: ${full.split("\n").filter((x) => x.trim()).length} non-blank lines of text, saved ${stem}.{html,png,txt}`);
+      } catch (e) { console.log(`${nm}: could not save the page -`, String(e.message || e).slice(0, 80)); }
+    }
     for (const [nm, P] of [["A", A], ["B", B]]) {
       const t = await txt(P);
       console.log(`--- ${nm} sees ---`);
