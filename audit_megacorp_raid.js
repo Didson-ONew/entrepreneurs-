@@ -63,6 +63,12 @@ const NEEDLES = {
   /* Where a bot decides a merge is worth it. */
   botPrice: "  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);",
   helper: "function hqNeighbours(state, hq) {",
+  /* What a tile pays for forming the Megacorp, and what its headquarters banks each
+     quarter. Halving is done at these two points because the BOTS read both - the tile
+     EP through match.tile[2] in megacorpWorthIt, the brand through brandEPFor - so one
+     edit moves the payout and the valuation together. */
+  tileEP: "  const [name, combo, ep] = match.tile;",
+  brandFn: "const brandEPFor = (price, tier) => Math.floor(price / tier);",
   /* Once a quarter, at the top of revenue. The orbit arm pays from here. */
   dividend: "function runMegacorpDividend(state, log) {\n  for (const p of state.players) {",
 };
@@ -161,7 +167,36 @@ const ORBIT_BOT_PRICE = (rivalsOnly) => rivalsOnly
   : `  const __nb = hqNeighbourOwners(state, hq);
   const districtEP = ${ORBIT_EP} * (__nb[p.id] || 0) * qLeft;`;
 
-const ARMS = [
+/* HALF. Forming pays half the tile, and the brand dividend halves with it.
+   TITHE. Every business touching a headquarters takes 1 EP a quarter off the
+   Megacorp's owner and banks it. A business belonging to the Megacorp's OWN owner
+   therefore nets nothing - it is paid and charged in the same breath - so clustering
+   your own buildings around your headquarters stops being a reward and stops being a
+   punishment, and only opponents drain it. Both lines are written to the log rather
+   than cancelled silently, so the accounting matches the rule as stated. */
+const TITHE_EP = 1;
+const HALF_TILE = "  const [name, combo, __rawEp] = match.tile;\n  const ep = Math.round(__rawEp / 2);";
+const HALF_BRAND = "const brandEPFor = (price, tier) => Math.floor(price / (2 * tier));";
+const TITHE_DIVIDEND = `function runMegacorpDividend(state, log) {
+  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      for (const [id, n] of Object.entries(hqNeighbourOwners(state, hq))) {
+        const q = state.players.find((x) => String(x.id) === String(id));
+        if (!q) continue;
+        addEP(q, ${TITHE_EP} * n, \`Megacorp orbit: \${hq.megacorpName}\`, state.quarter);
+        addEP(p, -${TITHE_EP} * n, \`Megacorp tithe: \${hq.megacorpName}\`, state.quarter);
+      }
+    }
+  }
+  for (const p of state.players) {`;
+/* A merge is now worth the tile, the halved brand, and MINUS a quarterly tithe for
+   every opponent building already standing next to the chosen headquarters. */
+const TITHE_BOT_PRICE = `  const __nb = hqNeighbourOwners(state, hq);
+  const __rivals = Object.entries(__nb).reduce((a, [id, n]) => a + (String(id) === String(p.id) ? 0 : n), 0);
+  const districtEP = -${TITHE_EP} * __rivals * qLeft;`;
+
+const PRESETS = {};
+PRESETS.raid = [
   { key: "current", name: "as it ships (owner +3 per neighbour)" },
   { key: "raid-blind", name: "RAID, bots blind", raid: true },
   { key: "raid", name: "RAID, bots aware", raid: true, aware: true },
@@ -172,6 +207,16 @@ const ARMS = [
   { key: "rivals-blind", name: `RIVALS ${ORBIT_EP} EP a quarter to OPPONENTS only, bots blind`, orbit: true, rivals: true },
   { key: "rivals", name: `RIVALS ${ORBIT_EP} EP a quarter to OPPONENTS only, bots aware`, orbit: true, rivals: true, aware: true },
 ];
+PRESETS.scale = [
+  { key: "current", name: "as it ships" },
+  { key: "half", name: "Megacorps at half value (tile and brand), nothing else", half: true, aware: true },
+  { key: "tithe", name: `${TITHE_EP} EP a quarter to every neighbour, off the owner`, tithe: true, aware: true },
+  { key: "half+tithe", name: "half value AND the tithe, bots aware", half: true, tithe: true, aware: true },
+  { key: "half+tithe-blind", name: "half value AND the tithe, bots blind", half: true, tithe: true },
+];
+const setArg = process.argv.find((a) => a.startsWith("--arms="));
+const ARMS = PRESETS[setArg ? setArg.slice(7) : "raid"];
+if (!ARMS) { console.error(`no such arm set - try ${Object.keys(PRESETS).join(", ")}`); process.exit(2); }
 
 /* A replace that matches nothing returns the string unchanged and says nothing, which
    is how an arm ends up quietly measuring the shipped rule under a different name. */
@@ -183,13 +228,27 @@ function splice(src, find, put, what) {
 function engineFor(arm) {
   let logic = splice(base, NEEDLES.helper, OWNER_HELPER + NEEDLES.helper, "neighbour-owner helper");
   if (arm.raid) logic = splice(logic, NEEDLES.payout, payoutFor(arm.seize), "final payout");
+  if (arm.half) {
+    logic = splice(logic, NEEDLES.tileEP, HALF_TILE, "half tile EP");
+    logic = splice(logic, NEEDLES.brandFn, HALF_BRAND, "half brand dividend");
+  }
+  if (arm.tithe) {
+    /* The end-of-game district award goes away - the tithe replaces it. */
+    logic = splice(logic, NEEDLES.payout, "", "final payout (removed for tithe)");
+    logic = splice(logic, NEEDLES.dividend, TITHE_DIVIDEND, "quarterly tithe");
+  }
   if (arm.orbit) {
     /* The end-of-game district award goes away entirely - the orbit replaces it. */
     logic = splice(logic, NEEDLES.payout, "", "final payout (removed for orbit)");
     logic = splice(logic, NEEDLES.dividend, ORBIT_DIVIDEND(arm.rivals), "quarterly orbit dividend");
   }
-  if (arm.aware) logic = splice(logic, NEEDLES.botPrice,
-    arm.orbit ? ORBIT_BOT_PRICE(arm.rivals) : botPriceFor(arm.seize), "bot merge price");
+  if (arm.aware) {
+    const price = arm.tithe ? TITHE_BOT_PRICE
+      : arm.orbit ? ORBIT_BOT_PRICE(arm.rivals)
+      : arm.half ? "  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);"
+      : botPriceFor(arm.seize);
+    if (price !== NEEDLES.botPrice) logic = splice(logic, NEEDLES.botPrice, price, "bot merge price");
+  }
   const box = {};
   const sandbox = { console, Math, Set, Object, Array, JSON, String, box };
   vm.createContext(sandbox);
