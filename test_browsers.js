@@ -8,6 +8,17 @@ const URL = BASE + "/";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/* This test has hung intermittently with no output at all: the play loop's own
+   stall detectors only fire between iterations, so an await that never settles is
+   invisible to them. A timer on the Node side keeps running while the loop is
+   blocked, so it can say which await we are parked on. */
+let MARK = "boot", MARK_T = Date.now();
+const mark = (m) => { MARK = m; MARK_T = Date.now(); };
+setInterval(() => {
+  const stuck = Date.now() - MARK_T;
+  if (stuck > 15000) console.log(`!! WATCHDOG: ${Math.round(stuck / 1000)}s at "${MARK}" (t=${Math.round((Date.now() - T0) / 1000)}s)`);
+}, 5000).unref();
+
 
 /* This test printed its findings and never set an exit code at all, so nothing it
    discovered could fail a run. Assertions now reach the exit code; lines that are
@@ -28,7 +39,9 @@ async function waitText(p, re, ms = 8000) {
 
 /* Play one action if this page currently has controls; returns true if it acted. */
 const buyFails = new Map();   // per-page consecutive failed buy attempts
-async function tryAct(p) { /* returns branch label or null */
+async function tryAct(p, who) { /* returns branch label or null */
+  const M = (m) => mark(who + ":" + m);
+  M("start");
   if (p.isClosed()) return false;
   let t;
   try { t = await txt(p); } catch { return false; }
@@ -36,6 +49,7 @@ async function tryAct(p) { /* returns branch label or null */
 
   // stuck in a plot-picking mode? select an eligible plot, else back out.
   const cancel = p.getByRole("button", { name: "Cancel", exact: true });
+  M("cancel.count");
   if (await cancel.count()) {
     if (/That action is not available/.test(t)) {
       await cancel.first().click({ timeout: 2000 }).catch(() => {});
@@ -45,6 +59,7 @@ async function tryAct(p) { /* returns branch label or null */
       buyFails.set(p, 0);
       return "refusedPass";
     }
+    M("pickPlot.evaluate");
     const picked = await p.evaluate(() => {
       const d = Array.from(document.querySelectorAll("div"))
         .filter((x) => getComputedStyle(x).backgroundColor === "rgb(13, 40, 24)");
@@ -64,6 +79,7 @@ async function tryAct(p) { /* returns branch label or null */
 
   // draft
   if (/Draft your starting Blueprints/.test(t)) {
+    M("draft");
     if (/Waiting for .* to draft/.test(t)) return false;
     const btns = await p.locator("button").all();
     for (const b of btns) {
@@ -82,6 +98,7 @@ async function tryAct(p) { /* returns branch label or null */
   }
   // hub placement
   if (/place this quarter.s Logistic Hub/.test(t)) {
+    M("hub");
     const ok = await p.evaluate(() => {
       const d = Array.from(document.querySelectorAll("div")).filter((x) => getComputedStyle(x).backgroundColor === "rgb(13, 40, 24)");
       if (!d.length) return false; d[0].click(); return true;
@@ -95,6 +112,7 @@ async function tryAct(p) { /* returns branch label or null */
   }
   // delivery
   if (/unit\(s\) left/.test(t)) {
+    M("deliver");
     const ok = await p.evaluate(() => {
       const d = Array.from(document.querySelectorAll("div")).find((x) => {
         const cs = getComputedStyle(x);
@@ -109,6 +127,7 @@ async function tryAct(p) { /* returns branch label or null */
   }
   // retail reach picker
   if (/may reach/.test(t)) {
+    M("reach");
     const btns = await p.locator("button").all();
     for (const b of btns) {
       const bt = (await b.textContent() || "").trim();
@@ -120,6 +139,7 @@ async function tryAct(p) { /* returns branch label or null */
   }
   // cash shortfall
   if (/Cash shortfall/.test(t)) {
+    M("shortfall");
     const c = p.getByRole("button", { name: "Continue" });
     if (await c.count() && await c.first().isEnabled()) { await c.first().click({ timeout: 2500 }).catch(() => {}); return "liqDone"; }
     const btns = await p.locator("button").all();
@@ -128,12 +148,14 @@ async function tryAct(p) { /* returns branch label or null */
   }
   // loan repayment
   if (/you may repay loan discs/.test(t)) {
+    M("repay");
     const d = p.getByRole("button", { name: "Done" });
     if (await d.count()) { await d.first().click({ timeout: 2500 }).catch(() => {}); return "repayDone"; }
     return null;
   }
   // planning
   // planning: detected by enabled track buttons rather than a text string
+  M("planning");
   for (const nm of ["M&A", "R&D", "Raise Capital"]) {
     const tb = p.getByRole("button", { name: nm, exact: true });
     if (await tb.count() && await tb.first().isEnabled().catch(() => false)) {
@@ -142,6 +164,7 @@ async function tryAct(p) { /* returns branch label or null */
     }
   }
   // resolving: buy land, else pass
+  M("buy");
   const buy = p.getByRole("button", { name: "Buy", exact: true });
   if (await buy.count() && (buyFails.get(p) || 0) >= 2) {
     buyFails.set(p, 0);
@@ -167,6 +190,7 @@ async function tryAct(p) { /* returns branch label or null */
     }
     return "buyOpen";
   }
+  M("pass");
   const pass = p.getByText("Pass this action");
   if (await pass.count()) { await pass.first().click({ timeout: 2500 }).catch(() => {}); buyFails.set(p, 0); return "pass"; }
   return false;
@@ -229,17 +253,19 @@ const T0 = Date.now();
   let steps = 0, acted = 0, idle = 0, lastQ = 0, lastQStep = 0; const hist = {};
   while (steps++ < 900) {
     if (A.isClosed() || B.isClosed()) { console.log("page closed at step", steps, "t=", Date.now() - T0); break; }
+    mark("loop:txt(A) step " + steps);
     let ta; try { ta = await txt(A); } catch (e) { console.log("txt failed at step", steps, e.message.slice(0, 60)); break; }
     if (/Game Over/.test(ta)) { console.log("Game Over reached at step", steps); break; }
     let a = null, b = null;
-    try { a = await tryAct(A); } catch (e) { console.log("A err:", e.message.slice(0, 80)); }
-    try { b = await tryAct(B); } catch (e) { console.log("B err:", e.message.slice(0, 80)); }
+    try { a = await tryAct(A, "A"); } catch (e) { console.log("A err:", e.message.slice(0, 80)); }
+    try { b = await tryAct(B, "B"); } catch (e) { console.log("B err:", e.message.slice(0, 80)); }
     if (a) hist["A:" + a] = (hist["A:" + a] || 0) + 1;
     if (b) hist["B:" + b] = (hist["B:" + b] || 0) + 1;
     /* Ask the server how far the game has got. The header always draws all four
        Q1..Q4 pills and numbers them within the year, so scraping it for a quarter
        reads "Q1" from the first pill forever and this loop cries stall at a game
        that is running perfectly well. */
+    mark("loop:debug-poll step " + steps);
     const qNow = steps % 5 === 0
       ? await fetch(`${BASE}/api/debug?code=${code}`).then((r) => r.json()).then((d) => d.quarter || 0).catch(() => lastQ)
       : lastQ;
