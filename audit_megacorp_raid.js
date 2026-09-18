@@ -132,10 +132,17 @@ if (process.argv.includes("--dump")) {
    is worth far more than the 3 EP it replaces: a headquarters standing from Q6 pays
    its orbit seven times. */
 const ORBIT_EP = 2;
-const ORBIT_DIVIDEND = `function runMegacorpDividend(state, log) {
+/* ORBIT paid everyone standing next to a headquarters, its owner included - and its
+   owner is exactly the player with the most buildings clustered around it, because
+   that is what merging there means. So the flow mostly paid the Megacorp, the winner
+   took 27-66% of it against a fair share of 17-50%, and Megacorps ended up a BIGGER
+   part of a winning score than before. RIVALS is the same rule with the owner's own
+   buildings excluded: only opponents collect. */
+const ORBIT_DIVIDEND = (rivalsOnly) => `function runMegacorpDividend(state, log) {
   for (const p of state.players) {
     for (const hq of megacorpHQs(p)) {
       for (const [id, n] of Object.entries(hqNeighbourOwners(state, hq))) {
+        ${rivalsOnly ? "if (String(id) === String(p.id)) continue;" : ""}
         const q = state.players.find((x) => String(x.id) === String(id));
         if (!q) continue;
         addEP(q, ${ORBIT_EP} * n, \`Megacorp orbit: \${hq.megacorpName}\`, state.quarter);
@@ -147,7 +154,11 @@ const ORBIT_DIVIDEND = `function runMegacorpDividend(state, log) {
 
 /* Under ORBIT a merger is worth the orbit its OWN buildings will collect for the rest
    of the game, and nothing for the opponents standing next to it. */
-const ORBIT_BOT_PRICE = `  const __nb = hqNeighbourOwners(state, hq);
+const ORBIT_BOT_PRICE = (rivalsOnly) => rivalsOnly
+  /* Under RIVALS a crowded district pays the merging player nothing at all, so the
+     district term simply goes. */
+  ? "  const districtEP = 0;"
+  : `  const __nb = hqNeighbourOwners(state, hq);
   const districtEP = ${ORBIT_EP} * (__nb[p.id] || 0) * qLeft;`;
 
 const ARMS = [
@@ -158,6 +169,8 @@ const ARMS = [
   { key: "seize", name: "SEIZE, bots aware", raid: true, seize: true, aware: true },
   { key: "orbit-blind", name: `ORBIT ${ORBIT_EP} EP a quarter, bots blind`, orbit: true },
   { key: "orbit", name: `ORBIT ${ORBIT_EP} EP a quarter, bots aware`, orbit: true, aware: true },
+  { key: "rivals-blind", name: `RIVALS ${ORBIT_EP} EP a quarter to OPPONENTS only, bots blind`, orbit: true, rivals: true },
+  { key: "rivals", name: `RIVALS ${ORBIT_EP} EP a quarter to OPPONENTS only, bots aware`, orbit: true, rivals: true, aware: true },
 ];
 
 /* A replace that matches nothing returns the string unchanged and says nothing, which
@@ -173,10 +186,10 @@ function engineFor(arm) {
   if (arm.orbit) {
     /* The end-of-game district award goes away entirely - the orbit replaces it. */
     logic = splice(logic, NEEDLES.payout, "", "final payout (removed for orbit)");
-    logic = splice(logic, NEEDLES.dividend, ORBIT_DIVIDEND, "quarterly orbit dividend");
+    logic = splice(logic, NEEDLES.dividend, ORBIT_DIVIDEND(arm.rivals), "quarterly orbit dividend");
   }
   if (arm.aware) logic = splice(logic, NEEDLES.botPrice,
-    arm.orbit ? ORBIT_BOT_PRICE : botPriceFor(arm.seize), "bot merge price");
+    arm.orbit ? ORBIT_BOT_PRICE(arm.rivals) : botPriceFor(arm.seize), "bot merge price");
   const box = {};
   const sandbox = { console, Math, Set, Object, Array, JSON, String, box };
   vm.createContext(sandbox);
