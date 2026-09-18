@@ -138,14 +138,29 @@ const BM_FIRST = `  const queue = [];
   }
   return queue;`;
 
-const ARMS = [
-  { key: "current", name: "as it ships" },
-  { key: "land10", name: "land: 10 to the sole leader", land: true },
-  { key: "lvl1", name: "companies: 1 EP a level", level: 1 },
-  { key: "tithe", name: "Megacorps: 1 EP a quarter to every neighbour", tithe: true },
-  { key: "half+tithe", name: "Megacorps: half value AND the tithe", tithe: true, half: true },
-  { key: "bmFirst", name: "Board Meeting resolves first", bmFirst: true },
-];
+const PRESETS = {
+  all: [
+    { key: "current", name: "as it ships" },
+    { key: "land10", name: "land: 10 to the sole leader", land: true },
+    { key: "lvl1", name: "companies: 1 EP a level", level: 1 },
+    { key: "lvl1+10", name: "1 EP a level AND land 10 to the leader", level: 1, land: true },
+    { key: "tithe", name: "Megacorps: 1 EP a quarter to every neighbour", tithe: true },
+    { key: "half+tithe", name: "Megacorps: half value AND the tithe", tithe: true, half: true },
+    { key: "bmFirst", name: "Board Meeting resolves first", bmFirst: true },
+  ],
+  /* The two levers that raise land's share, apart and together. Raising the award
+     adds EP to the board; cutting the level rate raises land's share by shrinking the
+     largest source instead. Whether they stack or collide is the open question. */
+  land: [
+    { key: "current", name: "as it ships" },
+    { key: "land10", name: "land: 10 to the sole leader", land: true },
+    { key: "lvl1", name: "companies: 1 EP a level", level: 1 },
+    { key: "lvl1+10", name: "1 EP a level AND land 10 to the leader", level: 1, land: true },
+  ],
+};
+const setArg = process.argv.find((a) => a.startsWith("--arms="));
+const ARMS = PRESETS[setArg ? setArg.slice(7) : "all"];
+if (!ARMS) { console.error(`no such arm set - try ${Object.keys(PRESETS).join(", ")}`); process.exit(2); }
 
 function engineFor(arm) {
   let logic = splice(base, N.hqHelper, OWNER_HELPER + N.hqHelper, "neighbour-owner helper");
