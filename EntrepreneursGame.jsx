@@ -4234,6 +4234,30 @@ function PlotInfo({ board, players, selectedPlot, pm }) {
   );
 }
 
+/* HOW A COMPANY GROWS, on the card rather than only in the tutorial. A playtester
+   read the whole rulebook and still could not say which industries were horizontal,
+   because the only place it was written down was the tutorial and the designer's head.
+   Everything here is derived from SCALING and from the footprint the engine actually
+   built, so a change to the table cannot leave a card saying the old thing. */
+const SCALING_NAME = { H: "Horizontal", V: "Vertical" };
+const SCALING_GLYPH = { H: "\u2194", V: "\u2195" };
+const SCALING_BLURB = {
+  H: "Horizontal \u2014 upgrading spreads across MORE PLOTS, one per level, so it needs a free neighbour and ends up touching more buildings and hubs.",
+  V: "Vertical \u2014 upgrading stacks on the SAME PLOT, so it never needs more land and never gains neighbours.",
+};
+/* How many plots this blueprint will stand on once built at its level. Mirrors the
+   engine's own nPlots, which is what doLaunch uses. */
+const plotsForBP = (bp) => (SCALING[bp.ind] === "H" ? bp.lvl : 1);
+
+/* The address as it fits on a card: district tile and compass slot, without the grid
+   coordinates plotLabel adds - two plots' worth of those do not fit in 148 pixels.
+   The full label is still what the tooltip and the bank list show. */
+function plotShort(board, pk) {
+  const c = board.cellOf[pk];
+  if (!c) return String(pk);
+  return `${board.tiles[`${c.r},${c.c}`] || "?"}\u00b7${c.pos}`;
+}
+
 function BPCard({ bp, onClick, disabled, small }) {
   return (
     <button
@@ -4250,6 +4274,13 @@ function BPCard({ bp, onClick, disabled, small }) {
       <div className="text-[10px] font-mono text-gray-400 space-y-0.5">
         <div>Setup ${bp.setup} &middot; Opex ${bp.opex}</div>
         <div>Prod {bp.prod} &middot; {bp.deps.map((d) => `${d.ind} $${d.val}`).join(", ")}</div>
+        {/* The word has to be readable - "H" teaches nobody which industries spread -
+            but "Horizontal * 1 plot" wraps on the 128px hand card. One plot is the
+            assumption anyway, so the count only appears when it is not one. */}
+        <div title={SCALING_BLURB[SCALING[bp.ind]]} style={{ color: IND_COLOR[bp.ind] }}>
+          {SCALING_GLYPH[SCALING[bp.ind]]} {SCALING_NAME[SCALING[bp.ind]]}
+          {plotsForBP(bp) > 1 ? ` \u00b7 ${plotsForBP(bp)} plots` : ""}
+        </div>
       </div>
     </button>
   );
@@ -5873,9 +5904,24 @@ function GameScreens({ online }) {
                         <span className="text-[10px] font-mono text-gray-400">Lvl {b.level}{b.upgraded ? " \u2191" : ""}</span>
                       </div>
                       <div className="text-xs font-semibold text-gray-100 leading-tight mb-1" style={{ minHeight: 28 }}>{b.bp.name}</div>
-                      <div className="flex items-center justify-between text-[9px] font-mono">
-                        <span style={{ color: "#f3b0a5" }}>bill ${bizPotBill(b) + bizGroundRent(state, human, b)}</span>
-                        <span className="text-gray-400">prod {bizProd(b)}</span>
+                      {/* The same four numbers the blueprint showed, now that it is standing:
+                          setup is what an upgrade will cost again, opex is the running bill
+                          before suppliers and rent, and the scaling line says whether the next
+                          level needs another plot or stacks on this one. */}
+                      <div className="text-[9px] font-mono text-gray-400 space-y-0.5">
+                        <div>setup ${bizSetup(b)} &middot; opex ${bizOpex(b)}</div>
+                        <div className="flex items-center justify-between">
+                          <span style={{ color: "#f3b0a5" }}>bill ${bizPotBill(b) + bizGroundRent(state, human, b)}</span>
+                          <span>prod {bizProd(b)}</span>
+                        </div>
+                        <div title={SCALING_BLURB[SCALING[b.bp.ind]]} style={{ color: IND_COLOR[b.bp.ind] }}>
+                          {SCALING_GLYPH[SCALING[b.bp.ind]]} {SCALING_NAME[SCALING[b.bp.ind]]} &middot; {b.footprint.length} plot{b.footprint.length === 1 ? "" : "s"}
+                        </div>
+                        {/* Where it actually stands. The full label with grid coordinates is
+                            still what the plot tooltip and the bank list give. */}
+                        <div className="text-gray-500" title={b.footprint.map((pk) => plotLabel(state.board, pk)).join(" + ")}>
+                          {b.footprint.map((pk) => plotShort(state.board, pk)).join(" + ")}
+                        </div>
                       </div>
                       {!canProd && <div className="text-[9px] text-red-400 mt-0.5">Land unowned &mdash; can't produce</div>}
                     </div>

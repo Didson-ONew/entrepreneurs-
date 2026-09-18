@@ -306,7 +306,13 @@ function run(E, seats) {
           T.raidEP += line.amount;
           if (p.id === winner.id) T.raidToWinner += line.amount;
         }
-        if (p.id === winner.id && L.startsWith("Megacorp")) T.mcEP += line.amount;
+        /* What the MEGACORP earns its owner - not everything whose label starts with
+           "Megacorp". The orbit and raid lines are money paid BY a headquarters to the
+           people around it, and counting them here made a rule that drains Megacorps
+           look like one that fattens them, because the winner is often the neighbour
+           collecting. That reading was reported once; it was an artefact of this line. */
+        if (p.id === winner.id && L.startsWith("Megacorp")
+            && !L.startsWith("Megacorp orbit:") && !L.startsWith("Megacorp raid:")) T.mcEP += line.amount;
       }
     }
   }

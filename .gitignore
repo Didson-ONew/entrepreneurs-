@@ -1,7 +1,7 @@
 node_modules/
 
-# screenshots test_browsers.js drops in the working directory
-shot_online_*.png
+# screenshots the browser tests and the card-render checks drop here
+shot_*.png
 
 # what the play loop keeps when it runs out of time: the whole page for each
 # browser, so a run that reproduces can be read afterwards rather than re-run
