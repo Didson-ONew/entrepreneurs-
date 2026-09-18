@@ -331,11 +331,11 @@ console.log(`Arms: ${ARMS.map((a) => a.key).join(", ")}\n`);
 
 const block = (title, fn) => {
   console.log("  " + title);
-  for (const arm of ARMS) console.log("    " + pad(arm.key, 14) + SIZES.map((n) => rp(fn(R[arm.key][n], n), 9)).join(""));
+  for (const arm of ARMS) console.log("    " + pad(arm.key, 18) + SIZES.map((n) => rp(fn(R[arm.key][n], n), 9)).join(""));
 };
 console.log("  " + pad("", 14) + SIZES.map((n) => rp(n + "p", 9)).join(""));
 block("DOES IT CATCH ANYONE UP? the Q6 leader goes on to win", (T) => pc(T.q6Won, T.q6Known));
-console.log("    " + pad("chance", 14) + SIZES.map((n) => rp((100 / n).toFixed(1) + "%", 9)).join(""));
+console.log("    " + pad("chance", 18) + SIZES.map((n) => rp((100 / n).toFixed(1) + "%", 9)).join(""));
 block("a seat in the bottom half at Q6 comes back to win", (T) => pc(T.bottomWon, T.q6Known));
 block("the winner's margin over second (EP)", (T) => (T.margin / Math.max(1, T.games)).toFixed(1));
 block("winning score (EP)", (T) => (T.winnerEP / Math.max(1, T.games)).toFixed(1));
@@ -346,5 +346,5 @@ block("WHO GETS PAID? Megacorp EP as a share of the winner", (T) => pc(T.mcEP, T
 block("raid/orbit EP paid out a game", (T) => (T.raidEP / Math.max(1, T.games)).toFixed(1));
 block("...charged to Megacorp owners (SEIZE only)", (T) => (T.titheEP / Math.max(1, T.games)).toFixed(1));
 block("...of which went to the eventual winner", (T) => pc(T.raidToWinner, T.raidEP));
-console.log("    " + pad("a fair share is", 14) + SIZES.map((n) => rp((100 / n).toFixed(1) + "%", 9)).join(""));
+console.log("    " + pad("a fair share is", 18) + SIZES.map((n) => rp((100 / n).toFixed(1) + "%", 9)).join(""));
 console.log("");
