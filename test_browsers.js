@@ -16,7 +16,7 @@ let MARK = "boot", MARK_T = Date.now();
 const mark = (m) => { MARK = m; MARK_T = Date.now(); };
 setInterval(() => {
   const stuck = Date.now() - MARK_T;
-  if (stuck > 15000) console.log(`!! WATCHDOG: ${Math.round(stuck / 1000)}s at "${MARK}" (t=${Math.round((Date.now() - T0) / 1000)}s)`);
+  if (stuck > 6000) console.log(`!! WATCHDOG: ${Math.round(stuck / 1000)}s at "${MARK}" (t=${Math.round((Date.now() - T0) / 1000)}s)`);
 }, 5000).unref();
 
 
@@ -39,6 +39,14 @@ async function waitText(p, re, ms = 8000) {
 
 /* Play one action if this page currently has controls; returns true if it acted. */
 const buyFails = new Map();   // per-page consecutive failed buy attempts
+/* How long each branch of tryAct spends, in total. The 420s failures turned out to
+   show no stalled await at all, so the question became which branch is eating the
+   clock rather than which one is stuck. */
+const branchMs = {};
+const timed = async (label, fn) => {
+  const t = Date.now();
+  try { return await fn(); } finally { branchMs[label] = (branchMs[label] || 0) + (Date.now() - t); }
+};
 async function tryAct(p, who) { /* returns branch label or null */
   const M = (m) => mark(who + ":" + m);
   M("start");
@@ -60,13 +68,13 @@ async function tryAct(p, who) { /* returns branch label or null */
       return "refusedPass";
     }
     M("pickPlot.evaluate");
-    const picked = await p.evaluate(() => {
+    const picked = await timed("scan:plot", () => p.evaluate(() => {
       const d = Array.from(document.querySelectorAll("div"))
         .filter((x) => getComputedStyle(x).backgroundColor === "rgb(13, 40, 24)");
       if (!d.length) return false;
       d[0].click();
       return true;
-    });
+    }));
     await sleep(120);
     const cf = p.getByRole("button", { name: "Confirm", exact: true });
     if (picked && await cf.count() && await cf.first().isEnabled().catch(() => false)) {
@@ -81,7 +89,7 @@ async function tryAct(p, who) { /* returns branch label or null */
   if (/Draft your starting Blueprints/.test(t)) {
     M("draft");
     if (/Waiting for .* to draft/.test(t)) return false;
-    const btns = await p.locator("button").all();
+    const btns = await timed("scan:buttons", () => p.locator("button").all());
     for (const b of btns) {
       const bt = await b.textContent().catch(() => null);
       if (bt && /left/.test(bt) && (await b.isEnabled().catch(() => false))) {
@@ -113,13 +121,13 @@ async function tryAct(p, who) { /* returns branch label or null */
   // delivery
   if (/unit\(s\) left/.test(t)) {
     M("deliver");
-    const ok = await p.evaluate(() => {
+    const ok = await timed("scan:deliver", () => p.evaluate(() => {
       const d = Array.from(document.querySelectorAll("div")).find((x) => {
         const cs = getComputedStyle(x);
         return cs.cursor === "pointer" && cs.width === "16px";
       });
       if (d) { d.click(); return true; } return false;
-    });
+    }));
     if (ok) return "deliver";
     const sk = p.getByText(/Recycle remainder/);
     if (await sk.count()) { await sk.first().click({ timeout: 2500 }).catch(() => {}); return "recycle"; }
@@ -251,7 +259,27 @@ const T0 = Date.now();
     }
   };
   let steps = 0, acted = 0, idle = 0, lastQ = 0, lastQStep = 0; const hist = {};
+  /* The step ceiling alone is not a bound on RUNNING TIME: a step costs a quarter of a
+     second on an empty board and several seconds on a full one, so 900 steps can be a
+     minute or can outlast any timeout the runner is willing to give it. A wall-clock
+     deadline makes the loop end by saying what it was doing rather than by being killed
+     with its output half-written. */
+  const DEADLINE = parseInt(process.env.PLAY_DEADLINE_MS || "240000", 10);
+  const tPlay = Date.now();
   while (steps++ < 900) {
+    if (Date.now() - tPlay > DEADLINE) {
+      console.log(`\n!! OUT OF TIME after ${Math.round((Date.now() - tPlay) / 1000)}s at step ${steps}, quarter ${lastQ}`);
+      console.log("branch histogram:", JSON.stringify(hist));
+      console.log("seconds per branch:", JSON.stringify(Object.fromEntries(
+        Object.entries(branchMs).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, +(v / 1000).toFixed(1)]))));
+      await stallDump();
+      check("the game finished inside the time budget", false, `step ${steps}, Q${lastQ}`);
+      break;
+    }
+    if (steps % 25 === 0) {
+      const el = (Date.now() - tPlay) / 1000;
+      console.log(`  ..step ${steps}  ${el.toFixed(0)}s  ${(steps / el).toFixed(1)} steps/s  Q${lastQ}`);
+    }
     if (A.isClosed() || B.isClosed()) { console.log("page closed at step", steps, "t=", Date.now() - T0); break; }
     mark("loop:txt(A) step " + steps);
     let ta; try { ta = await txt(A); } catch (e) { console.log("txt failed at step", steps, e.message.slice(0, 60)); break; }
@@ -301,6 +329,8 @@ const T0 = Date.now();
   const q = await fetch(`${BASE}/api/debug?code=${code}`)
     .then((r) => r.json()).then((d) => d.quarter).catch(() => null);   // see the note above
   console.log(`\nactions taken: ${acted} | quarter reached: ${q || "end"}`);
+  console.log("seconds per branch:", JSON.stringify(Object.fromEntries(
+    Object.entries(branchMs).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, +(v / 1000).toFixed(1)]))));
   check("A reached Game Over", /Game Over/.test(finalA));
   check("B reached Game Over", /Game Over/.test(finalB));
 
