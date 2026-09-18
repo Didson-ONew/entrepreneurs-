@@ -115,17 +115,34 @@ const BUCKETS = ["Companies & upgrades", "Cash on hand", "Land awards", "Industr
 
 function run(E, seats) {
   const T = { games: 0, all: {}, win: {}, allTot: 0, winTot: 0,
-    winnerEP: 0, landWinner: 0, landTable: 0, landLeaderWon: 0, landLeaderKnown: 0 };
+    winnerEP: 0, landWinner: 0, landTable: 0, landLeaderWon: 0, landLeaderKnown: 0,
+    margin: 0, q6Known: 0, q6Won: 0, bottomWon: 0 };
   BUCKETS.forEach((b) => { T.all[b] = 0; T.win[b] = 0; });
   for (let s = SEED0; s < SEED0 + GAMES; s++) {
     const st = E.initGame(seats - 1, s, ["Seat 1"], undefined, true, undefined);
     st.players[0].isHuman = false;
     if (st.phase === "drafting") { E.advanceDraft(st, () => {}); E.startPlanning(st); }
-    E.advancePlanning(st, E.mulberry32(s + 777), () => {});
+    /* Making land pay more could just hand the leader another thing to be ahead at,
+       so the runaway numbers are read on the same games rather than assumed. */
+    const snap = {};
+    E.advancePlanning(st, E.mulberry32(s + 777), (msg) => {
+      const m = /^\u25b6 Year \d+, Quarter (\d+)/.exec(String(msg));
+      if (m) snap[+m[1]] = st.players.map((x) => ({ id: x.id, ep: E.epTotal(x) }));
+    });
     if (st.phase !== "gameover") continue;
     T.games++;
     const winner = [...st.players].sort(E.finalRank)[0];
     T.winnerEP += E.epTotal(winner);
+    const eps = st.players.map((x) => E.epTotal(x)).sort((a, b) => b - a);
+    T.margin += eps[0] - (eps[1] !== undefined ? eps[1] : eps[0]);
+    const s6 = snap[6] && [...snap[6]].sort((a, b) => b.ep - a.ep);
+    /* A shared lead is not a lead, so those games are evidence neither way. */
+    if (s6 && s6.filter((x) => x.ep === s6[0].ep).length === 1) {
+      T.q6Known++;
+      if (s6[0].id === winner.id) T.q6Won++;
+      const half = Math.floor(s6.length / 2);
+      if (new Set(s6.slice(s6.length - half).map((x) => x.id)).has(winner.id)) T.bottomWon++;
+    }
     /* Did the seat that ended up holding the most ground also win? A prize nobody
        who chases it ever wins is a trap, whatever it pays. */
     const plots = st.players.map((p) => ({ p, n: E.plotCount(st, p) }));
@@ -177,6 +194,14 @@ const PRESETS = {
     { key: "10/0", name: "10 to first, nothing to second", values: [10] },
     { key: "10/5", name: "10 first / 5 second", values: [10, 5] },
   ],
+  /* The rate sweep put 8/0 under chance from four seats up and 10/0 over it
+     everywhere, so the answer is between them. */
+  fine: [
+    { key: "current", name: "5 to the sole leader (as it ships)" },
+    { key: "8/0", name: "8 to the sole leader", values: [8] },
+    { key: "9/0", name: "9 to the sole leader", values: [9] },
+    { key: "10/0", name: "10 to the sole leader", values: [10] },
+  ],
 };
 const setArg = process.argv.find((a) => a.startsWith("--arms="));
 const ARMS = PRESETS[setArg ? setArg.slice(7) : "base"];
@@ -216,4 +241,9 @@ block("land EP paid to the whole table", (T) => (T.landTable / Math.max(1, T.gam
    a trap however big it is; "chance" is what an indifferent seat would take. */
 block("the plot leader wins this often", (T) => pc(T.landLeaderWon, T.landLeaderKnown) + "");
 console.log("    " + pad("chance would give", 28) + SIZES.map((n) => rp((100 / n).toFixed(1) + "%", 8)).join(""));
+console.log("\nDOES A BIGGER PRIZE FEED THE LEADER?");
+block("the Q6 leader goes on to win", (T) => pc(T.q6Won, T.q6Known));
+console.log("    " + pad("chance would give", 28) + SIZES.map((n) => rp((100 / n).toFixed(1) + "%", 8)).join(""));
+block("a bottom-half seat at Q6 comes back", (T) => pc(T.bottomWon, T.q6Known));
+block("the winner's margin over second (EP)", (T) => (T.margin / Math.max(1, T.games)).toFixed(1));
 console.log("");
