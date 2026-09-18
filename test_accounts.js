@@ -118,6 +118,14 @@ section("Passwords");
   section("Forgotten passwords");
   const started = accounts.startReset(store, "d@example.com");
   check("a reset can be started by email", !!started, started && started.user.name);
+  /* An account with no address has nowhere to send a link, and a blank search term must
+     not match it - otherwise "forgot my password" with the field left empty finds a
+     stranger and starts a reset on their account. */
+  const noAddr = await accounts.register(store, { name: "Quiet", password: "eight is enough",
+    pid: "q1", heldBy: [], question: "street", answer: "Baker Street" });
+  check("an account with no email registers fine", !noAddr.error, noAddr.error);
+  check("and no reset can be started for it", !accounts.startReset(store, "Quiet"));
+  check("and a blank search matches nobody", !accounts.startReset(store, ""));
   check("and by name", !!accounts.startReset(store, "Dids"));
   check("the token itself is not stored", JSON.stringify(store).indexOf(started.token) === -1,
     "only its hash, so a stolen accounts.json is not a set of reset links");
@@ -166,6 +174,12 @@ section("Passwords");
   const weak = await jar().post("/api/register", { name: `W${uniq()}`, email: `w${uniq()}@example.com`, password: "short",
     question: "street", answer: "Baker Street" });
   check("a weak password is refused", !!weak.body.error, weak.body.error);
+  /* Optional, not gone: an address given anyway is still checked and still has to be
+     unique, so accounts made while it was being asked for keep working. */
+  const noneAtAll = await jar().post("/api/register", { name: `N${uniq()}`, password: "eight is enough",
+    question: "street", answer: "Baker Street" });
+  check("an account can be made with no email at all", !noneAtAll.body.error, noneAtAll.body.error);
+
   const noMail = await jar().post("/api/register", { name: `M${uniq()}`, email: "not-an-address", password: "eight is enough",
     question: "street", answer: "Baker Street" });
   check("a nonsense email is refused", !!noMail.body.error, noMail.body.error);
@@ -310,9 +324,10 @@ section("Passwords");
   await page.getByRole("button", { name: "reserve your name" }).click();
   await sleep(200);
   await page.locator('input[placeholder="Your name"]').first().fill(newName);
-  await page.locator('input[placeholder*="Email"]').fill(`${newName}@example.com`);
   await page.locator('input[placeholder*="Password"]').fill("eight is enough");
-  // registering now also picks a secret question, which is the way back in without email
+  // No address is asked for any more - the question below is the whole way back in.
+  check("registration does not ask for an email address",
+    await page.locator('input[placeholder*="Email"]').count() === 0);
   await page.locator("select").selectOption("street");
   await page.locator('input[placeholder="Your answer"]').fill("Baker Street");
   await page.getByRole("button", { name: "Create account" }).click();
@@ -345,9 +360,13 @@ section("Passwords");
   await sleep(700);
   check("signing out returns you to a guest", /Playing as a guest/.test(await txt()));
 
-  // the reset link opens the new-password form
+  /* This account was made through the UI, which no longer asks for an address - so
+     there is nowhere to send a link and none can be minted. That is the point of the
+     change, not a regression: the question is the way back in. The reset FORM is still
+     reachable and still refuses a bad token, because the server can honour a link if
+     mail is ever configured again. */
   const reset = accounts.startReset(accounts.load(file), newName);   // read-only copy: just for a shape check
-  check("a reset link can be minted for the new account", !!reset);
+  check("no reset link can be minted, because no address was asked for", !reset);
   await page.goto(`${BASE}/?reset=clearly-not-valid`, { waitUntil: "domcontentloaded" });
   await sleep(800);
   check("an invalid reset link says so rather than offering a form",

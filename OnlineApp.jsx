@@ -116,13 +116,13 @@ function AccountPanel({ account, setAccount, onName }) {
           This reserves your name, so nobody else can play as you and change your record.
         </div>
         <input style={field} placeholder="Your name" value={form.name || ""} onChange={set("name")} maxLength={24} />
-        <input style={field} type="email" placeholder="Email (only used to reset your password)"
-          value={form.email || ""} onChange={set("email")} />
         <input style={field} type="password" placeholder="Password (8 characters or more)"
           value={form.password || ""} onChange={set("password")} />
+        {/* No address is asked for. Recovery is the question below, and collecting one
+            the game will never write to is taking something for nothing. */}
         <div className="text-[10px] text-gray-500 mt-1 mb-1">
-          Pick a question. If you forget your password, answering it lets you set a new one straight away
-          &mdash; no email needed.
+          Pick a question. If you forget your password, answering it is how you set a new one.
+          Choose something you will still know in a month.
         </div>
         <select style={{ ...field, cursor: "pointer" }} value={form.question || ""} onChange={set("question")}>
           <option value="">Choose a question&hellip;</option>
@@ -130,7 +130,7 @@ function AccountPanel({ account, setAccount, onName }) {
         </select>
         <input style={field} placeholder="Your answer" value={form.answer || ""} onChange={set("answer")} maxLength={120} />
         <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
-          onClick={() => send("/api/register", { name: form.name, email: form.email, password: form.password,
+          onClick={() => send("/api/register", { name: form.name, password: form.password,
             question: form.question, answer: form.answer }, done)}>
           Create account
         </button>
@@ -153,9 +153,8 @@ function AccountPanel({ account, setAccount, onName }) {
           })}>
           Continue
         </button>
-        <div className="flex justify-between mt-2 text-[10px]">
+        <div className="mt-2 text-[10px]">
           <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("signin")}>Back to sign in</button>
-          <button style={{ ...link, color: "#6b7280" }} onClick={() => open("email")}>Send me an email instead</button>
         </div>
       </>)}
 
@@ -178,20 +177,11 @@ function AccountPanel({ account, setAccount, onName }) {
         </div>
       </>)}
 
-      {pane === "email" && (<>
-        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Reset by email</div>
-        <div className="text-[10px] text-gray-500 mb-2">
-          For accounts made before the question existed. Your name or your email address &mdash; either will do.
-        </div>
-        <input style={field} placeholder="Name or email" value={form.who || ""} onChange={set("who")} />
-        <button disabled={busy} style={btn("#20232c", "#e5e7eb")}
-          onClick={() => send("/api/forgot", { who: form.who }, (b) => { setNote(b.sent); setForm({}); })}>
-          Send a reset link
-        </button>
-        <div className="mt-2 text-[10px]">
-          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("forgot")}>Use my question instead</button>
-        </div>
-      </>)}
+      {/* There was a "Reset by email" pane here. The server can still mint and honour a
+          link - /api/forgot and the reset pane below are untouched, and setting the mail
+          variables brings the whole path back - but nothing offers it, because nothing is
+          configured to deliver it. A button that silently sends nothing is worse than no
+          button. */}
 
       {pane === "reset" && (<>
         <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Choose a new password</div>

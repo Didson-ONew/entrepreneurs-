@@ -170,7 +170,14 @@ function readSession(store, value) {
 /* ---------- finding people ---------- */
 const byId = (store, id) => store.users.find((u) => u.id === id) || null;
 const byName = (store, name) => store.users.find((u) => u.nameKey === nameKey(name)) || null;
-const byEmail = (store, email) => store.users.find((u) => u.emailKey === emailKey(email)) || null;
+/* An account registered without an address has an empty emailKey, so a blank or
+   missing search term would otherwise match it - and "forgot my password" with the
+   field left empty would find a stranger. */
+const byEmail = (store, email) => {
+  const key = emailKey(email);
+  if (!key) return null;
+  return store.users.find((u) => u.emailKey === key) || null;
+};
 
 /* What the browser is allowed to know about an account: its own. */
 const publicUser = (u) => (u ? { id: u.id, name: u.name, email: u.email,
@@ -183,14 +190,19 @@ const publicUser = (u) => (u ? { id: u.id, name: u.name, email: u.email,
 async function register(store, { name, email, password, pid, heldBy, question, answer }) {
   const nm = cleanName(name);
   if (nm.length < 2) return { error: "Pick a name of at least 2 characters." };
-  if (!looksLikeEmail(email)) return { error: "That does not look like an email address." };
+  /* Optional. Password recovery is the secret question, and asking for an address the
+     game will never write to is collecting something for nothing. One given anyway is
+     still checked and still has to be unique, so an account made when mail was being
+     asked for keeps working exactly as it did. */
+  const wantsEmail = String(email == null ? "" : email).trim().length > 0;
+  if (wantsEmail && !looksLikeEmail(email)) return { error: "That does not look like an email address." };
   const pwProblem = passwordProblem(password);
   if (pwProblem) return { error: pwProblem };
   if (!questionText(question)) return { error: "Choose one of the questions." };
   if (answerKey(answer).length < MIN_ANSWER) return { error: "Answer the question you chose." };
 
   if (byName(store, nm)) return { error: `${nm} is already registered. Sign in instead, or pick another name.` };
-  if (byEmail(store, email)) return { error: "There is already an account with that email address." };
+  if (wantsEmail && byEmail(store, email)) return { error: "There is already an account with that email address." };
 
   const holders = heldBy instanceof Set ? heldBy : new Set(heldBy || []);
   const others = [...holders].filter((h) => h && h !== pid);
@@ -204,8 +216,8 @@ async function register(store, { name, email, password, pid, heldBy, question, a
     id: crypto.randomBytes(12).toString("hex"),
     name: nm,
     nameKey: nameKey(nm),
-    email: emailKey(email),
-    emailKey: emailKey(email),
+    email: wantsEmail ? emailKey(email) : null,
+    emailKey: wantsEmail ? emailKey(email) : "",
     pw,
     question,
     answer: await hashPassword(answerKey(answer)),
@@ -241,6 +253,10 @@ async function login(store, { name, password }) {
 function startReset(store, who) {
   const u = byEmail(store, who) || byName(store, who);
   if (!u) return null;
+  /* Accounts are made without an address now, so there may be nowhere to send it.
+     The caller answers the same either way - see /api/forgot - so this is simply the
+     honest "no link was minted". */
+  if (!u.emailKey) return null;
   const token = crypto.randomBytes(24).toString("hex");
   u.reset = {
     hash: crypto.createHash("sha256").update(token).digest("hex"),
@@ -284,8 +300,9 @@ function questionFor(store, name) {
   const u = byName(store, name);
   if (!u) return { error: "No account with that name." };
   if (!u.question) {
-    return { error: `${u.name} was registered before secret questions existed. Use the email link instead, ` +
-      `and set a question once you are back in.` };
+    return { error: `${u.name} was registered before secret questions existed, so there is no way ` +
+      `back into it from here. Ask whoever runs the server to let you in, then set a question ` +
+      `from your account so this cannot happen again.` };
   }
   return { name: u.name, question: questionText(u.question) };
 }
