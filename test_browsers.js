@@ -37,6 +37,25 @@ async function waitText(p, re, ms = 8000) {
   return false;
 }
 
+/* Every click in here was written `.click({timeout}).catch(() => {})` and then the
+   branch returned its label regardless. So a click that never landed - the button
+   covered by an overlay, say - was counted as an action: the idle counter reset, the
+   stall detector never fired, and the loop span for as long as the runner allowed
+   while the SERVER sat idle. Failed clicks are now visible and do not count. */
+const clickFails = {};
+async function click(loc, label, opts = {}) {
+  try {
+    await loc.click({ timeout: 2500, ...opts });
+    return true;
+  } catch (e) {
+    clickFails[label] = (clickFails[label] || 0) + 1;
+    if (clickFails[label] <= 3 || clickFails[label] % 25 === 0) {
+      console.log(`  !! click "${label}" failed (${clickFails[label]}x): ${String(e.message || e).split("\n")[0].slice(0, 90)}`);
+    }
+    return false;
+  }
+}
+
 /* Play one action if this page currently has controls; returns true if it acted. */
 const buyFails = new Map();   // per-page consecutive failed buy attempts
 /* How long each branch of tryAct spends, in total. The 420s failures turned out to
@@ -167,8 +186,9 @@ async function tryAct(p, who) { /* returns branch label or null */
   for (const nm of ["M&A", "R&D", "Raise Capital"]) {
     const tb = p.getByRole("button", { name: nm, exact: true });
     if (await tb.count() && await tb.first().isEnabled().catch(() => false)) {
-      await tb.first().click({ timeout: 2500 }).catch(() => {});
-      return "plan";
+      /* A click that did not land is not an action. Returning "plan" for one is what
+         let this loop spin for four minutes against an idle server. */
+      return (await click(tb.first(), "plan:" + nm)) ? "plan" : null;
     }
   }
   // resolving: buy land, else pass
@@ -200,7 +220,11 @@ async function tryAct(p, who) { /* returns branch label or null */
   }
   M("pass");
   const pass = p.getByText("Pass this action");
-  if (await pass.count()) { await pass.first().click({ timeout: 2500 }).catch(() => {}); buyFails.set(p, 0); return "pass"; }
+  if (await pass.count()) {
+    const ok = await click(pass.first(), "pass");
+    buyFails.set(p, 0);
+    return ok ? "pass" : null;
+  }
   return false;
 }
 
@@ -285,6 +309,7 @@ const T0 = Date.now();
     if (Date.now() - tPlay > DEADLINE) {
       console.log(`\n!! OUT OF TIME after ${Math.round((Date.now() - tPlay) / 1000)}s at step ${steps}, quarter ${lastQ}`);
       console.log("branch histogram:", JSON.stringify(hist));
+      console.log("clicks that never landed:", JSON.stringify(clickFails));
       console.log("seconds per branch:", JSON.stringify(Object.fromEntries(
         Object.entries(branchMs).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, +(v / 1000).toFixed(1)]))));
       await stallDump();
@@ -346,6 +371,7 @@ const T0 = Date.now();
   console.log(`\nactions taken: ${acted} | quarter reached: ${q || "end"}`);
   console.log("seconds per branch:", JSON.stringify(Object.fromEntries(
     Object.entries(branchMs).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, +(v / 1000).toFixed(1)]))));
+  console.log("clicks that never landed:", JSON.stringify(clickFails));
   check("A reached Game Over", /Game Over/.test(finalA));
   check("B reached Game Over", /Game Over/.test(finalB));
 

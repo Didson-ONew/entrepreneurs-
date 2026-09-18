@@ -63,6 +63,8 @@ const NEEDLES = {
   /* Where a bot decides a merge is worth it. */
   botPrice: "  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);",
   helper: "function hqNeighbours(state, hq) {",
+  /* Once a quarter, at the top of revenue. The orbit arm pays from here. */
+  dividend: "function runMegacorpDividend(state, log) {\n  for (const p of state.players) {",
 };
 for (const [k, v] of Object.entries(NEEDLES)) {
   if (!base.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
@@ -123,12 +125,39 @@ if (process.argv.includes("--dump")) {
   process.exit(0);
 }
 
+/* ORBIT. The headquarters stops being paid for the buildings around it at the end;
+   instead every company touching one banks ORBIT_EP a quarter for ITS OWN owner - the
+   Megacorp's own buildings included, since a company is a company. That turns a
+   one-off end-of-game lump into a flow players can see arriving and react to, and it
+   is worth far more than the 3 EP it replaces: a headquarters standing from Q6 pays
+   its orbit seven times. */
+const ORBIT_EP = 2;
+const ORBIT_DIVIDEND = `function runMegacorpDividend(state, log) {
+  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      for (const [id, n] of Object.entries(hqNeighbourOwners(state, hq))) {
+        const q = state.players.find((x) => String(x.id) === String(id));
+        if (!q) continue;
+        addEP(q, ${ORBIT_EP} * n, \`Megacorp orbit: \${hq.megacorpName}\`, state.quarter);
+        if (log) log(\`\${q.name} banks \${${ORBIT_EP} * n} EP in the orbit of "\${hq.megacorpName}".\`, q.id);
+      }
+    }
+  }
+  for (const p of state.players) {`;
+
+/* Under ORBIT a merger is worth the orbit its OWN buildings will collect for the rest
+   of the game, and nothing for the opponents standing next to it. */
+const ORBIT_BOT_PRICE = `  const __nb = hqNeighbourOwners(state, hq);
+  const districtEP = ${ORBIT_EP} * (__nb[p.id] || 0) * qLeft;`;
+
 const ARMS = [
   { key: "current", name: "as it ships (owner +3 per neighbour)" },
   { key: "raid-blind", name: "RAID, bots blind", raid: true },
   { key: "raid", name: "RAID, bots aware", raid: true, aware: true },
   { key: "seize-blind", name: "SEIZE, bots blind", raid: true, seize: true },
   { key: "seize", name: "SEIZE, bots aware", raid: true, seize: true, aware: true },
+  { key: "orbit-blind", name: `ORBIT ${ORBIT_EP} EP a quarter, bots blind`, orbit: true },
+  { key: "orbit", name: `ORBIT ${ORBIT_EP} EP a quarter, bots aware`, orbit: true, aware: true },
 ];
 
 /* A replace that matches nothing returns the string unchanged and says nothing, which
@@ -141,7 +170,13 @@ function splice(src, find, put, what) {
 function engineFor(arm) {
   let logic = splice(base, NEEDLES.helper, OWNER_HELPER + NEEDLES.helper, "neighbour-owner helper");
   if (arm.raid) logic = splice(logic, NEEDLES.payout, payoutFor(arm.seize), "final payout");
-  if (arm.aware) logic = splice(logic, NEEDLES.botPrice, botPriceFor(arm.seize), "bot merge price");
+  if (arm.orbit) {
+    /* The end-of-game district award goes away entirely - the orbit replaces it. */
+    logic = splice(logic, NEEDLES.payout, "", "final payout (removed for orbit)");
+    logic = splice(logic, NEEDLES.dividend, ORBIT_DIVIDEND, "quarterly orbit dividend");
+  }
+  if (arm.aware) logic = splice(logic, NEEDLES.botPrice,
+    arm.orbit ? ORBIT_BOT_PRICE : botPriceFor(arm.seize), "bot merge price");
   const box = {};
   const sandbox = { console, Math, Set, Object, Array, JSON, String, box };
   vm.createContext(sandbox);
@@ -195,6 +230,10 @@ function run(E, seats) {
           if (p.id === winner.id) T.raidToWinner += line.amount;
         }
         if (L.startsWith("Megacorp tithe:")) T.titheEP += line.amount;
+        if (L.startsWith("Megacorp orbit:")) {
+          T.raidEP += line.amount;
+          if (p.id === winner.id) T.raidToWinner += line.amount;
+        }
         if (p.id === winner.id && L.startsWith("Megacorp")) T.mcEP += line.amount;
       }
     }
@@ -226,7 +265,7 @@ block("DOES MERGING SURVIVE? Megacorps formed a game", (T) => (T.hqs / Math.max(
 block("the deadline was called", (T) => pc(T.deadline, T.games));
 block("the game ended before Q12", (T) => pc(T.early, T.games));
 block("WHO GETS PAID? Megacorp EP as a share of the winner", (T) => pc(T.mcEP, T.winnerEP));
-block("raid EP paid to neighbours a game", (T) => (T.raidEP / Math.max(1, T.games)).toFixed(1));
+block("raid/orbit EP paid out a game", (T) => (T.raidEP / Math.max(1, T.games)).toFixed(1));
 block("...charged to Megacorp owners (SEIZE only)", (T) => (T.titheEP / Math.max(1, T.games)).toFixed(1));
 block("...of which went to the eventual winner", (T) => pc(T.raidToWinner, T.raidEP));
 console.log("    " + pad("a fair share is", 14) + SIZES.map((n) => rp((100 / n).toFixed(1) + "%", 9)).join(""));

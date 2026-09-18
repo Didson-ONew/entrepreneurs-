@@ -53,6 +53,10 @@ const NEEDLES = {
     if (log) log(\`\${p.name} earns \${label} (+\${share} EP).\`, p.id);
   }`,
   epLabel: "p.epLog.push({ label, amount, quarter });",
+  /* What a company level is worth. The bots read this too - it prices launching,
+     upgrading and what a merger gives up - so moving it moves the whole game, not
+     just the scoresheet. */
+  levelEP: 'const levelEP = (state) => (hasVariant(state, "heavyLevelEP") ? 3 : 2);',
   mogul: 'awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", log);',
 };
 for (const [k, v] of Object.entries(NEEDLES)) {
@@ -81,6 +85,9 @@ const RANKED_BODY = (values) => `  scores.sort((a, b) => b.s - a.s);
 
 function engineFor(arm) {
   let logic = base;
+  if (arm.level !== undefined) {
+    logic = logic.replace(NEEDLES.levelEP, `const levelEP = (state) => ${arm.level};`);
+  }
   if (arm.values) {
     logic = logic.replace(NEEDLES.awardBody, RANKED_BODY(arm.values));
     /* The bots price a plot through LAND_AWARD.sole (see worthChasingLand), so the
@@ -193,6 +200,17 @@ const PRESETS = {
     { key: "8/4", name: "8 first / 4 second", values: [8, 4] },
     { key: "10/0", name: "10 to first, nothing to second", values: [10] },
     { key: "10/5", name: "10 first / 5 second", values: [10, 5] },
+  ],
+  /* Land's SHARE of a winning score can be raised from either end. Raising the award
+     makes the land race pay more, and measurably feeds whoever is already ahead;
+     shrinking the biggest source instead - companies and upgrades are 37-41% of every
+     winning score - raises land's share without putting another EP on the board. These
+     arms separate the two, and try them together. */
+  levels: [
+    { key: "current", name: "2 EP a level, land 5 to the leader (as it ships)" },
+    { key: "lvl1", name: "1 EP a level, land unchanged", level: 1 },
+    { key: "land10", name: "2 EP a level, land 10 to the leader", values: [10] },
+    { key: "lvl1+10", name: "1 EP a level AND land 10 to the leader", level: 1, values: [10] },
   ],
   /* The rate sweep put 8/0 under chance from four seats up and 10/0 over it
      everywhere, so the answer is between them. */
