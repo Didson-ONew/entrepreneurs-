@@ -56,6 +56,24 @@ async function click(loc, label, opts = {}) {
       const lines = String(e.message || e).split("\n").map((l) => l.trim()).filter(Boolean);
       const why = lines.find((l) => /intercepts pointer events|not visible|outside of the viewport|detached/.test(l)) || lines[0] || "";
       console.log(`  !! click "${label}" failed (${clickFails[label]}x): ${why.slice(0, 160)}`);
+      /* "<div></div> intercepts pointer events" names nothing. Ask the page what is
+         actually under the button's centre and describe it - tag, class, inline
+         style, size, and its parents - so the overlay can be found in the source. */
+      if (clickFails[label] === 1) {
+        try {
+          const box = await loc.boundingBox();
+          if (box) {
+            const desc = await loc.page().evaluate(([x, y]) => {
+              const el = document.elementFromPoint(x, y);
+              const d = (e) => e ? `<${e.tagName.toLowerCase()} class="${(e.className || "").toString().slice(0, 60)}" style="${(e.getAttribute("style") || "").slice(0, 120)}" ${Math.round(e.getBoundingClientRect().width)}x${Math.round(e.getBoundingClientRect().height)} text="${(e.textContent || "").trim().slice(0, 30)}">` : "none";
+              const chain = []; let e = el;
+              for (let i = 0; e && i < 4; i++) { chain.push(d(e)); e = e.parentElement; }
+              return chain.join("\n        in ");
+            }, [box.x + box.width / 2, box.y + box.height / 2]);
+            console.log(`     under the cursor: ${desc}`);
+          }
+        } catch (e2) { console.log("     (could not describe the overlay:", String(e2.message || e2).slice(0, 60) + ")"); }
+      }
     }
     return false;
   }
