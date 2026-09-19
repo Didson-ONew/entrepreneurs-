@@ -50,7 +50,12 @@ async function click(loc, label, opts = {}) {
   } catch (e) {
     clickFails[label] = (clickFails[label] || 0) + 1;
     if (clickFails[label] <= 3 || clickFails[label] % 25 === 0) {
-      console.log(`  !! click "${label}" failed (${clickFails[label]}x): ${String(e.message || e).split("\n")[0].slice(0, 90)}`);
+      /* The whole message, not its first line: Playwright says WHAT intercepted the
+         click several lines down ("<div ...> intercepts pointer events"), and the
+         first line alone is just "Timeout 2500ms exceeded". */
+      const lines = String(e.message || e).split("\n").map((l) => l.trim()).filter(Boolean);
+      const why = lines.find((l) => /intercepts pointer events|not visible|outside of the viewport|detached/.test(l)) || lines[0] || "";
+      console.log(`  !! click "${label}" failed (${clickFails[label]}x): ${why.slice(0, 160)}`);
     }
     return false;
   }
