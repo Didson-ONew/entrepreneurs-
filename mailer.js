@@ -38,6 +38,10 @@ const { spawn } = require("child_process");
 
 const env = (k, d = "") => (process.env[k] == null ? d : String(process.env[k]));
 
+/* Not an address anyone can send from - it stands in while the link is only being
+   printed to a terminal. */
+const PLACEHOLDER_FROM = "entrepreneurs@localhost";
+
 function config() {
   const webhook = env("MAIL_WEBHOOK_URL").trim();
   const webhookTemplate = env("MAIL_WEBHOOK_TEMPLATE").trim();
@@ -50,7 +54,9 @@ function config() {
     /* Gmail will not let you send as somebody else: the envelope sender has to be the
        account that authenticated. Defaulting From to the SMTP user removes the most
        common way to configure this wrongly and get a silent rejection. */
-    from: env("MAIL_FROM", smtp ? smtpUser : "entrepreneurs@localhost").trim(),
+    /* The placeholder exists for console mode, where nothing is really sent. Any
+       provider will refuse it, so it is worth being able to recognise it later. */
+    from: env("MAIL_FROM", smtp ? smtpUser : PLACEHOLDER_FROM).trim(),
     webhook,
     webhookTemplate,
     webhookHeaders: parseHeaders(env("MAIL_WEBHOOK_HEADER")),
@@ -87,12 +93,23 @@ function describe(c = config()) {
     const shape = !c.webhookTemplate ? " with the default {from, to, subject, text} body"
       : dry.error ? `  <-- WARNING: ${dry.error}` : " using MAIL_WEBHOOK_TEMPLATE";
     const orphan = c.webhookHeaders && c.webhookHeaders.__dropped;
+    /* Two ways to arrive here, and the message used to assert the rarer one. A value
+       pasted WITHOUT its header name is the common mistake - the whole thing is then
+       one nameless line - and a long key wrapped onto a second line is the other. The
+       count tells them apart: one orphan and no headers at all means the name is
+       missing, an orphan alongside a header that IS set means a wrap. */
+    const named = Object.keys(c.webhookHeaders || {}).length;
     const wrapped = orphan
-      ? `  <-- WARNING: ${orphan.length} line(s) of MAIL_WEBHOOK_HEADER have no "Name: value" colon`
-        + ` (${orphan.join(", ")} characters) and were ignored - a long key wrapped onto a second`
-        + " line arrives exactly like this, and the part that is used is then truncated"
+      ? `  <-- WARNING: ${orphan.length} line(s) of MAIL_WEBHOOK_HEADER have no "Name: value"`
+        + ` colon (${orphan.join(", ")} characters) and were ignored.`
+        + (named
+          ? " A long value wrapped onto a second line arrives exactly like this, and the"
+            + " part that is used is then truncated."
+          : ' Nothing else was set either, so the header has no NAME: it needs to read'
+            + ' "api-key: <key>" for Brevo, or "Authorization: Bearer <key>" - the name,'
+            + " a colon, then the value, on one line.")
       : "";
-    return `reset mail: POSTed to ${c.webhook}${shape}${wrapped}`;
+    return `reset mail: POSTed to ${c.webhook}${shape}${wrapped}${senderWarning(c)}`;
   }
   if (c.mode === "command") return `reset mail: piped to \`${c.command}\``;
   return "reset mail: printed here in this terminal (set MAIL_WEBHOOK_URL or MAIL_COMMAND to send it properly)";
@@ -152,6 +169,20 @@ function templateValues(c, msg) {
     to: msg.to, subject: msg.subject, text: msg.text,
     from: c.from, from_email: addrOnly(c.from), from_name: name || addrOnly(c.from),
   };
+}
+
+/* A mail API will not accept the placeholder sender, and the refusal it gives for it
+   is about the message rather than the configuration - Brevo answers "valid sender
+   email required", which reads like a template fault. Said plainly at boot instead.
+
+   This is easy to arrive at by accident: with SMTP configured, MAIL_FROM defaults to
+   the account that authenticated, so it never has to be set. Move to an HTTP provider
+   and delete the SMTP variables, and that default goes with them. */
+function senderWarning(c) {
+  if (addrOnly(c.from) !== PLACEHOLDER_FROM) return "";
+  return '  <-- WARNING: MAIL_FROM is not set, so the sender is "' + PLACEHOLDER_FROM + '".'
+    + " No mail provider will accept that. Set MAIL_FROM to an address you have verified"
+    + ' with them, e.g. MAIL_FROM="Entrepreneurs <you@example.com>".';
 }
 
 function rfc822({ from, to, subject, text }, now = new Date()) {

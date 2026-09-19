@@ -266,6 +266,16 @@ starting the server and it will use it instead:
   address does not match a verified Sender Identity" will appear if you skip the
   verification step.
 
+  **Set `MAIL_FROM` as well**, to an address you have verified with the provider:
+
+      MAIL_FROM="Entrepreneurs <entrepreneurs.boardgame@gmail.com>"
+
+  It is easy to miss, because with SMTP configured it defaults to the account that
+  authenticated and never has to be set. Switch to an HTTP provider and remove the
+  SMTP variables, and that default goes with them — the sender falls back to a
+  placeholder no provider will take, and the refusal that comes back talks about
+  the message rather than the setting. The server now says so at startup instead.
+
   With no template the body is `{from, to, subject, text}`, which suits a relay of
   your own.
 - `MAIL_COMMAND="sendmail -t"` — if your host has a mail command. Most managed

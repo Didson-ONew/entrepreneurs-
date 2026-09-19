@@ -22,7 +22,7 @@ function loadEngine() {
       doPlaceLH, placeNewLH, doLaunch, doUpgrade, reachableDistricts, plotHasLH, plotIsLH,
       lhDistricts, lhCount, plotFree, orthOf, runClosingRest, finalizeGame, activeBiz, epTotal,
       byId, BP_DATA, INDUSTRIES, awardRanked, plotCount, districtCount, levelEP, SCALING,
-      landEPWeight, landPayouts, megacorpWorthIt, bestMegacorpMatch, launchScore,
+      landEPWeight, landPayouts, landAward, megacorpWorthIt, bestMegacorpMatch, launchScore,
       scoreCompanyOnCompletion };
   `, sandbox);
   return box.exports;
@@ -213,8 +213,13 @@ section("5. Land awards at the end only");
     E.runClosingRest(st, () => {});
     return me.epBank;
   };
-  check("both awards land at a normal year end", mk(undefined) === 10,
-    `${mk(undefined)} EP (5 for most plots + 5 for most districts)`);
+  /* Read the rate off the engine rather than writing 10 here. This table is four
+     players - initGame(3, ...) plus the human - so it is on the doubled rate, and the
+     hardcoded figure silently became wrong the moment the award started scaling with
+     the head count. Two awards, one for plots and one for districts. */
+  const perAward = E.landAward(game(undefined)).sole;
+  check("both awards land at a normal year end", mk(undefined) === 2 * perAward,
+    `${mk(undefined)} EP (${perAward} for most plots + ${perAward} for most districts, at ${game(undefined).players.length} players)`);
   check("under the variant the year end pays nothing", mk({ endgameLandAwards: true }) === 0,
     `${mk({ endgameLandAwards: true })} EP`);
 

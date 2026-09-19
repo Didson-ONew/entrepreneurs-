@@ -360,7 +360,7 @@ Every quarter ends with a new Logistic Hub being built on an empty plot. The fir
 
 ### At the end of Quarter 4, 8 and 12
 
-- The Real-Estate Mogul and The Omnipresent are awarded - 5 EP each, to the outright leader only.
+- The Real-Estate Mogul and The Omnipresent are awarded - 5 EP each to the outright leader at 2-3 players, 10 EP each at 4 or more.
 - You may buy back loan discs: $30 at the end of Year 1, $35 at Year 2, $40 at Year 3.
 
 Companies do not wait for the year end. A company scores the moment it is finished - see below - so by the time a year ends its EP are already banked. What a year end decides is who is holding the city.
@@ -397,7 +397,7 @@ Whoever forms the first Megacorp of the game also takes the IPO tile: a sixth co
 - A headquarters is public infrastructure: it counts as a Logistic Hub. Any company built orthogonally beside one joins the network through it, whoever owns them. A monument that only collected would be a monument nobody wanted to build near - and the companies that gather round it are exactly the ones it scores 3 EP each for at the end.
 - Sell a plot out from under a headquarters and it collects nothing at all - no pot share, no points, and it stops being a hub. A monument still needs its ground.
 - It keeps its disc, and it permanently locks one of your five company slots. Every Megacorp you form narrows how wide you can operate.
-- At the end of the game the HQ scores 3 EP for every OTHER company standing orthogonally beside it - the district that grew up around it. Counted at scoring, not when the Megacorp forms, so where you put your headquarters is a bet on where the city fills in.
+- Every quarter it stands, the HQ pays 1 EP to every RIVAL company standing orthogonally beside it, and that company's owner banks it. Your OWN companies beside your own HQ cost you nothing - they are paid and you are charged in the same breath, which cancels. So a headquarters wedged into somebody else's district bleeds all game, and where you put it is a bet on who builds next to you.
 
 Twice the number of players are in play - eight at a four-player table - so a combination you are working toward is usually still there, but the best-paying ones are contested.
 
@@ -458,8 +458,8 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Megacorp tile | +8 to +22 as printed |
 | Megacorp HQ, each quarter it stands | + its industry's price / its tile's tier, rounded down |
 | Megacorp HQ, at the end | +3 for each other company beside it |
-| The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone |
-| The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone |
+| The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone, +10 at 4+ players |
+| The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone, +10 at 4+ players |
 | Cash on hand at the end | +1 per full $50 |
 | Each loan disc still in the bank | -5 |
 
@@ -471,7 +471,9 @@ Ground rent is simply money. It is collected as it is earned and scores inside y
 
 > **Designer's note.** Rent was briefly given its own scoring line while the balance of land was being investigated. It has been folded back into cash: the split changed no totals, and asking a table to keep a running rent tally all game to divide one number into two halves that add back to it is bookkeeping without a decision. The digital build still shows the flow, where it costs nothing. Land plus rent is about 27% of a winning score at two seats and 14% at six - see audit_idle_land.js.
 
-Only the outright leader scores a land award, and a shared lead pays badly: 5 EP alone, 2 EP each if two players tie, 1 EP each if three or more do. Second place gets nothing.
+Only the outright leader scores a land award, and a shared lead pays badly. At two and three players: 5 EP alone, 2 EP each if two tie, 1 EP each if three or more do. **At four players and up every figure doubles** - 10 EP alone, 4 each for a two-way tie, 2 each beyond that. Second place gets nothing at any count.
+
+> **Designer's note.** Both awards pay out the same ~29 EP over a game whether two people are chasing them or six, so a rate tuned for a small table is a rounding error at a big one: land is 17% of a winning score at two seats and 3.5% at six. At 5 EP the player who ends up holding the most ground wins BELOW what an indifferent seat would take, at every single count - chasing land was a trap, not a strategy. Doubling the rate from four players up puts that race back at or above chance without flattening the game: lead changes go UP at every table size and wire-to-wire games go DOWN. The same change at two and three players makes land 41% and 33% of a winning score and the trajectory measurably settles - fewer lead changes, the winner in front longer, games decided most of a quarter earlier - so the small tables keep the old rate. Paying a runner-up was tested and is worse than paying nobody: it costs half again as much EP and makes the land leader win LESS often, because a consolation prize dilutes the race it is meant to sharpen. See audit_ep_mix.js and audit_tension.js.
 
 > **Designer's note.** The awards used to pay 10 and 5 and split between ties, which meant almost everybody collected something and holding land was never really a contest - it was 21% of an average seat's score for very little decision-making. Paying only the leader, and paying badly for a draw, drops it to about 9% and turns it back into a race.
 
@@ -483,7 +485,7 @@ Most EP wins. If the final scores tie, the player still running more ACTIVE COMP
 
 > **Designer's note.** The second Megacorp is a deadline rather than a shortcut. A player who can assemble two of them has spent the game merging, and the rest of the table would otherwise have four more quarters to be run away from. In practice how often it bites depends entirely on the table: it ends the game early in 10% of two-player games, 1% of three-player, 8% of four-player, 21% of five-player and 36% of six-player ones. At the biggest tables - the ones with the most reason to want a shorter evening - it is doing real work; at three seats the game essentially always runs the full twelve quarters. What it really does is put a clock on the leader’s last merger.
 
-> **Designer's note.** The two dials were set together against 300 games a case. At 3 EP a level, companies were 32% of an average seat's score and everything else faded behind them; at 1 EP an upgrade stopped being worth paying the setup cost twice and upgraded companies fell from 5.1 a game to 3.1, while the 5 EP entry bonus swelled to 27% of a score for a decision that is barely one. Two and three put nothing over a third, and building is still the biggest single thing. Re-measured over 250 games a table size on the rules as they stand, across every seat: companies and upgrades 32-35%, cash on hand 25-28%, entering an industry 13-15%, the three Megacorp lines together 10-22%, land awards 19% at two seats falling to 6% at six, and unpaid loans about -1%. See audit_state_of_play.js.
+> **Designer's note.** The two dials were set together against 300 games a case. At 3 EP a level, companies were 32% of an average seat's score and everything else faded behind them; at 1 EP an upgrade stopped being worth paying the setup cost twice and upgraded companies fell from 5.1 a game to 3.1, while the 5 EP entry bonus swelled to 27% of a score for a decision that is barely one. Two and three put nothing over a third, and building is still the biggest single thing. Re-measured over 150 games a table size on the rules as they stand - the table-scaled land award and the Megacorp tithe - across every seat: companies and upgrades 38-43%, entering an industry 13-14%, land awards 20% at two seats, 14% at three, 18% at four, 14% at five and 12% at six, forming a Megacorp 7-14%, the brand dividend 5-12%, the tithe about 1-2% each way, cash on hand 11-14%, and unpaid loans about -1%. Land no longer collapses with the head count: it was 6% at six seats before the award scaled. See audit_state_of_play.js.
 
 > **Designer's note.** Two of those numbers are worth a designer's attention. CASH ON HAND IS ABOUT A THIRD OF A WINNING SCORE at every table size - a great deal of weight for a rule that reads as rounding up the leftovers, and it means a player who simply does not spend scores comparably to one who builds. And THE LAND AWARDS SHRINK AS THE TABLE GROWS, from 18% of the winner's points at two seats to 5% at six, because two fixed 10 EP prizes are split among more claimants while every other source scales with how much you do. Neither is a fault as such; both are levers if the balance is ever revisited.
 

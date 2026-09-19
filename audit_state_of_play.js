@@ -167,6 +167,13 @@ function bucketOf(label) {
   if (label.startsWith("Company:")) return "Companies and upgrades";
   if (label.startsWith("Entered ")) return "Entering an industry";
   if (label.startsWith("Megacorp brand:")) return "Megacorp brand dividend";
+  /* The end-of-game district award is gone, replaced by the quarterly tithe: a
+     headquarters PAYS its rival neighbours now. Two labels, kept apart, because one is
+     income to a neighbour and the other is a charge on the Megacorp, and netting them
+     into one bucket would make a rule that drains Megacorps read as one that feeds
+     them - which is a mistake this repository has already made once. */
+  if (label.startsWith("Megacorp orbit:")) return "Beside a Megacorp (tithe income)";
+  if (label.startsWith("Megacorp tithe:")) return "Tithe paid out (penalty)";
   if (label.startsWith("Megacorp district:")) return "Megacorp districts";
   if (label.startsWith("Megacorp:")) return "Forming a Megacorp";
   if (label === "The Real-Estate Mogul" || label === "The Omnipresent") return "Land awards";
@@ -176,6 +183,7 @@ function bucketOf(label) {
 }
 const BUCKETS = ["Companies and upgrades", "Entering an industry", "Land awards",
   "Forming a Megacorp", "Megacorp brand dividend", "Megacorp districts",
+  "Beside a Megacorp (tithe income)", "Tithe paid out (penalty)",
   "Cash on hand", "Unpaid loans (penalty)", "Other"];
 
 const runs = [];

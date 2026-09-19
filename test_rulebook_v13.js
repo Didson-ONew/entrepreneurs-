@@ -20,13 +20,13 @@ function loadEngine() {
       claimMegacorp, canGoPublic, bestMegacorpMatch, activeBiz, megacorpHQs, companySlotsFor,
       runMegacorpDividend, price, businessCanProduce, payHqRent, hqRentDue,
       plotHasLH, lhDistricts, hqNetworkPlots,
-      hqNeighbours, MEGACORP_NEIGHBOUR_EP, runB2B, finalizeGame, epTotal, orthOf,
+      hqNeighbours, hqNeighbourOwners, MEGACORP_TITHE_EP, runMegacorpTithe, runB2B, finalizeGame, epTotal, orthOf,
       companySlotsUsed, canLaunchMore, discsUsed, discsFree, finalRank, unitPrice,
       renovationEligible, bizInd, PRICE_MIN, PRICE_MAX, BASE_PRICE,
       byId, BP_DATA, MEGACORP_TILES, STARTING, INDUSTRIES, BASE_PRICE, SCALING,
       LOAN_REPAY_RATE, BP_SELL_PRICE, DISCS_PER_PLAYER, COMPANY_SLOTS, PERSONAS,
       levelEP, landPayouts, VARIANT_KEYS, scoreCompanyOnCompletion, runClosingRest,
-      INDUSTRY_DEBUT_EP, LAND_AWARD, awardRanked, claimIndustryBonus, finalizeGame };
+      INDUSTRY_DEBUT_EP, LAND_AWARD, LAND_AWARD_LARGE, landAward, landEPWeight, awardRanked, claimIndustryBonus, finalizeGame };
   `, sandbox);
   return box.exports;
 }
@@ -259,7 +259,7 @@ section("What the scoreboard pays");
   check("once per industry, ever", a.epBank - before === 3, `+${a.epBank - before} EP`);
 }
 
-section("A land award goes to the leader alone, and a draw pays badly");
+section("A land award goes to the leader alone, pays a draw badly, and doubles at a big table");
 {
   const st = E.initGame(0, 53, ["A", "B", "C"], undefined, false);
   const [a, b, c] = st.players;
@@ -291,6 +291,30 @@ section("A land award goes to the leader alone, and a draw pays badly");
   holdings.set(a.id, 0); holdings.set(b.id, 0); holdings.set(c.id, 0);
   check("nobody holding anything is awarded nothing",
     JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([0, 0, 0]));
+
+  /* The rate doubles from four seats up, because the pot does not grow with the table:
+     both awards pay the same ~29 EP over a game however many people are chasing them,
+     so 5 EP is 17% of a winning score at two players and 3.5% at six. */
+  const big = E.initGame(0, 53, ["A", "B", "C", "D"], undefined, false);
+  check("four players and up read the doubled table",
+    E.landAward(big).sole === 10 && E.landAward(big).two === 4 && E.landAward(big).many === 2,
+    JSON.stringify(E.landAward(big)));
+  check("three players and under keep the original",
+    E.landAward(st).sole === 5 && E.landAward(st).two === 2 && E.landAward(st).many === 1);
+
+  const bigHold = new Map();
+  big.players.forEach((p, i) => bigHold.set(p.id, [5, 3, 1, 1][i]));
+  big.players.forEach((p) => { p.epBank = 0; p.epLog = []; });
+  E.awardRanked(big, (p) => bigHold.get(p.id) || 0, "The Real-Estate Mogul", null);
+  check("so an outright leader at four players takes 10",
+    JSON.stringify(big.players.map((p) => p.epBank)) === JSON.stringify([10, 0, 0, 0]),
+    big.players.map((p) => p.epBank).join(","));
+
+  /* And the bots have to price a plot off the same number, or they play the old rule
+     at a table where it no longer applies. */
+  check("and a bot prices a plot off the doubled award too",
+    E.landEPWeight(big, null) === 2 * E.landEPWeight(st, null),
+    `${E.landEPWeight(big, null)} vs ${E.landEPWeight(st, null)}`);
 }
 
 section("A headquarters is public infrastructure");
@@ -405,15 +429,50 @@ section("A headquarters scores for the district that grew around it");
   check("a distressed shell belongs to the bank and does not count",
     E.hqNeighbours(st, hq) === 1, `counted ${E.hqNeighbours(st, hq)}`);
 
+  /* The rule reversed. The headquarters used to be PAID at the end for the companies
+     around it; it now pays them, every quarter, and the payment is a transfer. */
+  const sum = (pl, prefix) => (pl.epLog || [])
+    .filter((e) => String(e.label).startsWith(prefix)).reduce((s2, e) => s2 + e.amount, 0);
+  st.players.forEach((pl) => { pl.epBank = 0; pl.epLog = []; });
+  E.runMegacorpTithe(st, () => {});
+  check(`a rival neighbour takes ${E.MEGACORP_TITHE_EP} EP a quarter off the headquarters`,
+    sum(b, "Megacorp orbit") === E.MEGACORP_TITHE_EP, `${sum(b, "Megacorp orbit")} EP`);
+  check("and the Megacorp's owner is charged exactly that",
+    sum(a, "Megacorp tithe") === -E.MEGACORP_TITHE_EP, `${sum(a, "Megacorp tithe")} EP`);
+  check("so the tithe is a transfer, not points from nowhere",
+    st.players.reduce((s2, pl) => s2 + pl.epBank, 0) === 0,
+    st.players.map((pl) => pl.epBank).join(","));
+
+  /* The owner's OWN building beside their own headquarters has to cancel, or clustering
+     your district around your Megacorp becomes a self-inflicted wound. */
+  /* mk() hardcodes the OTHER player as the owner, so this one is built by hand - an
+     earlier version reused mk and then tried to move the company across afterwards,
+     which left it owned by nobody and the check passed for the wrong reason. */
+  const ownPk = Object.keys(st.board.graph).find((k) =>
+    !(k in st.board.occupiedBy) && E.orthOf(st.board, k).some((n2) => hq.footprint.includes(n2)));
+  check("there is a free plot beside the headquarters to test with", !!ownPk);
+  if (ownPk) {
+    const own = { id: 812, bp: reBp, footprint: [ownPk], levels: { [ownPk]: 1 }, level: 1,
+      upgraded: false, distressed: false, scored: true, quarterBuilt: 1 };
+    a.businesses.push(own);
+    st.board.owner[ownPk] = a.id;
+    st.board.occupiedBy[ownPk] = own.id;
+    check("the headquarters now has two neighbours, one of them its owner's",
+      E.hqNeighbours(st, hq) === 2, `${E.hqNeighbours(st, hq)}`);
+    st.players.forEach((pl) => { pl.epBank = 0; pl.epLog = []; });
+    E.runMegacorpTithe(st, () => {});
+    check("the owner's own neighbour nets them nothing - only the rival costs anything",
+      a.epBank === -E.MEGACORP_TITHE_EP,
+      `${a.epBank} EP, expected ${-E.MEGACORP_TITHE_EP}`);
+    check("and the table still sums to zero",
+      st.players.reduce((s2, pl) => s2 + pl.epBank, 0) === 0,
+      st.players.map((pl) => pl.epBank).join(","));
+  }
+
   const before = E.epTotal(a);
   E.finalizeGame(st);
-  const gained = E.epTotal(a) - before;
-  const districtEP = (a.epLog || []).filter((e) => String(e.label).startsWith("Megacorp district"))
-    .reduce((s2, e) => s2 + e.amount, 0);
-  check(`it scores ${E.MEGACORP_NEIGHBOUR_EP} EP for that one neighbour`,
-    districtEP === E.MEGACORP_NEIGHBOUR_EP, `${districtEP} EP`);
-  check("which is one company level's worth, so the number reads like the rest of the board",
-    E.MEGACORP_NEIGHBOUR_EP === 3);
+  check("and final scoring no longer pays a district award at all",
+    sum(a, "Megacorp district") === 0, `${sum(a, "Megacorp district")} EP`);
 }
 
 /* ------------------------------------------------------------- persona: UT */

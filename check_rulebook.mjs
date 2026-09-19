@@ -27,7 +27,7 @@ runInContext(
   src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "") + `
   this.E = { BASE_PRICE, PRICE_MIN, PRICE_MAX, SUPPLIER_CELLS, BUILT_CELLS, CASH_PER_EP,
              DISCS_PER_PLAYER, MEGACORPS_TO_END, COMPANY_SLOTS, MEGACORP_TIER,
-             MEGACORP_NEIGHBOUR_EP, INDUSTRIES, BP_DATA, STARTING, MEGACORP_TILES,
+             MEGACORP_TITHE_EP, INDUSTRIES, BP_DATA, STARTING, MEGACORP_TILES,
              PERSONAS, IND_NAME: typeof IND_NAME !== "undefined" ? IND_NAME : null,
              makePriceMatrix, price };`, box);
 const E = box.E;
@@ -202,8 +202,14 @@ section("Megacorp tiles");
   }
   check(`a second Megacorp ends the game (engine: ${E.MEGACORPS_TO_END})`,
     everyString.some((s) => /second Megacorp/i.test(s)) && E.MEGACORPS_TO_END === 2);
-  check(`a neighbour is worth ${E.MEGACORP_NEIGHBOUR_EP} EP`,
-    everyString.some((s) => new RegExp(`${E.MEGACORP_NEIGHBOUR_EP} EP for every ?(OTHER|other)? ?company`).test(s)));
+  /* The neighbour rule reversed: the headquarters used to be PAID for the companies
+     around it and now pays them, every quarter, and only the rival ones cost it
+     anything. The book has to say so in both directions or a reader learns the old
+     rule from the half that was not updated. */
+  check(`a rival neighbour takes ${E.MEGACORP_TITHE_EP} EP a quarter`,
+    everyString.some((s) => new RegExp(`${E.MEGACORP_TITHE_EP} EP to every RIVAL company`).test(s)));
+  check("and the book no longer promises the old end-of-game district award",
+    !everyString.some((s) => /scores 3 EP for every ?(OTHER|other)? ?company/.test(s)));
 }
 
 /* --------------------------------------------------------------- personas */

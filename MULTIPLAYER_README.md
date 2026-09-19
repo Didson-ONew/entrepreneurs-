@@ -469,6 +469,14 @@ ENT_ADMINS=Dids,Didson ENT_DATA_DIR=/var/lib/entrepreneurs node server.js
 
 ### Forgotten passwords: the secret question
 
+> **The email route is no longer offered.** Registration does not ask for an address
+> and nothing in the interface sends a reset link, because nothing is configured to
+> deliver one — a button that silently sends nothing is worse than no button. The
+> server side is untouched: `/api/forgot`, the token, the reset form and both mail
+> backends all still work, so setting the mail variables brings the whole path back
+> without a code change. Accounts made while an address was being asked for keep
+> theirs, and it is still checked and still unique if one is given.
+
 Registering asks for one of three questions and an answer. If a player forgets their
 password, *Forgot password* asks for their name, shows them **their** question, and a
 right answer sets a new password on the spot and signs them in. No mail account, no

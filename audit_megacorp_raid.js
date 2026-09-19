@@ -1,0 +1,409 @@
+/* ============================================================================
+   Can neighbours raid a Megacorp? A catch-up mechanic, measured.
+
+   THE PROPOSAL. A Megacorp headquarters is the biggest single thing on the board
+   and one of the biggest things on the scoresheet. The idea is to make standing
+   next to one worth something to the NEIGHBOUR: a player with a company adjacent
+   to somebody else's Megacorp takes 3 EP off it at final scoring.
+
+   WHAT IT COLLIDES WITH. The rule it modifies already exists and it points the
+   other way. finalizeGame pays the Megacorp's owner MEGACORP_NEIGHBOUR_EP (3) for
+   every distinct live business touching the headquarters - INCLUDING opponents'.
+   Today a crowded district is a reward for merging in the middle of the map. So
+   there are two honest readings of "steal 3 from it", and they are very different
+   sizes:
+
+     RAID     the opponent's neighbour stops paying the Megacorp and pays the
+              opponent instead. Owner nets 0 on it, neighbour nets +3.
+              A 3 EP swing per touching building.
+     SEIZE    the owner keeps nothing and is charged as well: -3 to the owner,
+              +3 to the neighbour. A 6 EP swing per touching building, and the
+              owner can end up paying to have merged at all.
+
+   Both are run with the bots BLIND and AWARE. mergeWorth prices a merge partly on
+   MEGACORP_NEIGHBOUR_EP * hqNeighbours, so under either rule a bot that has not
+   been told still walks into crowded districts on purpose. The blind arm is the
+   control that shows how much of any effect is just that.
+
+   WHAT WOULD MAKE IT A GOOD RULE, and what this probe therefore measures:
+     1. it has to actually catch up  - the halfway leader should convert less
+        often, and the winner's margin over second should narrow
+     2. it must not kill merging     - Megacorps call the endgame deadline. If
+        merging stops paying, games stop ending early and the back half sags
+     3. it must not just move points to whoever happens to be adjacent - so the
+        share of raid EP that lands on the eventual WINNER is printed. A catch-up
+        mechanic that pays the leader is a leader bonus with a friendly name.
+
+   WHAT SHIPPED, and what this probe is now for. The TITHE won: every company touching
+   a headquarters banks 1 EP a quarter for its own owner and the Megacorp's owner is
+   charged the same, so the owner's own neighbours cancel and only rivals drain it. The
+   old end-of-game award - the headquarters PAID 3 EP for each company beside it - is
+   gone from the engine. Halving what a Megacorp pays did NOT ship: it bought a large
+   rebalance for no gain in tension, and Megacorps turn out to be what players who are
+   behind reach for.
+
+   So every arm below now runs against a RESTORED copy of the old rule, put back by
+   this probe rather than found in the engine, and "current" means the tithe as it
+   ships. The arms are kept because the question they answer - who a proximity payout
+   actually pays - is the one to re-ask if the rate is ever revisited. Their headline
+   finding: RAID, ORBIT and RIVALS all overpay the eventual winner, because an
+   adjacency payout scales with how much you have built and the winner is by definition
+   whoever built most.
+
+   Run: node audit_megacorp_raid.js [games a table size] [seats...]
+        node audit_megacorp_raid.js 250 4 5 6
+   ========================================================================== */
+const fs = require("fs");
+const path = require("path");
+const vm = require("vm");
+
+const GAMES = parseInt(process.argv[2] || "250", 10);
+const seedArg = process.argv.find((a) => a.startsWith("--seeds="));
+const SEED0 = seedArg ? parseInt(seedArg.slice(8), 10) : 1;
+const SEATS = process.argv.slice(3).filter((a) => !a.startsWith("--")).map(Number).filter(Boolean);
+const SIZES = SEATS.length ? SEATS : [3, 4, 5, 6];
+
+const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
+const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
+if (CUT < 0) { console.error("the engine marker moved - update this probe"); process.exit(2); }
+const base = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
+
+const NEEDLES = {
+  /* The award being rewritten, exactly as finalizeGame spells it. */
+  /* Put back by restoreOld() below, then read by the arms exactly as before. */
+  payout: `  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      const n = hqNeighbours(state, hq);
+      if (n) addEP(p, MEGACORP_NEIGHBOUR_EP * n, \`Megacorp district: \${hq.megacorpName}\`, state.quarter);
+    }
+  }`,
+  titheCall: "  runMegacorpTithe(state, log);      // ...and pay the companies crowding round them",
+  finalizeHead: "function finalizeGame(state) {",
+  liveBotPrice: "  const districtEP = -MEGACORP_TITHE_EP * hqRivalNeighbours(state, p, hq) * qLeft;",
+  /* Where a bot decides a merge is worth it. */
+  botPrice: "  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);",   // after restoreOld
+  helper: "function hqNeighbours(state, hq) {",
+  /* What a tile pays for forming the Megacorp, and what its headquarters banks each
+     quarter. Halving is done at these two points because the BOTS read both - the tile
+     EP through match.tile[2] in megacorpWorthIt, the brand through brandEPFor - so one
+     edit moves the payout and the valuation together. */
+  tileEP: "  const [name, combo, ep] = match.tile;",
+  brandFn: "const brandEPFor = (price, tier) => Math.floor(price / tier);",
+  /* Once a quarter, at the top of revenue. The orbit arm pays from here. */
+  dividend: "function runMegacorpDividend(state, log) {\n  for (const p of state.players) {",
+};
+/* The engine no longer contains the rule these arms modify, so the baseline is rebuilt
+   here first: the quarterly tithe comes out and the old end-of-game district award goes
+   back in. Every arm then splices against that, exactly as it did when the engine
+   carried it, and "current" is the tithe as it actually ships. */
+const MEGACORP_NEIGHBOUR_EP_OLD = 3;
+const OLD_RULE = `function finalizeGame(state) {
+  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      const n = hqNeighbours(state, hq);
+      if (n) addEP(p, MEGACORP_NEIGHBOUR_EP * n, \`Megacorp district: \${hq.megacorpName}\`, state.quarter);
+    }
+  }`;
+const OLD_BOT_PRICE = "  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);";
+const LIVE = { titheCall: NEEDLES.titheCall, finalizeHead: NEEDLES.finalizeHead, liveBotPrice: NEEDLES.liveBotPrice };
+for (const [k, v] of Object.entries(LIVE)) {
+  if (!base.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
+}
+function restoreOld(src) {
+  let out = src.replace(LIVE.titheCall, "");
+  out = out.replace(LIVE.finalizeHead, OLD_RULE);
+  out = out.replace(LIVE.liveBotPrice, OLD_BOT_PRICE);
+  out = out.replace("const MEGACORP_TITHE_EP = 1;",
+    `const MEGACORP_TITHE_EP = 1;\nconst MEGACORP_NEIGHBOUR_EP = ${MEGACORP_NEIGHBOUR_EP_OLD};`);
+  return out;
+}
+const restored = restoreOld(base);
+for (const [k, v] of Object.entries(NEEDLES)) {
+  if (k in LIVE) continue;
+  if (!restored.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
+}
+
+/* Who is standing next to this headquarters, counted per owner. Same walk as
+   hqNeighbours - same exclusions, same distressed-shell rule - but it keeps the
+   owner of each neighbouring business instead of collapsing them to a count. */
+const OWNER_HELPER = `
+function hqNeighbourOwners(state, hq) {
+  const seen = new Set(), byOwner = {};
+  hq.footprint.forEach((pk) => orthOf(state.board, pk).forEach((n) => {
+    if (hq.footprint.includes(n)) return;
+    const id = state.board.occupiedBy[n];
+    if (id === undefined || id === hq.id || seen.has(id)) return;
+    for (const q of state.players) {
+      const b = q.businesses.find((x) => x.id === id);
+      if (b && !b.distressed) { seen.add(id); byOwner[q.id] = (byOwner[q.id] || 0) + 1; return; }
+    }
+  }));
+  return byOwner;
+}
+`;
+
+/* RAID: the owner is paid only for its own buildings; every opponent building
+   touching the HQ pays its own owner instead. SEIZE: the same, and the owner is
+   charged for each of them too. */
+const payoutFor = (seize) => `  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      const byOwner = hqNeighbourOwners(state, hq);
+      let mine = 0, raided = 0;
+      for (const [id, n] of Object.entries(byOwner)) {
+        if (String(id) === String(p.id)) { mine += n; continue; }
+        raided += n;
+        const q = state.players.find((x) => String(x.id) === String(id));
+        if (q) addEP(q, MEGACORP_NEIGHBOUR_EP * n, \`Megacorp raid: \${hq.megacorpName}\`, state.quarter);
+      }
+      if (mine) addEP(p, MEGACORP_NEIGHBOUR_EP * mine, \`Megacorp district: \${hq.megacorpName}\`, state.quarter);
+      ${seize ? `if (raided) addEP(p, -MEGACORP_NEIGHBOUR_EP * raided, \`Megacorp tithe: \${hq.megacorpName}\`, state.quarter);` : ""}
+    }
+  }`;
+
+/* Telling the bots. Under RAID an opponent's building next door is worth nothing to
+   the merging player; under SEIZE it is worth minus three. Either way the bot has to
+   count its OWN neighbours separately, which is what this line does. */
+const botPriceFor = (seize) => `  const __nb = hqNeighbourOwners(state, hq);
+  const __mine = __nb[p.id] || 0;
+  const __theirs = Object.entries(__nb).reduce((a, [id, n]) => a + (String(id) === String(p.id) ? 0 : n), 0);
+  const districtEP = MEGACORP_NEIGHBOUR_EP * (__mine ${seize ? "- __theirs" : ""});`;
+
+/* --dump prints the code each arm splices in. A probe that rewrites an engine is only
+   as honest as the text it writes, and reading it beats inferring it from the totals. */
+if (process.argv.includes("--dump")) {
+  for (const seize of [false, true]) {
+    console.log(`\n===== payout, ${seize ? "SEIZE" : "RAID"} =====\n` + payoutFor(seize));
+    console.log(`\n===== bot price, ${seize ? "SEIZE" : "RAID"} =====\n` + botPriceFor(seize));
+  }
+  process.exit(0);
+}
+
+/* ORBIT. The headquarters stops being paid for the buildings around it at the end;
+   instead every company touching one banks ORBIT_EP a quarter for ITS OWN owner - the
+   Megacorp's own buildings included, since a company is a company. That turns a
+   one-off end-of-game lump into a flow players can see arriving and react to, and it
+   is worth far more than the 3 EP it replaces: a headquarters standing from Q6 pays
+   its orbit seven times. */
+const ORBIT_EP = 2;
+/* ORBIT paid everyone standing next to a headquarters, its owner included - and its
+   owner is exactly the player with the most buildings clustered around it, because
+   that is what merging there means. So the flow mostly paid the Megacorp, the winner
+   took 27-66% of it against a fair share of 17-50%, and Megacorps ended up a BIGGER
+   part of a winning score than before. RIVALS is the same rule with the owner's own
+   buildings excluded: only opponents collect. */
+const ORBIT_DIVIDEND = (rivalsOnly) => `function runMegacorpDividend(state, log) {
+  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      for (const [id, n] of Object.entries(hqNeighbourOwners(state, hq))) {
+        ${rivalsOnly ? "if (String(id) === String(p.id)) continue;" : ""}
+        const q = state.players.find((x) => String(x.id) === String(id));
+        if (!q) continue;
+        addEP(q, ${ORBIT_EP} * n, \`Megacorp orbit: \${hq.megacorpName}\`, state.quarter);
+        if (log) log(\`\${q.name} banks \${${ORBIT_EP} * n} EP in the orbit of "\${hq.megacorpName}".\`, q.id);
+      }
+    }
+  }
+  for (const p of state.players) {`;
+
+/* Under ORBIT a merger is worth the orbit its OWN buildings will collect for the rest
+   of the game, and nothing for the opponents standing next to it. */
+const ORBIT_BOT_PRICE = (rivalsOnly) => rivalsOnly
+  /* Under RIVALS a crowded district pays the merging player nothing at all, so the
+     district term simply goes. */
+  ? "  const districtEP = 0;"
+  : `  const __nb = hqNeighbourOwners(state, hq);
+  const districtEP = ${ORBIT_EP} * (__nb[p.id] || 0) * qLeft;`;
+
+/* HALF. Forming pays half the tile, and the brand dividend halves with it.
+   TITHE. Every business touching a headquarters takes 1 EP a quarter off the
+   Megacorp's owner and banks it. A business belonging to the Megacorp's OWN owner
+   therefore nets nothing - it is paid and charged in the same breath - so clustering
+   your own buildings around your headquarters stops being a reward and stops being a
+   punishment, and only opponents drain it. Both lines are written to the log rather
+   than cancelled silently, so the accounting matches the rule as stated. */
+const TITHE_EP = 1;
+const HALF_TILE = "  const [name, combo, __rawEp] = match.tile;\n  const ep = Math.round(__rawEp / 2);";
+const HALF_BRAND = "const brandEPFor = (price, tier) => Math.floor(price / (2 * tier));";
+const TITHE_DIVIDEND = `function runMegacorpDividend(state, log) {
+  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      for (const [id, n] of Object.entries(hqNeighbourOwners(state, hq))) {
+        const q = state.players.find((x) => String(x.id) === String(id));
+        if (!q) continue;
+        addEP(q, ${TITHE_EP} * n, \`Megacorp orbit: \${hq.megacorpName}\`, state.quarter);
+        addEP(p, -${TITHE_EP} * n, \`Megacorp tithe: \${hq.megacorpName}\`, state.quarter);
+      }
+    }
+  }
+  for (const p of state.players) {`;
+/* A merge is now worth the tile, the halved brand, and MINUS a quarterly tithe for
+   every opponent building already standing next to the chosen headquarters. */
+const TITHE_BOT_PRICE = `  const __nb = hqNeighbourOwners(state, hq);
+  const __rivals = Object.entries(__nb).reduce((a, [id, n]) => a + (String(id) === String(p.id) ? 0 : n), 0);
+  const districtEP = -${TITHE_EP} * __rivals * qLeft;`;
+
+const PRESETS = {};
+PRESETS.raid = [
+  { key: "current", name: "as it ships (owner +3 per neighbour)" },
+  { key: "raid-blind", name: "RAID, bots blind", raid: true },
+  { key: "raid", name: "RAID, bots aware", raid: true, aware: true },
+  { key: "seize-blind", name: "SEIZE, bots blind", raid: true, seize: true },
+  { key: "seize", name: "SEIZE, bots aware", raid: true, seize: true, aware: true },
+  { key: "orbit-blind", name: `ORBIT ${ORBIT_EP} EP a quarter, bots blind`, orbit: true },
+  { key: "orbit", name: `ORBIT ${ORBIT_EP} EP a quarter, bots aware`, orbit: true, aware: true },
+  { key: "rivals-blind", name: `RIVALS ${ORBIT_EP} EP a quarter to OPPONENTS only, bots blind`, orbit: true, rivals: true },
+  { key: "rivals", name: `RIVALS ${ORBIT_EP} EP a quarter to OPPONENTS only, bots aware`, orbit: true, rivals: true, aware: true },
+];
+PRESETS.scale = [
+  { key: "current", name: "as it ships" },
+  { key: "half", name: "Megacorps at half value (tile and brand), nothing else", half: true, aware: true },
+  { key: "tithe", name: `${TITHE_EP} EP a quarter to every neighbour, off the owner`, tithe: true, aware: true },
+  { key: "half+tithe", name: "half value AND the tithe, bots aware", half: true, tithe: true, aware: true },
+  { key: "half+tithe-blind", name: "half value AND the tithe, bots blind", half: true, tithe: true },
+];
+const setArg = process.argv.find((a) => a.startsWith("--arms="));
+const ARMS = PRESETS[setArg ? setArg.slice(7) : "raid"];
+if (!ARMS) { console.error(`no such arm set - try ${Object.keys(PRESETS).join(", ")}`); process.exit(2); }
+
+/* A replace that matches nothing returns the string unchanged and says nothing, which
+   is how an arm ends up quietly measuring the shipped rule under a different name. */
+function splice(src, find, put, what) {
+  const out = src.replace(find, put);
+  if (out === src) { console.error(`the ${what} splice changed nothing - update this probe`); process.exit(2); }
+  return out;
+}
+function engineFor(arm) {
+  /* "current" is the engine as it stands - the shipped tithe - and needs no surgery.
+     Everything else is measured against the rule that used to be there. */
+  if (arm.key === "current") {
+    const box0 = {};
+    const sb0 = { console, Math, Set, Object, Array, JSON, String, box: box0 };
+    vm.createContext(sb0);
+    vm.runInContext(base + `
+      box.exports = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
+        epTotal, finalRank, megacorpHQs };
+    `, sb0);
+    return box0.exports;
+  }
+  let logic = splice(restored, NEEDLES.helper, OWNER_HELPER + NEEDLES.helper, "neighbour-owner helper");
+  if (arm.raid) logic = splice(logic, NEEDLES.payout, payoutFor(arm.seize), "final payout");
+  if (arm.half) {
+    logic = splice(logic, NEEDLES.tileEP, HALF_TILE, "half tile EP");
+    logic = splice(logic, NEEDLES.brandFn, HALF_BRAND, "half brand dividend");
+  }
+  if (arm.tithe) {
+    /* The end-of-game district award goes away - the tithe replaces it. */
+    logic = splice(logic, NEEDLES.payout, "", "final payout (removed for tithe)");
+    logic = splice(logic, NEEDLES.dividend, TITHE_DIVIDEND, "quarterly tithe");
+  }
+  if (arm.orbit) {
+    /* The end-of-game district award goes away entirely - the orbit replaces it. */
+    logic = splice(logic, NEEDLES.payout, "", "final payout (removed for orbit)");
+    logic = splice(logic, NEEDLES.dividend, ORBIT_DIVIDEND(arm.rivals), "quarterly orbit dividend");
+  }
+  if (arm.aware) {
+    const price = arm.tithe ? TITHE_BOT_PRICE
+      : arm.orbit ? ORBIT_BOT_PRICE(arm.rivals)
+      : arm.half ? "  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);"
+      : botPriceFor(arm.seize);
+    if (price !== NEEDLES.botPrice) logic = splice(logic, NEEDLES.botPrice, price, "bot merge price");
+  }
+  const box = {};
+  const sandbox = { console, Math, Set, Object, Array, JSON, String, box };
+  vm.createContext(sandbox);
+  vm.runInContext(logic + `
+    box.exports = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
+      epTotal, finalRank, megacorpHQs };
+  `, sandbox);
+  return box.exports;
+}
+
+function run(E, seats) {
+  const T = { games: 0, winnerEP: 0, margin: 0, endQ: 0, early: 0, deadline: 0, hqs: 0,
+    q6Known: 0, q6Won: 0, bottomWon: 0, raidEP: 0, raidToWinner: 0, titheEP: 0, mcEP: 0, mcTot: 0, tot: 0 };
+  for (let s = SEED0; s < SEED0 + GAMES; s++) {
+    const st = E.initGame(seats - 1, s, ["Seat 1"], undefined, true, undefined);
+    st.players[0].isHuman = false;
+    if (st.phase === "drafting") { E.advanceDraft(st, () => {}); E.startPlanning(st); }
+    const snap = {};
+    E.advancePlanning(st, E.mulberry32(s + 777), (msg) => {
+      const m = /^▶ Year \d+, Quarter (\d+)/.exec(String(msg));
+      if (m) snap[+m[1]] = st.players.map((p) => ({ id: p.id, ep: E.epTotal(p) }));
+    });
+    if (st.phase !== "gameover") continue;
+    T.games++;
+    const ranked = [...st.players].sort(E.finalRank);
+    const winner = ranked[0];
+    const eps = st.players.map((p) => E.epTotal(p)).sort((a, b) => b - a);
+    T.winnerEP += eps[0];
+    T.margin += eps[0] - (eps[1] !== undefined ? eps[1] : eps[0]);
+    T.endQ += st.quarter;
+    if (st.quarter < 12) T.early++;
+    if (st.finalQuarter) T.deadline++;
+    for (const p of st.players) T.hqs += E.megacorpHQs(p).length;
+    const s6 = snap[6] && [...snap[6]].sort((a, b) => b.ep - a.ep);
+    if (s6 && s6.filter((x) => x.ep === s6[0].ep).length === 1) {
+      T.q6Known++;
+      if (s6[0].id === winner.id) T.q6Won++;
+      const half = Math.floor(s6.length / 2);
+      if (new Set(s6.slice(s6.length - half).map((x) => x.id)).has(winner.id)) T.bottomWon++;
+    }
+    for (const p of st.players) {
+      for (const line of (p.epLog || [])) {
+        const L = String(line.label);
+        T.tot += line.amount;
+        if (L.startsWith("Megacorp")) T.mcTot += line.amount;
+        /* "Megacorp raid:" and "Megacorp tithe:" have to be told apart exactly: an
+           earlier version matched both on a shared prefix, so the raider's +3 and the
+           owner's -3 cancelled and the SEIZE arms reported no raiding at all. */
+        if (L.startsWith("Megacorp raid:")) {
+          T.raidEP += line.amount;
+          if (p.id === winner.id) T.raidToWinner += line.amount;
+        }
+        if (L.startsWith("Megacorp tithe:")) T.titheEP += line.amount;
+        if (L.startsWith("Megacorp orbit:")) {
+          T.raidEP += line.amount;
+          if (p.id === winner.id) T.raidToWinner += line.amount;
+        }
+        /* What the MEGACORP earns its owner - not everything whose label starts with
+           "Megacorp". The orbit and raid lines are money paid BY a headquarters to the
+           people around it, and counting them here made a rule that drains Megacorps
+           look like one that fattens them, because the winner is often the neighbour
+           collecting. That reading was reported once; it was an artefact of this line. */
+        if (p.id === winner.id && L.startsWith("Megacorp")
+            && !L.startsWith("Megacorp orbit:") && !L.startsWith("Megacorp raid:")) T.mcEP += line.amount;
+      }
+    }
+  }
+  return T;
+}
+
+const pad = (s, n) => String(s).padEnd(n);
+const rp = (s, n) => String(s).padStart(n);
+const pc = (x, tot) => (tot > 0 ? (100 * x / tot).toFixed(1) + "%" : "-");
+
+const R = {};
+for (const arm of ARMS) { const E = engineFor(arm); R[arm.key] = {}; for (const n of SIZES) R[arm.key][n] = run(E, n); }
+
+console.log(`\n${GAMES} games a table size, seeds ${SEED0}..${SEED0 + GAMES - 1}, all-bot tables.`);
+console.log(`Arms: ${ARMS.map((a) => a.key).join(", ")}\n`);
+
+const block = (title, fn) => {
+  console.log("  " + title);
+  for (const arm of ARMS) console.log("    " + pad(arm.key, 18) + SIZES.map((n) => rp(fn(R[arm.key][n], n), 9)).join(""));
+};
+console.log("  " + pad("", 14) + SIZES.map((n) => rp(n + "p", 9)).join(""));
+block("DOES IT CATCH ANYONE UP? the Q6 leader goes on to win", (T) => pc(T.q6Won, T.q6Known));
+console.log("    " + pad("chance", 18) + SIZES.map((n) => rp((100 / n).toFixed(1) + "%", 9)).join(""));
+block("a seat in the bottom half at Q6 comes back to win", (T) => pc(T.bottomWon, T.q6Known));
+block("the winner's margin over second (EP)", (T) => (T.margin / Math.max(1, T.games)).toFixed(1));
+block("winning score (EP)", (T) => (T.winnerEP / Math.max(1, T.games)).toFixed(1));
+block("DOES MERGING SURVIVE? Megacorps formed a game", (T) => (T.hqs / Math.max(1, T.games)).toFixed(2));
+block("the deadline was called", (T) => pc(T.deadline, T.games));
+block("the game ended before Q12", (T) => pc(T.early, T.games));
+block("WHO GETS PAID? Megacorp EP as a share of the winner", (T) => pc(T.mcEP, T.winnerEP));
+block("raid/orbit EP paid out a game", (T) => (T.raidEP / Math.max(1, T.games)).toFixed(1));
+block("...charged to Megacorp owners (SEIZE only)", (T) => (T.titheEP / Math.max(1, T.games)).toFixed(1));
+block("...of which went to the eventual winner", (T) => pc(T.raidToWinner, T.raidEP));
+console.log("    " + pad("a fair share is", 18) + SIZES.map((n) => rp((100 / n).toFixed(1) + "%", 9)).join(""));
+console.log("");
