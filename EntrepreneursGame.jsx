@@ -853,8 +853,11 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
 function unitPrice(state, p, biz, slotInd) {
   const own = price(state.pm, bizInd(biz));
   if (slotInd && slotInd !== bizInd(biz)) {
-    // White-Label Supplier is paid the price of the row being sold into, not its own
-    return hasPersona(p, "product_mgr") ? price(state.pm, slotInd) : own;
+    /* A White-Label Supplier MAY take the price of the row it sells into. Nobody
+       chooses the lower of two prices, so "may" is the better of the two - which also
+       means the persona can never cost its holder money, as it could when the row's
+       price had fallen below Manufacturing's own. */
+    return hasPersona(p, "product_mgr") ? Math.max(own, price(state.pm, slotInd)) : own;
   }
   if (bizInd(biz) === "UT" && hasPersona(p, "gov_rel")) return own + 1;
   return own;
@@ -1016,18 +1019,23 @@ const BP_SOLVENCY_PRICE = { 1: 2, 2: 4, 3: 6 };
    personas enabled, so the base game is unchanged. Each is a tilt, not a cage: the
    industry entry bonus still pushes everyone toward breadth. */
 const PERSONAS = {
+  /* Every ability is something its holder MAY do. Some there is never a reason to
+     decline - a dollar more is a dollar more - and those simply happen; the wording
+     says "may" so the six read alike. The ones that can cut both ways are real choices
+     the player is asked about: which way a company grows, and whether to lift a rival
+     industry's price at all. */
   tech_savvy:  { ind: "TE", name: "Systems Architect",
-    blurb: "Your Technology companies upgrade vertically, stacking on one plot instead of needing a free neighbour." },
+    blurb: "Your Technology companies may upgrade vertically, stacking on one plot instead of needing a free neighbour - or spread as Technology usually does. You choose at each upgrade." },
   preventive:  { ind: "HC", name: "Public Health Director",
-    blurb: "Your Healthcare companies ignore the level restriction: a level-1 clinic may serve any column of a Healthcare row." },
+    blurb: "Your Healthcare companies may ignore the level restriction: a level-1 clinic may serve any column of a Healthcare row." },
   product_mgr: { ind: "MA", name: "White-Label Supplier",
-    blurb: "When your Manufacturing cross-sells into another industry's row, it is paid that industry's price rather than its own." },
+    blurb: "When your Manufacturing cross-sells into another industry's row, it may be paid that industry's price instead of its own - whichever is higher." },
   customer_or: { ind: "HO", name: "Resort Developer",
-    blurb: "Your Hospitality companies upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them." },
+    blurb: "Your Hospitality companies may upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them - or stack as Hospitality usually does. You choose at each upgrade." },
   supply_chain:{ ind: "RE", name: "Supply Chain Expert",
-    blurb: "At the start of Revenue, raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter." },
+    blurb: "At the start of Revenue, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline." },
   gov_rel:     { ind: "UT", name: "Concession Holder",
-    blurb: "Your Utilities production sells for $1 above the current price." },
+    blurb: "Your Utilities production may sell for $1 above the current price." },
 };
 /* ============================== VARIANTS ==============================
    Optional rule changes the host turns on before a game starts. Every one is off
@@ -1622,14 +1630,23 @@ function upgradeScaling(p, b) {
   if (ind === "HO" && hasPersona(p, "customer_or")) return "H";   // spreads instead of stacking
   return SCALING[ind];
 }
+/* Every direction this player MAY grow this company in. The persona's own way comes
+   first and is the default - what a bot takes, and what an upgrade arriving with no
+   choice attached does - and the industry's usual way is the alternative the persona
+   lets its holder decline. Without a persona there is one entry. */
+function upgradeDirs(p, b) {
+  const usual = SCALING[bizInd(b)];
+  const mine = upgradeScaling(p, b);
+  return mine === usual ? [usual] : [mine, usual];
+}
 function upgradeBlockedReason(state, p, b) {
   if (b.isHQ) return "is a Megacorp HQ";
   if (b.upgraded) return "already upgraded";
   if (p.cash < bizSetup(b)) return `needs $${bizSetup(b)}, you have $${Math.round(p.cash)}`;
-  if (upgradeScaling(p, b) === "H") {
-    const opts = adjacentOwnedFreePlots(state.board, b.footprint);
-    if (!opts.length) return "no owned, empty plot adjacent to it";
-  }
+  /* Blocked only when NO direction works: stacking always can, spreading needs an
+     owned empty plot beside the building. */
+  const canGrow = upgradeDirs(p, b).some((d) => d === "V" || adjacentOwnedFreePlots(state.board, b.footprint).length > 0);
+  if (!canGrow) return "no owned, empty plot adjacent to it";
   return null;
 }
 /* The same orthogonal rule as freeNeighbors, phrased for the whole footprint - this
@@ -1642,10 +1659,15 @@ function adjacentOwnedFreePlots(board, footprint) {
   }));
   return [...out];
 }
-function doUpgrade(state, p, b, rng, log, manualPlot) {
+function doUpgrade(state, p, b, rng, log, manualPlot, dir) {
   if (b.upgraded) return false;
   if (p.cash < bizSetup(b)) return false;   // affordability only - safeToSpend is a bot heuristic
-  if (upgradeScaling(p, b) === "H") {
+  /* A direction the persona allows may be asked for; anything else, or nothing, takes
+     the default. A manual direction arrives from the client online, so it is checked
+     here and not left to the picker. */
+  const dirs = upgradeDirs(p, b);
+  const grow = dirs.includes(dir) ? dir : dirs[0];
+  if (grow === "H") {
     const newPlot = manualPlot || adjacentFreePlot(state.board, b.footprint, rng, state, b, p);
     if (!newPlot || !(newPlot in state.board.owner) || !plotFree(state.board, newPlot)) return false;
     // it has to actually touch the building, orthogonally - a manual plot arrives from
@@ -1682,7 +1704,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "213c9dcf";
+const ENGINE_VERSION = "567c3bb3";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -1913,7 +1935,10 @@ function applySupplyChainBump(state, log) {
 function chooseSupplyChain(state, p, ind, log, rng) {
   if (state.phase !== "supplyChain") return false;
   if (!state.scQueue || state.scQueue[0] !== p.id) return false;
-  applySupplyChainFor(state, p, ind, log);
+  /* Lifting a rival industry's price helps whoever sells there, so the holder may
+     decide the extra district is not worth it this quarter. */
+  if (ind === "skip") { if (log) log(`${p.name} declines to raise any industry this quarter.`, p.id); }
+  else applySupplyChainFor(state, p, ind, log);
   state.scQueue = state.scQueue.slice(1);
   if (state.scQueue.length) { state.awaitingPlayerId = state.scQueue[0]; return true; }
   state.awaitingPlayerId = null;
@@ -3588,6 +3613,10 @@ function computeEligiblePlots(board, selectMode, ctx) {
     const [a] = selectMode.selected;
     return new Set([...board.graph[a]].filter((n) => isCrossDistrictEdge(board, a, n) && !hasLH(a, n)));
   }
+  if (selectMode.kind === "grow") {
+    // the candidates were worked out when the picker opened; one pick and it is done
+    return selectMode.selected.length ? new Set() : new Set(selectMode.options.map((o) => o.plot));
+  }
   const { selected, nPlots } = selectMode;
   if (selected.length >= nPlots) return new Set();
   const ownedFree = (k) => plotBuildable(board, k);
@@ -4053,7 +4082,15 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
   const border = chosen || eligible ? "2px solid #4ade80"
     : selected ? "2px solid #ffffff"
     : "1px solid rgba(0,0,0,0.5)";
-  const isVertical = foundBiz && SCALING[bizInd(foundBiz)] === "V";
+  /* Storeys on THIS plot - not the company's level, and not its industry's habit. A
+     level-3 company spread over two plots has a two-storey wing and a one-storey one;
+     a Technology company owned by a Systems Architect stacks although its industry
+     spreads. Deciding by industry drew nothing for that upgrade: the company grew and
+     the map did not move, and the player rightly asked why. */
+  const storeys = foundBiz
+    ? ((foundBiz.levels && foundBiz.levels[plotKeyStr])
+        || (foundBiz.footprint.length === 1 ? foundBiz.level : 1))
+    : 0;
   const hasLH = plotHasLH(board, plotKeyStr);
   const isHub = plotIsLH(board, plotKeyStr);      // a hub standing on this plot
   return (
@@ -4062,7 +4099,7 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
       onMouseEnter={(e) => { if (foundBiz && onHoverBiz) { const b = e.currentTarget.getBoundingClientRect(); onHoverBiz(foundBiz, b.right, b.top); } }}
       onMouseLeave={() => { if (foundBiz && onHoverBiz) onHoverBiz(null); }}
       className="cursor-pointer"
-      title={isHub ? "Logistic Hub" : hasLH ? "Adjacent to a Logistic Hub" : undefined}
+      title={`$${plotValue({ board }, plotKeyStr)} plot value${isHub ? " \u00b7 Logistic Hub" : hasLH ? " \u00b7 adjacent to a Logistic Hub" : ""}`}
       style={{
         position: "absolute", left: rect.x, top: rect.y, width: rect.w, height: rect.h,
         backgroundColor: fill, border, borderRadius: 4, zIndex: 3,
@@ -4078,7 +4115,7 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 11, fontWeight: 800, color: "#f5a623", pointerEvents: "none" }}>!</span>
       )}
-      {isVertical && foundBiz.level > 1 && Array.from({ length: Math.min(foundBiz.level - 1, 3) }).map((_, i) => (
+      {storeys > 1 && Array.from({ length: Math.min(storeys - 1, 3) }).map((_, i) => (
         <span key={i} style={{ position: "absolute", inset: 5 + i * 3.5,
           border: `1px solid ${IND_COLOR[bizInd(foundBiz)]}`, opacity: 0.95, pointerEvents: "none" }} />
       ))}
@@ -4300,6 +4337,8 @@ function PlotInfo({ board, players, selectedPlot, pm }) {
   return (
     <div className="text-[10px] font-mono text-gray-300 px-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
       <span className="text-gray-500">{tname} &middot; {pos}</span>
+      <span title="Printed road price, +$1 per adjacent business, +$1 beside a Logistic Hub. What it costs to buy, and what it sells for.">
+        Value: <span className="text-gray-100">${plotValue({ board }, selectedPlot)}</span></span>
       <span>Land owner: <span className="text-gray-100">{ownerName}</span></span>
       {biz ? (
         <span>
@@ -4337,6 +4376,32 @@ const SCALING_BLURB = {
 /* How many plots this blueprint will stand on once built at its level. Mirrors the
    engine's own nPlots, which is what doLaunch uses. */
 const plotsForBP = (bp) => (SCALING[bp.ind] === "H" ? bp.lvl : 1);
+/* Which way a company grows FOR THIS PLAYER. Personas flip their own industry -
+   a Systems Architect's Technology stacks, a Resort Developer's Hospitality spreads -
+   and a card that quoted the industry's habit told such a player the opposite of what
+   their next upgrade would do. The star marks a persona at work; the tooltip says so. */
+function growthFor(player, bp) {
+  const usual = SCALING[bp.ind];
+  const dir = player ? upgradeScaling(player, { bp }) : usual;
+  return { dir, flipped: dir !== usual };
+}
+const growthTitle = ({ dir, flipped }, ind) => SCALING_BLURB[dir]
+  + (flipped ? ` Your persona flips ${IND_NAME[ind]}'s usual habit.` : "");
+
+/* Where an upgrade can go, as the player should be asked. Spreading: any owned, empty
+   plot touching the building - the engine's own rule. Stacking: any plot of the
+   footprint the player owns, because rent for every storey goes to the plot's owner, so
+   which wing carries the extra floors is money. The engine used to take the first of
+   these silently - doUpgrade has accepted a chosen plot all along and the online act
+   already carried it; the button simply never asked. */
+function growOptions(state, p, b) {
+  const out = [];
+  for (const dir of upgradeDirs(p, b)) {
+    if (dir === "H") adjacentOwnedFreePlots(state.board, b.footprint).forEach((plot) => out.push({ plot, dir }));
+    else b.footprint.filter((pk) => state.board.owner[pk] === p.id).forEach((plot) => out.push({ plot, dir }));
+  }
+  return out;
+}
 
 /* The address as it fits on a card: district tile and compass slot, without the grid
    coordinates plotLabel adds - two plots' worth of those do not fit in 148 pixels.
@@ -4347,7 +4412,8 @@ function plotShort(board, pk) {
   return `${board.tiles[`${c.r},${c.c}`] || "?"}\u00b7${c.pos}`;
 }
 
-function BPCard({ bp, onClick, disabled, small }) {
+function BPCard({ bp, onClick, disabled, small, player }) {
+  const g = growthFor(player, bp);
   return (
     <button
       onClick={onClick}
@@ -4366,8 +4432,8 @@ function BPCard({ bp, onClick, disabled, small }) {
         {/* The word has to be readable - "H" teaches nobody which industries spread -
             but "Horizontal * 1 plot" wraps on the 128px hand card. One plot is the
             assumption anyway, so the count only appears when it is not one. */}
-        <div title={SCALING_BLURB[SCALING[bp.ind]]} style={{ color: IND_COLOR[bp.ind] }}>
-          {SCALING_GLYPH[SCALING[bp.ind]]} {SCALING_NAME[SCALING[bp.ind]]}
+        <div title={growthTitle(g, bp.ind)} style={{ color: IND_COLOR[bp.ind] }}>
+          {SCALING_GLYPH[g.dir]} {SCALING_NAME[g.dir]}{g.flipped ? " \u2605" : ""}
           {plotsForBP(bp) > 1 ? ` \u00b7 ${plotsForBP(bp)} plots` : ""}
         </div>
       </div>
@@ -4504,7 +4570,7 @@ function LiquidationPanel({ state, human, log, onContinue }) {
   );
 }
 
-function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy, guardSpend }) {
+function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy, onStartGrow, guardSpend }) {
   const entry = state.pendingHumanAction;
   const [mode, setMode] = useState(null);
   useEffect(() => { setMode(null); }, [entry?.track, entry?.actionsRemaining]);
@@ -4578,7 +4644,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2">
             {human.hand.map((bp, i) => (
-              <BPCard key={i} bp={bp} disabled={!canLaunchMore(human) || human.cash < bp.setup || discsFree(state, human) <= 0} onClick={() => onStartLaunch(bp)} small />
+              <BPCard key={i} bp={bp} player={human} disabled={!canLaunchMore(human) || human.cash < bp.setup || discsFree(state, human) <= 0} onClick={() => onStartLaunch(bp)} small />
             ))}
             {!human.hand.length && <span className="text-xs text-gray-500 italic">Hand is empty.</span>}
           </div>
@@ -4689,7 +4755,18 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
               return (
                 <div key={b.id} style={{ width: 170 }}>
                   <button disabled={!!why}
-                    onClick={() => guardSpend(bizSetup(b), bizPotBill({ ...b, upgraded: true, level: b.level + 1 }) - bizPotBill(b), `Upgrading ${b.bp.name}`, () => { if (NET) return NET.send("act", { type: "upgrade", bizId: b.id }); const ok = doUpgrade(state, human, b, rng, log); if (ok) finish(); })}
+                    onClick={() => {
+                      /* More than one place the new wing or storey could go: ask, the
+                         same as launching does. One or none: the engine's answer is the
+                         only answer, so take it without the ceremony. */
+                      const opts = growOptions(state, human, b);
+                      if (opts.length > 1) return onStartGrow(b, opts);
+                      const one = opts[0] || {};
+                      guardSpend(bizSetup(b), bizPotBill({ ...b, upgraded: true, level: b.level + 1 }) - bizPotBill(b), `Upgrading ${b.bp.name}`, () => {
+                        if (NET) return NET.send("act", { type: "upgrade", bizId: b.id, plot: one.plot, dir: one.dir });
+                        const ok = doUpgrade(state, human, b, rng, log, one.plot, one.dir); if (ok) finish();
+                      });
+                    }}
                     className="text-[10px] px-2 py-1 rounded w-full text-left disabled:opacity-30"
                     style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
                     {b.bp.name} <span className="text-gray-500">L{b.level}&rarr;{b.level + 1}</span> <span style={{ color: "#a5d6f3" }}>${bizSetup(b)}</span>
@@ -5329,8 +5406,14 @@ function GameScreens({ online }) {
     return () => document.removeEventListener("pointerup", onPointerUp, true);
   }, []);
   useEffect(() => {
-    if (state && state.phase === "placingLH" && (!pickMode || pickMode.kind !== "lh")) setPickMode({ kind: "lh", selected: [] });
-  }, [state && state.phase]);
+    if (!state || state.phase !== "placingLH") return;
+    /* Only the player placing the hub gets the picker. This fired for everybody at the
+       table, so every plot lit up green on screens that could not click any of them
+       while they waited for the first player to choose. */
+    const mine = online ? (!online.spectator && whoAwaited(state) === online.seat) : true;
+    if (mine && (!pickMode || pickMode.kind !== "lh")) setPickMode({ kind: "lh", selected: [] });
+    if (!mine && pickMode && pickMode.kind === "lh") setPickMode(null);
+  }, [state && state.phase, state && whoAwaited(state)]);
 
   /* Total time this match has been running.
 
@@ -5435,11 +5518,18 @@ function GameScreens({ online }) {
     if (cash >= bill) return go();
     setRiskyConfirm({ what, cash, bill, go });
   }
+  function handleStartGrow(b, options) {
+    setPickMode({ kind: "grow", biz: b, options, selected: [] });
+  }
   function doConfirmPick() {
     if (!state || !pickMode) return;
     if (NET) {
       if (pickMode.kind === "launch") NET.send("act", { type: "launch", index: human.hand.indexOf(pickMode.bp), footprint: pickMode.selected });
       else if (pickMode.kind === "buy") NET.send("act", { type: "buyPlot", plot: pickMode.selected[0] });
+      else if (pickMode.kind === "grow") {
+        const pick = pickMode.options.find((o) => o.plot === pickMode.selected[0]) || {};
+        NET.send("act", { type: "upgrade", bizId: pickMode.biz.id, plot: pick.plot, dir: pick.dir });
+      }
       setPickMode(null);
       return;
     }
@@ -5449,6 +5539,10 @@ function GameScreens({ online }) {
     } else if (pickMode.kind === "buy") {
       const ok = doBuyPlot(state, human, pickMode.selected[0], log);
       if (!ok) log(`Couldn't buy that plot.`, human.id);
+    } else if (pickMode.kind === "grow") {
+      const pick = pickMode.options.find((o) => o.plot === pickMode.selected[0]) || {};
+      const ok = doUpgrade(state, human, pickMode.biz, rngRef.current, log, pick.plot, pick.dir);
+      if (!ok) log(`Couldn't upgrade ${pickMode.biz.bp.name} onto that plot.`, human.id);
     }
     setPickMode(null);
     humanCompleteResolutionAction(state, rngRef.current, log);
@@ -5466,6 +5560,10 @@ function GameScreens({ online }) {
     }
     if (pickMode.kind === "buy") {
       return guardSpend(plotValue(state, pickMode.selected[0]), 0, "Buying that plot", doConfirmPick);
+    }
+    if (pickMode.kind === "grow") {
+      const b = pickMode.biz;
+      return guardSpend(bizSetup(b), bizPotBill({ ...b, upgraded: true, level: b.level + 1 }) - bizPotBill(b), `Upgrading ${b.bp.name}`, doConfirmPick);
     }
     doConfirmPick();
   }
@@ -5696,18 +5794,26 @@ function GameScreens({ online }) {
             {isHumanResolving && pickMode && (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
-                  {pickMode.kind === "launch" ? `Placing ${pickMode.bp.name} \u2014 select ${pickMode.selected.length}/${pickMode.nPlots} plot(s)` : `Pick a plot to buy \u2014 ${pickMode.selected.length}/1 selected`}
+                  {pickMode.kind === "launch" ? `Placing ${pickMode.bp.name} \u2014 select ${pickMode.selected.length}/${pickMode.nPlots} plot(s)`
+                    : pickMode.kind === "grow" ? (() => {
+                        const dirs = new Set(pickMode.options.map((o) => o.dir));
+                        const what = dirs.size > 1 ? "stack on a plot it stands on, or spread onto one beside it?"
+                          : dirs.has("H") ? "where does the new wing go?" : "which plot gets the new storey?";
+                        return `Upgrading ${pickMode.biz.bp.name} \u2014 ${what} ${pickMode.selected.length}/1 picked`;
+                      })()
+                    : `Pick a plot to buy \u2014 ${pickMode.selected.length}/1 selected`}
                 </div>
                 <div className="text-[10px] text-gray-400 mb-2">
                   Click highlighted plots on the board above.
                   {pickMode.kind === "launch" && pickMode.nPlots > 1 &&
                     " Plots must share an edge — corners do not count."}
+                  {pickMode.kind === "grow" && " A plot beside the building takes a new wing, which can sell into that plot's district; a plot under it takes a new storey, and rent for every storey goes to that plot's owner."}
                 </div>
-                {computeEligiblePlots(state.board, pickMode, { state, player: human }).size === 0 && pickMode.selected.length < (pickMode.kind === "buy" ? 1 : pickMode.nPlots) && (
+                {pickMode.kind !== "grow" && computeEligiblePlots(state.board, pickMode, { state, player: human }).size === 0 && pickMode.selected.length < (pickMode.kind === "buy" ? 1 : pickMode.nPlots) && (
                   <div className="text-[10px] text-red-400 mb-2">No more eligible adjacent plots — this cluster can't be completed here. Cancel and try elsewhere, or buy more land first.</div>
                 )}
                 <div className="flex gap-2">
-                  <button onClick={handleConfirmPick} disabled={pickMode.selected.length < (pickMode.kind === "buy" ? 1 : pickMode.nPlots)}
+                  <button onClick={handleConfirmPick} disabled={pickMode.selected.length < (pickMode.kind === "launch" ? pickMode.nPlots : 1)}
                     className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>Confirm</button>
                   <button onClick={handleCancelPick} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Cancel</button>
                 </div>
@@ -5742,11 +5848,11 @@ function GameScreens({ online }) {
                 that panel's own finish(), so unmounting it would leave the callback firing
                 into a component that no longer exists. Pressing another action simply
                 replaces the warning with the one for that action. */}
-            {isHumanResolving && !pickMode && <ActionPanel state={state} human={human} rng={rngRef.current} log={log} onDone={handleResolutionDone} onStartLaunch={handleStartLaunch} onStartBuy={handleStartBuy} guardSpend={guardSpend} />}
+            {isHumanResolving && !pickMode && <ActionPanel state={state} human={human} rng={rngRef.current} log={log} onDone={handleResolutionDone} onStartLaunch={handleStartLaunch} onStartGrow={handleStartGrow} onStartBuy={handleStartBuy} guardSpend={guardSpend} />}
             {isHumanSupplyChain && scOptions.length > 0 && (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
-                  Supply Chain Expert — raise one industry you do not operate
+                  Supply Chain Expert — you may raise one industry you do not operate
                 </div>
                 <div className="text-[10px] text-gray-400 mb-2">
                   Its demand goes up one step, which helps whoever sells there. In exchange your
@@ -5760,6 +5866,10 @@ function GameScreens({ online }) {
                       {IND_NAME[i] || i} <span style={{ color: "#9ca3af" }}>${price(state.pm, i)}</span>
                     </button>
                   ))}
+                  {/* Lifting a rival industry helps whoever sells there, so declining is a
+                      real option and not only a way to skip a screen. */}
+                  <button onClick={() => handleSupplyChain("skip")} className="text-[10px] px-2 py-1 rounded"
+                    style={{ backgroundColor: "#20232c", border: "1px solid #33384355", color: "#9ca3af" }}>Don't raise anything</button>
                 </div>
               </div>
             )}
@@ -6028,7 +6138,7 @@ function GameScreens({ online }) {
                 Hand &mdash; {human.hand.length}/5
               </div>
               <div className="flex flex-wrap gap-2 mb-3">
-                {human.hand.map((bp, i) => <BPCard key={i} bp={bp} disabled small />)}
+                {human.hand.map((bp, i) => <BPCard key={i} bp={bp} player={human} disabled small />)}
                 {!human.hand.length && <span className="text-xs text-gray-500 italic">Empty.</span>}
               </div>
 
@@ -6057,9 +6167,10 @@ function GameScreens({ online }) {
                           <span style={{ color: "#f3b0a5" }}>bill ${bizPotBill(b) + bizGroundRent(state, human, b)}</span>
                           <span>prod {bizProd(b)}</span>
                         </div>
-                        <div title={SCALING_BLURB[SCALING[b.bp.ind]]} style={{ color: IND_COLOR[b.bp.ind] }}>
-                          {SCALING_GLYPH[SCALING[b.bp.ind]]} {SCALING_NAME[SCALING[b.bp.ind]]} &middot; {b.footprint.length} plot{b.footprint.length === 1 ? "" : "s"}
-                        </div>
+                        {(() => { const g = growthFor(human, b.bp); return (
+                          <div title={growthTitle(g, b.bp.ind)} style={{ color: IND_COLOR[b.bp.ind] }}>
+                            {SCALING_GLYPH[g.dir]} {SCALING_NAME[g.dir]}{g.flipped ? " \u2605" : ""} &middot; {b.footprint.length} plot{b.footprint.length === 1 ? "" : "s"}
+                          </div>); })()}
                         {/* Where it actually stands. The full label with grid coordinates is
                             still what the plot tooltip and the bank list give. */}
                         <div className="text-gray-500" title={b.footprint.map((pk) => plotLabel(state.board, pk)).join(" + ")}>
@@ -6601,7 +6712,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
         <div className="rounded-md p-2 mb-4" style={{ backgroundColor: "#101318" }}>
           <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Your hand &mdash; {picked}/{need}</div>
           <div className="flex flex-wrap gap-2">
-            {human.hand.map((bp, i) => <BPCard key={i} bp={bp} disabled small />)}
+            {human.hand.map((bp, i) => <BPCard key={i} bp={bp} player={human} disabled small />)}
             {!picked && <span className="text-[10px] text-gray-600 italic">Nothing drafted yet.</span>}
           </div>
         </div>

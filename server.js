@@ -377,7 +377,7 @@ function applyAction(room, seat, action, data) {
         ok = !!target && !!bp && E.doRenovate(st, p, target, bp, lg);
       }
       else if (t === "research") ok = E.doDraw(st, p, d.ind, lg);
-      else if (t === "upgrade") { const b = p.businesses.find((x) => x.id === d.bizId); ok = !!b && E.doUpgrade(st, p, b, rng, lg, d.plot); }
+      else if (t === "upgrade") { const b = p.businesses.find((x) => x.id === d.bizId); ok = !!b && E.doUpgrade(st, p, b, rng, lg, d.plot, d.dir); }
       else if (t === "megacorp") {
         if (!E.canGoPublic(st, p)) return { error: "You cannot go public: no Megacorp tile matches your companies." };
         const hq = p.businesses.find((x) => x.id === d.hqId); ok = E.claimMegacorp(st, p, lg, hq);
