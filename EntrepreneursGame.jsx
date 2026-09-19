@@ -4944,6 +4944,52 @@ function ArtScaling() {
   );
 }
 
+function ArtMegacorp() {
+  /* A headquarters with three companies touching it: one of its owner's, two rivals'.
+     The rivals each draw the tithe off it every quarter; the owner's own building is
+     paid and charged in the same breath and nets nothing. Every figure here is read
+     off the engine - the rate, and how many Megacorps call the final quarter - so the
+     picture cannot go on saying the old rule after the rule moves, which is what the
+     scoring picture did for a week. */
+  const plot = (x, y, fill, stroke, extra = {}) => (
+    <rect x={x} y={y} width="17" height="17" rx="2" fill={fill} stroke={stroke} strokeWidth="1" {...extra} />
+  );
+  const GRID = "#2c3340", EMPTY = "#161920", HQ = "#f5a623", RIVAL = "#67e8f9";
+  const flow = (i) => ({ style: { animation: `tutFlow 3s linear ${i * 0.5}s infinite` } });
+  return (
+    <svg viewBox="0 0 200 104" style={{ width: "100%", height: 104 }}>
+      {/* a 3x3 district with the headquarters in the middle */}
+      {[0, 1, 2].flatMap((r) => [0, 1, 2].map((c) => plot(8 + c * 19, 14 + r * 19, EMPTY, GRID)))}
+      {plot(27, 33, HQ, HQ)}
+      <text x="35.5" y="44.5" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#14161a">HQ</text>
+      {/* the owner's own company: paid and charged, nets nothing */}
+      {plot(8, 33, HQ, HQ, { opacity: 0.55 })}
+      <text x="16.5" y="44.5" textAnchor="middle" fontSize="6" fill="#14161a">0</text>
+      {/* two rivals, each taking the tithe every quarter */}
+      {plot(27, 14, RIVAL, RIVAL)}
+      {plot(46, 33, RIVAL, RIVAL)}
+      <text x="35.5" y="25.5" textAnchor="middle" fontSize="6" fontWeight="700" fill="#14161a">+{MEGACORP_TITHE_EP}</text>
+      <text x="54.5" y="44.5" textAnchor="middle" fontSize="6" fontWeight="700" fill="#14161a">+{MEGACORP_TITHE_EP}</text>
+      {/* the EP leaving the headquarters, one pulse per rival */}
+      <text x="35.5" y="31" textAnchor="middle" fontSize="6" fontWeight="700" fill={RIVAL} {...flow(0)}>↑</text>
+      <text x="45" y="43" fontSize="6" fontWeight="700" fill={RIVAL} {...flow(1)}>→</text>
+      {/* Kept short: these sit under the grid, and the right-hand column starts at
+          x=76, so anything wider than about twenty characters runs into it. */}
+      <text x="8" y="80" fontSize="6.5" fill={HQ}>yours beside it: 0</text>
+      <text x="8" y="89" fontSize="6.5" fill={RIVAL}>each rival: −{MEGACORP_TITHE_EP} EP</text>
+
+      {/* what it earns and what it ends */}
+      <text x="76" y="20" fontSize="7.5" fontWeight="700" fill="#e5e7eb">GOING PUBLIC</text>
+      <text x="76" y="31" fontSize="6.5" fill="#8b93a3">Tile: {MEGACORP_EP.lo}–{MEGACORP_EP.hi} EP at once</text>
+      <text x="76" y="40" fontSize="6.5" fill="#8b93a3">then price ÷ tier, every quarter</text>
+      <text x="76" y="53" fontSize="6.5" fill={RIVAL}>Every rival company touching</text>
+      <text x="76" y="62" fontSize="6.5" fill={RIVAL}>it takes {MEGACORP_TITHE_EP} EP a quarter off you</text>
+      <text x="76" y="75" fontSize="6.5" fill="#8b93a3">A player's {MEGACORPS_TO_END}nd Megacorp calls</text>
+      <text x="76" y="84" fontSize="6.5" fill="#8b93a3">the final quarter for everybody</text>
+    </svg>
+  );
+}
+
 function ArtScoring() {
   /* Read off the same constants the bullets beside this do. Every number here was
      wrong - 5, 1-at-year-end, 10 and $10 against an engine paying 3, 2 immediately,
@@ -5066,6 +5112,13 @@ const TUTORIAL = [
     points: ["Twelve discs total \u2014 one per plot, one per company, one per loan",
              "Run out and you cannot buy, build or borrow",
              "The industry strip fills in as you enter each industry"] },
+
+  { title: "Going public: Megacorps", target: "megacorps", art: ArtMegacorp,
+    body: "Board Meeting takes both your workers. Merge the exact set of company levels a tile asks for and it becomes a Megacorp: big points now, a dividend every quarter, and a bill from the neighbours.",
+    points: [`The tile pays ${MEGACORP_EP.lo}\u2013${MEGACORP_EP.hi} EP at once; the other merged companies go distressed and it locks one of your company slots`,
+             "One company stays standing as the HQ and banks its industry's price \u00f7 the tile's tier in EP every quarter",
+             `Every RIVAL company touching the HQ takes ${MEGACORP_TITHE_EP} EP a quarter off you \u2014 your own beside it cost nothing, so pick a quiet corner, and build beside theirs`,
+             `The first Megacorp wins the IPO tile and a sixth slot; a player's ${MEGACORPS_TO_END}nd calls the final quarter for everybody`] },
 
   { title: "Winning", target: "standings", art: ArtScoring,
     body: "Score steadily rather than chasing one big move. Breadth pays early, size pays late.",
@@ -6137,7 +6190,7 @@ function GameScreens({ online }) {
 
             {/* The Megacorp list is short; the log shares its frame so the column
                 keeps a single, full-width block instead of two stubby ones. */}
-            <div className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+            <div data-tut="megacorps" className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
 
               <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text={`Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks its industry's price DIVIDED BY THE TILE'S TIER as EP every quarter (the \u00f7 number on each tile, rounded down - so a \u00f72 tile on a $7 good pays 3 EP a quarter, and pays nothing at all while the price is below the tier), counts as a Logistic Hub for anything built beside it, and pays ${MEGACORP_TITHE_EP} EP a quarter to every RIVAL company standing beside it - your own neighbours cost you nothing, since they pay themselves. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots - unless you were first to go public, which wins the IPO tile and a sixth bay.`} /></div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>

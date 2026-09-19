@@ -54,6 +54,7 @@ vm.createContext(sb);
 vm.runInContext(engine + "\n" + artStubs + "\n" + block + `
   box.e = { TUTORIAL, SUPPLY, MEGACORP_EP, TUT_LEVEL_EP,
     INDUSTRY_DEBUT_EP, LAND_AWARD, levelEP, BP_DATA, INDUSTRIES, MEGACORP_TILES,
+    MEGACORP_TITHE_EP, MEGACORPS_TO_END,
     SCALING, RENT_PER_LEVEL };`, sb);
 const E = box.e;
 
@@ -79,6 +80,29 @@ check("both land awards quote LAND_AWARD.sole",
   `LAND_AWARD.sole = ${E.LAND_AWARD.sole}`);
 check("it no longer promises 10 EP for land",
   !/10 EP for most plots/.test(all));
+
+/* --- the Megacorp step: every figure off the engine, and its anchor exists --- */
+{
+  const step = E.TUTORIAL.find((t) => /Megacorps/.test(t.title));
+  check("there is a tutorial step on Megacorps", !!step);
+  const text = step ? [step.body, ...step.points].join("\n") : "";
+  check(`it quotes the tithe rate, ${E.MEGACORP_TITHE_EP} EP a quarter, off the engine`,
+    text.includes(`${E.MEGACORP_TITHE_EP} EP a quarter`));
+  check("and says the owner's own neighbours cost nothing",
+    /your own beside it cost nothing/i.test(text));
+  check(`and that the ${E.MEGACORPS_TO_END}nd Megacorp calls the final quarter`,
+    text.includes(`${E.MEGACORPS_TO_END}nd calls the final quarter`));
+  check("it no longer describes the old end-of-game district award",
+    !/3 EP for every|scores .* at the end/i.test(text));
+  check("its anchor exists on the page", src.includes(`data-tut="${step && step.target}"`));
+  /* The picture reads the same constants as the words beside it. A drawing is not
+     something anybody thinks to re-read, so a figure typed into it outlives the rule. */
+  const artSrc = src.slice(src.indexOf("function ArtMegacorp()"), src.indexOf("function ArtScoring()"));
+  check("the picture reads the tithe rate from the engine", /\{MEGACORP_TITHE_EP\}/.test(artSrc));
+  check("and the deadline count", /\{MEGACORPS_TO_END\}/.test(artSrc));
+  check("and has no tithe or deadline figure typed by hand",
+    !/[^A-Z_]\b[123] EP\b/.test(artSrc.replace(/\{[^}]*\}/g, "")) && !/\b2nd\b/.test(artSrc.replace(/\{[^}]*\}/g, "")));
+}
 
 /* --- the Megacorp range, recomputed from the tiles --- */
 const eps = E.MEGACORP_TILES.map((t) => t[2]);
