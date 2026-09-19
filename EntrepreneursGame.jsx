@@ -3588,6 +3588,10 @@ function computeEligiblePlots(board, selectMode, ctx) {
     const [a] = selectMode.selected;
     return new Set([...board.graph[a]].filter((n) => isCrossDistrictEdge(board, a, n) && !hasLH(a, n)));
   }
+  if (selectMode.kind === "grow") {
+    // the candidates were worked out when the picker opened; one pick and it is done
+    return selectMode.selected.length ? new Set() : new Set(selectMode.options);
+  }
   const { selected, nPlots } = selectMode;
   if (selected.length >= nPlots) return new Set();
   const ownedFree = (k) => plotBuildable(board, k);
@@ -4053,7 +4057,15 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
   const border = chosen || eligible ? "2px solid #4ade80"
     : selected ? "2px solid #ffffff"
     : "1px solid rgba(0,0,0,0.5)";
-  const isVertical = foundBiz && SCALING[bizInd(foundBiz)] === "V";
+  /* Storeys on THIS plot - not the company's level, and not its industry's habit. A
+     level-3 company spread over two plots has a two-storey wing and a one-storey one;
+     a Technology company owned by a Systems Architect stacks although its industry
+     spreads. Deciding by industry drew nothing for that upgrade: the company grew and
+     the map did not move, and the player rightly asked why. */
+  const storeys = foundBiz
+    ? ((foundBiz.levels && foundBiz.levels[plotKeyStr])
+        || (foundBiz.footprint.length === 1 ? foundBiz.level : 1))
+    : 0;
   const hasLH = plotHasLH(board, plotKeyStr);
   const isHub = plotIsLH(board, plotKeyStr);      // a hub standing on this plot
   return (
@@ -4078,7 +4090,7 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 11, fontWeight: 800, color: "#f5a623", pointerEvents: "none" }}>!</span>
       )}
-      {isVertical && foundBiz.level > 1 && Array.from({ length: Math.min(foundBiz.level - 1, 3) }).map((_, i) => (
+      {storeys > 1 && Array.from({ length: Math.min(storeys - 1, 3) }).map((_, i) => (
         <span key={i} style={{ position: "absolute", inset: 5 + i * 3.5,
           border: `1px solid ${IND_COLOR[bizInd(foundBiz)]}`, opacity: 0.95, pointerEvents: "none" }} />
       ))}
@@ -4337,6 +4349,28 @@ const SCALING_BLURB = {
 /* How many plots this blueprint will stand on once built at its level. Mirrors the
    engine's own nPlots, which is what doLaunch uses. */
 const plotsForBP = (bp) => (SCALING[bp.ind] === "H" ? bp.lvl : 1);
+/* Which way a company grows FOR THIS PLAYER. Personas flip their own industry -
+   a Systems Architect's Technology stacks, a Resort Developer's Hospitality spreads -
+   and a card that quoted the industry's habit told such a player the opposite of what
+   their next upgrade would do. The star marks a persona at work; the tooltip says so. */
+function growthFor(player, bp) {
+  const usual = SCALING[bp.ind];
+  const dir = player ? upgradeScaling(player, { bp }) : usual;
+  return { dir, flipped: dir !== usual };
+}
+const growthTitle = ({ dir, flipped }, ind) => SCALING_BLURB[dir]
+  + (flipped ? ` Your persona flips ${IND_NAME[ind]}'s usual habit.` : "");
+
+/* Where an upgrade can go, as the player should be asked. Spreading: any owned, empty
+   plot touching the building - the engine's own rule. Stacking: any plot of the
+   footprint the player owns, because rent for every storey goes to the plot's owner, so
+   which wing carries the extra floors is money. The engine used to take the first of
+   these silently - doUpgrade has accepted a chosen plot all along and the online act
+   already carried it; the button simply never asked. */
+function growOptions(state, p, b) {
+  if (upgradeScaling(p, b) === "H") return adjacentOwnedFreePlots(state.board, b.footprint);
+  return b.footprint.filter((pk) => state.board.owner[pk] === p.id);
+}
 
 /* The address as it fits on a card: district tile and compass slot, without the grid
    coordinates plotLabel adds - two plots' worth of those do not fit in 148 pixels.
@@ -4347,7 +4381,8 @@ function plotShort(board, pk) {
   return `${board.tiles[`${c.r},${c.c}`] || "?"}\u00b7${c.pos}`;
 }
 
-function BPCard({ bp, onClick, disabled, small }) {
+function BPCard({ bp, onClick, disabled, small, player }) {
+  const g = growthFor(player, bp);
   return (
     <button
       onClick={onClick}
@@ -4366,8 +4401,8 @@ function BPCard({ bp, onClick, disabled, small }) {
         {/* The word has to be readable - "H" teaches nobody which industries spread -
             but "Horizontal * 1 plot" wraps on the 128px hand card. One plot is the
             assumption anyway, so the count only appears when it is not one. */}
-        <div title={SCALING_BLURB[SCALING[bp.ind]]} style={{ color: IND_COLOR[bp.ind] }}>
-          {SCALING_GLYPH[SCALING[bp.ind]]} {SCALING_NAME[SCALING[bp.ind]]}
+        <div title={growthTitle(g, bp.ind)} style={{ color: IND_COLOR[bp.ind] }}>
+          {SCALING_GLYPH[g.dir]} {SCALING_NAME[g.dir]}{g.flipped ? " \u2605" : ""}
           {plotsForBP(bp) > 1 ? ` \u00b7 ${plotsForBP(bp)} plots` : ""}
         </div>
       </div>
@@ -4504,7 +4539,7 @@ function LiquidationPanel({ state, human, log, onContinue }) {
   );
 }
 
-function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy, guardSpend }) {
+function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy, onStartGrow, guardSpend }) {
   const entry = state.pendingHumanAction;
   const [mode, setMode] = useState(null);
   useEffect(() => { setMode(null); }, [entry?.track, entry?.actionsRemaining]);
@@ -4578,7 +4613,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2">
             {human.hand.map((bp, i) => (
-              <BPCard key={i} bp={bp} disabled={!canLaunchMore(human) || human.cash < bp.setup || discsFree(state, human) <= 0} onClick={() => onStartLaunch(bp)} small />
+              <BPCard key={i} bp={bp} player={human} disabled={!canLaunchMore(human) || human.cash < bp.setup || discsFree(state, human) <= 0} onClick={() => onStartLaunch(bp)} small />
             ))}
             {!human.hand.length && <span className="text-xs text-gray-500 italic">Hand is empty.</span>}
           </div>
@@ -4689,7 +4724,17 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
               return (
                 <div key={b.id} style={{ width: 170 }}>
                   <button disabled={!!why}
-                    onClick={() => guardSpend(bizSetup(b), bizPotBill({ ...b, upgraded: true, level: b.level + 1 }) - bizPotBill(b), `Upgrading ${b.bp.name}`, () => { if (NET) return NET.send("act", { type: "upgrade", bizId: b.id }); const ok = doUpgrade(state, human, b, rng, log); if (ok) finish(); })}
+                    onClick={() => {
+                      /* More than one place the new wing or storey could go: ask, the
+                         same as launching does. One or none: the engine's answer is the
+                         only answer, so take it without the ceremony. */
+                      const opts = growOptions(state, human, b);
+                      if (opts.length > 1) return onStartGrow(b, opts);
+                      guardSpend(bizSetup(b), bizPotBill({ ...b, upgraded: true, level: b.level + 1 }) - bizPotBill(b), `Upgrading ${b.bp.name}`, () => {
+                        if (NET) return NET.send("act", { type: "upgrade", bizId: b.id, plot: opts[0] });
+                        const ok = doUpgrade(state, human, b, rng, log, opts[0]); if (ok) finish();
+                      });
+                    }}
                     className="text-[10px] px-2 py-1 rounded w-full text-left disabled:opacity-30"
                     style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
                     {b.bp.name} <span className="text-gray-500">L{b.level}&rarr;{b.level + 1}</span> <span style={{ color: "#a5d6f3" }}>${bizSetup(b)}</span>
@@ -5435,11 +5480,15 @@ function GameScreens({ online }) {
     if (cash >= bill) return go();
     setRiskyConfirm({ what, cash, bill, go });
   }
+  function handleStartGrow(b, options) {
+    setPickMode({ kind: "grow", biz: b, dir: upgradeScaling(human, b), options, selected: [] });
+  }
   function doConfirmPick() {
     if (!state || !pickMode) return;
     if (NET) {
       if (pickMode.kind === "launch") NET.send("act", { type: "launch", index: human.hand.indexOf(pickMode.bp), footprint: pickMode.selected });
       else if (pickMode.kind === "buy") NET.send("act", { type: "buyPlot", plot: pickMode.selected[0] });
+      else if (pickMode.kind === "grow") NET.send("act", { type: "upgrade", bizId: pickMode.biz.id, plot: pickMode.selected[0] });
       setPickMode(null);
       return;
     }
@@ -5449,6 +5498,9 @@ function GameScreens({ online }) {
     } else if (pickMode.kind === "buy") {
       const ok = doBuyPlot(state, human, pickMode.selected[0], log);
       if (!ok) log(`Couldn't buy that plot.`, human.id);
+    } else if (pickMode.kind === "grow") {
+      const ok = doUpgrade(state, human, pickMode.biz, rngRef.current, log, pickMode.selected[0]);
+      if (!ok) log(`Couldn't upgrade ${pickMode.biz.bp.name} onto that plot.`, human.id);
     }
     setPickMode(null);
     humanCompleteResolutionAction(state, rngRef.current, log);
@@ -5466,6 +5518,10 @@ function GameScreens({ online }) {
     }
     if (pickMode.kind === "buy") {
       return guardSpend(plotValue(state, pickMode.selected[0]), 0, "Buying that plot", doConfirmPick);
+    }
+    if (pickMode.kind === "grow") {
+      const b = pickMode.biz;
+      return guardSpend(bizSetup(b), bizPotBill({ ...b, upgraded: true, level: b.level + 1 }) - bizPotBill(b), `Upgrading ${b.bp.name}`, doConfirmPick);
     }
     doConfirmPick();
   }
@@ -5696,18 +5752,23 @@ function GameScreens({ online }) {
             {isHumanResolving && pickMode && (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
-                  {pickMode.kind === "launch" ? `Placing ${pickMode.bp.name} \u2014 select ${pickMode.selected.length}/${pickMode.nPlots} plot(s)` : `Pick a plot to buy \u2014 ${pickMode.selected.length}/1 selected`}
+                  {pickMode.kind === "launch" ? `Placing ${pickMode.bp.name} \u2014 select ${pickMode.selected.length}/${pickMode.nPlots} plot(s)`
+                    : pickMode.kind === "grow" ? `Upgrading ${pickMode.biz.bp.name} \u2014 where does the new ${pickMode.dir === "H" ? "wing" : "storey"} go? ${pickMode.selected.length}/1 picked`
+                    : `Pick a plot to buy \u2014 ${pickMode.selected.length}/1 selected`}
                 </div>
                 <div className="text-[10px] text-gray-400 mb-2">
                   Click highlighted plots on the board above.
                   {pickMode.kind === "launch" && pickMode.nPlots > 1 &&
                     " Plots must share an edge — corners do not count."}
+                  {pickMode.kind === "grow" && (pickMode.dir === "H"
+                    ? " The new wing stands on the plot you pick, and can sell into that plot's district."
+                    : " The new storey stacks on the plot you pick — rent for every storey goes to that plot's owner.")}
                 </div>
-                {computeEligiblePlots(state.board, pickMode, { state, player: human }).size === 0 && pickMode.selected.length < (pickMode.kind === "buy" ? 1 : pickMode.nPlots) && (
+                {pickMode.kind !== "grow" && computeEligiblePlots(state.board, pickMode, { state, player: human }).size === 0 && pickMode.selected.length < (pickMode.kind === "buy" ? 1 : pickMode.nPlots) && (
                   <div className="text-[10px] text-red-400 mb-2">No more eligible adjacent plots — this cluster can't be completed here. Cancel and try elsewhere, or buy more land first.</div>
                 )}
                 <div className="flex gap-2">
-                  <button onClick={handleConfirmPick} disabled={pickMode.selected.length < (pickMode.kind === "buy" ? 1 : pickMode.nPlots)}
+                  <button onClick={handleConfirmPick} disabled={pickMode.selected.length < (pickMode.kind === "launch" ? pickMode.nPlots : 1)}
                     className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>Confirm</button>
                   <button onClick={handleCancelPick} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Cancel</button>
                 </div>
@@ -5742,7 +5803,7 @@ function GameScreens({ online }) {
                 that panel's own finish(), so unmounting it would leave the callback firing
                 into a component that no longer exists. Pressing another action simply
                 replaces the warning with the one for that action. */}
-            {isHumanResolving && !pickMode && <ActionPanel state={state} human={human} rng={rngRef.current} log={log} onDone={handleResolutionDone} onStartLaunch={handleStartLaunch} onStartBuy={handleStartBuy} guardSpend={guardSpend} />}
+            {isHumanResolving && !pickMode && <ActionPanel state={state} human={human} rng={rngRef.current} log={log} onDone={handleResolutionDone} onStartLaunch={handleStartLaunch} onStartGrow={handleStartGrow} onStartBuy={handleStartBuy} guardSpend={guardSpend} />}
             {isHumanSupplyChain && scOptions.length > 0 && (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
@@ -6028,7 +6089,7 @@ function GameScreens({ online }) {
                 Hand &mdash; {human.hand.length}/5
               </div>
               <div className="flex flex-wrap gap-2 mb-3">
-                {human.hand.map((bp, i) => <BPCard key={i} bp={bp} disabled small />)}
+                {human.hand.map((bp, i) => <BPCard key={i} bp={bp} player={human} disabled small />)}
                 {!human.hand.length && <span className="text-xs text-gray-500 italic">Empty.</span>}
               </div>
 
@@ -6057,9 +6118,10 @@ function GameScreens({ online }) {
                           <span style={{ color: "#f3b0a5" }}>bill ${bizPotBill(b) + bizGroundRent(state, human, b)}</span>
                           <span>prod {bizProd(b)}</span>
                         </div>
-                        <div title={SCALING_BLURB[SCALING[b.bp.ind]]} style={{ color: IND_COLOR[b.bp.ind] }}>
-                          {SCALING_GLYPH[SCALING[b.bp.ind]]} {SCALING_NAME[SCALING[b.bp.ind]]} &middot; {b.footprint.length} plot{b.footprint.length === 1 ? "" : "s"}
-                        </div>
+                        {(() => { const g = growthFor(human, b.bp); return (
+                          <div title={growthTitle(g, b.bp.ind)} style={{ color: IND_COLOR[b.bp.ind] }}>
+                            {SCALING_GLYPH[g.dir]} {SCALING_NAME[g.dir]}{g.flipped ? " \u2605" : ""} &middot; {b.footprint.length} plot{b.footprint.length === 1 ? "" : "s"}
+                          </div>); })()}
                         {/* Where it actually stands. The full label with grid coordinates is
                             still what the plot tooltip and the bank list give. */}
                         <div className="text-gray-500" title={b.footprint.map((pk) => plotLabel(state.board, pk)).join(" + ")}>
@@ -6601,7 +6663,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
         <div className="rounded-md p-2 mb-4" style={{ backgroundColor: "#101318" }}>
           <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Your hand &mdash; {picked}/{need}</div>
           <div className="flex flex-wrap gap-2">
-            {human.hand.map((bp, i) => <BPCard key={i} bp={bp} disabled small />)}
+            {human.hand.map((bp, i) => <BPCard key={i} bp={bp} player={human} disabled small />)}
             {!picked && <span className="text-[10px] text-gray-600 italic">Nothing drafted yet.</span>}
           </div>
         </div>
