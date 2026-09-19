@@ -48,11 +48,17 @@ if (CUT < 0) { console.error("the engine marker moved - update this probe"); pro
 const base = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
 
 const N = {
-  landConst: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };",
+  /* The engine now picks between two rate tables by head count, so an arm that rewrites
+     LAND_AWARD alone would be ignored from four seats up and quietly measure the
+     shipped rule instead. Any arm that sets a rate also flattens this function. */
+  landFn: `const landAward = (state) => (state && state.players && state.players.length >= LAND_AWARD_LARGE_FROM
+  ? LAND_AWARD_LARGE : LAND_AWARD);`,
+  landConst: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };           // 2-3 players",
   awardBody: `  const top = Math.max(...scores.map((x) => x.s));
   const leaders = scores.filter((x) => x.s === top);
-  const share = leaders.length === 1 ? LAND_AWARD.sole
-    : leaders.length === 2 ? LAND_AWARD.two : LAND_AWARD.many;
+  const A = landAward(state);
+  const share = leaders.length === 1 ? A.sole
+    : leaders.length === 2 ? A.two : A.many;
   for (const { p } of leaders) {
     // stamp the quarter it was actually awarded in - the land awards pay at every year
     // end, and hardcoding 12 made the scoring log claim otherwise
@@ -61,14 +67,14 @@ const N = {
   }`,
   levelEP: 'const levelEP = (state) => (hasVariant(state, "heavyLevelEP") ? 3 : 2);',
   hqHelper: "function hqNeighbours(state, hq) {",
-  dividend: "function runMegacorpDividend(state, log) {\n  for (const p of state.players) {",
-  mcPayout: `  for (const p of state.players) {
-    for (const hq of megacorpHQs(p)) {
-      const n = hqNeighbours(state, hq);
-      if (n) addEP(p, MEGACORP_NEIGHBOUR_EP * n, \`Megacorp district: \${hq.megacorpName}\`, state.quarter);
-    }
-  }`,
-  botPrice: "  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);",
+
+  /* The tithe and the table-scaled land award SHIPPED, so "current" is now those rules
+     and the arms below are what it would cost to go back or go further. The old
+     end-of-game district award is put back by the noTithe arm rather than removed by a
+     tithe arm - the probe reads the other way round from the run that decided it. */
+  titheCall: "  runMegacorpTithe(state, log);      // ...and pay the companies crowding round them",
+  finalize: "function finalizeGame(state) {",
+  botPrice: "  const districtEP = -MEGACORP_TITHE_EP * hqRivalNeighbours(state, p, hq) * qLeft;",
   tileEP: "  const [name, combo, ep] = match.tile;",
   brandFn: "const brandEPFor = (price, tier) => Math.floor(price / tier);",
   resolution: `  const queue = [];
@@ -100,35 +106,7 @@ const SOLE10 = `  scores.sort((a, b) => b.s - a.s);
     if (share > 0) for (let k = i; k <= j; k++) addEP(scores[k].p, share, label, state.quarter);
     i = j + 1;
   }`;
-const OWNER_HELPER = `
-function hqNeighbourOwners(state, hq) {
-  const seen = new Set(), byOwner = {};
-  hq.footprint.forEach((pk) => orthOf(state.board, pk).forEach((n) => {
-    if (hq.footprint.includes(n)) return;
-    const id = state.board.occupiedBy[n];
-    if (id === undefined || id === hq.id || seen.has(id)) return;
-    for (const q of state.players) {
-      const b = q.businesses.find((x) => x.id === id);
-      if (b && !b.distressed) { seen.add(id); byOwner[q.id] = (byOwner[q.id] || 0) + 1; return; }
-    }
-  }));
-  return byOwner;
-}
-`;
-const TITHE = `function runMegacorpDividend(state, log) {
-  for (const p of state.players) {
-    for (const hq of megacorpHQs(p)) {
-      for (const [id, n] of Object.entries(hqNeighbourOwners(state, hq))) {
-        const q = state.players.find((x) => String(x.id) === String(id));
-        if (!q) continue;
-        addEP(q, 1 * n, \`Megacorp orbit: \${hq.megacorpName}\`, state.quarter);
-        addEP(p, -1 * n, \`Megacorp tithe: \${hq.megacorpName}\`, state.quarter);
-      }
-    }
-  }
-  for (const p of state.players) {`;
-const TITHE_PRICE = `  const __nb = hqNeighbourOwners(state, hq);
-  const districtEP = -1 * Object.entries(__nb).reduce((a, [id, n]) => a + (String(id) === String(p.id) ? 0 : n), 0) * qLeft;`;
+
 const BM_FIRST = `  const queue = [];
   const bmFilled = [];
   state.tracks.board_meeting.forEach((pid, i) => { if (pid !== null) bmFilled.push(i); });
@@ -138,24 +116,38 @@ const BM_FIRST = `  const queue = [];
   }
   return queue;`;
 
+/* noTithe puts the SHIPPED rule back the way it was: the quarterly tithe stops, and the
+   headquarters is paid 3 EP at the end for every live company beside it, its owner's
+   included. This is the control for the change that just went in, read in the live
+   engine rather than from the run that argued for it. */
+const OLD_DISTRICT_EP = 3;
+const OLD_PAYOUT = `function finalizeGame(state) {
+  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      const n = hqNeighbours(state, hq);
+      if (n) addEP(p, ${OLD_DISTRICT_EP} * n, \`Megacorp district: \${hq.megacorpName}\`, state.quarter);
+    }
+  }`;
+const OLD_BOT_PRICE = `  const districtEP = ${OLD_DISTRICT_EP} * hqNeighbours(state, hq);`;
+
 const PRESETS = {
   all: [
-    { key: "current", name: "as it ships" },
-    { key: "land10", name: "land: 10 to the sole leader", land: true },
+    { key: "current", name: "as it ships: land 5/10 by table size, Megacorps tithed" },
+    { key: "land10", name: "land: 10 to the leader at EVERY table size", land: true },
+    { key: "noTithe", name: "back to the old end-of-game district award", noTithe: true },
     { key: "lvl1", name: "companies: 1 EP a level", level: 1 },
-    { key: "lvl1+10", name: "1 EP a level AND land 10 to the leader", level: 1, land: true },
-    { key: "tithe", name: "Megacorps: 1 EP a quarter to every neighbour", tithe: true },
-    { key: "half+tithe", name: "Megacorps: half value AND the tithe", tithe: true, half: true },
+    { key: "lvl1+10", name: "1 EP a level AND land 10 everywhere", level: 1, land: true },
+    { key: "half", name: "Megacorps at half value (tile and brand)", half: true },
     { key: "bmFirst", name: "Board Meeting resolves first", bmFirst: true },
   ],
   /* The two levers that raise land's share, apart and together. Raising the award
      adds EP to the board; cutting the level rate raises land's share by shrinking the
      largest source instead. Whether they stack or collide is the open question. */
   land: [
-    { key: "current", name: "as it ships" },
-    { key: "land10", name: "land: 10 to the sole leader", land: true },
+    { key: "current", name: "as it ships: land 5/10 by table size" },
+    { key: "land10", name: "land: 10 to the leader at EVERY table size", land: true },
     { key: "lvl1", name: "companies: 1 EP a level", level: 1 },
-    { key: "lvl1+10", name: "1 EP a level AND land 10 to the leader", level: 1, land: true },
+    { key: "lvl1+10", name: "1 EP a level AND land 10 everywhere", level: 1, land: true },
   ],
 };
 const setArg = process.argv.find((a) => a.startsWith("--arms="));
@@ -163,16 +155,17 @@ const ARMS = PRESETS[setArg ? setArg.slice(7) : "all"];
 if (!ARMS) { console.error(`no such arm set - try ${Object.keys(PRESETS).join(", ")}`); process.exit(2); }
 
 function engineFor(arm) {
-  let logic = splice(base, N.hqHelper, OWNER_HELPER + N.hqHelper, "neighbour-owner helper");
+  let logic = base;
   if (arm.land) {
     logic = splice(logic, N.awardBody, SOLE10, "ranked land award");
+    logic = splice(logic, N.landFn, "const landAward = () => LAND_AWARD;   // this arm sets one rate for every table size", "flatten the rate tables");
     logic = splice(logic, N.landConst, "const LAND_AWARD = { sole: 10, two: 5, many: 3 };", "land constant");
   }
   if (arm.level !== undefined) logic = splice(logic, N.levelEP, `const levelEP = (state) => ${arm.level};`, "level EP");
-  if (arm.tithe) {
-    logic = splice(logic, N.mcPayout, "", "megacorp district payout removed");
-    logic = splice(logic, N.dividend, TITHE, "quarterly tithe");
-    logic = splice(logic, N.botPrice, TITHE_PRICE, "bot merge price");
+  if (arm.noTithe) {
+    logic = splice(logic, N.titheCall, "", "quarterly tithe removed");
+    logic = splice(logic, N.finalize, OLD_PAYOUT, "old end-of-game district award");
+    logic = splice(logic, N.botPrice, OLD_BOT_PRICE, "bot merge price");
   }
   if (arm.half) {
     logic = splice(logic, N.tileEP, "  const [name, combo, __raw] = match.tile;\n  const ep = Math.round(__raw / 2);", "half tile");

@@ -41,11 +41,17 @@ if (CUT < 0) { console.error("the engine marker moved - update this probe"); pro
 const base = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
 
 const NEEDLES = {
-  landConst: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };",
+  /* The engine now picks between two rate tables by head count, so an arm that rewrites
+     LAND_AWARD alone would be ignored from four seats up and quietly measure the
+     shipped rule instead. Any arm that sets a rate also flattens this function. */
+  landFn: `const landAward = (state) => (state && state.players && state.players.length >= LAND_AWARD_LARGE_FROM
+  ? LAND_AWARD_LARGE : LAND_AWARD);`,
+  landConst: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };           // 2-3 players",
   awardBody: `  const top = Math.max(...scores.map((x) => x.s));
   const leaders = scores.filter((x) => x.s === top);
-  const share = leaders.length === 1 ? LAND_AWARD.sole
-    : leaders.length === 2 ? LAND_AWARD.two : LAND_AWARD.many;
+  const A = landAward(state);
+  const share = leaders.length === 1 ? A.sole
+    : leaders.length === 2 ? A.two : A.many;
   for (const { p } of leaders) {
     // stamp the quarter it was actually awarded in - the land awards pay at every year
     // end, and hardcoding 12 made the scoring log claim otherwise
@@ -93,6 +99,7 @@ function engineFor(arm) {
     /* The bots price a plot through LAND_AWARD.sole (see worthChasingLand), so the
        constant moves with the payout or the arm measures bots playing the old rule. */
     const [f, sec] = arm.values;
+    logic = logic.replace(NEEDLES.landFn, "const landAward = () => LAND_AWARD;   // this arm sets one rate for every table size");
     logic = logic.replace(NEEDLES.landConst,
       `const LAND_AWARD = { sole: ${f}, two: ${Math.max(1, Math.round((f + sec) / 2))}, many: ${Math.max(1, Math.round(f / 3))} };`);
   }

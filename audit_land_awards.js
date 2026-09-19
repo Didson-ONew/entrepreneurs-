@@ -70,13 +70,19 @@ const base = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
 /* Everything this probe splices into. Each is checked before anything runs, so a
    moved anchor stops the audit rather than quietly measuring the wrong thing. */
 const NEEDLES = {
-  landConst: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };",
+  /* The engine now picks between two rate tables by head count, so an arm that rewrites
+     LAND_AWARD alone would be ignored from four seats up and quietly measure the
+     shipped rule instead. Any arm that sets a rate also flattens this function. */
+  landFn: `const landAward = (state) => (state && state.players && state.players.length >= LAND_AWARD_LARGE_FROM
+  ? LAND_AWARD_LARGE : LAND_AWARD);`,
+  landConst: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };           // 2-3 players",
   /* The whole body is replaced, not a prefix of it, so no dead half of the old loop
      is left behind to unbalance the braces. */
   awardBody: `  const top = Math.max(...scores.map((x) => x.s));
   const leaders = scores.filter((x) => x.s === top);
-  const share = leaders.length === 1 ? LAND_AWARD.sole
-    : leaders.length === 2 ? LAND_AWARD.two : LAND_AWARD.many;
+  const A = landAward(state);
+  const share = leaders.length === 1 ? A.sole
+    : leaders.length === 2 ? A.two : A.many;
   for (const { p } of leaders) {
     // stamp the quarter it was actually awarded in - the land awards pay at every year
     // end, and hardcoding 12 made the scoring log claim otherwise
@@ -89,7 +95,7 @@ const NEEDLES = {
   /* Arm E rewrites this whole function, so its signature has to be exactly here. */
   weightFn: `function landEPWeight(state, p) {
   const payouts = landPayouts(state);
-  if (!p) return payouts * LAND_AWARD.sole * 0.5;`,
+  if (!p) return payouts * landAward(state).sole * 0.5;`,
 };
 for (const [k, v] of Object.entries(NEEDLES)) {
   if (!base.includes(v)) {
@@ -185,6 +191,7 @@ function engineFor(arm) {
   let logic = base;
   /* First, before any other splice: arm C rewrites the LAND_AWARD line this is
      anchored to, and a splice that runs after it would quietly do nothing. */
+  logic = logic.replace(NEEDLES.landFn, "const landAward = () => LAND_AWARD;   // this arm sets one rate for every table size");
   logic = logic.replace(NEEDLES.landConst, NEEDLES.landConst + CONTROL_HELPER);
   if (arm.ranked) logic = logic.replace(NEEDLES.awardBody, RANKED_BODY);
   if (arm.granular) logic = logic.replace(NEEDLES.awardBody, GRANULAR_BODY);

@@ -328,7 +328,7 @@ Every quarter ends with a new Logistic Hub being built on an empty plot. The fir
 
 ### At the end of Quarter 4, 8 and 12
 
-- The Real-Estate Mogul and The Omnipresent are awarded - 5 EP each, to the outright leader only.
+- The Real-Estate Mogul and The Omnipresent are awarded - 5 EP each to the outright leader at 2-3 players, 10 EP each at 4 or more.
 - You may buy back loan discs: $30 at the end of Year 1, $35 at Year 2, $40 at Year 3.
 
 Companies do not wait for the year end. A company scores the moment it is finished - see below - so by the time a year ends its EP are already banked. What a year end decides is who is holding the city.
@@ -361,7 +361,7 @@ Whoever forms the first Megacorp of the game also takes the IPO tile: a sixth co
 - A headquarters is public infrastructure: it counts as a Logistic Hub. Any company built orthogonally beside one joins the network through it, whoever owns them. A monument that only collected would be a monument nobody wanted to build near - and the companies that gather round it are exactly the ones it scores 3 EP each for at the end.
 - Sell a plot out from under a headquarters and it collects nothing at all - no pot share, no points, and it stops being a hub. A monument still needs its ground.
 - It keeps its disc, and it permanently locks one of your five company slots. Every Megacorp you form narrows how wide you can operate.
-- At the end of the game the HQ scores 3 EP for every OTHER company standing orthogonally beside it - the district that grew up around it. Counted at scoring, not when the Megacorp forms, so where you put your headquarters is a bet on where the city fills in.
+- Every quarter it stands, the HQ pays 1 EP to every RIVAL company standing orthogonally beside it, and that company's owner banks it. Your OWN companies beside your own HQ cost you nothing - they are paid and you are charged in the same breath, which cancels. So a headquarters wedged into somebody else's district bleeds all game, and where you put it is a bet on who builds next to you.
 
 Twice the number of players are in play - eight at a four-player table - so a combination you are working toward is usually still there, but the best-paying ones are contested.
 
@@ -416,8 +416,8 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Megacorp tile | +8 to +22 as printed |
 | Megacorp HQ, each quarter it stands | + its industry's price / its tile's tier, rounded down |
 | Megacorp HQ, at the end | +3 for each other company beside it |
-| The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone |
-| The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone |
+| The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone, +10 at 4+ players |
+| The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone, +10 at 4+ players |
 | Cash on hand at the end | +1 per full $50 |
 | Each loan disc still in the bank | -5 |
 
@@ -425,7 +425,9 @@ For The Omnipresent, a district counts if you own a plot in it or one of your ac
 
 Ground rent is simply money. It is collected as it is earned and scores inside your cash at the end like every other dollar - there is nothing separate to track. What is worth knowing is how much of your income it quietly becomes: a plot with somebody else’s building on it pays you every quarter, and by six players half the plots a player owns carry a rival’s building.
 
-Only the outright leader scores a land award, and a shared lead pays badly: 5 EP alone, 2 EP each if two players tie, 1 EP each if three or more do. Second place gets nothing.
+Only the outright leader scores a land award, and a shared lead pays badly. At two and three players: 5 EP alone, 2 EP each if two tie, 1 EP each if three or more do. **At four players and up every figure doubles** - 10 EP alone, 4 each for a two-way tie, 2 each beyond that. Second place gets nothing at any count.
+
+> **Designer's note.** Both awards pay out the same ~29 EP over a game whether two people are chasing them or six, so a rate tuned for a small table is a rounding error at a big one: land is 17% of a winning score at two seats and 3.5% at six. At 5 EP the player who ends up holding the most ground wins BELOW what an indifferent seat would take, at every single count - chasing land was a trap, not a strategy. Doubling the rate from four players up puts that race back at or above chance without flattening the game: lead changes go UP at every table size and wire-to-wire games go DOWN. The same change at two and three players makes land 41% and 33% of a winning score and the trajectory measurably settles - fewer lead changes, the winner in front longer, games decided most of a quarter earlier - so the small tables keep the old rate. Paying a runner-up was tested and is worse than paying nobody: it costs half again as much EP and makes the land leader win LESS often, because a consolation prize dilutes the race it is meant to sharpen. See audit_ep_mix.js and audit_tension.js.
 
 ### When the game ends
 

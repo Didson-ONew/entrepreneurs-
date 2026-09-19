@@ -34,6 +34,22 @@
         share of raid EP that lands on the eventual WINNER is printed. A catch-up
         mechanic that pays the leader is a leader bonus with a friendly name.
 
+   WHAT SHIPPED, and what this probe is now for. The TITHE won: every company touching
+   a headquarters banks 1 EP a quarter for its own owner and the Megacorp's owner is
+   charged the same, so the owner's own neighbours cancel and only rivals drain it. The
+   old end-of-game award - the headquarters PAID 3 EP for each company beside it - is
+   gone from the engine. Halving what a Megacorp pays did NOT ship: it bought a large
+   rebalance for no gain in tension, and Megacorps turn out to be what players who are
+   behind reach for.
+
+   So every arm below now runs against a RESTORED copy of the old rule, put back by
+   this probe rather than found in the engine, and "current" means the tithe as it
+   ships. The arms are kept because the question they answer - who a proximity payout
+   actually pays - is the one to re-ask if the rate is ever revisited. Their headline
+   finding: RAID, ORBIT and RIVALS all overpay the eventual winner, because an
+   adjacency payout scales with how much you have built and the winner is by definition
+   whoever built most.
+
    Run: node audit_megacorp_raid.js [games a table size] [seats...]
         node audit_megacorp_raid.js 250 4 5 6
    ========================================================================== */
@@ -54,14 +70,18 @@ const base = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
 
 const NEEDLES = {
   /* The award being rewritten, exactly as finalizeGame spells it. */
+  /* Put back by restoreOld() below, then read by the arms exactly as before. */
   payout: `  for (const p of state.players) {
     for (const hq of megacorpHQs(p)) {
       const n = hqNeighbours(state, hq);
       if (n) addEP(p, MEGACORP_NEIGHBOUR_EP * n, \`Megacorp district: \${hq.megacorpName}\`, state.quarter);
     }
   }`,
+  titheCall: "  runMegacorpTithe(state, log);      // ...and pay the companies crowding round them",
+  finalizeHead: "function finalizeGame(state) {",
+  liveBotPrice: "  const districtEP = -MEGACORP_TITHE_EP * hqRivalNeighbours(state, p, hq) * qLeft;",
   /* Where a bot decides a merge is worth it. */
-  botPrice: "  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);",
+  botPrice: "  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);",   // after restoreOld
   helper: "function hqNeighbours(state, hq) {",
   /* What a tile pays for forming the Megacorp, and what its headquarters banks each
      quarter. Halving is done at these two points because the BOTS read both - the tile
@@ -72,8 +92,35 @@ const NEEDLES = {
   /* Once a quarter, at the top of revenue. The orbit arm pays from here. */
   dividend: "function runMegacorpDividend(state, log) {\n  for (const p of state.players) {",
 };
-for (const [k, v] of Object.entries(NEEDLES)) {
+/* The engine no longer contains the rule these arms modify, so the baseline is rebuilt
+   here first: the quarterly tithe comes out and the old end-of-game district award goes
+   back in. Every arm then splices against that, exactly as it did when the engine
+   carried it, and "current" is the tithe as it actually ships. */
+const MEGACORP_NEIGHBOUR_EP_OLD = 3;
+const OLD_RULE = `function finalizeGame(state) {
+  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      const n = hqNeighbours(state, hq);
+      if (n) addEP(p, MEGACORP_NEIGHBOUR_EP * n, \`Megacorp district: \${hq.megacorpName}\`, state.quarter);
+    }
+  }`;
+const OLD_BOT_PRICE = "  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);";
+const LIVE = { titheCall: NEEDLES.titheCall, finalizeHead: NEEDLES.finalizeHead, liveBotPrice: NEEDLES.liveBotPrice };
+for (const [k, v] of Object.entries(LIVE)) {
   if (!base.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
+}
+function restoreOld(src) {
+  let out = src.replace(LIVE.titheCall, "");
+  out = out.replace(LIVE.finalizeHead, OLD_RULE);
+  out = out.replace(LIVE.liveBotPrice, OLD_BOT_PRICE);
+  out = out.replace("const MEGACORP_TITHE_EP = 1;",
+    `const MEGACORP_TITHE_EP = 1;\nconst MEGACORP_NEIGHBOUR_EP = ${MEGACORP_NEIGHBOUR_EP_OLD};`);
+  return out;
+}
+const restored = restoreOld(base);
+for (const [k, v] of Object.entries(NEEDLES)) {
+  if (k in LIVE) continue;
+  if (!restored.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
 }
 
 /* Who is standing next to this headquarters, counted per owner. Same walk as
@@ -226,7 +273,19 @@ function splice(src, find, put, what) {
   return out;
 }
 function engineFor(arm) {
-  let logic = splice(base, NEEDLES.helper, OWNER_HELPER + NEEDLES.helper, "neighbour-owner helper");
+  /* "current" is the engine as it stands - the shipped tithe - and needs no surgery.
+     Everything else is measured against the rule that used to be there. */
+  if (arm.key === "current") {
+    const box0 = {};
+    const sb0 = { console, Math, Set, Object, Array, JSON, String, box: box0 };
+    vm.createContext(sb0);
+    vm.runInContext(base + `
+      box.exports = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
+        epTotal, finalRank, megacorpHQs };
+    `, sb0);
+    return box0.exports;
+  }
+  let logic = splice(restored, NEEDLES.helper, OWNER_HELPER + NEEDLES.helper, "neighbour-owner helper");
   if (arm.raid) logic = splice(logic, NEEDLES.payout, payoutFor(arm.seize), "final payout");
   if (arm.half) {
     logic = splice(logic, NEEDLES.tileEP, HALF_TILE, "half tile EP");

@@ -188,8 +188,8 @@ const plotIsLH = (board, plot) => !!board.lhOnPlots && (board.lhPlots || []).inc
    Logistic Hub network through it.
 
    This is the one thing a runaway leader's monument does FOR the table rather than to
-   it, and it is deliberately reciprocal: the neighbours get reach, and the headquarters
-   scores 3 EP for each of them at the end. It also gives the table a reason to crowd in
+   it, and the reciprocity now runs the other way: the neighbours get reach AND take the
+   tithe off the headquarters every quarter. So the table has two reasons to crowd in
    around a leader - and building in the headquarters' own industry is what pushes its
    price, and so its quarterly points, back down.
 
@@ -1329,11 +1329,11 @@ const landPayouts = (state) => {
    Called without a player it gives the board-level figure the setup screens want. */
 function landEPWeight(state, p) {
   const payouts = landPayouts(state);
-  if (!p) return payouts * LAND_AWARD.sole * 0.5;
+  if (!p) return payouts * landAward(state).sole * 0.5;
   const mine = plotCount(state, p);
   const best = Math.max(...state.players.map((q) => plotCount(state, q)));
-  if (mine >= best) return payouts * LAND_AWARD.sole * 0.6;   // leading, or level with the leader
-  if (best - mine <= 2) return payouts * LAND_AWARD.sole * 0.35;  // close enough to take it
+  if (mine >= best) return payouts * landAward(state).sole * 0.6;   // leading, or level with the leader
+  if (best - mine <= 2) return payouts * landAward(state).sole * 0.35;  // close enough to take it
   return 0;                                                   // not a race this player is in
 }
 
@@ -1682,7 +1682,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "43531fd8";
+const ENGINE_VERSION = "213c9dcf";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -1948,6 +1948,28 @@ function runMegacorpDividend(state, log) {
     }
   }
 }
+/* Paid and charged every quarter a headquarters stands - including one whose land was
+   sold out from under it. The brand dividend stops in that case because the Megacorp
+   has stopped trading, but the building is still there and the people beside it are
+   still trading off its footfall, so the tithe is not conditional on it earning. */
+function runMegacorpTithe(state, log) {
+  for (const p of state.players) {
+    for (const hq of megacorpHQs(p)) {
+      for (const [id, n] of Object.entries(hqNeighbourOwners(state, hq))) {
+        const q = state.players.find((x) => String(x.id) === String(id));
+        if (!q) continue;
+        const due = MEGACORP_TITHE_EP * n;
+        addEP(q, due, `Megacorp orbit: ${hq.megacorpName}`, state.quarter);
+        addEP(p, -due, `Megacorp tithe: ${hq.megacorpName}`, state.quarter);
+        /* The owner's own buildings pay themselves, so say nothing - a log line
+           reading "+1 EP" beside "-1 EP" for the same player is noise. */
+        if (q.id !== p.id) {
+          log(`${q.name} takes ${due} EP from "${hq.megacorpName}" \u2014 ${n} compan${n === 1 ? "y" : "ies"} beside it.`, q.id);
+        }
+      }
+    }
+  }
+}
 function runB2B(state, log) {
   if (!state.pots) return;
   for (const ind of INDUSTRIES) {
@@ -2083,14 +2105,37 @@ function runClosingRest(state, log) {
    reliable points on the board - everybody collected something, so holding land was
    never really a contest. Paying only the outright leader, and paying badly for a draw,
    turns it back into a race worth winning rather than a dividend. */
-const LAND_AWARD = { sole: 5, two: 2, many: 1 };
+/* THE RATE DEPENDS ON THE TABLE, because the pot does not. Both awards pay out the
+   same ~29 EP over a game whether two people are chasing them or six, so a prize tuned
+   for a small table is a rounding error at a big one: measured in audit_ep_mix.js, the
+   land awards are 17% of a winning score at two players and 3.5% at six.
+
+   At 5 EP the player who ends up holding the most ground wins BELOW chance at every
+   count - 16% at four seats against the 25% an indifferent seat would take - which
+   makes chasing land a trap rather than a strategy. At 10 it pays its way from four
+   seats up (29% at four, 20% at five, 18% at six) and the game does not flatten for
+   it: audit_tension.js puts lead changes UP at every table size and wire-to-wire games
+   DOWN, so this is not the leader being fed.
+
+   Two and three players keep the old rate deliberately. There the pot is divided so
+   few ways that 10 makes land 41% and 33% of a winning score, and the trajectory
+   measurably settles: fewer lead changes, the winner in front longer, games decided
+   most of a quarter earlier. Paying a runner-up was tested too and is strictly worse -
+   10/5 costs half again as much EP as 10/0 and makes the land leader win LESS often,
+   because a consolation prize dilutes the race it is meant to sharpen. */
+const LAND_AWARD = { sole: 5, two: 2, many: 1 };           // 2-3 players
+const LAND_AWARD_LARGE = { sole: 10, two: 4, many: 2 };    // 4 players and up
+const LAND_AWARD_LARGE_FROM = 4;
+const landAward = (state) => (state && state.players && state.players.length >= LAND_AWARD_LARGE_FROM
+  ? LAND_AWARD_LARGE : LAND_AWARD);
 function awardRanked(state, scoreFn, label, log) {
   const scores = state.players.map((p) => ({ p, s: scoreFn(p) })).filter((x) => x.s > 0);
   if (!scores.length) return;
   const top = Math.max(...scores.map((x) => x.s));
   const leaders = scores.filter((x) => x.s === top);
-  const share = leaders.length === 1 ? LAND_AWARD.sole
-    : leaders.length === 2 ? LAND_AWARD.two : LAND_AWARD.many;
+  const A = landAward(state);
+  const share = leaders.length === 1 ? A.sole
+    : leaders.length === 2 ? A.two : A.many;
   for (const { p } of leaders) {
     // stamp the quarter it was actually awarded in - the land awards pay at every year
     // end, and hardcoding 12 made the scoring log claim otherwise
@@ -2133,7 +2178,51 @@ function finalRank(a, b) {
    Counted at the END rather than when the Megacorp forms, which is what makes it a bet
    rather than a snapshot: you pick the corner you think the district will fill in, and
    you can still improve it yourself, or watch nobody build there. */
-const MEGACORP_NEIGHBOUR_EP = 3;
+/* THE TITHE. This used to point the other way: the headquarters was PAID 3 EP at the
+   end for every live company standing beside it, its owner's and everybody else's
+   alike, so merging in the middle of a built-up district was a reward. It now pays the
+   neighbours instead, every quarter it stands.
+
+   Each company touching a headquarters banks this much a quarter for ITS OWN owner,
+   and the Megacorp's owner is charged the same for each of them. A neighbour belonging
+   to the Megacorp's own owner therefore nets nothing - paid and charged in the same
+   breath - so clustering your own buildings around your headquarters is neither
+   rewarded nor punished, and only rivals drain it. That zero-sum is the point: it
+   makes standing next to somebody else's Megacorp worth doing without making your own
+   district a liability to build in.
+
+   Why a flow and not a lump: the old award was settled once, at the end, where nobody
+   could see it coming or react. A quarterly charge is visible while there is still a
+   game left to play. Measured in audit_megacorp_raid.js - it takes Megacorps from 38%
+   of a winning score at six seats to 29% without changing how often anybody merges
+   (5.88 a game against 5.91) or how often the deadline is called, and audit_tension.js
+   finds no cost in lead changes. Halving what a Megacorp pays was tested alongside it
+   and is NOT shipped: it bought a much bigger rebalance for no gain in tension, and
+   Megacorps turn out to be what players who are behind reach for. */
+const MEGACORP_TITHE_EP = 1;
+/* The same walk as hqNeighbours - same exclusions, same distressed-shell rule - but it
+   keeps WHOSE each neighbouring company is instead of collapsing them to a count. The
+   tithe has to know, because who is paid and who is charged is the whole rule. */
+function hqNeighbourOwners(state, hq) {
+  const seen = new Set(), byOwner = {};
+  hq.footprint.forEach((pk) => orthOf(state.board, pk).forEach((n) => {
+    if (hq.footprint.includes(n)) return;
+    const id = state.board.occupiedBy[n];
+    if (id === undefined || id === hq.id || seen.has(id)) return;
+    for (const q of state.players) {
+      const b = q.businesses.find((x) => x.id === id);
+      if (b && !b.distressed) { seen.add(id); byOwner[q.id] = (byOwner[q.id] || 0) + 1; return; }
+    }
+  }));
+  return byOwner;
+}
+/* How many companies beside this headquarters belong to SOMEBODY ELSE - which is the
+   only part of the tithe that costs its owner anything, since their own neighbours pay
+   themselves. Both bot valuations and the merge screen read this. */
+function hqRivalNeighbours(state, p, hq) {
+  const byOwner = hqNeighbourOwners(state, hq);
+  return Object.entries(byOwner).reduce((a, [id, n]) => a + (String(id) === String(p.id) ? 0 : n), 0);
+}
 function hqNeighbours(state, hq) {
   const seen = new Set();
   hq.footprint.forEach((pk) => orthOf(state.board, pk).forEach((n) => {
@@ -2151,12 +2240,6 @@ function hqNeighbours(state, hq) {
 function finalizeGame(state) {
   awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", null);
   awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", null);
-  for (const p of state.players) {
-    for (const hq of megacorpHQs(p)) {
-      const n = hqNeighbours(state, hq);
-      if (n) addEP(p, MEGACORP_NEIGHBOUR_EP * n, `Megacorp district: ${hq.megacorpName}`, state.quarter);
-    }
-  }
   for (const p of state.players) {
     if (p.discsInBank) addEP(p, -5 * p.discsInBank, `Unpaid loans (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"})`, state.quarter);
     /* Cash scores as one line. The ground-rent ledger below is still kept, and the
@@ -2516,7 +2599,10 @@ function megacorpWorthIt(state, p, match) {
       + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - RENT_PER_LEVEL * b.level;
     lostPerQuarter += Math.max(0, trade);
   }
-  const districtEP = MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, hq);
+  /* This was a bonus and is now a bill: every rival building already standing beside
+     the chosen headquarters takes the tithe off its owner for the rest of the game. A
+     bot left reading the old sign would merge INTO crowds on purpose. */
+  const districtEP = -MEGACORP_TITHE_EP * hqRivalNeighbours(state, p, hq) * qLeft;
   /* The headquarters banks EP equal to its industry's price every quarter it stands, so
      merging early is worth far more than merging late - and it pays ground rent for the
      privilege if the land under it is somebody else's. */
@@ -2534,21 +2620,23 @@ function hqGroundRent(state, p, b) {
   }
   return due;
 }
-/* Which company keeps standing as the headquarters. It scores for the companies around
-   it at the end of the game, so the one already in a built-up corner is worth more than
-   the biggest one - which is what bots used to take. */
+/* Which company keeps standing as the headquarters. Under the tithe the companies
+   around it are a COST rather than a prize, so the quiet corner beats the built-up one
+   - the reverse of the rule this heuristic was written for, and the reverse again of
+   the plain "keep the biggest" that preceded that. */
 function pickHQ(state, p, have, tier = 1) {
   const qLeft = Math.max(1, 13 - (state.quarter || 1));
-  /* Two things now decide which building to keep: the industry it sits in, because the
+  /* Two things decide which building to keep: the industry it sits in, because the
      headquarters banks that industry's price DIVIDED BY THE TILE'S TIER every quarter,
-     and what stands around it, because the district it ends up in scores at the end.
-     Ground rent on somebody else's land comes off the top.
+     and what stands around it, because every rival building beside it collects the
+     tithe for the rest of the game. Ground rent on somebody else's land comes off the
+     top as well.
 
      The tier matters to this choice, not just to the total: on a tier 4 tile the brand
      rounds to nothing in most industries, so which building to keep stops being a
-     question about price at all and becomes one about neighbours. */
+     question about price at all and becomes one about who is standing next door. */
   const worth = (b) => brandEPFor(price(state.pm, bizInd(b)), tier) * qLeft
-    + MEGACORP_NEIGHBOUR_EP * hqNeighbours(state, b)
+    - MEGACORP_TITHE_EP * hqRivalNeighbours(state, p, b) * qLeft
     - (hqGroundRent(state, p, b) * qLeft) / CASH_PER_EP;
   return have.reduce((a, b) => (worth(b) > worth(a) ? b : a));
 }
@@ -3119,6 +3207,7 @@ function finishDelivery(state, log, rng) {
 function finishQuarter(state, log, rng) {
   state.phase = "production";
   runMegacorpDividend(state, log);   // Revenue - B2B: headquarters bank their brand EP first
+  runMegacorpTithe(state, log);      // ...and pay the companies crowding round them
   runB2B(state, log);            // Revenue - B2B: share out the industry pots
   runClosing(state, log, rng);
   if (state.phase === "placingLH") return; // paused for human's LH choice; UI resumes via finishQuarterAfterLH
@@ -4645,9 +4734,10 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
           </div>
           <div className="text-[10px] text-gray-400">
             The company you pick keeps its building and your disc, gains a Megacorp block, and returns its
-            BP to its industry deck. It stops trading but keeps drawing its industry&rsquo;s pot share, banks EP
-            equal to that industry&rsquo;s price every quarter, and at the end scores 3 EP for every other company
-            standing beside it. It also counts as a Logistic Hub for anything built beside it, whoever owns it.
+            BP to its industry deck. It stops trading but keeps drawing its industry&rsquo;s pot share and banks EP
+            equal to that industry&rsquo;s price divided by the tile&rsquo;s tier every quarter &mdash; and it pays
+            {" "}{MEGACORP_TITHE_EP} EP a quarter to every RIVAL company standing beside it, so pick a quiet corner.
+            It also counts as a Logistic Hub for anything built beside it, whoever owns it.
             You pay its ground rent from pocket, and it collects nothing at all if you sell the land under it.
             The other {megacorpMatch.have.length - 1} go to the bank as Distressed Assets.
           </div>
@@ -4861,7 +4951,7 @@ function ArtScoring() {
      not something anybody thinks to re-read. */
   const bars = [[`${INDUSTRY_DEBUT_EP} EP`, "new industry", "#8fd3b6", 78],
                 [`${TUT_LEVEL_EP} EP`, "per company level", "#67e8f9", 46],
-                [`${LAND_AWARD.sole} EP`, "most land", "#f5d76e", 62],
+                [`${LAND_AWARD.sole}\u2013${LAND_AWARD_LARGE.sole} EP`, "most land", "#f5d76e", 62],
                 ["1 EP", `per $${CASH_PER_EP} left`, "#a97bd6", 30]];
   return (
     <svg viewBox="0 0 200 96" style={{ width: "100%", height: 96 }}>
@@ -4981,7 +5071,7 @@ const TUTORIAL = [
     body: "Score steadily rather than chasing one big move. Breadth pays early, size pays late.",
     points: [`${INDUSTRY_DEBUT_EP} EP the first time you build in each industry \u2014 paid immediately`,
              `${TUT_LEVEL_EP} EP per company level, banked the moment you build or upgrade it`,
-             `${LAND_AWARD.sole} EP for most plots and ${LAND_AWARD.sole} for most districts \u2014 at every year end`,
+             `${LAND_AWARD.sole} EP for most plots and ${LAND_AWARD.sole} for most districts at every year end \u2014 ${LAND_AWARD_LARGE.sole} each from ${LAND_AWARD_LARGE_FROM} players up`,
              `A Megacorp is worth ${MEGACORP_EP.lo}\u2013${MEGACORP_EP.hi} EP, but eats companies and locks a slot`] },
 ];
 
@@ -6049,7 +6139,7 @@ function GameScreens({ online }) {
                 keeps a single, full-width block instead of two stubby ones. */}
             <div className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
 
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text="Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks its industry's price DIVIDED BY THE TILE'S TIER as EP every quarter (the \u00f7 number on each tile, rounded down - so a \u00f72 tile on a $7 good pays 3 EP a quarter, and pays nothing at all while the price is below the tier), counts as a Logistic Hub for anything built beside it, and at the end scores 3 EP for every other company standing beside it. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots - unless you were first to go public, which wins the IPO tile and a sixth bay." /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text={`Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks its industry's price DIVIDED BY THE TILE'S TIER as EP every quarter (the \u00f7 number on each tile, rounded down - so a \u00f72 tile on a $7 good pays 3 EP a quarter, and pays nothing at all while the price is below the tier), counts as a Logistic Hub for anything built beside it, and pays ${MEGACORP_TITHE_EP} EP a quarter to every RIVAL company standing beside it - your own neighbours cost you nothing, since they pay themselves. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots - unless you were first to go public, which wins the IPO tile and a sixth bay.`} /></div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
                 {state.megacorpPool.map(([name, combo, ep], i) => (
                   <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>
