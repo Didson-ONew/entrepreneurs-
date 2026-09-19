@@ -71,6 +71,14 @@ async function click(loc, label, opts = {}) {
               return chain.join("\n        in ");
             }, [box.x + box.width / 2, box.y + box.height / 2]);
             console.log(`     under the cursor: ${desc}`);
+            /* Both full-screen catchers in this UI close on click, so hitting the
+               interceptor once is the same as a person clicking the dark backdrop. */
+            const closed = await loc.page().evaluate(([x, y]) => {
+              const el = document.elementFromPoint(x, y);
+              if (!el || el.tagName !== "DIV" || el.children.length) return false;
+              el.click(); return true;
+            }, [box.x + box.width / 2, box.y + box.height / 2]).catch(() => false);
+            if (closed) console.log("     clicked the interceptor to close it");
           }
         } catch (e2) { console.log("     (could not describe the overlay:", String(e2.message || e2).slice(0, 60) + ")"); }
       }
@@ -89,10 +97,29 @@ const timed = async (label, fn) => {
   const t = Date.now();
   try { return await fn(); } finally { branchMs[label] = (branchMs[label] || 0) + (Date.now() - t); }
 };
+/* A modal comes with a full-screen click-catcher, and the driver was clicking THROUGH
+   it: every placement button underneath stayed enabled, every click timed out on
+   "<div></div> intercepts pointer events", and the server sat idle while the loop
+   looked busy. The one that bit is FinalQuarterNotice - shown to everybody the moment
+   a second Megacorp calls the deadline, so late in the game and only in some games,
+   which is exactly the intermittent late stall this test had. A driver has to
+   acknowledge a dialog before it can do anything else, the same as a person. */
+async function dismissDialog(p, who) {
+  const dlg = p.getByRole("dialog").first();
+  if (!(await dlg.count().catch(() => 0))) return false;
+  const btn = dlg.getByRole("button").first();
+  if (await btn.count().catch(() => 0)) {
+    const label = ((await btn.textContent().catch(() => "")) || "").trim().slice(0, 30);
+    if (await click(btn, `dialog:${label}`)) { console.log(`  ${who} dismissed a dialog: "${label}"`); await sleep(150); return true; }
+  }
+  return false;
+}
+
 async function tryAct(p, who) { /* returns branch label or null */
   const M = (m) => mark(who + ":" + m);
   M("start");
   if (p.isClosed()) return false;
+  if (await dismissDialog(p, who)) return "dismiss";
   let t;
   try { t = await txt(p); } catch { return false; }
   if (/Waiting for |Waiting on other/.test(t) && !/Draft your starting/.test(t)) return false;
