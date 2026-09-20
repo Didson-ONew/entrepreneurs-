@@ -22,7 +22,7 @@ function loadEngine() {
   vm.createContext(sandbox);
   vm.runInContext(logic + `
     box.exports = { initGame, mulberry32, eligibleSlotsFor, deliverToSlot, humanDeliver,
-      deliveryColumnCap, bizInd, activeBiz, byId, PERSONAS, INDUSTRIES, price, reachableDistricts };
+      deliveryColumnCap, bizInd, activeBiz, byId, PERSONAS, INDUSTRIES, price, reachableDistricts, slotPay, unitPrice };
   `, sandbox);
   return box.exports;
 }
@@ -110,6 +110,39 @@ console.log("\nWith the persona - the same clinic may serve every column");
   const gridOffers = [0, 1, 2, 3].filter((levelIdx) => levelIdx < cap).length;
   check(`grid offers ${gridOffers} columns and the engine accepts ${engineAccepts} - they agree`,
     gridOffers === engineAccepts);
+}
+
+console.log("\nThe downside - a unit sold above the clinic's level pays $1 less");
+{
+  const { st, me, plot, tileKey, hcBp } = scenario("preventive");
+  const biz = plant(st, me, plot, hcBp);
+  const hcRow = st.demand.tiles[tileKey].rows.indexOf("HC");
+  const full = E.unitPrice(st, me, biz);
+  const slot = (levelIdx) => ({ tileKey, rowIdx: hcRow, levelIdx, cross: false });
+  check(`column 1 (within level 1) pays the full price $${full}`, E.slotPay(st, me, biz, slot(0)) === full);
+  check(`column 2 (above level 1) pays $${full - 1}`, E.slotPay(st, me, biz, slot(1)) === full - 1);
+  check("column 4 pays the same $1 less - the discount does not deepen", E.slotPay(st, me, biz, slot(3)) === full - 1);
+  biz.level = 2;
+  check("at level 2, column 2 is within level again and pays in full", E.slotPay(st, me, biz, slot(1)) === full);
+  biz.level = 1;
+  /* And the human's delivery pays through the same function. */
+  st.deliveringBizId = biz.id;
+  st.deliveryRemaining = { [biz.id]: 8 };
+  st.crossSellRemaining = {};
+  const cashBefore = me.cash;
+  const ok = E.humanDeliver(st, me, tileKey, hcRow, 2, false, () => {});
+  const got = 8 - st.deliveryRemaining[biz.id];
+  check(`a human delivery into column 3 sold ${got} unit(s) and was paid $${full - 1} each`,
+    ok && got > 0 && me.cash - cashBefore === got * (full - 1));
+}
+
+{
+  /* Without the persona nothing is discounted - the clinic simply cannot reach there. */
+  const { st, me, plot, tileKey, hcBp } = scenario(null);
+  const biz = plant(st, me, plot, hcBp);
+  const hcRow = st.demand.tiles[tileKey].rows.indexOf("HC");
+  check("without the persona column 1 pays the full price",
+    E.slotPay(st, me, biz, { tileKey, rowIdx: hcRow, levelIdx: 0, cross: false }) === E.unitPrice(st, me, biz));
 }
 
 console.log(failures ? `\n${failures} check(s) failed\n` : "\nall checks passed\n");

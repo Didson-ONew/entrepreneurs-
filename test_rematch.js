@@ -1,5 +1,5 @@
 /* Play Again must open a fresh waiting room with the same players. */
-const { launchBrowser } = require("./testkit.js");
+const { launchBrowser, dismissDialog } = require("./testkit.js");
 /* The runner picks a free port rather than assuming 8080 is idle, so read where
    the server actually is. */
 const BASE = process.env.BASE || "http://127.0.0.1:8080";
@@ -19,6 +19,7 @@ function check(label, ok, detail) {
 async function txt(p){try{return await p.evaluate(()=>(document.getElementById("root")||{}).innerText||"");}catch{return "";}}
 async function waitText(p,re,ms=15000){const t0=Date.now();while(Date.now()-t0<ms){if(re.test(await txt(p)))return true;await sleep(150);}return false;}
 async function act(p){
+  if(await dismissDialog(p))return true;   // the final-quarter notice, or nothing gets clicked
   const t=await txt(p);
   if(/Draft your starting Blueprints/.test(t)&&!/Waiting for/.test(t)){
     const bs=await p.locator("button").all();

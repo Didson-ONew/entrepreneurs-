@@ -21,7 +21,7 @@ function loadEngine() {
       runMegacorpDividend, price, businessCanProduce, payHqRent, hqRentDue,
       plotHasLH, lhDistricts, hqNetworkPlots,
       hqNeighbours, hqNeighbourOwners, MEGACORP_TITHE_EP, runMegacorpTithe, runB2B, finalizeGame, epTotal, orthOf,
-      companySlotsUsed, canLaunchMore, discsUsed, discsFree, finalRank, unitPrice,
+      companySlotsUsed, canLaunchMore, discsUsed, discsFree, finalRank, unitPrice, noteConcessionSale, runConcessionErosion,
       renovationEligible, bizInd, PRICE_MIN, PRICE_MAX, BASE_PRICE,
       byId, BP_DATA, MEGACORP_TILES, STARTING, INDUSTRIES, BASE_PRICE, SCALING,
       LOAN_REPAY_RATE, BP_SELL_PRICE, DISCS_PER_PLAYER, COMPANY_SLOTS, PERSONAS,
@@ -491,8 +491,15 @@ section("Personas - Concession Holder");
   const biz = { id: 600, bp: utBp, footprint: [mine], level: 1, upgraded: false, distressed: false, scored: false, quarterBuilt: 1 };
   a.businesses.push(biz);
   const base = E.price(st.pm, "UT");
-  check("+$1 above the current price, everywhere", E.unitPrice(st, a, biz) === base + 1);
+  check("the premium is off until the holder switches it on", E.unitPrice(st, a, biz) === base);
+  st.concessionOn = { [a.id]: true };
+  check("+$1 above the current price once it is on, everywhere", E.unitPrice(st, a, biz) === base + 1);
   check("no extra in a district where it owns no land", E.unitPrice(st, a, biz, null) === base + 1);
+  /* The bill: a premium sale costs Utilities one step at the end of the quarter. */
+  E.noteConcessionSale(st, a, biz, 3);
+  E.runConcessionErosion(st, () => {});
+  check("selling at the premium takes Utilities down one step at quarter end", E.price(st.pm, "UT") === base - 1);
+  check("and switches the concession off again", E.unitPrice(st, a, biz) === base - 1);
 }
 
 /* ------------------------------------------------------------- renovation */

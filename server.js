@@ -37,7 +37,7 @@ function loadEngine() {
       consumePlanningTurn, advanceResolution, humanCompleteResolutionAction, humanLiquidationDone,
       finishDelivery, finishQuarterAfterLH, finishQuarterAfterRepay, doPlaceLH, skipDelivery,
       humanDeliver, doRepayLoan, doLoan, doBuyPlot, doSellPlot, doSellBP, doSellCompany,
-      doLaunch, doRenovate, doDraw, doUpgrade, claimMegacorp, doReposition, byId, activeBiz,
+      doLaunch, doRenovate, doDraw, doUpgrade, claimMegacorp, doReposition, byId, activeBiz, repairBizIds,
       eligibleSlotsFor, findDistressedTargets, renovationEligible, plotValue, discsFree,
       canLaunchMore, isCrossDistrictEdge, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal, canGoPublic, doReclaim, canReclaim,
       botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, advanceDelivery, ENGINE_VERSION,
@@ -1659,6 +1659,14 @@ server.listen(PORT, () => {
 
      Deliberately not awaited before the server starts listening: a slow GitHub
      should delay the hall of fame, never the health check. */
+  /* A room restored across a restart may carry duplicate business ids - the engine's
+     counter started over while the room's ids did not, and every launch after that
+     minted a number already on the board. Renumber before anyone acts on it. */
+  function repairRoomIds(room) {
+    if (!room || !room.state) return;
+    const n = E.repairBizIds(room.state);
+    if (n) console.log(`room ${room.code}: renumbered ${n} business id${n === 1 ? "" : "s"} that collided after a restart`);
+  }
   if (remotestore.configured()) {
     (async () => {
       const file = await remotestore.load();
@@ -1684,6 +1692,7 @@ server.listen(PORT, () => {
       for (const saved of result.newRooms || []) {
         try {
           const room = livegames.unpack(saved, seededRng);
+          repairRoomIds(room);
           if (livegames.worthKeeping(room)) rooms.set(room.code, room);
         } catch (e) { console.error(`could not revive room ${saved && saved.code}: ${e.message}`); }
       }
@@ -1717,7 +1726,7 @@ server.listen(PORT, () => {
 
   /* Games in progress, picked up where the last run left them. */
   const resumed = livegames.load(GAMES_FILE, seededRng);
-  for (const room of resumed) rooms.set(room.code, room);
+  for (const room of resumed) { repairRoomIds(room); rooms.set(room.code, room); }
   if (resumed.length) {
     const live = resumed.filter((r) => r.state).length;
     console.log(`Resumed ${resumed.length} room${resumed.length === 1 ? "" : "s"} `

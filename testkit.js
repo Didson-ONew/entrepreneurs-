@@ -130,4 +130,17 @@ async function playAGame(name, bots, personas, opts = {}) {
   return null;
 }
 
-module.exports = { playAGame, jar, client, sleep, DEFAULT_BASE, launchBrowser, browserPath };
+/* A modal comes with a full-screen click-catcher, and a driver that clicks THROUGH it
+   times out on every button underneath while the server sits idle. The one that bites
+   is FinalQuarterNotice - shown to everybody the moment a second Megacorp calls the
+   deadline, so late in the game and only in some games. Every browser play loop calls
+   this before it acts, the same as a person would. Returns true if it closed one. */
+async function dismissDialog(page) {
+  const dlg = page.getByRole("dialog").first();
+  if (!(await dlg.count().catch(() => 0))) return false;
+  const btn = dlg.getByRole("button").first();
+  if (!(await btn.count().catch(() => 0))) return false;
+  try { await btn.click({ timeout: 2500 }); await sleep(150); return true; } catch { return false; }
+}
+
+module.exports = { playAGame, jar, client, sleep, DEFAULT_BASE, launchBrowser, browserPath, dismissDialog };
