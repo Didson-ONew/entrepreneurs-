@@ -4945,7 +4945,12 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
           </div>
           <div className="flex flex-wrap gap-2">
             {megacorpMatch.have.map((b) => {
-              const nbrs = hqNeighbours(state, b);
+              /* What the building will cost its owner every quarter: the tithe goes to
+                 every RIVAL company standing beside it. This line used to print the old
+                 end-of-game neighbour award through a constant that left with that rule,
+                 and the ReferenceError blanked the whole page for anyone with a match
+                 who pressed Go Public. */
+              const rivals = hqRivalNeighbours(state, human, b);
               /* The brand banks its industry's price DIVIDED BY THE TILE'S TIER,
                  rounded down. This card used to print the undivided price, which
                  is not what the company would earn and can rank the choices
@@ -4963,8 +4968,8 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                   <div className="text-[9px] font-mono mt-0.5" style={{ color: perQ ? "#8fd3b6" : "#8b93a3" }}>
                     {perQ} EP/quarter{tier > 1 ? ` ($${price(state.pm, b.bp.ind)} ÷ ${tier})` : ""}
                   </div>
-                  <div className="text-[9px] font-mono" style={{ color: "#8b93a3" }}>
-                    {nbrs} neighbour{nbrs === 1 ? "" : "s"} (+{nbrs * MEGACORP_NEIGHBOUR_EP} EP at the end)
+                  <div className="text-[9px] font-mono" style={{ color: rivals ? "#fca5a5" : "#8b93a3" }}>
+                    {rivals} rival neighbour{rivals === 1 ? "" : "s"}{rivals ? ` (\u2212${rivals * MEGACORP_TITHE_EP} EP a quarter)` : " (no tithe)"}
                   </div>
                   {!perQ && (
                     <div className="text-[9px]" style={{ color: "#e0b060" }}>
