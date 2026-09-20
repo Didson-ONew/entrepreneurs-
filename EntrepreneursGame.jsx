@@ -1094,6 +1094,46 @@ const ARCHETYPES = ["balanced", "rush_cheap", "upgrade_focus", "tech_heavy", "ve
 const ARCHETYPE_LABEL = { balanced: "Balanced", rush_cheap: "Rush-Cheap", upgrade_focus: "Upgrade-Focus", tech_heavy: "Tech-Heavy", vest_rebuild: "Harvest & Rebuild" };
 
 let bizIdCounter = 1;
+/* A business id must be unique across the whole game, and a counter alone cannot
+   promise that: it starts at 1 every time the engine is loaded, and a room restored
+   from backup after a server restart already holds ids 1, 2, 3. A live match went
+   through three deploys and came out with three of one player's four companies all
+   numbered 1 - every lookup by id then found the first of them, so hovering one
+   company described another, and an upgrade, a sale or a merge sent by id could land
+   on the wrong building. So the id is taken from the state when there is one: one
+   past the highest already in play, distressed shells and headquarters included. */
+function nextBizId(state) {
+  let top = 0;
+  if (state && state.players) {
+    for (const p of state.players) for (const b of p.businesses || []) if (typeof b.id === "number" && b.id > top) top = b.id;
+  }
+  const id = Math.max(top + 1, bizIdCounter);
+  bizIdCounter = id + 1;
+  return id;
+}
+/* Repair a game that was numbered by a reset counter. The first holder of an id
+   keeps it; every later holder is renumbered and the plots it stands on repointed,
+   since board.occupiedBy maps a plot to the id of the building on it. Returns how many
+   were renumbered, so a restore can say so. */
+function repairBizIds(state) {
+  if (!state || !state.players) return 0;
+  const seen = new Set();
+  let fixed = 0;
+  for (const p of state.players) {
+    for (const b of p.businesses || []) {
+      if (!seen.has(b.id)) { seen.add(b.id); continue; }
+      const fresh = nextBizId(state);
+      const old = b.id;
+      b.id = fresh;
+      for (const pk of b.footprint || []) {
+        if (state.board && state.board.occupiedBy && state.board.occupiedBy[pk] === old) state.board.occupiedBy[pk] = fresh;
+      }
+      seen.add(fresh);
+      fixed++;
+    }
+  }
+  return fixed;
+}
 /* A footprint is not a flat area. A horizontal company spreads one level onto each plot
    it covers; a vertical one stacks all of its levels on a single plot. Personas can flip
    which way a company grows, so a Technology company that spread to two plots and was
@@ -1121,8 +1161,8 @@ function ensureLevels(b) {
   return out;
 }
 const levelsOn = (b, plot) => ensureLevels(b)[plot] || 0;
-function newBusiness(bp, footprint, quarterBuilt) {
-  return { id: bizIdCounter++, bp, footprint, levels: startingLevels(bp, footprint), level: bp.lvl,
+function newBusiness(bp, footprint, quarterBuilt, state) {
+  return { id: nextBizId(state), bp, footprint, levels: startingLevels(bp, footprint), level: bp.lvl,
     upgraded: false, distressed: false, scored: false, quarterBuilt };
 }
 const bizOpex = (b) => b.bp.opex * (b.upgraded ? 2 : 1);
@@ -1610,7 +1650,7 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   if (p.cash < bp.setup) return false;
   if (discsFree(state, p) <= 0) return false;   // no disc left to mark the new company
   p.cash -= bp.setup;
-  const biz = newBusiness(bp, footprint, state.quarter);
+  const biz = newBusiness(bp, footprint, state.quarter, state);
   footprint.forEach((plot) => (state.board.occupiedBy[plot] = biz.id));
   p.businesses.push(biz);
   p.hand = p.hand.filter((x) => x !== bp);
@@ -1704,7 +1744,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "567c3bb3";
+const ENGINE_VERSION = "d7c0d4df";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
