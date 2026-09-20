@@ -120,12 +120,20 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
   let failures = 0;
   const check = (label, cond) => { console.log(`${cond ? "  ok  " : " FAIL "} ${label}`); if (!cond) failures++; };
 
-  const room = await roomWithPreventive();
-  if (!room) { console.log("could not deal the Public Health Director in 40 rooms - giving up"); process.exit(1); }
-  console.log(`room ${room.code}: seat 0 is the Public Health Director (after ${room.tries} deal${room.tries === 1 ? "" : "s"})`);
-
-  const out = await driveToHcDelivery(room.code, room.token);
-  if (!out.reached) { console.log(`could not reach a Healthcare delivery: ${out.why}`); process.exit(1); }
+  /* A dealt game can end before the clinic ever delivers - a bot calls the deadline,
+     or the seat never gets a Healthcare card - and that is the seed's doing, not the
+     persona's. It failed a full-suite run that way once, in under a second. So a
+     room that never reaches the delivery is put back and another is dealt, a few
+     times, before this counts as a failure. */
+  let room = null, out = { reached: false, why: "not tried" };
+  for (let attempt = 1; attempt <= 4 && !out.reached; attempt++) {
+    room = await roomWithPreventive();
+    if (!room) { console.log("could not deal the Public Health Director in 40 rooms - giving up"); process.exit(1); }
+    console.log(`room ${room.code}: seat 0 is the Public Health Director (after ${room.tries} deal${room.tries === 1 ? "" : "s"})`);
+    out = await driveToHcDelivery(room.code, room.token);
+    if (!out.reached) console.log(`  that game never reached a Healthcare delivery (${out.why}) - dealing another`);
+  }
+  if (!out.reached) { console.log(`could not reach a Healthcare delivery in 4 rooms: ${out.why}`); process.exit(1); }
   const { st, biz } = out;
   console.log(`delivering ${biz.bp.name} (HC level ${biz.level}) in Q${st.quarter}`);
   check("the clinic really is below level 4 - so the persona has something to give", biz.level < 4);
