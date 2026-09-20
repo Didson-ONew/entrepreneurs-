@@ -43,7 +43,7 @@ function loadEngine() {
       botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, advanceDelivery, ENGINE_VERSION,
       bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER,
       PERSONAS, MEGACORP_TILES, VARIANTS, VARIANT_KEYS, normaliseVariants,
-      chooseSupplyChain, supplyChainOptions, reAllowance };
+      chooseSupplyChain, supplyChainOptions, reAllowance, TRACK_LABEL };
   `, sandbox);
   return box.exports;
 }
@@ -353,7 +353,7 @@ function applyAction(room, seat, action, data) {
       if (st.phase !== "planning") return { error: "Not planning." };
       if (!E.placeMeeple(st, seat, d.track)) return { error: "That track is full." };
       E.consumePlanningTurn(st, seat, d.track);
-      lg(`${p.name} places on ${d.track}.`, seat);
+      lg(`${p.name} places on ${E.TRACK_LABEL[d.track] || d.track}.`, seat);
       E.advancePlanning(st, rng, lg);
       break;
     }

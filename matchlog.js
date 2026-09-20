@@ -29,15 +29,15 @@ function epBucket(label) {
   const l = String(label || "");
   if (l.startsWith("Entered ")) return "industries";
   if (l.startsWith("Company:")) return "companies";
-  if (l.startsWith("Megacorp:")) return "megacorps";
-  if (l === "IPO tile") return "ipo";
+  /* Tile EP, the quarterly brand dividend, and the tithe that flows between an HQ and
+     the rival companies round it are all Megacorp money; they used to land in "Other". */
+  if (l.startsWith("Megacorp")) return "megacorps";
   if (l === "The Real-Estate Mogul" || l === "The Omnipresent") return "land";
   if (l.startsWith("Cash on hand")) return "cash";
-  if (l.startsWith("Ground rent")) return "rent";
   if (l.startsWith("Unpaid loans")) return "loans";
   return "other";
 }
-const BUCKETS = ["industries", "companies", "megacorps", "ipo", "land", "rent", "cash", "loans", "other"];
+const BUCKETS = ["industries", "companies", "megacorps", "land", "cash", "loans", "other"];
 
 /* ---------- building a record ---------- */
 
@@ -98,8 +98,8 @@ function buildRecord(E, room, ended = null) {
     };
   });
 
-  // rank the way the game does: EP, then money, then fewer loan discs
-  const ranked = [...players].sort((a, b) => b.ep - a.ep || b.cash - a.cash || a.loanDiscs - b.loanDiscs);
+  // rank the way the game does (finalRank): EP, then more active companies, then money, then fewer loan discs
+  const ranked = [...players].sort((a, b) => b.ep - a.ep || b.companies - a.companies || b.cash - a.cash || a.loanDiscs - b.loanDiscs);
   ranked.forEach((p, i) => { p.rank = i + 1; });
   const winner = ranked[0];
 
@@ -345,6 +345,8 @@ function summarise(matches, PERSONAS = {}, filter = {}) {
       humanWinRate: finished.length ? Math.round((humanWins / finished.length) * 100) : 0,
       megacorpsPerMatch: round1(megacorps / finished.length),
       avgDurationMs: durations.length ? Math.round(avg(durations)) : null,
+      // a second Megacorp calls the final quarter early, so games are often shorter than 12
+      avgQuarters: finished.length ? round1(avg(finished.map((m) => m.quarters || 12))) : null,
     },
     industries,
     personas,

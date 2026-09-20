@@ -47,8 +47,8 @@ const duration = (ms) => {
   return `${Math.round(min / 6) / 10} hr`;
 };
 const SOURCE_LABEL = {
-  industries: "Entering industries", companies: "Company levels at year end",
-  megacorps: "Megacorp tiles", ipo: "IPO tile", land: "Land awards",
+  industries: "Entering industries", companies: "Company levels",
+  megacorps: "Megacorps (tiles, brand, tithe)", land: "Land awards",
   cash: "Cash on hand", loans: "Unpaid loans", other: "Other",
 };
 
@@ -135,7 +135,7 @@ function Statistics({ data }) {
         <Stat label="Average winning score" value={`${s.avgWinningEP} EP`} sub={`humans average ${s.avgHumanEP} EP`} />
         <Stat label="Humans win" value={`${s.humanWinRate}%`} sub="of games they are in" />
         <Stat label="Megacorps" value={s.megacorpsPerMatch} sub="formed per game" />
-        <Stat label="Typical length" value={duration(s.avgDurationMs)} sub="12 quarters" />
+        <Stat label="Typical length" value={duration(s.avgDurationMs)} sub={s.avgQuarters ? `${s.avgQuarters} quarters` : "quarters"} />
       </div>
 
       <Section title="Where the points come from" hint="Average EP per player per game, across every recorded match.">
@@ -290,7 +290,7 @@ function Filters({ data, filter, setFilter }) {
           </option>
         ))}
       </select>
-      <button style={toggle(filter.standard)} title="Leave out games with optional rules switched on"
+      <button style={toggle(filter.standard)} title="Leave out games with optional rules switched on (personas are part of the standard game)"
         onClick={() => setFilter({ ...filter, standard: !filter.standard })}>Standard rules only</button>
       <button style={toggle(filter.people)} title="Leave out solo games against bots"
         onClick={() => setFilter({ ...filter, people: !filter.people })}>Two or more people</button>

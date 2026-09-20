@@ -1,6 +1,6 @@
 # Entrepreneurs — Online Multiplayer
 
-Server-authoritative online play for 2–4 humans (plus optional bots to fill seats).
+Server-authoritative online play for 2–6 players, humans and bots in any mix.
 **Zero dependencies** — plain Node, no `npm install` required.
 
 ---
@@ -9,7 +9,7 @@ Server-authoritative online play for 2–4 humans (plus optional bots to fill se
 
 | Piece | State |
 |---|---|
-| **Multi-human game engine** | ✅ Done and tested (2, 3 and 4 humans) |
+| **Multi-human game engine** | ✅ Done and tested (2 to 6 seats) |
 | **Game server** (rooms, lobby, turn validation, live sync) | ✅ Done and tested end-to-end |
 | **Browser client** (lobby, full game UI, reconnect) | ✅ Done and tested (2 and 3 browsers, full games) |
 
@@ -205,7 +205,7 @@ Entrepreneurs_Rulebook_v12.docx   the previous edition, hand-written, kept for r
 run_tests.mjs          the suite runner behind `npm test` — owns the server and the data dir
 test_online.js         two-client end-to-end test (needs a server; `npm test` provides one)
 test_2humans.js        engine-level test: full game with two humans
-test_rulebook_v13.js   conformance: pins the engine to every clause of Rulebook v13
+test_rulebook_v13.js   conformance: pins the engine to every clause of the rulebook (v13 baseline, kept current)
 test_preventive.js     regression test: the Public Health Director rule (engine only)
 test_preventive_ui.js  the same persona through the real page (needs a server)
 test_matchlog.js       the match record, the hall of fame and the statistics
@@ -246,7 +246,7 @@ needed if you change the client.
 
 ## Rule variants
 
-Six optional rule changes, listed in `VARIANTS` in `EntrepreneursGame.jsx` and served
+Five optional rule changes, listed in `VARIANTS` in `EntrepreneursGame.jsx` and served
 to the lobby by `GET /api/variants` so the switches can never drift from the engine.
 All are **off by default** — a table that touches nothing plays the printed rulebook.
 The host sets them in the waiting room (`POST /api/options {variants}`); guests see
@@ -577,8 +577,8 @@ Both are now checked in the engine, not only hidden in the plot picker, and
 
 So a rule cannot be right in the book and wrong in the game: there is one copy.
 
-**Rulebook v13** in `rulebook.data.mjs` is the authority. The printed
-`Entrepreneurs_Rulebook_v12.docx` is the previous edition, kept for reference. `test_rulebook_v13.js` pins
+**Rulebook v18** in `rulebook.data.mjs` is the authority. The printed
+`Entrepreneurs_Rulebook_v18.docx` files are generated from it; older editions are kept for reference. `test_rulebook_v13.js` pins
 the engine to it clause by clause - starting capital, the card tables, the price
 curve, how the pots divide, what going public does, the tiebreak - so a change that
 contradicts the printed rules fails a test that names the sentence it broke.

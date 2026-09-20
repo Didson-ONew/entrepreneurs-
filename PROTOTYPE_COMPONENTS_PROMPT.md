@@ -1,7 +1,7 @@
 # Prompt for Claude Design — physical prototype components
 
 Copy everything below the line into Claude Design. Every number in it is read
-from the shipped engine (`EntrepreneursGame.jsx`) as of Rulebook v13 with the
+from the shipped engine (`EntrepreneursGame.jsx`) as of Rulebook v18 with the
 $2–$12 economy, so the components it produces will match the game that is
 actually playable at entrepreneurs.boardgame.
 
@@ -25,7 +25,7 @@ operating costs each quarter to companies in *other* industries — its supplier
 — and those payments are the heart of the game. Building a company pushes its
 own industry's price down and each of its suppliers' prices up, so the market is
 the sum of what everyone at the table has built. It runs 12 quarters over 3
-fiscal years, or ends early when someone claims a second Megacorp.
+fiscal years; a second Megacorp calls the following quarter as the last one.
 
 The tone should be **corporate-modern, not sci-fi and not cute**: think an
 annual report or an architect's site plan rather than a cartoon city. Clean,
@@ -67,7 +67,7 @@ block shows *what*.
 
 **Other values:** 12 discs per player · max 5 active companies (6 with the IPO
 tile) · rent $2 per company level · cash scores 1 EP per full $50 · 2 Megacorps
-ends the game · a Megacorp scores 3 EP per adjacent company at the end.
+ends the game · a Megacorp HQ banks its industry's price ÷ tier every quarter and pays 1 EP a quarter to each rival company beside it.
 
 ## The components I need
 
@@ -88,7 +88,7 @@ A3). Plots need to be big enough to hold a stack of blocks plus a disc underneat
 
 ### 2. Demand board — 16 district demand tiles
 One per district. Each tile is a **4×4 grid of demand icons**: 4 rows, each row
-labelled with one industry (randomly assigned at setup), and 4 columns per row.
+labelled with one industry (fixed per district family - see the row table), and 4 columns per row.
 **Rows 3 and 4 are locked until Quarter 5** — show that visually, e.g. a printed
 band or a different ground, so players can see at a glance what's open.
 
@@ -138,12 +138,12 @@ number; a player choosing between two tiles cannot decide without it.
 ### 5. Six Persona cards
 Dealt one per player; the rest sit out, so which powers exist changes per game.
 
-- **Systems Architect** (TE) — Your Technology companies upgrade vertically, stacking on one plot instead of needing a free neighbour.
-- **Public Health Director** (HC) — Your Healthcare companies ignore the level restriction: a level-1 clinic may serve any column of a Healthcare row.
-- **White-Label Supplier** (MA) — When your Manufacturing cross-sells into another industry's row, it is paid that industry's price rather than its own.
-- **Resort Developer** (HO) — Your Hospitality companies upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them.
-- **Supply Chain Expert** (RE) — At the start of Revenue, raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter.
-- **Concession Holder** (UT) — Your Utilities production sells for $1 above the current price.
+- **Systems Architect** (TE) — Your Technology companies may upgrade vertically, stacking on one plot instead of needing a free neighbour - or spread as Technology usually does. You choose at each upgrade.
+- **Public Health Director** (HC) — Your Healthcare companies may serve any column of a Healthcare row whatever their level - but a unit sold above your company's level pays $1 less than the price.
+- **White-Label Supplier** (MA) — When your Manufacturing cross-sells into another industry's row, it may be paid that industry's price instead of its own - whichever is higher.
+- **Resort Developer** (HO) — Your Hospitality companies may upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them - or stack as Hospitality usually does. You choose at each upgrade.
+- **Supply Chain Expert** (RE) — At the start of Production, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline.
+- **Concession Holder** (UT) — At the start of Production you may switch your concession on: your Utilities production then sells for $1 above the current price this quarter. Every quarter you sell at that premium, the Utilities price falls one step at the end of the quarter.
 
 ### 6. Money
 Printed notes, not chips — I measured it and the chip equivalent weighs 2.6 kg,
@@ -197,9 +197,10 @@ this as a real graph, not a ring; a ring would be wrong and a player would notic
 
 ### 10. Small bits
 A **quarter/year tracker** (3 years × 4 quarters, with Q5 marked as when demand
-rows 3–4 unlock, and Q12 as the last), an **EP scoring track**, **loan tokens**,
-and the **IPO tile** (+5 EP to the first player to form a Megacorp; grants a sixth
-company bay and opens Board Meeting's second seat).
+rows 3–4 unlock, Q8 as when the demand grid is wiped and refilled, and Q12 as the
+last), an **EP scoring track**, **loan tokens**, and the **IPO tile** (to the first
+player to form a Megacorp; it grants a sixth company bay and opens Board Meeting's
+second seat - no EP).
 
 ## How I want it delivered
 
@@ -300,10 +301,10 @@ Seat order is randomised, and later seats get less cash but more starting cards:
 | Players | Seat 1 | Seat 2 | Seat 3 | Seat 4 | Seat 5 | Seat 6 |
 |---|---|---|---|---|---|---|
 | 2 | $20 / 2 | $20 / 2 | — | — | — | — |
-| 3 | $25 / 1 | $25 / 2 | $20 / 3 | — | — | — |
-| 4 | $25 / 1 | $25 / 2 | $20 / 2 | $20 / 3 | — | — |
-| 5 | $25 / 1 | $25 / 2 | $20 / 2 | $20 / 3 | $15 / 4 | — |
-| 6 | $25 / 1 | $25 / 2 | $20 / 2 | $20 / 3 | $20 / 3 | $15 / 4 |
+| 3 | $25 / 1 | $22 / 2 | $19 / 3 | — | — | — |
+| 4 | $25 / 1 | $22 / 2 | $22 / 2 | $19 / 3 | — | — |
+| 5 | $25 / 1 | $22 / 2 | $22 / 2 | $19 / 3 | $16 / 4 | — |
+| 6 | $25 / 1 | $22 / 2 | $22 / 2 | $19 / 3 | $19 / 3 | $16 / 4 |
 
 If you need a first deliverable to start from, do the **design system artboard
 plus the Blueprint card template with all six industry variants** — that's the

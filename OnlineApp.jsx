@@ -402,7 +402,7 @@ function Lobby({ onEnter }) {
 
         <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#101318" }}>
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Start a new game</div>
-          <div className="text-[11px] text-gray-500 mb-2">Six chairs in all. Bots fill any empty seats.</div>
+          <div className="text-[11px] text-gray-500 mb-2">Six chairs in all. Add bots for the chairs you want filled; the rest stay empty.</div>
           <div className="flex gap-1 mb-3">
             {[0, 1, 2, 3, 4, 5].map((b) => (
               <button key={b} onClick={() => setBots(b)}

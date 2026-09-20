@@ -153,8 +153,8 @@ const doc = new Document({
       gap(160),
 
       H("The pitch", { before: 60 }),
-      P("A city rises one business at a time — and no business stands alone. Every company you found is supplied by three others, and every dollar of operating cost you pay flows straight into those industries' pots, to be split among whoever owns them. Your rivals' costs are your income, and yours are theirs."),
-      P("Build where everyone is building and your price sinks toward a dollar. Build what everyone depends on and nobody supplies, and its pot climbs quarter after quarter — untouched, because a pot is split only among companies in that industry, and there are none. Whoever builds there first collects all of it."),
+      P("A city rises one business at a time — and no business stands alone. Every industry is supplied by three others, and the supplier bill you pay flows straight into those industries' pots, to be split among whoever owns them. Your rivals' costs are your income, and yours are theirs."),
+      P("Build where everyone is building and your price sinks toward the $2 floor. Build what everyone depends on and nobody supplies, and its pot climbs quarter after quarter — untouched, because a pot is split only among companies in that industry, and there are none. Whoever builds there first collects all of it."),
       P("And you must buy the land before you can build on it. Sell that land later to raise cash and your own factory stops producing until somebody buys the ground back — which anybody may do, and then you are the tenant, paying them rent every quarter to stand on what used to be yours."),
 
       H("Why it stands out"),
@@ -180,7 +180,7 @@ const doc = new Document({
       ]),
       Prun([
         { t: "Megacorps in four tiers. ", bold: true },
-        { t: "Sixteen merger tiles, four tiers of four, and two are drawn from every tier that is in play — four tiles at two players, six at three, eight from four upward. The hardest tiers only come out at a bigger table, and a headquarters earns its industry's price divided by its tier, so a cheap merger of three level-1 companies no longer pays what an Omnicorp pays." },
+        { t: "Sixteen merger tiles, four tiers of four, and two are drawn from every tier that is in play — four tiles at two players, six at three, eight at four — then three per tier at five players and all sixteen at six. The hardest tiers only come out at a bigger table, and a headquarters earns its industry's price divided by its tier, so a cheap merger of three level-1 companies no longer pays what an Omnicorp pays." },
       ]),
       Prun([
         { t: "A marathon with a door that can close. ", bold: true },
@@ -246,10 +246,10 @@ const doc = new Document({
       grid(["Industry", "Scaling", "Price", "Signature ability"], [
         [{ t: "Utilities", bold: true, color: IND_COLOR.UT }, "Horizontal", "$4", "Reads demand across a block of districts as wide as its level. No hubs."],
         [{ t: "Retail", bold: true, color: IND_COLOR.RE }, "Vertical", "$4", "Sells into one extra district per level, owner's choice. No hubs."],
-        [{ t: "Hospitality", bold: true, color: IND_COLOR.HO }, "Vertical", "$5", "One extra unit per adjacent business or hub, per level. Thrives in density."],
+        [{ t: "Hospitality", bold: true, color: IND_COLOR.HO }, "Vertical", "$5", "Sells one unit to each business or hub within [level] plots, at full price, once the icons are full. Thrives in density."],
         [{ t: "Manufacturing", bold: true, color: IND_COLOR.MA }, "Horizontal", "$5", "The only industry that can fill another industry's demand row."],
         [{ t: "Healthcare", bold: true, color: IND_COLOR.HC }, "Vertical", "$6", "Uses the whole hub network natively, without touching a hub."],
-        [{ t: "Technology", bold: true, color: IND_COLOR.TE }, "Horizontal", "$6", "Delivers 2 units per icon, paid for both — clears production on half the demand."],
+        [{ t: "Technology", bold: true, color: IND_COLOR.TE }, "Horizontal", "$6", "Every icon it fills takes twice its column in units, all paid — clears production on half the demand."],
       ], [2100, 1500, 900, TEXT_WIDTH - 4500], { size: 17 }),
 
       H("In the box"),
