@@ -1,6 +1,6 @@
 /* Refresh-resume test: two browsers start a game; browser B refreshes mid-game and
    must land back inside the game (not the lobby) and still be able to act. */
-const { launchBrowser } = require("./testkit.js");
+const { launchBrowser, dismissDialog } = require("./testkit.js");
 /* The runner picks a free port rather than assuming 8080 is idle, so read where
    the server actually is. */
 const BASE = process.env.BASE || "http://127.0.0.1:8080";
@@ -76,6 +76,7 @@ async function waitText(p, re, ms = 8000) {
   let bActed = false;
   for (let i = 0; i < 60 && !bActed; i++) {
     for (const p of [A, B]) {
+      if (await dismissDialog(p)) { if (p === B) bActed = true; continue; }
       const t = await txt(p).catch(() => "");
       if (/Draft your starting Blueprints/.test(t) && !/Waiting for/.test(t)) {
         const btns = await p.locator("button").all();
