@@ -39,6 +39,25 @@ logic = logic.replace(HOOK_AT, HOOK_AT + `
     const __cap = __slots.reduce((a, s) => a + (s.levelIdx + 1) * exchangeRate(state, biz), 0);
     __probe.before(state, biz, bizProd(biz), __slots.length, __cap);
   }`);
+/* --freeze pins a bot's Retail extra-district pick for the whole delivery, the way a
+   human's pick is pinned, instead of letting reachableDistricts re-choose on every
+   slot as icons fill. If the "capacity was enough" bucket for Retail comes from that
+   drift, this makes it vanish. */
+if (process.argv.includes("--freeze")) {
+  console.log("(--freeze is now what the engine does; the flag is kept so the old behaviour can be compared with --drift)");
+}
+if (process.argv.includes("--drift")) {
+  /* Put the drift back: forget the pin so reachableDistricts re-chooses on every slot. */
+  logic = logic.replace(HOOK_AT, HOOK_AT + `
+  if (bizInd(biz) === "RE" && state.reChoices) delete state.reChoices[biz.id];`);
+}
+if (false) {
+  logic = logic.replace(HOOK_AT, HOOK_AT + `
+  if (bizInd(biz) === "RE" && !(state.reChoices && state.reChoices[biz.id])) {
+    state.reChoices = state.reChoices || {};
+    state.reChoices[biz.id] = bestExtraDistrictsForRE(state, biz, reAllowance(state, biz, p), footprintDistricts(state.board, biz.footprint));
+  }`);
+}
 const AFTER = "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;";
 if (!logic.includes(AFTER)) { console.error("autoDeliver's end changed - update this probe"); process.exit(2); }
 logic = logic.replace(AFTER, "  const leftover = Math.max(0, remaining);\n  __probe.after(state, biz, earned, leftover);\n  p.cash += earned + leftover * 1;");

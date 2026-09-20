@@ -871,6 +871,17 @@ function unitPrice(state, p, biz, slotInd) {
    units, which is what makes them decisions: where to send a unit, not whether to
    conjure one. */
 function autoDeliver(state, p, biz) {
+  /* A Retail company picks its extra districts ONCE per delivery, the way a human's
+     pick is pinned in reChoices. Without this the bot's pick was recomputed on every
+     slot by reachableDistricts, by open-icon count - so the moment it filled the icons
+     in one district the pick drifted to another, and the icons it had been counting
+     on became unreachable mid-delivery. Measured in audit_te_doubling.js: 39% of the
+     units Retail left over had enough capacity in reach when the delivery began;
+     pinned, that is 0% and Retail sells 59% of what it makes instead of 46%. */
+  if (bizInd(biz) === "RE" && !(state.reChoices && state.reChoices[biz.id])) {
+    state.reChoices = state.reChoices || {};
+    state.reChoices[biz.id] = bestExtraDistrictsForRE(state, biz, reAllowance(state, biz, p), footprintDistricts(state.board, biz.footprint));
+  }
   let remaining = bizProd(biz);
   let crossAllowance = bizInd(biz) === "MA" ? biz.level : 0;
   let earned = 0;
@@ -1744,7 +1755,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "d7c0d4df";
+const ENGINE_VERSION = "3d4d5dcb";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
