@@ -859,8 +859,40 @@ function unitPrice(state, p, biz, slotInd) {
        price had fallen below Manufacturing's own. */
     return hasPersona(p, "product_mgr") ? Math.max(own, price(state.pm, slotInd)) : own;
   }
-  if (bizInd(biz) === "UT" && hasPersona(p, "gov_rel")) return own + 1;
+  /* A Concession Holder MAY sell Utilities at $1 over the price - but only in a quarter
+     they have chosen to, because using it costs the market a step at quarter end. */
+  if (bizInd(biz) === "UT" && concessionOn(state, p)) return own + 1;
   return own;
+}
+/* The Concession is switched on for one quarter at a time, at the start of Revenue,
+   alongside the Supply Chain Expert's choice. Nothing is decided for the holder. */
+function concessionOn(state, p) {
+  return !!(hasPersona(p, "gov_rel") && state.concessionOn && state.concessionOn[p.id]);
+}
+/* Whether the holder has anything to decide this quarter: a Utilities company that
+   will actually produce. */
+function concessionAvailable(state, p) {
+  return hasPersona(p, "gov_rel") && activeBiz(p).some((b) => bizInd(b) === "UT" && businessCanProduce(state, b) && bizProd(b) > 0);
+}
+/* A premium unit sold marks the quarter; the price falls once at its end. */
+function noteConcessionSale(state, p, biz, units) {
+  if (units > 0 && bizInd(biz) === "UT" && concessionOn(state, p)) {
+    state.concessionUsed = state.concessionUsed || {};
+    state.concessionUsed[p.id] = true;
+  }
+}
+/* What ONE unit sold into a particular icon pays. This is unitPrice with the one
+   effect that depends on the icon rather than the row: a Public Health Director's
+   clinic may serve columns above its level, and those units pay $1 less. Bots' slot
+   ordering, the engine's payment and the human's grid all read this one function. */
+function slotPay(state, p, biz, slot) {
+  const slotInd = slot.cross ? slotIndustry(state.demand, slot.tileKey, slot.rowIdx) : null;
+  let pay = unitPrice(state, p, biz, slotInd);
+  if (!slot.cross && aboveLevelDiscount(state, p, biz, slot.levelIdx)) pay -= 1;
+  return Math.max(1, pay);
+}
+function aboveLevelDiscount(state, p, biz, levelIdx) {
+  return bizInd(biz) === "HC" && hasPersona(p, "preventive") && levelIdx >= biz.level;
 }
 /* A company sells exactly what it produces - no more.
 
@@ -890,9 +922,8 @@ function autoDeliver(state, p, biz) {
      Hospitality company are not going anywhere. So fill icons first, best-paying first -
      which is not a fixed order, because a White-Label Supplier is paid the price of the
      row it cross-sells into, and that can beat its own industry. */
-  const slots = eligibleSlotsFor(state, biz).map((s) => ({ ...s,
-    pay: unitPrice(state, p, biz, s.cross ? slotIndustry(state.demand, s.tileKey, s.rowIdx) : null),
-  })).sort((a, b) => b.pay - a.pay);
+  const slots = eligibleSlotsFor(state, biz).map((s) => ({ ...s, pay: slotPay(state, p, biz, s) }))
+    .sort((a, b) => b.pay - a.pay);
   for (const s of slots) {
     if (remaining <= 0) break;
     if (s.cross && crossAllowance <= 0) continue;
@@ -902,11 +933,12 @@ function autoDeliver(state, p, biz) {
     earned += n * s.pay;
     remaining -= n;
     if (s.cross) crossAllowance -= n;
+    noteConcessionSale(state, p, biz, n);
   }
 
   // whatever the icons could not take, Hospitality moves to its neighbours at full price
   const hoBonus = Math.min(remaining, hoBonusUnits(state, biz, p));
-  if (hoBonus > 0) { earned += hoBonus * unitPrice(state, p, biz); remaining -= hoBonus; }
+  if (hoBonus > 0) { earned += hoBonus * unitPrice(state, p, biz); remaining -= hoBonus; noteConcessionSale(state, p, biz, hoBonus); }
 
   const leftover = Math.max(0, remaining);
   p.cash += earned + leftover * 1;
@@ -926,9 +958,9 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
   /* Pay through unitPrice, the same as the bots. This used to charge the plain market
      price, so a human holding White-Label Supplier or Concession Holder never actually
      collected what their persona promised - only the bots did. */
-  const slotInd = cross ? slotIndustry(state.demand, tileKey, rowIdx) : null;
-  const paid = got * unitPrice(state, human, biz, slotInd);
+  const paid = got * slotPay(state, human, biz, { tileKey, rowIdx, levelIdx, cross });
   human.cash += paid;
+  noteConcessionSale(state, human, biz, got);
   /* Cross-selling spends production like any other delivery. crossSellRemaining is a
      CAP on how many of those units may be routed outside the company's own industry,
      not a second pile of goods. */
@@ -1038,7 +1070,7 @@ const PERSONAS = {
   tech_savvy:  { ind: "TE", name: "Systems Architect",
     blurb: "Your Technology companies may upgrade vertically, stacking on one plot instead of needing a free neighbour - or spread as Technology usually does. You choose at each upgrade." },
   preventive:  { ind: "HC", name: "Public Health Director",
-    blurb: "Your Healthcare companies may ignore the level restriction: a level-1 clinic may serve any column of a Healthcare row." },
+    blurb: "Your Healthcare companies may serve any column of a Healthcare row whatever their level - but a unit sold above your company's level pays $1 less than the price." },
   product_mgr: { ind: "MA", name: "White-Label Supplier",
     blurb: "When your Manufacturing cross-sells into another industry's row, it may be paid that industry's price instead of its own - whichever is higher." },
   customer_or: { ind: "HO", name: "Resort Developer",
@@ -1046,7 +1078,7 @@ const PERSONAS = {
   supply_chain:{ ind: "RE", name: "Supply Chain Expert",
     blurb: "At the start of Revenue, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline." },
   gov_rel:     { ind: "UT", name: "Concession Holder",
-    blurb: "Your Utilities production may sell for $1 above the current price." },
+    blurb: "At the start of Revenue you may switch your concession on: your Utilities production then sells for $1 above the current price this quarter. Every quarter you sell at that premium, the Utilities price falls one step at the end of the quarter." },
 };
 /* ============================== VARIANTS ==============================
    Optional rule changes the host turns on before a game starts. Every one is off
@@ -1755,7 +1787,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "3d4d5dcb";
+const ENGINE_VERSION = "703ac410";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -1962,7 +1994,34 @@ function supplyChainOptions(state, p) {
 /* Everybody the table has to stop and ask. Bots are not in here - they are resolved
    inline - so an all-bot table never pauses. */
 function humansNeedingSupplyChain(state) {
-  return state.players.filter((p) => p.isHuman && supplyChainOptions(state, p).length > 0).map((p) => p.id);
+  return state.players.filter((p) => p.isHuman && (supplyChainOptions(state, p).length > 0 || concessionAvailable(state, p))).map((p) => p.id);
+}
+/* The bot's answer to the Concession. The premium is worth $1 a unit now; the step it
+   costs is $1 off every Utilities unit anyone sells until something lifts the market
+   again, so a bot takes it while the market has room to fall - and always in the last
+   quarter, when there is nothing left to protect. */
+function botWantsConcession(state, p) {
+  if (!concessionAvailable(state, p)) return false;
+  if (state.quarter >= 12) return true;
+  return price(state.pm, "UT") > PRICE_MIN + 1;
+}
+function setConcession(state, p, on, log) {
+  state.concessionOn = state.concessionOn || {};
+  state.concessionOn[p.id] = !!on;
+  if (log && on) log(`${p.name} switches the concession on: Utilities sells for $1 over the price this quarter.`, p.id);
+  if (log && !on) log(`${p.name} leaves the concession off this quarter.`, p.id);
+}
+/* The bill for the premium: one step off Utilities per holder who used it, at the end
+   of the quarter, in plain view of everyone selling Utilities next quarter. */
+function runConcessionErosion(state, log) {
+  const used = state.concessionUsed || {};
+  for (const p of state.players) {
+    if (!used[p.id]) continue;
+    moveMarker(state.pm, "UT", -SUPPLIER_CELLS);
+    if (log) log(`Concession: ${p.name} sold Utilities at a premium, so the Utilities price falls to $${price(state.pm, "UT")}.`, p.id);
+  }
+  state.concessionUsed = {};
+  state.concessionOn = {};
 }
 function applySupplyChainFor(state, p, ind, log) {
   const options = supplyChainOptions(state, p);
@@ -1980,6 +2039,7 @@ function applySupplyChainBump(state, log) {
   for (const p of state.players) {
     if (p.isHuman) continue;
     applySupplyChainFor(state, p, null, log);
+    if (concessionAvailable(state, p)) setConcession(state, p, botWantsConcession(state, p), log);
   }
 }
 /* The human's answer. Resumes production once the queue drains. */
@@ -1989,6 +2049,9 @@ function chooseSupplyChain(state, p, ind, log, rng) {
   /* Lifting a rival industry's price helps whoever sells there, so the holder may
      decide the extra district is not worth it this quarter. */
   if (ind === "skip") { if (log) log(`${p.name} declines to raise any industry this quarter.`, p.id); }
+  else if (ind === "concession:on" || ind === "concession:off") {
+    if (concessionAvailable(state, p)) setConcession(state, p, ind === "concession:on", log);
+  }
   else applySupplyChainFor(state, p, ind, log);
   state.scQueue = state.scQueue.slice(1);
   if (state.scQueue.length) { state.awaitingPlayerId = state.scQueue[0]; return true; }
@@ -2110,6 +2173,7 @@ function doPlaceLH(state, a, b, log) {
 }
 function runClosing(state, log, rng) {
   const { quarter, demand } = state;
+  runConcessionErosion(state, log);
   if (quarter === 4) unlockY2(demand);
   if (quarter === 8) refreshY3(demand);
   const firstPlayer = byId(state, state.turnOrder[0]);
@@ -3168,6 +3232,8 @@ function advanceResolution(state, rng, log) {
 function proceedToProduction(state, log, rng) {
   state.phase = "production";
   state.reExtraDistrict = {};              // the Retail bonus lasts one quarter only
+  state.concessionOn = {};                 // ...and so does the Concession
+  state.concessionUsed = {};
   applySupplyChainBump(state, log);        // bots resolve inline
   /* Humans are asked which industry to lift, one at a time, before anything produces -
      the bump has to land before production reads the prices. */
@@ -3620,14 +3686,15 @@ function DemandCenter({ tname, demand, quarter, tileKey, deliverInfo, onDeliver 
               const isNormalEligible = !locked && !filled && deliverInfo && deliverInfo.ind === ind && levelIdx < deliverInfo.cap && deliverInfo.reach.has(tileKey);
               const isCrossEligible = !locked && !filled && deliverInfo && deliverInfo.crossActive && ind !== deliverInfo.ind && levelIdx < deliverInfo.level && deliverInfo.crossHome.has(tileKey);
               const isEligible = isNormalEligible || isCrossEligible;
+              const discounted = isNormalEligible && deliverInfo.discountFrom != null && levelIdx >= deliverInfo.discountFrom;
               let bg = filled ? "#00000055" : IND_COLOR[ind] + "aa";
               return (
                 <div key={levelIdx}
                   onClick={() => { if (isEligible) onDeliver(tileKey, rowIdx, levelIdx, isCrossEligible); }}
-                  title={`${ind} \u00b7 Lvl ${levelIdx + 1}${filled ? " (met)" : ""}${isCrossEligible ? " (cross-sell)" : ""}`}
+                  title={`${ind} \u00b7 Lvl ${levelIdx + 1}${filled ? " (met)" : ""}${isCrossEligible ? " (cross-sell)" : ""}${discounted ? " (above your level: pays $1 less)" : ""}`}
                   className={isEligible ? "cursor-pointer" : ""}
                   style={{ width: 16, height: 13, borderRadius: 2, backgroundColor: bg,
-                    border: isCrossEligible ? "2px solid #f5a623" : isNormalEligible ? "2px solid #ffffff" : "1px solid #00000044",
+                    border: isCrossEligible ? "2px solid #f5a623" : discounted ? "2px dashed #ffffff" : isNormalEligible ? "2px solid #ffffff" : "1px solid #00000044",
                     boxShadow: isEligible ? "0 0 4px rgba(255,255,255,0.5)" : "none" }}
                 />
               );
@@ -4166,10 +4233,17 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 11, fontWeight: 800, color: "#f5a623", pointerEvents: "none" }}>!</span>
       )}
-      {storeys > 1 && Array.from({ length: Math.min(storeys - 1, 3) }).map((_, i) => (
-        <span key={i} style={{ position: "absolute", inset: 5 + i * 3.5,
-          border: `1px solid ${IND_COLOR[bizInd(foundBiz)]}`, opacity: 0.95, pointerEvents: "none" }} />
-      ))}
+      {/* Storeys as a numeral in the corner. Concentric rings were tried first and
+          read as texture, not as a count - three rings in a 20px cell are a blur. */}
+      {storeys > 1 && (
+        <span title={`${storeys} storeys`} style={{
+          position: "absolute", right: -2, bottom: -2, minWidth: 11, height: 11, padding: "0 2px",
+          borderRadius: 3, backgroundColor: IND_COLOR[bizInd(foundBiz)], color: "#0b0e14",
+          border: "1px solid #0b0e14", fontSize: 8, fontWeight: 800, lineHeight: "9px",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          pointerEvents: "none", zIndex: 4, boxSizing: "border-box",
+        }}>{storeys}</span>
+      )}
       {isHub && (
         <span title="Logistic Hub" style={{
           position: "absolute", inset: 2, borderRadius: "50%", backgroundColor: "#22D3EE",
@@ -5677,10 +5751,13 @@ function GameScreens({ online }) {
   const reAllow = deliveringBiz ? reAllowance(state, deliveringBiz, human) : 0;
   const isHumanSupplyChain = state.phase === "supplyChain" && myTurn;
   const scOptions = isHumanSupplyChain ? supplyChainOptions(state, human) : [];
+  const scConcession = isHumanSupplyChain && concessionAvailable(state, human);
   const deliverInfo = deliveringBiz && !needsREChoice ? {
     ind: bizInd(deliveringBiz), level: deliveringBiz.level, reach: reachableDistricts(state, deliveringBiz),
     // how deep into a row this company may sell - see deliveryColumnCap
     cap: deliveryColumnCap(state, deliveringBiz, human),
+    // a Public Health Director's units sold at or above this column index pay $1 less
+    discountFrom: bizInd(deliveringBiz) === "HC" && hasPersona(human, "preventive") ? deliveringBiz.level : null,
     crossActive: bizInd(deliveringBiz) === "MA" && (state.crossSellRemaining[deliveringBiz.id] || 0) > 0,
     crossHome: bizInd(deliveringBiz) === "MA" ? footprintDistricts(state.board, deliveringBiz.footprint) : new Set(),
   } : null;
@@ -5900,6 +5977,25 @@ function GameScreens({ online }) {
                 into a component that no longer exists. Pressing another action simply
                 replaces the warning with the one for that action. */}
             {isHumanResolving && !pickMode && <ActionPanel state={state} human={human} rng={rngRef.current} log={log} onDone={handleResolutionDone} onStartLaunch={handleStartLaunch} onStartGrow={handleStartGrow} onStartBuy={handleStartBuy} guardSpend={guardSpend} />}
+            {scConcession && (
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
+                  Concession Holder — sell Utilities at ${price(state.pm, "UT") + 1} this quarter?
+                </div>
+                <div className="text-[10px] text-gray-400 mb-2">
+                  That is $1 over the price. If you sell at the premium, the Utilities price falls
+                  one step at the end of the quarter, for everyone.
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button onClick={() => handleSupplyChain("concession:on")} className="text-[10px] px-2 py-1 rounded"
+                    style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
+                    Switch it on <span style={{ color: "#9ca3af" }}>${price(state.pm, "UT") + 1} a unit</span>
+                  </button>
+                  <button onClick={() => handleSupplyChain("concession:off")} className="text-[10px] px-2 py-1 rounded"
+                    style={{ backgroundColor: "#20232c", border: "1px solid #33384355", color: "#9ca3af" }}>Leave it off</button>
+                </div>
+              </div>
+            )}
             {isHumanSupplyChain && scOptions.length > 0 && (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>

@@ -446,11 +446,11 @@ Personas are asymmetric powers, one tied to each industry. They are dealt by def
 | Persona | Power |
 | --- | --- |
 | Systems Architect (TE) | Your Technology companies may upgrade vertically, stacking on one plot instead of needing a free neighbour - or spread as Technology usually does. You choose at each upgrade. |
-| Public Health Director (HC) | Your Healthcare companies may ignore the level restriction: a level-1 clinic may serve any column of a Healthcare row. |
+| Public Health Director (HC) | Your Healthcare companies may serve any column of a Healthcare row whatever their level - but a unit sold above your company's level pays $1 less than the price. |
 | White-Label Supplier (MA) | When your Manufacturing cross-sells into another industry's row, it may be paid that industry's price instead of its own - whichever is higher. |
 | Resort Developer (HO) | Your Hospitality companies may upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them - or stack as Hospitality usually does. You choose at each upgrade. |
 | Supply Chain Expert (RE) | At the start of Revenue, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline. |
-| Concession Holder (UT) | Your Utilities production may sell for $1 above the current price. |
+| Concession Holder (UT) | At the start of Revenue you may switch your concession on: your Utilities production then sells for $1 above the current price this quarter. Every quarter you sell at that premium, the Utilities price falls one step at the end of the quarter. |
 
 ---
 
