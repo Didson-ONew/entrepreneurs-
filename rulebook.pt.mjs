@@ -776,13 +776,13 @@ export const RULEBOOK_PT = [
           ],
           "rows": [
             [
-              "Local Syndicate",
+              "Consórcio Local",
               "3 x L1",
               "3",
               "8 EP"
             ],
             [
-              "Founders’ Pact",
+              "Pacto dos Fundadores",
               "2 x L1 + 1 x L2",
               "3",
               "9 EP"
@@ -794,73 +794,73 @@ export const RULEBOOK_PT = [
               "10 EP"
             ],
             [
-              "Twin Ventures",
+              "Gêmeas Participações",
               "1 x L1 + 2 x L2",
               "3",
               "10 EP"
             ],
             [
-              "Silent Merger",
+              "Fusão Silenciosa",
               "3 x L2",
               "3",
               "11 EP"
             ],
             [
-              "Neighborhood Holdings",
+              "Vizinhança Holdings",
               "3 x L1 + 1 x L2",
               "4",
               "12 EP"
             ],
             [
-              "Regional Consolidated",
+              "Consolidada Regional",
               "2 x L2 + 1 x L3",
               "3",
               "13 EP"
             ],
             [
-              "Crosstown Alliance",
+              "Aliança Urbana",
               "2 x L1 + 2 x L2",
               "4",
               "13 EP"
             ],
             [
-              "Metro Trust",
+              "Grupo Metropolitano",
               "1 x L2 + 2 x L3",
               "3",
               "14 EP"
             ],
             [
-              "Crossroads Deal",
+              "Acordo da Encruzilhada",
               "1 x L1 + 3 x L2",
               "4",
               "14 EP"
             ],
             [
-              "Skyline Consolidated",
+              "Skyline Consolidada",
               "3 x L3",
               "3",
               "15 EP"
             ],
             [
-              "Apex Group",
+              "Grupo Apex",
               "2 x L2 + 2 x L3",
               "4",
               "16 EP"
             ],
             [
-              "Titan Industries",
+              "Indústrias Titan",
               "2 x L3 + 1 x L4",
               "3",
               "17 EP"
             ],
             [
-              "Colossus Group",
+              "Grupo Colosso",
               "4 x L3",
               "4",
               "19 EP"
             ],
             [
-              "Empire Holdings",
+              "Império Holdings",
               "1 x L2 + 2 x L3 + 1 x L4",
               "4",
               "20 EP"
@@ -895,28 +895,28 @@ export const RULEBOOK_PT = [
           "rows": [
             [
               "4",
-              "Local Syndicate, Founders’ Pact, Continental Holdings, Twin Ventures",
+              "Consórcio Local, Pacto dos Fundadores, Continental Holdings, Gêmeas Participações",
               "2 jogadores",
               "0 EP",
               "1 EP"
             ],
             [
               "3",
-              "Silent Merger, Neighborhood Holdings, Regional Consolidated, Crosstown Alliance",
+              "Fusão Silenciosa, Vizinhança Holdings, Consolidada Regional, Aliança Urbana",
               "2 jogadores",
               "1 EP",
               "2 EP"
             ],
             [
               "2",
-              "Metro Trust, Crossroads Deal, Skyline Consolidated, Apex Group",
+              "Grupo Metropolitano, Acordo da Encruzilhada, Skyline Consolidada, Grupo Apex",
               "3 jogadores",
               "1 EP",
               "3 EP"
             ],
             [
               "1",
-              "Titan Industries, Colossus Group, Empire Holdings, Omnicorp",
+              "Indústrias Titan, Grupo Colosso, Império Holdings, Omnicorp",
               "4 jogadores",
               "3 EP",
               "6 EP"
@@ -931,7 +931,7 @@ export const RULEBOOK_PT = [
         "note": "O sorteio mais amplo com cinco e seis jogadores não é variedade por variedade. Uma segunda Megacorporação convoca o trimestre final, e as mesas maiores são as que têm mais motivo para querer essa porta aberta - doze trimestres com seis pessoas deliberando é uma noite longa. Com a caixa cheia em jogo, uma segunda fusão passa a ser algo que se pode procurar, em vez de uma questão de as duas fichas que você poderia usar terem sido sorteadas ou não: as partidas que terminam cedo vão de 8% com quatro jogadores para 21% com cinco e 36% com seis, e a partida média de seis jogadores acaba cerca de dois terços de trimestre mais cedo. O prazo é CONVOCADO com muito mais frequência do que morde - 82% das partidas de seis jogadores contra 25% das de quatro - porque uma segunda Megacorporação que cai no Q11 ou no Q12 nomeia um trimestre final que a partida ia jogar de qualquer jeito."
       },
       {
-        "note": "Antes dos patamares, um Local Syndicate montado com três empresas de nível 1 ganhava por trimestre exatamente o mesmo que um Omnicorp montado com quatro de nível 3, e a Megacorporação havia crescido até 33% de uma pontuação vencedora - o maior bloco isolado do jogo, à frente das empresas. Dividir o EP de marca pelo patamar cortou isso pela metade, para 17%, e baixou a vantagem do vencedor sobre o último de 58.6 EP para 48.7, sem tornar a fusão em si mais rara. A regra de sorteio quase não pesa com quatro jogadores, onde oito fichas aleatórias de dezesseis já dão em média duas por patamar; ela se paga com dois, onde tirou da caixa as fichas impossíveis de reivindicar e as Megacorporações formadas subiram de 1.00 por partida para 1.26."
+        "note": "Antes dos patamares, um Consórcio Local montado com três empresas de nível 1 ganhava por trimestre exatamente o mesmo que um Omnicorp montado com quatro de nível 3, e a Megacorporação havia crescido até 33% de uma pontuação vencedora - o maior bloco isolado do jogo, à frente das empresas. Dividir o EP de marca pelo patamar cortou isso pela metade, para 17%, e baixou a vantagem do vencedor sobre o último de 58.6 EP para 48.7, sem tornar a fusão em si mais rara. A regra de sorteio quase não pesa com quatro jogadores, onde oito fichas aleatórias de dezesseis já dão em média duas por patamar; ela se paga com dois, onde tirou da caixa as fichas impossíveis de reivindicar e as Megacorporações formadas subiram de 1.00 por partida para 1.26."
       },
       {
         "note": "Uma fusão deve ser uma decisão de verdade, não um bônus grátis: você está abrindo mão da produção das empresas e das expansões que ainda faltavam a elas em troca de uma quantia de uma vez agora, de uma sede que arrecada sem operar e de um dízimo para quem construir ao lado dela. Todo EP que aquelas empresas já pontuaram está embolsado e continua embolsado. É mais forte no Ano 3 e costuma ser um erro no Ano 1."
@@ -1474,61 +1474,61 @@ export const RULEBOOK_PT = [
           ],
           "rows": [
             [
-              "Solar Field I",
+              "Usina Solar I",
               "1",
               "15 / 4 / 4",
               "HO 4"
             ],
             [
-              "Hydro-Farm Initiative I",
+              "Pequena Hidrelétrica I",
               "1",
               "15 / 4 / 4",
               "HO 4"
             ],
             [
-              "Wind Farm I",
+              "Parque Eólico I",
               "1",
               "15 / 4 / 4",
               "TE 4"
             ],
             [
-              "Biomass Plant I",
+              "Usina de Biomassa I",
               "1",
               "15 / 4 / 4",
               "TE 4"
             ],
             [
-              "Tidal Generator I",
+              "Usina Maremotriz I",
               "1",
               "15 / 4 / 4",
               "HC 4"
             ],
             [
-              "Fusion Conduit Hub II",
+              "Hub de Fusão II",
               "2",
               "20 / 7 / 8",
               "HO 4, TE 3"
             ],
             [
-              "Smart Grid Node II",
+              "Nó de Smart Grid II",
               "2",
               "20 / 7 / 8",
               "HO 4, HC 3"
             ],
             [
-              "Oceanic Turbine II",
+              "Turbina Oceânica II",
               "2",
               "20 / 7 / 8",
               "TE 4, HC 3"
             ],
             [
-              "Geothermal Supernode III",
+              "Supernó Geotérmico III",
               "3",
               "30 / 10 / 16",
               "HO 4, TE 3, HC 3"
             ],
             [
-              "Antimatter Reactor III",
+              "Reator de Antimatéria III",
               "3",
               "30 / 10 / 16",
               "HO 4, TE 3, HC 3"
@@ -1549,61 +1549,61 @@ export const RULEBOOK_PT = [
           ],
           "rows": [
             [
-              "Corner Store I",
+              "Mercadinho I",
               "1",
               "10 / 5 / 4",
               "TE 5"
             ],
             [
-              "Pop-Up Kiosk I",
+              "Quiosque Pop-Up I",
               "1",
               "10 / 5 / 4",
               "TE 5"
             ],
             [
-              "Local Market I",
+              "Feira do Bairro I",
               "1",
               "10 / 5 / 4",
               "HO 5"
             ],
             [
-              "Strip Mall I",
+              "Galeria I",
               "1",
               "10 / 5 / 4",
               "HO 5"
             ],
             [
-              "Vending Network I",
+              "Rede de Vending I",
               "1",
               "10 / 5 / 4",
               "MA 5"
             ],
             [
-              "Supermarket II",
+              "Supermercado II",
               "2",
               "15 / 9 / 8",
               "TE 5, HO 4"
             ],
             [
-              "Department Store II",
+              "Loja de Departamentos II",
               "2",
               "15 / 9 / 8",
               "TE 5, MA 4"
             ],
             [
-              "Outlet Center II",
+              "Outlet II",
               "2",
               "15 / 9 / 8",
               "HO 5, MA 4"
             ],
             [
-              "Mega-Mall III",
+              "Mega-Shopping III",
               "3",
               "25 / 14 / 16",
               "TE 6, HO 4, MA 4"
             ],
             [
-              "Omni-Channel Hub III",
+              "Hub Omnichannel III",
               "3",
               "25 / 14 / 16",
               "TE 6, HO 4, MA 4"
@@ -1624,61 +1624,61 @@ export const RULEBOOK_PT = [
           ],
           "rows": [
             [
-              "Motel I",
+              "Pousada I",
               "1",
               "10 / 6 / 3",
               "MA 6"
             ],
             [
-              "Bed & Breakfast I",
+              "Cama e Café I",
               "1",
               "10 / 6 / 3",
               "MA 6"
             ],
             [
-              "Transit Hostel I",
+              "Hostel de Passagem I",
               "1",
               "10 / 6 / 3",
               "HC 6"
             ],
             [
-              "Roadside Inn I",
+              "Hotel de Estrada I",
               "1",
               "10 / 6 / 3",
               "HC 6"
             ],
             [
-              "Capsule Hotel I",
+              "Hotel Cápsula I",
               "1",
               "10 / 6 / 3",
               "RE 6"
             ],
             [
-              "Business Hotel II",
+              "Hotel Executivo II",
               "2",
               "15 / 10 / 6",
               "MA 6, HC 4"
             ],
             [
-              "Resort Lodge II",
+              "Eco-Resort II",
               "2",
               "15 / 10 / 6",
               "MA 6, RE 4"
             ],
             [
-              "Boutique Hotel II",
+              "Hotel Boutique II",
               "2",
               "15 / 10 / 6",
               "HC 6, RE 4"
             ],
             [
-              "Luxury Casino III",
+              "Cassino de Luxo III",
               "3",
               "25 / 16 / 12",
               "MA 6, HC 5, RE 5"
             ],
             [
-              "Orbit Resort III",
+              "Resort Orbital III",
               "3",
               "25 / 16 / 12",
               "MA 6, HC 5, RE 5"
@@ -1699,61 +1699,61 @@ export const RULEBOOK_PT = [
           ],
           "rows": [
             [
-              "Assembly Workshop I",
+              "Oficina de Montagem I",
               "1",
               "20 / 4 / 3",
               "HC 4"
             ],
             [
-              "Parts Fabricator I",
+              "Fábrica de Peças I",
               "1",
               "20 / 4 / 3",
               "HC 4"
             ],
             [
-              "Textile Mill I",
+              "Tecelagem I",
               "1",
               "20 / 4 / 3",
               "RE 4"
             ],
             [
-              "Canning Facility I",
+              "Fábrica de Conservas I",
               "1",
               "20 / 4 / 3",
               "RE 4"
             ],
             [
-              "Injection Molder I",
+              "Injetora de Plástico I",
               "1",
               "20 / 4 / 3",
               "UT 4"
             ],
             [
-              "Auto Plant II",
+              "Montadora II",
               "2",
               "35 / 7 / 6",
               "HC 4, RE 3"
             ],
             [
-              "Microchip Foundry II",
+              "Fundição de Chips II",
               "2",
               "35 / 7 / 6",
               "HC 4, UT 3"
             ],
             [
-              "Chemical Plant II",
+              "Indústria Química II",
               "2",
               "35 / 7 / 6",
               "RE 4, UT 3"
             ],
             [
-              "Heavy Robotics III",
+              "Robótica Pesada III",
               "3",
               "60 / 10 / 12",
               "HC 4, RE 3, UT 3"
             ],
             [
-              "Orbital Shipyard III",
+              "Estaleiro Orbital III",
               "3",
               "60 / 10 / 12",
               "HC 4, RE 3, UT 3"
@@ -1774,61 +1774,61 @@ export const RULEBOOK_PT = [
           ],
           "rows": [
             [
-              "Urgent Care Clinic I",
+              "Pronto Atendimento I",
               "1",
               "20 / 5 / 2",
               "RE 5"
             ],
             [
-              "Pharmacy I",
+              "Farmácia I",
               "1",
               "20 / 5 / 2",
               "RE 5"
             ],
             [
-              "Dental Office I",
+              "Consultório Dentário I",
               "1",
               "20 / 5 / 2",
               "UT 5"
             ],
             [
-              "Wellness Center I",
+              "Centro de Bem-Estar I",
               "1",
               "20 / 5 / 2",
               "UT 5"
             ],
             [
-              "Physical Therapy I",
+              "Fisioterapia I",
               "1",
               "20 / 5 / 2",
               "TE 5"
             ],
             [
-              "General Hospital II",
+              "Hospital Geral II",
               "2",
               "35 / 9 / 4",
               "RE 5, UT 4"
             ],
             [
-              "Trauma Center II",
+              "Centro de Trauma II",
               "2",
               "35 / 9 / 4",
               "RE 5, TE 4"
             ],
             [
-              "Specialized Clinic II",
+              "Clínica Especializada II",
               "2",
               "35 / 9 / 4",
               "UT 5, TE 4"
             ],
             [
-              "Biotech Campus III",
+              "Polo de Biotecnologia III",
               "3",
               "60 / 14 / 8",
               "RE 6, UT 4, TE 4"
             ],
             [
-              "Cybernetics Inst. III",
+              "Inst. de Cibernética III",
               "3",
               "60 / 14 / 8",
               "RE 6, UT 4, TE 4"
@@ -1849,7 +1849,7 @@ export const RULEBOOK_PT = [
           ],
           "rows": [
             [
-              "App Startup I",
+              "Startup de App I",
               "1",
               "15 / 6 / 2",
               "UT 6"
@@ -1861,49 +1861,49 @@ export const RULEBOOK_PT = [
               "UT 6"
             ],
             [
-              "Server Farm I",
+              "Sala de Servidores I",
               "1",
               "15 / 6 / 2",
               "MA 6"
             ],
             [
-              "IT Support Firm I",
+              "Suporte de TI I",
               "1",
               "15 / 6 / 2",
               "MA 6"
             ],
             [
-              "Cloud Provider I",
+              "Provedor de Nuvem I",
               "1",
               "15 / 6 / 2",
               "HO 6"
             ],
             [
-              "Software Campus II",
+              "Campus de Software II",
               "2",
               "25 / 10 / 4",
               "UT 6, MA 4"
             ],
             [
-              "Network Hub II",
+              "Hub de Rede II",
               "2",
               "25 / 10 / 4",
               "UT 6, HO 4"
             ],
             [
-              "Telecom Provider II",
+              "Operadora de Telecom II",
               "2",
               "25 / 10 / 4",
               "MA 6, HO 4"
             ],
             [
-              "Sentient AI Cluster III",
+              "Cluster de IA Senciente III",
               "3",
               "40 / 16 / 8",
               "UT 6, MA 5, HO 5"
             ],
             [
-              "Quantum Computing III",
+              "Computação Quântica III",
               "3",
               "40 / 16 / 8",
               "UT 6, MA 5, HO 5"

@@ -42,7 +42,8 @@ const tutI = ui.indexOf("const TUTORIAL = ["), tutJ = ui.indexOf("\n];", tutI);
 const tut = ui.slice(tutI, tutJ + 3).replace(/art:\s*\w+/g, "art: null");
 const box = {};
 vm.runInNewContext(logic + grab("SUPPLY") + "\n" + grab("MEGACORP_EP") + "\n" + grab("TUT_LEVEL_EP") + "\n" + tut + `
-  box.exports = { PERSONAS, VARIANTS, TRACK_HELP, TRACK_LABEL, IND_NAME, IND_ABILITY, TUTORIAL };`,
+  box.exports = { PERSONAS, VARIANTS, TRACK_HELP, TRACK_LABEL, IND_NAME, IND_ABILITY, TUTORIAL,
+                  BP_DATA, MEGACORP_TILES };`,
   { console, Math, Set, Object, Array, JSON, box });
 const E = box.exports;
 const add = (s) => { if (typeof s === "string" && s.trim()) wanted.add(s); };
@@ -50,6 +51,12 @@ Object.values(E.PERSONAS).forEach((p) => { add(p.name); add(p.blurb); });
 E.VARIANTS.forEach((v) => { add(v.name); add(v.blurb); });
 [E.TRACK_HELP, E.TRACK_LABEL, E.IND_NAME, E.IND_ABILITY].forEach((o) => Object.values(o).forEach(add));
 E.TUTORIAL.forEach((s) => { add(s.title); add(s.body); (s.points || []).forEach(add); });
+/* Card and tile names: the UI draws them through t(b.bp.name), so no literal to
+   scan - the names themselves are the keys. */
+E.BP_DATA.forEach((b) => add(b.name));
+E.MEGACORP_TILES.forEach((tile) => add(tile[0]));
+/* The five phase names on the quarter strip, which the strip holds as data. */
+["Planning", "Action", "Production", "Revenue", "Closing"].forEach(add);
 
 /* Tables the UI hands to t() by value rather than by literal, so the scan above
    cannot see them: Records' scoring-source labels and tabs, the feedback kinds,

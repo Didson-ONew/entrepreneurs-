@@ -165,7 +165,7 @@ console.log("\nThe wiring in the page");
   check("the board draws storeys from levels[plot], not from the industry", /foundBiz\.levels\[plotKeyStr\]/.test(ui) && !/SCALING\[bizInd\(foundBiz\)\] === "V"/.test(ui));
   check("only the player placing the hub gets the picker", /whoAwaited\(state\) === online\.seat/.test(ui) && /kind === "lh"\) setPickMode\(null\)/.test(ui));
   check("every plot's hover names its value", /plotValue\(\{ board \}, plotKeyStr\)\} plot value/.test(ui));
-  check("and so does the inspector on click", /Value: <span className="text-gray-100">\$\{plotValue\(\{ board \}, selectedPlot\)\}/.test(ui));
+  check("and so does the inspector on click", /t\("Value:"\)\} <span className="text-gray-100">\$\{plotValue\(\{ board \}, selectedPlot\)\}/.test(ui));
   check("the Supply Chain prompt can be declined", /handleSupplyChain\("skip"\)/.test(ui));
   const built = fs.readFileSync(path.join(__dirname, "online.html"), "utf8");
   check("the built page carries all of it", built.includes("stack on a plot it stands on") && built.includes("Don't raise anything") && built.includes("plot value"));
