@@ -577,8 +577,8 @@ Both are now checked in the engine, not only hidden in the plot picker, and
 
 So a rule cannot be right in the book and wrong in the game: there is one copy.
 
-**Rulebook v18** in `rulebook.data.mjs` is the authority. The printed
-`Entrepreneurs_Rulebook_v18.docx` files are generated from it; older editions are kept for reference. `test_rulebook_v13.js` pins
+**Rulebook v19** in `rulebook.data.mjs` is the authority. The printed
+`Entrepreneurs_Rulebook_v19.docx` files are generated from it; older editions are kept for reference. `test_rulebook_v13.js` pins
 the engine to it clause by clause - starting capital, the card tables, the price
 curve, how the pots divide, what going public does, the tiebreak - so a change that
 contradicts the printed rules fails a test that names the sentence it broke.

@@ -1,6 +1,6 @@
 # Entrepreneurs - Rulebook
 
-*Rulebook v18. The complete rules, with the designer's notes on why each one exists.*
+*Rulebook v19. The complete rules, with the designer's notes on why each one exists.*
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
@@ -20,6 +20,7 @@
 16. [Playing online](#online)
 17. [Quick reference](#quickref)
 18. [The words on the board](#glossary)
+19. [Annex: the sixty Blueprints](#blueprints)
 
 ---
 
@@ -644,3 +645,103 @@ Almost every term in this game is a real one, used the way a real business uses 
 > **Designer's note.** Vertical and horizontal integration are the entries most worth reading twice. They are the real distinction - Carnegie buying his own coal mines against a chain opening more shops - and they are also the game's biggest open balance question. A horizontal company reaches level 4 in 3 per cent of games and a vertical one in 22, because a horizontal upgrade needs empty ground of yours beside the building and the board runs out of it. The vocabulary is honest; the numbers behind it are not yet even.
 
 > **Designer's note.** Two columns rather than three. The obvious shape is term / real meaning / game meaning, and it reads well on paper - but the third column is the one that matters at the table and it was the one clipped off the side of a phone. Folding the two halves into one cell keeps the pairing and survives a 390px screen.
+
+---
+
+<a id="blueprints"></a>
+
+## Annex: the sixty Blueprints
+
+Every card in the game, by industry. SETUP is what it costs to build, and again to upgrade. OPEX is the running cost printed on the card: $2 a level of it is ground rent to whoever owns the ground, and the rest is the supplier bill, divided between the suppliers in proportion to the shares below. PRODUCTION is how many units it makes each quarter, and it doubles on upgrade along with OPEX.
+
+> **Designer's note.** This annex is written out of the card data itself and checked against it cell by cell in check_rulebook.mjs, so a card cannot be retuned without the book following. It is the one part of the book nobody should ever edit by hand.
+
+### Utilities (UT) - base price $4, upgrades horizontal
+
+| UT Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
+| --- | --- | --- | --- |
+| Solar Field I | 1 | 15 / 4 / 4 | HO 4 |
+| Hydro-Farm Initiative I | 1 | 15 / 4 / 4 | HO 4 |
+| Wind Farm I | 1 | 15 / 4 / 4 | TE 4 |
+| Biomass Plant I | 1 | 15 / 4 / 4 | TE 4 |
+| Tidal Generator I | 1 | 15 / 4 / 4 | HC 4 |
+| Fusion Conduit Hub II | 2 | 20 / 7 / 8 | HO 4, TE 3 |
+| Smart Grid Node II | 2 | 20 / 7 / 8 | HO 4, HC 3 |
+| Oceanic Turbine II | 2 | 20 / 7 / 8 | TE 4, HC 3 |
+| Geothermal Supernode III | 3 | 30 / 10 / 16 | HO 4, TE 3, HC 3 |
+| Antimatter Reactor III | 3 | 30 / 10 / 16 | HO 4, TE 3, HC 3 |
+
+### Retail (RE) - base price $4, upgrades vertical
+
+| RE Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
+| --- | --- | --- | --- |
+| Corner Store I | 1 | 10 / 5 / 4 | TE 5 |
+| Pop-Up Kiosk I | 1 | 10 / 5 / 4 | TE 5 |
+| Local Market I | 1 | 10 / 5 / 4 | HO 5 |
+| Strip Mall I | 1 | 10 / 5 / 4 | HO 5 |
+| Vending Network I | 1 | 10 / 5 / 4 | MA 5 |
+| Supermarket II | 2 | 15 / 9 / 8 | TE 5, HO 4 |
+| Department Store II | 2 | 15 / 9 / 8 | TE 5, MA 4 |
+| Outlet Center II | 2 | 15 / 9 / 8 | HO 5, MA 4 |
+| Mega-Mall III | 3 | 25 / 14 / 16 | TE 6, HO 4, MA 4 |
+| Omni-Channel Hub III | 3 | 25 / 14 / 16 | TE 6, HO 4, MA 4 |
+
+### Hospitality (HO) - base price $5, upgrades vertical
+
+| HO Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
+| --- | --- | --- | --- |
+| Motel I | 1 | 10 / 6 / 3 | MA 6 |
+| Bed & Breakfast I | 1 | 10 / 6 / 3 | MA 6 |
+| Transit Hostel I | 1 | 10 / 6 / 3 | HC 6 |
+| Roadside Inn I | 1 | 10 / 6 / 3 | HC 6 |
+| Capsule Hotel I | 1 | 10 / 6 / 3 | RE 6 |
+| Business Hotel II | 2 | 15 / 10 / 6 | MA 6, HC 4 |
+| Resort Lodge II | 2 | 15 / 10 / 6 | MA 6, RE 4 |
+| Boutique Hotel II | 2 | 15 / 10 / 6 | HC 6, RE 4 |
+| Luxury Casino III | 3 | 25 / 16 / 12 | MA 6, HC 5, RE 5 |
+| Orbit Resort III | 3 | 25 / 16 / 12 | MA 6, HC 5, RE 5 |
+
+### Manufacturing (MA) - base price $5, upgrades horizontal
+
+| MA Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
+| --- | --- | --- | --- |
+| Assembly Workshop I | 1 | 20 / 4 / 3 | HC 4 |
+| Parts Fabricator I | 1 | 20 / 4 / 3 | HC 4 |
+| Textile Mill I | 1 | 20 / 4 / 3 | RE 4 |
+| Canning Facility I | 1 | 20 / 4 / 3 | RE 4 |
+| Injection Molder I | 1 | 20 / 4 / 3 | UT 4 |
+| Auto Plant II | 2 | 35 / 7 / 6 | HC 4, RE 3 |
+| Microchip Foundry II | 2 | 35 / 7 / 6 | HC 4, UT 3 |
+| Chemical Plant II | 2 | 35 / 7 / 6 | RE 4, UT 3 |
+| Heavy Robotics III | 3 | 60 / 10 / 12 | HC 4, RE 3, UT 3 |
+| Orbital Shipyard III | 3 | 60 / 10 / 12 | HC 4, RE 3, UT 3 |
+
+### Healthcare (HC) - base price $6, upgrades vertical
+
+| HC Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
+| --- | --- | --- | --- |
+| Urgent Care Clinic I | 1 | 20 / 5 / 2 | RE 5 |
+| Pharmacy I | 1 | 20 / 5 / 2 | RE 5 |
+| Dental Office I | 1 | 20 / 5 / 2 | UT 5 |
+| Wellness Center I | 1 | 20 / 5 / 2 | UT 5 |
+| Physical Therapy I | 1 | 20 / 5 / 2 | TE 5 |
+| General Hospital II | 2 | 35 / 9 / 4 | RE 5, UT 4 |
+| Trauma Center II | 2 | 35 / 9 / 4 | RE 5, TE 4 |
+| Specialized Clinic II | 2 | 35 / 9 / 4 | UT 5, TE 4 |
+| Biotech Campus III | 3 | 60 / 14 / 8 | RE 6, UT 4, TE 4 |
+| Cybernetics Inst. III | 3 | 60 / 14 / 8 | RE 6, UT 4, TE 4 |
+
+### Technology (TE) - base price $6, upgrades horizontal
+
+| TE Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
+| --- | --- | --- | --- |
+| App Startup I | 1 | 15 / 6 / 2 | UT 6 |
+| Data Center I | 1 | 15 / 6 / 2 | UT 6 |
+| Server Farm I | 1 | 15 / 6 / 2 | MA 6 |
+| IT Support Firm I | 1 | 15 / 6 / 2 | MA 6 |
+| Cloud Provider I | 1 | 15 / 6 / 2 | HO 6 |
+| Software Campus II | 2 | 25 / 10 / 4 | UT 6, MA 4 |
+| Network Hub II | 2 | 25 / 10 / 4 | UT 6, HO 4 |
+| Telecom Provider II | 2 | 25 / 10 / 4 | MA 6, HO 4 |
+| Sentient AI Cluster III | 3 | 40 / 16 / 8 | UT 6, MA 5, HO 5 |
+| Quantum Computing III | 3 | 40 / 16 / 8 | UT 6, MA 5, HO 5 |

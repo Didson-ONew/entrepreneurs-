@@ -1,7 +1,7 @@
 # Prompt for Claude Design — physical prototype components
 
 Copy everything below the line into Claude Design. Every number in it is read
-from the shipped engine (`EntrepreneursGame.jsx`) as of Rulebook v18 with the
+from the shipped engine (`EntrepreneursGame.jsx`) as of Rulebook v19 with the
 $2–$12 economy, so the components it produces will match the game that is
 actually playable at entrepreneurs.boardgame.
 
