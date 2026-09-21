@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { RULEBOOK as BOOK_ALL, EDITION, forEdition } from "./rulebook.data.mjs";
+import { RULEBOOK_PT, EDITION_PT } from "./rulebook.pt.mjs";
+import { t, useLang, getLang, LanguageSwitch } from "./i18n.js";
 
 /* The in-game book is the app's book, so it keeps the online section and drops
    anything written only for a physical table. */
-const RULEBOOK = forEdition(BOOK_ALL, "digital");
+/* One book per language, both filtered to the app's edition. The translation
+   has the same sections in the same order with the same ids, which is what
+   check_rulebook_pt.mjs exists to keep true - so everything downstream (the
+   contents list, the search index, the section numbers) works on either. */
+const BOOKS = {
+  en: { book: forEdition(BOOK_ALL, "digital"), edition: EDITION, sub: "the complete rules", title: "Entrepreneurs \u2014 how to play" },
+  pt: { book: forEdition(RULEBOOK_PT, "digital"), edition: EDITION_PT, sub: "as regras completas", title: "Entrepreneurs \u2014 como se joga" },
+};
+const bookFor = (lang) => BOOKS[lang] || BOOKS.en;
 import Records from "./Records.jsx";
 import { FeedbackPanel, useFeedbackAccess } from "./Feedback.jsx";
 
@@ -95,9 +105,12 @@ function sectionText(s) {
   }
   return bits.join(" ").toLowerCase();
 }
-const SEARCH_INDEX = RULEBOOK.map(sectionText);
+const SEARCH_INDEX = { en: BOOKS.en.book.map(sectionText), pt: BOOKS.pt.book.map(sectionText) };
 
 export function Rulebook({ onClose }) {
+  const lang = useLang();
+  const { book: RULEBOOK, edition, sub, title } = bookFor(lang);
+  const index = SEARCH_INDEX[lang] || SEARCH_INDEX.en;
   const [active, setActive] = useState(RULEBOOK[0].id);
   const [q, setQ] = useState("");
   const bodyRef = useRef(null);
@@ -105,8 +118,8 @@ export function Rulebook({ onClose }) {
   const hits = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return null;
-    return new Set(RULEBOOK.filter((s, i) => SEARCH_INDEX[i].includes(needle)).map((s) => s.id));
-  }, [q]);
+    return new Set(RULEBOOK.filter((s, i) => index[i].includes(needle)).map((s) => s.id));
+  }, [q, lang]);
   const shown = hits ? RULEBOOK.filter((s) => hits.has(s.id)) : RULEBOOK;
 
   useEffect(() => {
@@ -177,14 +190,14 @@ export function Rulebook({ onClose }) {
           borderBottom: `1px solid ${INK.edge}`, flexShrink: 0 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: INK.head, letterSpacing: -0.2 }}>
-              Entrepreneurs &mdash; how to play
+              {title}
             </div>
-            <div style={{ fontSize: 10, color: INK.dim }}>{EDITION} &middot; the complete rules</div>
+            <div style={{ fontSize: 10, color: INK.dim }}>{edition} &middot; {sub}</div>
           </div>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the rules&hellip;"
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Search the rules…")}
             style={{ marginLeft: "auto", width: "min(40vw, 210px)", padding: "6px 9px", borderRadius: 6,
               fontSize: 12, backgroundColor: "#1c1f26", border: "1px solid #33384a", color: "#e5e7eb" }} />
-          <button onClick={onClose} aria-label="Close the rulebook" style={{ background: "none", border: "none",
+          <button onClick={onClose} aria-label={t("Close the rulebook")} style={{ background: "none", border: "none",
             color: INK.dim, fontSize: 18, lineHeight: 1, cursor: "pointer", padding: "0 2px" }}>&times;</button>
         </div>
 
@@ -207,7 +220,7 @@ export function Rulebook({ onClose }) {
             ))}
             {!shown.length && (
               <div style={{ fontSize: 11, color: INK.dim, padding: "6px 8px", fontStyle: "italic" }}>
-                Nothing matches that.
+                {t("Nothing matches that.")}
               </div>
             )}
           </nav>
@@ -304,7 +317,7 @@ export function LiveCounts({ counts }) {
     ? `Online now:\n${names.join("\n")}`
     : counts.waiting
       ? `${plural(counts.waiting, "room is", "rooms are")} waiting for players`
-      : "Everyone currently on the site, and the games under way";
+      : t("Everyone currently on the site, and the games under way");
 
   return (
     <span style={{ position: "relative", display: "inline-flex" }}>
@@ -342,9 +355,9 @@ export function LiveCounts({ counts }) {
             border: `1px solid ${INK.edge}`, boxShadow: "0 8px 24px rgba(0,0,0,0.55)",
             fontSize: 11, color: INK.dim, cursor: "pointer" }}>
           <span style={{ display: "block", fontWeight: 700, color: "#8b93a3", marginBottom: 4 }}>
-            ON THE SITE NOW
+            {t("ON THE SITE NOW")}
           </span>
-          {who.length === 0 && <span style={{ fontStyle: "italic" }}>Nobody, apparently.</span>}
+          {who.length === 0 && <span style={{ fontStyle: "italic" }}>{t("Nobody, apparently.")}</span>}
           {who.map((w, i) => (
             <span key={i} style={{ display: "block", lineHeight: 1.6,
               color: w.registered ? "#d5d9e0" : "#8b93a3" }}>
@@ -370,6 +383,7 @@ export default function SiteChrome({ table }) {
   const [open, setOpen] = useState(null);        // "rules" | "records" | "feedback" | null
   const counts = useLiveCounts();
   const access = useFeedbackAccess();
+  useLang();   // the chrome re-renders when the language changes, and so does everything under it
 
   const pill = (bg, edge, fg) => ({
     display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700,
@@ -381,19 +395,20 @@ export default function SiteChrome({ table }) {
     <>
       <div style={{ position: "fixed", left: 8, bottom: 8, zIndex: 9994,
         display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", maxWidth: "calc(100vw - 16px)" }}>
-        <button onClick={() => setOpen("rules")} title="Read the rules (Esc closes)"
+        <LanguageSwitch style={pill("#1b2030", "#3a4560", "#c9d4ea")} />
+        <button onClick={() => setOpen("rules")} title={t("Read the rules (Esc closes)")}
           style={pill(INK.accentBg, "#2c5f4f", INK.accent)}>
-          <span aria-hidden="true">&#9776;</span> Rulebook
+          <span aria-hidden="true">&#9776;</span> {t("Rulebook")}
         </button>
-        <button onClick={() => setOpen("records")} title="Hall of fame and match statistics (Esc closes)"
+        <button onClick={() => setOpen("records")} title={t("Hall of fame and match statistics (Esc closes)")}
           style={pill("#231f14", "#7a6a3f", "#f5d76e")}>
-          <span aria-hidden="true">&#9733;</span> Records
+          <span aria-hidden="true">&#9733;</span> {t("Records")}
         </button>
         {access.server && (
           <button onClick={() => setOpen("feedback")}
-            title={access.admin ? "Write in, read what came in, and see who is playing" : "Tell the designer how it played (Esc closes)"}
+            title={access.admin ? t("Write in, read what came in, and see who is playing") : t("Tell the designer how it played (Esc closes)")}
             style={pill("#241d14", "#7a6a3f", "#f0a868")}>
-            <span aria-hidden="true">&#9998;</span> {access.admin ? "Playtest" : "Feedback"}
+            <span aria-hidden="true">&#9998;</span> {access.admin ? t("Playtest") : t("Feedback")}
           </button>
         )}
         <LiveCounts counts={counts} />

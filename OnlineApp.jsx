@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Game, { setNet, getEngineVersion, Floating } from "./EntrepreneursGame.jsx";
 import SiteChrome from "./Rulebook.jsx";
 import { accountChanged } from "./Feedback.jsx";
+import { t, useLang } from "./i18n.js";
 
 const api = async (path, body) => {
   const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -49,14 +50,16 @@ function AccountPanel({ account, setAccount, onName }) {
   /* Arriving from a reset email. The link is checked before the form is offered, so
      an expired one says so now rather than after they have typed a new password. */
   useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get("reset");
-    if (!t) return;
-    fetch(`/api/reset?token=${encodeURIComponent(t)}`, { cache: "no-store" })
+    /* `tok`, not `t` - `t` is the translate function, and naming the token `t`
+       shadowed it, so the line below called a string and the error never showed. */
+    const tok = new URLSearchParams(window.location.search).get("reset");
+    if (!tok) return;
+    fetch(`/api/reset?token=${encodeURIComponent(tok)}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((r) => {
-        setResetToken(t);
+        setResetToken(tok);
         if (r.valid) { setPane("reset"); setNote(`Choose a new password for ${r.name}.`); }
-        else { setPane("forgot"); setErr("That reset link has expired or has already been used."); }
+        else { setPane("forgot"); setErr(t("That reset link has expired or has already been used.")); }
       })
       .catch(() => {});
   }, []);
@@ -67,7 +70,7 @@ function AccountPanel({ account, setAccount, onName }) {
       const r = await api(path, payload);
       if (r.body.error) setErr(r.body.error);
       else after(r.body);
-    } catch (_) { setErr("Could not reach the server."); }
+    } catch (_) { setErr(t("Could not reach the server.")); }
     setBusy(false);
   };
 
@@ -88,10 +91,10 @@ function AccountPanel({ account, setAccount, onName }) {
         style={{ backgroundColor: "#101318", border: "1px solid #2c5f4f" }}>
         <div className="text-[11px]" style={{ color: "#8fd3b6" }}>
           Signed in as <b>{account.name}</b>
-          <div className="text-[10px]" style={{ color: "#6b7280" }}>Only you can play under this name.</div>
+          <div className="text-[10px]" style={{ color: "#6b7280" }}>{t("Only you can play under this name.")}</div>
         </div>
         <button style={{ ...link, color: "#9ca3af", fontSize: 11 }}
-          onClick={() => send("/api/logout", {}, () => { setAccount(null); accountChanged(); })} disabled={busy}>Sign out</button>
+          onClick={() => send("/api/logout", {}, () => { setAccount(null); accountChanged(); })} disabled={busy}>{t("Sign out")}</button>
       </div>
     );
   }
@@ -99,97 +102,95 @@ function AccountPanel({ account, setAccount, onName }) {
   const fieldset = (
     <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#101318" }}>
       {pane === "signin" && (<>
-        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Sign in</div>
-        <input style={field} placeholder="Your name" value={form.name || ""} onChange={set("name")} maxLength={24} />
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Sign in")}</div>
+        <input style={field} placeholder={t("Your name")} value={form.name || ""} onChange={set("name")} maxLength={24} />
         <input style={field} type="password" placeholder="Password" value={form.password || ""} onChange={set("password")} />
         <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
-          onClick={() => send("/api/login", { name: form.name, password: form.password }, done)}>Sign in</button>
+          onClick={() => send("/api/login", { name: form.name, password: form.password }, done)}>{t("Sign in")}</button>
         <div className="flex justify-between mt-2 text-[10px]">
-          <button style={{ ...link, color: "#8fd3b6" }} onClick={() => open("register")}>Create an account</button>
-          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("forgot")}>Forgot password</button>
+          <button style={{ ...link, color: "#8fd3b6" }} onClick={() => open("register")}>{t("Create an account")}</button>
+          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("forgot")}>{t("Forgot password")}</button>
         </div>
       </>)}
 
       {pane === "register" && (<>
-        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Create an account</div>
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Create an account")}</div>
         <div className="text-[10px] text-gray-500 mb-2">
-          This reserves your name, so nobody else can play as you and change your record.
+          {t("This reserves your name, so nobody else can play as you and change your record.")}
         </div>
-        <input style={field} placeholder="Your name" value={form.name || ""} onChange={set("name")} maxLength={24} />
-        <input style={field} type="password" placeholder="Password (8 characters or more)"
+        <input style={field} placeholder={t("Your name")} value={form.name || ""} onChange={set("name")} maxLength={24} />
+        <input style={field} type="password" placeholder={t("Password (8 characters or more)")}
           value={form.password || ""} onChange={set("password")} />
         {/* No address is asked for. Recovery is the question below, and collecting one
             the game will never write to is taking something for nothing. */}
         <div className="text-[10px] text-gray-500 mt-1 mb-1">
-          Pick a question. If you forget your password, answering it is how you set a new one.
-          Choose something you will still know in a month.
+          {t("Pick a question. If you forget your password, answering it is how you set a new one. Choose something you will still know in a month.")}
         </div>
         <select style={{ ...field, cursor: "pointer" }} value={form.question || ""} onChange={set("question")}>
-          <option value="">Choose a question&hellip;</option>
+          <option value="">{t("Choose a question…")}</option>
           {questions.map((q) => <option key={q.key} value={q.key}>{q.text}</option>)}
         </select>
-        <input style={field} placeholder="Your answer" value={form.answer || ""} onChange={set("answer")} maxLength={120} />
+        <input style={field} placeholder={t("Your answer")} value={form.answer || ""} onChange={set("answer")} maxLength={120} />
         <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
           onClick={() => send("/api/register", { name: form.name, password: form.password,
             question: form.question, answer: form.answer }, done)}>
-          Create account
+          {t("Create account")}
         </button>
         <div className="mt-2 text-[10px]">
-          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("signin")}>I already have one</button>
+          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("signin")}>{t("I already have one")}</button>
         </div>
       </>)}
 
       {pane === "forgot" && (<>
-        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Forgot your password</div>
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Forgot your password")}</div>
         <div className="text-[10px] text-gray-500 mb-2">
-          Type your name and answer the question you chose when you registered.
+          {t("Type your name and answer the question you chose when you registered.")}
         </div>
-        <input style={field} placeholder="Your name" value={form.name || ""} onChange={set("name")} maxLength={24} />
+        <input style={field} placeholder={t("Your name")} value={form.name || ""} onChange={set("name")} maxLength={24} />
         <button disabled={busy} style={btn("#20232c", "#e5e7eb")}
           onClick={() => send("/api/question", { name: form.name }, (b) => {
             setForm((f) => ({ ...f, name: b.name }));
             setQuestion(b.question);
             setPane("answer");
           })}>
-          Continue
+          {t("Continue")}
         </button>
         <div className="mt-2 text-[10px]">
-          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("signin")}>Back to sign in</button>
+          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("signin")}>{t("Back to sign in")}</button>
         </div>
       </>)}
 
       {pane === "answer" && (<>
-        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Your question</div>
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Your question")}</div>
         <div className="text-[11px] mb-2" style={{ color: "#8fd3b6" }}>{question}</div>
-        <input style={field} placeholder="Your answer" value={form.answer || ""} onChange={set("answer")} maxLength={120} />
-        <input style={field} type="password" placeholder="New password (8 characters or more)"
+        <input style={field} placeholder={t("Your answer")} value={form.answer || ""} onChange={set("answer")} maxLength={120} />
+        <input style={field} type="password" placeholder={t("New password (8 characters or more)")}
           value={form.password || ""} onChange={set("password")} />
         <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
           onClick={() => send("/api/recover", { name: form.name, answer: form.answer, password: form.password }, done)}>
-          Set password and sign in
+          {t("Set password and sign in")}
         </button>
         <div className="text-[10px] text-gray-500 mt-2">
-          Your old password cannot be shown to you &mdash; it is stored scrambled, which is what keeps it safe
-          even if the file is stolen. Setting a new one is the way back in.
+          {t("Your old password cannot be shown to you — it is stored scrambled, which is what keeps it safe even if the file is stolen. Setting a new one is the way back in.")}
         </div>
         <div className="mt-2 text-[10px]">
-          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("forgot")}>Wrong name</button>
+          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("forgot")}>{t("Wrong name")}</button>
         </div>
       </>)}
 
-      {/* There was a "Reset by email" pane here. The server can still mint and honour a
+      {/* There was a t("Reset by email") pane here. The server can still mint and honour a
           link - /api/forgot and the reset pane below are untouched, and setting the mail
           variables brings the whole path back - but nothing offers it, because nothing is
           configured to deliver it. A button that silently sends nothing is worse than no
           button. */}
 
       {pane === "reset" && (<>
-        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Choose a new password</div>
-        <input style={field} type="password" placeholder="New password (8 characters or more)"
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Choose a new password")}</div>
+        <input style={field} type="password" placeholder={t("New password (8 characters or more)")}
           value={form.password || ""} onChange={set("password")} />
         <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
           onClick={() => send("/api/reset", { token: resetToken, password: form.password }, done)}>
-          Set password and sign in
+          {t("Set password and sign in")}
         </button>
       </>)}
 
@@ -197,7 +198,7 @@ function AccountPanel({ account, setAccount, onName }) {
       {note && <div className="text-[10px] mt-2" style={{ color: "#8fd3b6" }}>{note}</div>}
       {pane !== "reset" && pane !== "answer" && (
         <div className="mt-2 text-[10px]">
-          <button style={{ ...link, color: "#6b7280" }} onClick={() => setPane(null)}>Not now &mdash; play as a guest</button>
+          <button style={{ ...link, color: "#6b7280" }} onClick={() => setPane(null)}>{t("Not now — play as a guest")}</button>
         </div>
       )}
     </div>
@@ -207,7 +208,7 @@ function AccountPanel({ account, setAccount, onName }) {
   return (
     <div className="text-[10px] mb-3" style={{ color: "#6b7280" }}>
       Playing as a guest.{" "}
-      <button style={{ ...link, color: "#8fd3b6" }} onClick={() => open("signin")}>Sign in</button>
+      <button style={{ ...link, color: "#8fd3b6" }} onClick={() => open("signin")}>{t("Sign in")}</button>
       {" or "}
       <button style={{ ...link, color: "#8fd3b6" }} onClick={() => open("register")}>reserve your name</button>.
     </div>
@@ -268,9 +269,9 @@ function Lobby({ onEnter }) {
   }, [name]);
 
   const go = async (fn) => {
-    if (!name.trim()) return setErr("Enter your name first.");
+    if (!name.trim()) return setErr(t("Enter your name first."));
     setBusy(true); setErr("");
-    try { await fn(); } catch (e) { setErr("Could not reach the server."); }
+    try { await fn(); } catch (e) { setErr(t("Could not reach the server.")); }
     setBusy(false);
   };
 
@@ -307,7 +308,7 @@ function Lobby({ onEnter }) {
   });
 
   const join = () => go(async () => {
-    if (!code.trim()) return setErr("Enter the room code.");
+    if (!code.trim()) return setErr(t("Enter the room code."));
     const r = await api("/api/join", { code: code.trim().toUpperCase(), name: name.trim() });
     if (r.body.error) return setErr(r.body.error);
     onEnter({ code: r.body.code, token: r.body.token, seat: r.body.seat, host: false,
@@ -330,7 +331,7 @@ function Lobby({ onEnter }) {
         Your games ({mine.games.length})
       </div>
       <div className="text-[10px] text-gray-500 mb-2">
-        Every table you are sitting at. Open any of them from any device while you are signed in.
+        {t("Every table you are sitting at. Open any of them from any device while you are signed in.")}
       </div>
       {mine.games.map((g) => (
         <button key={g.code} onClick={() => resumeGame(g)} disabled={busy}
@@ -361,7 +362,7 @@ function Lobby({ onEnter }) {
     <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
       <div className="rounded-xl p-6" style={{ ...box, width: "100%", maxWidth: 420 }}>
         <h1 className="text-2xl font-bold text-white tracking-tight mb-1">ENTREPRENEURS</h1>
-        <p className="text-sm text-gray-400 mb-5">Play online with friends &mdash; 2 to 6 players.</p>
+        <p className="text-sm text-gray-400 mb-5">{t("Play online with friends — 2 to 6 players.")}</p>
 
         <AccountPanel account={account} setAccount={(u) => { setAccount(u); if (!u) setNick(null); }}
           onName={(n) => { setName(n); setReturning(false); }} />
@@ -371,11 +372,11 @@ function Lobby({ onEnter }) {
         {/* Signed in, the name is your account's and not a free-text field: changing it
             here would only mean being refused at Create room. Sign out to play as a guest. */}
         <input style={{ ...field, ...(account ? { color: "#8fd3b6", cursor: "not-allowed" } : null) }}
-          placeholder="Your name" value={name} maxLength={16} readOnly={!!account}
+          placeholder={t("Your name")} value={name} maxLength={16} readOnly={!!account}
           onChange={(e) => { setName(e.target.value); setReturning(false); }} />
         {returning && !!name && !account && !(nick && (nick.taken || nick.registered)) && (
           <div className="text-[10px] -mt-2 mb-3" style={{ color: "#8fd3b6" }}>
-            Welcome back, {name}. <span style={{ color: "#6b7280" }}>Not you? Just type over it.</span>
+            Welcome back, {name}. <span style={{ color: "#6b7280" }}>{t("Not you? Just type over it.")}</span>
           </div>
         )}
         {/* A registered name is not a warning, it is a locked door - say so plainly
@@ -383,26 +384,26 @@ function Lobby({ onEnter }) {
         {nick && nick.registered && !nick.yours && (
           <div className="text-[10px] -mt-2 mb-3" style={{ color: "#fca5a5" }}>
             <b>{nick.name}</b> is a registered player, so only they can play under it.{" "}
-            <span style={{ color: "#6b7280" }}>Sign in if that is you, or pick another name.</span>
+            <span style={{ color: "#6b7280" }}>{t("Sign in if that is you, or pick another name.")}</span>
           </div>
         )}
         {nick && nick.taken && !nick.registered && (
           <div className="text-[10px] -mt-2 mb-3" style={{ color: "#e0b060" }}>
             Someone else already plays as <b>{nick.name}</b>. Records are kept by name, so
             your scores would add together in one hall-of-fame row.
-            <span style={{ color: "#6b7280" }}> Add something to tell yourselves apart &mdash; or carry on, if it really is you.</span>
+            <span style={{ color: "#6b7280" }}> {t("Add something to tell yourselves apart — or carry on, if it really is you.")}</span>
           </div>
         )}
         {nick && !nick.taken && !nick.registered && nick.mine && !returning && (
           <div className="text-[10px] -mt-2 mb-3" style={{ color: "#8fd3b6" }}>
             Your records are under this name.{" "}
-            <span style={{ color: "#6b7280" }}>Reserve it above and nobody else can use it.</span>
+            <span style={{ color: "#6b7280" }}>{t("Reserve it above and nobody else can use it.")}</span>
           </div>
         )}
 
         <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#101318" }}>
-          <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Start a new game</div>
-          <div className="text-[11px] text-gray-500 mb-2">Six chairs in all. Add bots for the chairs you want filled; the rest stay empty.</div>
+          <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Start a new game")}</div>
+          <div className="text-[11px] text-gray-500 mb-2">{t("Six chairs in all. Add bots for the chairs you want filled; the rest stay empty.")}</div>
           <div className="flex gap-1 mb-3">
             {[0, 1, 2, 3, 4, 5].map((b) => (
               <button key={b} onClick={() => setBots(b)}
@@ -412,19 +413,18 @@ function Lobby({ onEnter }) {
               </button>
             ))}
           </div>
-          <button onClick={create} disabled={busy} style={btn("#2c5f4f", "#d3fcec")}>Create room</button>
+          <button onClick={create} disabled={busy} style={btn("#2c5f4f", "#d3fcec")}>{t("Create room")}</button>
         </div>
 
         <div className="rounded-lg p-3" style={{ backgroundColor: "#101318" }}>
-          <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Join a friend</div>
+          <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Join a friend")}</div>
           <p className="text-[10px] text-gray-500 mb-2">
-            If the game has already started or the table is full, you will join as a
-            watcher — you can see the whole board, chat and talk, but not play.
+            {t("If the game has already started or the table is full, you will join as a watcher — you can see the whole board, chat and talk, but not play.")}
           </p>
           <input style={{ ...field, textTransform: "uppercase", letterSpacing: 2, fontFamily: "ui-monospace, monospace" }}
-            placeholder="ROOM CODE" value={code} maxLength={6}
+            placeholder={t("ROOM CODE")} value={code} maxLength={6}
             onChange={(e) => setCode(e.target.value)} />
-          <button onClick={join} disabled={busy} style={btn("#20232c", "#e5e7eb")}>Join room</button>
+          <button onClick={join} disabled={busy} style={btn("#20232c", "#e5e7eb")}>{t("Join room")}</button>
         </div>
 
         {/* Said before anybody starts a game rather than discovered afterwards. A
@@ -495,22 +495,22 @@ function WaitingRoom({ me, lobby, onLeave }) {
   return (
     <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
       <div className="rounded-xl p-6" style={{ ...box, width: "100%", maxWidth: 420 }}>
-        <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Room code</div>
+        <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">{t("Room code")}</div>
         <div className="flex items-center gap-2 mb-4">
           <div className="text-3xl font-bold tracking-widest" style={{ color: "#8fd3b6", fontFamily: "ui-monospace, monospace" }}>{me.code}</div>
           <button onClick={() => navigator.clipboard && navigator.clipboard.writeText(me.code)}
             className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", color: "#9ca3af", border: "1px solid #33384a", cursor: "pointer" }}>copy</button>
         </div>
-        <p className="text-[11px] text-gray-500 mb-4">Share this code &mdash; your friends enter it under &ldquo;Join a friend&rdquo;.</p>
+        <p className="text-[11px] text-gray-500 mb-4">{t("Share this code — your friends enter it under “Join a friend”.")}</p>
 
-        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">In the room</div>
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("In the room")}</div>
         <div className="space-y-1.5 mb-4">
           {(lobby ? lobby.members : [{ name: me.name, seat: me.seat, host: me.host }]).map((m) => (
             <div key={m.seat} className="flex items-center justify-between text-sm rounded p-2" style={{ backgroundColor: "#1c1f26" }}>
               <span className="text-gray-200">{m.name}{m.seat === me.seat ? " (you)" : ""}</span>
               {m.host ? <span className="text-[10px] text-gray-500">host</span>
                 : me.host ? (
-                  <button onClick={() => kick(m.seat)} title="Remove this player"
+                  <button onClick={() => kick(m.seat)} title={t("Remove this player")}
                     className="text-[10px]" style={{ background: "none", border: "none", color: "#8b93a3", textDecoration: "underline", cursor: "pointer" }}>
                     remove
                   </button>
@@ -521,7 +521,7 @@ function WaitingRoom({ me, lobby, onLeave }) {
             <div key={`b${i}`} className="flex items-center justify-between text-sm rounded p-2" style={{ backgroundColor: "#141720" }}>
               <span className="text-gray-500 italic">Bot</span>
               {me.host && i === lobby.bots - 1 ? (
-                <button onClick={() => setBots(lobby.bots - 1)} title="Remove this bot"
+                <button onClick={() => setBots(lobby.bots - 1)} title={t("Remove this bot")}
                   className="text-[10px]" style={{ background: "none", border: "none", color: "#8b93a3", textDecoration: "underline", cursor: "pointer" }}>
                   remove
                 </button>
@@ -539,9 +539,9 @@ function WaitingRoom({ me, lobby, onLeave }) {
           )}
         </div>
 
-        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Table rules</div>
+        <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Table rules")}</div>
         <OptionToggle on={!!(lobby && lobby.personas)} name="Personas"
-          blurb="Each player is dealt a random specialist power, one per industry."
+          blurb={t("Each player is dealt a random specialist power, one per industry.")}
           readOnly={!me.host}
           onToggle={async () => {
             const r = await api("/api/options", { code: me.code, token: me.token, personas: !(lobby && lobby.personas) });
@@ -556,7 +556,7 @@ function WaitingRoom({ me, lobby, onLeave }) {
             style={{ background: "none", border: "none", color: "#8b93a3", cursor: "pointer" }}>
             {showVariants ? "\u25be" : "\u25b8"} Rule variants
             {variantsOn.length ? <span style={{ color: "#8fd3b6" }}> &mdash; {variantsOn.length} on</span>
-              : <span style={{ color: "#4b5563" }}> &mdash; standard rules</span>}
+              : <span style={{ color: "#4b5563" }}> {t("— standard rules")}</span>}
           </button>
         )}
         {me.host && showVariants && catalogue.map((v) => (
@@ -566,7 +566,7 @@ function WaitingRoom({ me, lobby, onLeave }) {
         {!me.host && !!variantsOn.length && (
           <div className="rounded-md px-3 py-2 mb-1.5 text-[11px]"
             style={{ backgroundColor: "#1c1f26", border: "1px solid #2c5f4f", color: "#8fd3b6" }}>
-            <div className="font-bold mb-1">The host changed the rules:</div>
+            <div className="font-bold mb-1">{t("The host changed the rules:")}</div>
             {variantsOn.map((v) => (
               <div key={v.key} className="text-[10px]" style={{ color: "#c3c9d4", lineHeight: 1.45 }}>
                 &bull; <strong>{v.name}</strong> &mdash; {v.blurb}
@@ -582,10 +582,10 @@ function WaitingRoom({ me, lobby, onLeave }) {
                 : total > 6 ? "A table seats 6 \u2014 remove someone"
                   : `Start game (${total} players)`}
             </button>
-            <p className="text-[10px] text-gray-600 mt-2">You can start as soon as everyone has joined.</p>
+            <p className="text-[10px] text-gray-600 mt-2">{t("You can start as soon as everyone has joined.")}</p>
           </>
         ) : (
-          <div className="text-xs text-gray-500 italic text-center py-2">Waiting for the host to start&hellip;</div>
+          <div className="text-xs text-gray-500 italic text-center py-2">{t("Waiting for the host to start…")}</div>
         )}
         {err && <div className="text-xs mt-3" style={{ color: "#fca5a5" }}>{err}</div>}
 
@@ -599,15 +599,15 @@ function WaitingRoom({ me, lobby, onLeave }) {
         )}
         {me.spectator && (
           <div className="mt-3 rounded p-2 text-[11px]" style={{ backgroundColor: "#1c2733", color: "#8fd3b6" }}>
-            You are watching this room. The host starts the game when the players are ready.
+            {t("You are watching this room. The host starts the game when the players are ready.")}
           </div>
         )}
         <button onClick={onLeave} className="w-full mt-3 text-xs"
           style={{ background: "none", border: "none", color: "#6b7280", textDecoration: "underline", cursor: "pointer", padding: "6px 0" }}>
-          {me.spectator ? "Stop watching" : me.host ? "Cancel this room and go back" : "Leave this room"}
+          {me.spectator ? "Stop watching" : me.host ? "Cancel this room and go back" : t("Leave this room")}
         </button>
         <p className="text-[10px] text-gray-600 mt-1 text-center">
-          Meant to join a friend instead? Go back and use their room code.
+          {t("Meant to join a friend instead? Go back and use their room code.")}
         </p>
       </div>
     </div>
@@ -691,9 +691,9 @@ function insecureReason() {
   if (proto === "http:" && host && host !== "localhost" && host !== "127.0.0.1") {
     return `Voice needs a secure connection. This page is on http://${host}, and browsers only give a microphone `
       + "to https:// pages (or to localhost). Chat still works. To get voice, reach the game over https - a "
-      + "tunnel such as ngrok or cloudflared gives you one, and so does hosting it on Render or Fly.";
+      + t("tunnel such as ngrok or cloudflared gives you one, and so does hosting it on Render or Fly.");
   }
-  return "This browser will not give the page a microphone. Chat still works.";
+  return t("This browser will not give the page a microphone. Chat still works.");
 }
 
 function useVoice(me, active) {
@@ -831,7 +831,7 @@ function useVoice(me, active) {
        Over plain http to an address like 192.168.1.20 or a http:// tunnel,
        navigator.mediaDevices is not merely empty - it does not exist, and calling
        getUserMedia on it throws a TypeError. That used to be caught below and
-       reported as "No microphone available", which sent people hunting for a
+       reported as t("No microphone available"), which sent people hunting for a
        hardware fault that was not there: the host, on localhost, could always join,
        and only the friends who connected over the network could not. */
     if (!micPossible()) { setError(insecureReason()); return; }
@@ -969,7 +969,7 @@ function TablePanel({ me, chat, onSend }) {
                 <div style={{ height: 210, overflowY: "auto", padding: "8px 10px" }}>
                   {!chat.length && (
                     <div style={{ fontSize: 11, color: "#6b7280", fontStyle: "italic" }}>
-                      No messages yet. Say hello to the table.
+                      {t("No messages yet. Say hello to the table.")}
                     </div>
                   )}
                   {chat.map((m) => (
@@ -989,7 +989,7 @@ function TablePanel({ me, chat, onSend }) {
                   <input value={draft} maxLength={400}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-                    placeholder="Message the table"
+                    placeholder={t("Message the table")}
                     style={{ flex: 1, backgroundColor: "#1c1f26", border: "1px solid #262a33",
                       borderRadius: 5, color: "#e5e7eb", fontSize: 12, padding: "6px 8px", outline: "none" }} />
                   <button onClick={send} disabled={!draft.trim()}
@@ -1013,8 +1013,7 @@ function TablePanel({ me, chat, onSend }) {
                       </div>
                     ) : (
                       <div style={{ fontSize: 11, color: "#9aa3b2", lineHeight: 1.45, marginBottom: 9 }}>
-                        Talk to the other players while you play. Your browser will ask for
-                        microphone permission. Audio goes directly between players, not through the server.
+                        {t("Talk to the other players while you play. Your browser will ask for microphone permission. Audio goes directly between players, not through the server.")}
                       </div>
                     )}
                     <button onClick={voice.start} disabled={!micPossible()}
@@ -1027,7 +1026,7 @@ function TablePanel({ me, chat, onSend }) {
                 ) : (
                   <>
                     <div style={{ fontSize: 10, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>
-                      ON THE CALL
+                      {t("ON THE CALL")}
                     </div>
                     <div style={{ marginBottom: 9 }}>
                       <div style={{ fontSize: 12, color: "#8fd3b6" }}>
@@ -1049,15 +1048,12 @@ function TablePanel({ me, chat, onSend }) {
                           a bug in their phone. */}
                       {voice.relay === false && voice.peers.some((p) => p.state === "failed") && (
                         <div style={{ fontSize: 11, color: "#e0b060", lineHeight: 1.45, marginTop: 6 }}>
-                          No relay is set up on this server, so a direct path has to exist
-                          between the two of you. Mobile networks usually block one. On wifi
-                          it should connect; otherwise use chat, or ask the host to configure
-                          a TURN relay.
+                          {t("No relay is set up on this server, so a direct path has to exist between the two of you. Mobile networks usually block one. On wifi it should connect; otherwise use chat, or ask the host to configure a TURN relay.")}
                         </div>
                       )}
                       {!voice.peers.length && (
                         <div style={{ fontSize: 11, color: "#6b7280", fontStyle: "italic", marginTop: 3 }}>
-                          Waiting for someone else to join&hellip;
+                          {t("Waiting for someone else to join…")}
                         </div>
                       )}
                     </div>
@@ -1069,7 +1065,7 @@ function TablePanel({ me, chat, onSend }) {
                       </button>
                       <button onClick={voice.stop}
                         style={{ ...btn, flex: 1, backgroundColor: "#3a1f1f", border: "1px solid #7a3f3f",
-                          color: "#fca5a5", fontWeight: 700 }}>Leave call</button>
+                          color: "#fca5a5", fontWeight: 700 }}>{t("Leave call")}</button>
                     </div>
                   </>
                 )}
@@ -1233,7 +1229,7 @@ function OnlineTable({ onTable }) {
 
   if (checking) return (
     <div className="w-full min-h-screen flex items-center justify-center" style={{ backgroundColor: "#0e1014" }}>
-      <div className="text-sm text-gray-500">Reconnecting&hellip;</div>
+      <div className="text-sm text-gray-500">{t("Reconnecting…")}</div>
     </div>
   );
   if (!me) return <Lobby onEnter={enter} />;
@@ -1278,7 +1274,7 @@ function OnlineTable({ onTable }) {
           <button onClick={() => window.location.reload(true)}
             style={{ background: "none", border: "none", padding: 0, font: "inherit",
               color: "#f5d76e", textDecoration: "underline", cursor: "pointer" }}>
-            Reload the page
+            {t("Reload the page")}
           </button>
           {" "}\u2014 that fixes it almost every time. If it comes back, the host needs to
           redeploy.
@@ -1291,14 +1287,14 @@ function OnlineTable({ onTable }) {
         display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end",
         maxWidth: "calc(100vw - 16px)" }}>
         {me.spectator && (
-          <span title="You can chat and join the voice call, but you cannot take actions."
+          <span title={t("You can chat and join the voice call, but you cannot take actions.")}
             style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, cursor: "help",
               backgroundColor: "#1c2733", border: "1px solid #3a4152", color: "#8fd3b6" }}>
             watching
           </span>
         )}
         <span style={{ fontSize: 10, fontFamily: "ui-monospace, monospace", color: "#6b7280" }}>room {me.code}</span>
-        <button onClick={() => setMuted((v) => !v)} title={muted ? "Turn the turn chime on" : "Turn the turn chime off"}
+        <button onClick={() => setMuted((v) => !v)} title={muted ? "Turn the turn chime on" : t("Turn the turn chime off")}
           style={{ fontSize: 11, background: "none", border: "none", cursor: "pointer", color: muted ? "#6b7280" : "#8fd3b6", padding: 0, lineHeight: 1 }}>
           {muted ? "\uD83D\uDD07" : "\uD83D\uDD0A"}
         </button>
@@ -1312,14 +1308,14 @@ function OnlineTable({ onTable }) {
             A PLAYER cannot leave a game in progress without abandoning their
             seat, and usually does not want to: they want the lobby, to start or
             open another game. That keeps the seat, and the game is waiting under
-            "Your games" when they come back. */}
+            t("Your games") when they come back. */}
         {me.spectator ? (
-          <button onClick={() => leave(true)} title="Stop watching and go back to the lobby"
+          <button onClick={() => leave(true)} title={t("Stop watching and go back to the lobby")}
             style={{ fontSize: 10, color: "#6b7280", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-            stop watching
+            {t("stop watching")}
           </button>
         ) : (
-          <button onClick={() => leave(false)} title="Back to the lobby. Your seat is kept - the game is under Your games when you want it."
+          <button onClick={() => leave(false)} title={t("Back to the lobby. Your seat is kept - the game is under Your games when you want it.")}
             style={{ fontSize: 10, color: "#6b7280", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
             lobby
           </button>

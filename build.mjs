@@ -25,7 +25,14 @@ function stampEngineVersion() {
   const file = "EntrepreneursGame.jsx";
   const src = readFileSync(file, "utf8");
   const pattern = /const ENGINE_VERSION = "[^"]*";/;
-  const engine = src.slice(0, src.indexOf(ENGINE_MARK)).replace(pattern, "");
+  /* Hash what the SERVER actually runs. server.js loads the engine half with every
+     import and export line stripped out, so a UI-only import added at the top of the
+     file changes no rule - and used to change this hash anyway, telling every player
+     mid-game that the rules had moved. Strip the same lines here and the version
+     tracks the rules rather than the file. */
+  const engine = src.slice(0, src.indexOf(ENGINE_MARK))
+    .replace(pattern, "")
+    .replace(/^\s*(import|export)\s.*$/gm, "");
   const hash = createHash("sha256").update(engine).digest("hex").slice(0, 8);
   const next = src.replace(pattern, `const ENGINE_VERSION = "${hash}";`);
   if (next !== src) {

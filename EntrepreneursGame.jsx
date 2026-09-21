@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import SiteChrome from "./Rulebook.jsx";
+import { t, useLang } from "./i18n.js";
 
 /* ============================== DATA ============================== */
 
@@ -1791,7 +1792,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "08437716";
+const ENGINE_VERSION = "65d9172c";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -4046,12 +4047,12 @@ function BoardViewport({ size, children }) {
       </div>
       <div className="board-zoom">
         <button type="button" onClick={() => zoomTo(zoom - ZOOM_STEP)}
-                disabled={zoom <= ZOOM_MIN} aria-label="Zoom out">&minus;</button>
+                disabled={zoom <= ZOOM_MIN} aria-label={t("Zoom out")}>&minus;</button>
         <span className="pct">{Math.round(scale * 100)}%</span>
         <button type="button" onClick={() => zoomTo(zoom + ZOOM_STEP)}
-                disabled={zoom >= ZOOM_MAX} aria-label="Zoom in">+</button>
+                disabled={zoom >= ZOOM_MAX} aria-label={t("Zoom in")}>+</button>
         <button type="button" onClick={() => { setZoom(1); }}
-                disabled={zoom === 1} aria-label="Fit the whole board">Fit</button>
+                disabled={zoom === 1} aria-label={t("Fit the whole board")}>Fit</button>
         <span className="hint">{zoom > 1 ? "drag to pan" : "pinch or + to zoom"}</span>
       </div>
     </>
@@ -4130,7 +4131,7 @@ function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot
     const cy = (ra.y + ra.h / 2 + rb.y + rb.h / 2) / 2;
     const d = 15;
     layers.push(
-      <div key={`lh-${i}`} title="Logistic Hub" style={{
+      <div key={`lh-${i}`} title={t("Logistic Hub")} style={{
         position: "absolute", left: cx - d / 2, top: cy - d / 2, width: d, height: d,
         borderRadius: "50%", backgroundColor: "#111827",
         border: "2.5px solid #22D3EE", boxShadow: "0 0 6px rgba(34,211,238,0.9)",
@@ -4178,13 +4179,13 @@ function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot
         {Object.entries(DIST_TYPE_LABEL).map(([k, label]) => (
           <div key={k} className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: DIST_TYPE_COLOR[k] }} />
-            <span className="text-[9px] text-gray-400">{label}</span>
+            <span className="text-[9px] text-gray-400">{t(label)}</span>
           </div>
         ))}
         {selectMode && (
           <div className="flex items-center gap-1 ml-2">
             <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: "#0d2818", border: "2px solid #4ade80" }} />
-            <span className="text-[9px]" style={{ color: "#4ade80" }}>Click to build here</span>
+            <span className="text-[9px]" style={{ color: "#4ade80" }}>{t("Click to build here")}</span>
           </div>
         )}
         <div className="flex items-center gap-1 ml-2">
@@ -4243,7 +4244,7 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
           border: `2px solid ${ownerColor}`, pointerEvents: "none" }} />
       )}
       {foundBiz && foundBiz.distressed && (
-        <span title="Distressed - unowned" style={{ position: "absolute", inset: 0,
+        <span title={t("Distressed - unowned")} style={{ position: "absolute", inset: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 11, fontWeight: 800, color: "#f5a623", pointerEvents: "none" }}>!</span>
       )}
@@ -4259,7 +4260,7 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
         }}>{storeys}</span>
       )}
       {isHub && (
-        <span title="Logistic Hub" style={{
+        <span title={t("Logistic Hub")} style={{
           position: "absolute", inset: 2, borderRadius: "50%", backgroundColor: "#22D3EE",
           border: "1.5px solid #0e5f6f", pointerEvents: "none",
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -4293,7 +4294,7 @@ function RentLine({ p }) {
   return (
     <div className="mt-1.5 pt-1.5 text-[10px]" style={{ borderTop: "1px solid #262a33" }}>
       <div className="flex items-center justify-between">
-        <span className="text-gray-500">Ground rent</span>
+        <span className="text-gray-500">{t("Ground rent")}</span>
         <span className="font-mono" style={{ color: net > 0 ? "#8fd3b6" : net < 0 ? "#fca5a5" : "#8b93a3" }}>
           {net > 0 ? "+" : ""}${Math.round(net)}
         </span>
@@ -4325,7 +4326,7 @@ function EPBreakdown({ hover }) {
         <span className="text-xs font-bold" style={{ color: PLAYER_COLORS[p.id] }}>{p.name}</span>
         <span className="text-xs font-bold font-mono" style={{ color: "#8fd3b6" }}>{epTotal(p).toFixed(0)} EP</span>
       </div>
-      {!log.length && <div className="text-[10px] text-gray-500 italic">No points scored yet.</div>}
+      {!log.length && <div className="text-[10px] text-gray-500 italic">{t("No points scored yet.")}</div>}
       {log.length > 0 && (
         <>
           <div className="space-y-0.5 mb-1.5">
@@ -4457,13 +4458,13 @@ function BizTooltip({ state, hover }) {
         <div>Setup: ${bizSetup(b)} &middot; Suppliers: ${bizPotBill(b)} &middot; Ground rent: ${RENT_PER_LEVEL * b.level} (none on your own land)</div>
         <div>Split: {b.bp.deps.map((d, i) => `${d.ind} $${potShares(b)[i]}`).join(", ") || "\u2014"}</div>
         <div>Production: {bizProd(b)}/qtr</div>
-        {!canProduce && <div className="text-red-400">Land unowned — not producing</div>}
+        {!canProduce && <div className="text-red-400">{t("Land unowned — not producing")}</div>}
       </div>
     </div></Floating>
   );
 }
 function PlotInfo({ board, players, selectedPlot, pm }) {
-  if (!selectedPlot) return <div className="text-[10px] text-gray-500 italic px-1">Click a plot to inspect it.</div>;
+  if (!selectedPlot) return <div className="text-[10px] text-gray-500 italic px-1">{t("Click a plot to inspect it.")}</div>;
   const [r, c, pos] = selectedPlot.split(",");
   const tname = board.tiles[`${r},${c}`];
   const bizId = board.occupiedBy[selectedPlot];
@@ -4476,15 +4477,15 @@ function PlotInfo({ board, players, selectedPlot, pm }) {
   return (
     <div className="text-[10px] font-mono text-gray-300 px-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
       <span className="text-gray-500">{tname} &middot; {pos}</span>
-      <span title="Printed road price, +$1 per occupied plot touching it (corners count inside a district), +$1 beside a Logistic Hub. What it costs to buy, and what it sells for.">
+      <span title={t("Printed road price, +$1 per occupied plot touching it (corners count inside a district), +$1 beside a Logistic Hub. What it costs to buy, and what it sells for.")}>
         Value: <span className="text-gray-100">${plotValue({ board }, selectedPlot)}</span></span>
-      <span>Land owner: <span className="text-gray-100">{ownerName}</span></span>
+      <span>{t("Land owner:")} <span className="text-gray-100">{ownerName}</span></span>
       {biz ? (
         <span>
           Business: <span style={{ color: biz.distressed ? "#8b93a3" : IND_COLOR[biz.bp.ind] }}>{biz.bp.name}</span>
           {" "}(L{biz.level}{biz.upgraded ? "\u2191" : ""}) &mdash;{" "}
           {biz.distressed
-            ? <span style={{ color: "#f5a623" }}>Distressed &middot; unowned (renovate via M&amp;A &rarr; Buy)</span>
+            ? <span style={{ color: "#f5a623" }}>{t("Distressed · unowned (renovate via M&A → Buy)")}</span>
             : biz.isHQ
               ? <span style={{ color: "#f5d76e" }}>Megacorp HQ &ldquo;{biz.megacorpName}&rdquo; &middot; {bizOwnerName}
                   {" "}&middot; <span style={{ color: "#c9a0ff" }}>tier {tierOfHQ(biz)}</span>
@@ -4495,7 +4496,7 @@ function PlotInfo({ board, players, selectedPlot, pm }) {
               : bizOwnerName}
         </span>
       ) : (
-        <span className="text-gray-500">Empty plot</span>
+        <span className="text-gray-500">{t("Empty plot")}</span>
       )}
     </div>
   );
@@ -4569,7 +4570,7 @@ function BPCard({ bp, onClick, disabled, small, player }) {
         <div>Setup ${bp.setup} &middot; Opex ${bp.opex}</div>
         <div>Prod {bp.prod} &middot; {bp.deps.map((d) => `${d.ind} $${d.val}`).join(", ")}</div>
         {/* The word has to be readable - "H" teaches nobody which industries spread -
-            but "Horizontal * 1 plot" wraps on the 128px hand card. One plot is the
+            but t("Horizontal * 1 plot") wraps on the 128px hand card. One plot is the
             assumption anyway, so the count only appears when it is not one. */}
         <div title={growthTitle(g, bp.ind)} style={{ color: IND_COLOR[bp.ind] }}>
           {SCALING_GLYPH[g.dir]} {SCALING_NAME[g.dir]}{g.flipped ? " \u2605" : ""}
@@ -4600,17 +4601,17 @@ function BizCard({ b, onUpgrade, onSell, canUpgrade }) {
 
 function TrackBoard({ state, human }) {
   const tracks = [
-    ["raise_capital", "Raise Capital", ["LOAN", "SELL"]],
+    ["raise_capital", t("Raise Capital"), ["LOAN", "SELL"]],
     ["ma", "M&A", ["BUY", "LAUNCH"]],
     ["rd", "R&D", ["RESEARCH", "UPGRADE"]],
   ];
   return (
     <div data-tut="tracks" className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-      <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">Planning &amp; Action Tracks <Help text="Place two workers, then tracks resolve first-in, last-out: whoever placed LAST acts FIRST. Committing early earns +1 extra action for every player who joins after you, but they all act before you do." /></div>
+      <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">{t("Planning & Action Tracks")} <Help text="Place two workers, then tracks resolve first-in, last-out: whoever placed LAST acts FIRST. Committing early earns +1 extra action for every player who joins after you, but they all act before you do." /></div>
       {tracks.map(([key, label, actions]) => (
         <div key={key} className="flex items-center gap-2">
           <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0 flex items-center gap-1">
-            {label} <Help text={TRACK_HELP[key]} />
+            {t(label)} <Help text={t(TRACK_HELP[key])} />
           </div>
           <div className="flex gap-1">
             {state.tracks[key].map((pid, i) => (
@@ -4638,7 +4639,7 @@ function TrackBoard({ state, human }) {
             );
           })}
         </div>
-        <div className="text-[9px] font-mono text-gray-600">GO PUBLIC / REPOSITION</div>
+        <div className="text-[9px] font-mono text-gray-600">{t("GO PUBLIC / REPOSITION")}</div>
       </div>
     </div>
   );
@@ -4651,7 +4652,7 @@ function LiquidationPanel({ state, human, log, onContinue }) {
   return (
     <div className="rounded-lg p-3" style={{ backgroundColor: "#2a1a1a", border: "1px solid #7a3f3f" }}>
       <div className="text-xs font-bold mb-1" style={{ color: "#fca5a5" }}>
-        Cash shortfall — this quarter's bills (suppliers and rent) come to ${needed}, you have ${Math.round(human.cash)} ({short > 0 ? `$${Math.round(short)} short` : "covered, you may continue"})
+        Cash shortfall — this quarter's bills (suppliers and rent) come to ${needed}, you have ${Math.round(human.cash)} ({short > 0 ? `$${Math.round(short)} short` : t("covered, you may continue")})
       </div>
       <div className="text-[10px] mb-2" style={{ color: "#e0b060" }}>
         This is a forced sale: <b>everything goes for half</b> what a planned sale through Raise
@@ -4684,7 +4685,7 @@ function LiquidationPanel({ state, human, log, onContinue }) {
       )}
       {ownedPlots.length > 0 && (
         <>
-          <div className="text-[10px] text-gray-400 mb-1">Owned plots:</div>
+          <div className="text-[10px] text-gray-400 mb-1">{t("Owned plots:")}</div>
           <div className="flex flex-wrap gap-2 mb-2">
             {ownedPlots.map((pk) => (
               <button key={pk} onClick={() => { if (NET) return NET.send("liquidate", { type: "plot", plot: pk }); doSellPlot(state, human, pk, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
@@ -4696,7 +4697,7 @@ function LiquidationPanel({ state, human, log, onContinue }) {
       )}
       <button onClick={() => { if (NET) return NET.send("liquidateDone", {}); onContinue(true); }} disabled={short > 0 && (human.hand.length > 0 || activeBiz(human).length > 0 || ownedPlots.length > 0)}
         className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
-        Continue
+        {t("Continue")}
       </button>
       {!human.hand.length && !activeBiz(human).length && !ownedPlots.length && short > 0 && (
         <div className="text-[10px] text-red-400 mt-2">
@@ -4739,8 +4740,8 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
       {entry.track === "raise_capital" && mode === null && (
         <div className="flex gap-2">
           <button onClick={() => { if (NET) return NET.send("act", { type: "loan" }); doLoan(state, human, log); finish(); }} disabled={discsFree(state, human) <= 0}
-            className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Take Loan (+$20, +1 disc)</button>
-          <button onClick={() => setMode("sell")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Sell for cash</button>
+            className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Take Loan (+$20, +1 disc)")}</button>
+          <button onClick={() => setMode("sell")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Sell for cash")}</button>
         </div>
       )}
       {entry.track === "raise_capital" && mode === "sell" && (
@@ -4761,13 +4762,13 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
               </button>
             ))}
           </div>
-          <div className="text-[10px] text-gray-400">Owned plots (value = printed road price, +$1 per occupied plot touching it, +$1 if adjacent to an LH):</div>
+          <div className="text-[10px] text-gray-400">{t("Owned plots (value = printed road price, +$1 per occupied plot touching it, +$1 if adjacent to an LH):")}</div>
           <div className="flex flex-wrap gap-2">
             {ownedPlots.length ? ownedPlots.map((pk) => (
               <button key={pk} onClick={() => { if (NET) return NET.send("act", { type: "sellPlot", plot: pk }); doSellPlot(state, human, pk, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
                 {plotLabel(state.board, pk)} <span style={{ color: "#f3a5a5" }}>${plotValue(state, pk)}</span>
               </button>
-            )) : <span className="text-[10px] text-gray-600 italic">None owned.</span>}
+            )) : <span className="text-[10px] text-gray-600 italic">{t("None owned.")}</span>}
           </div>
           <button onClick={() => setMode(null)} className="text-[10px] text-gray-500 underline">back</button>
         </div>
@@ -4785,10 +4786,10 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
             {human.hand.map((bp, i) => (
               <BPCard key={i} bp={bp} player={human} disabled={!canLaunchMore(human) || human.cash < bp.setup || discsFree(state, human) <= 0} onClick={() => onStartLaunch(bp)} small />
             ))}
-            {!human.hand.length && <span className="text-xs text-gray-500 italic">Hand is empty.</span>}
+            {!human.hand.length && <span className="text-xs text-gray-500 italic">{t("Hand is empty.")}</span>}
           </div>
           {(() => { const why = !canLaunchMore(human) ? `all ${companySlotsFor(human)} of your company slots are taken (a Megacorp HQ holds one)` : discsFree(state, human) <= 0 ? `all ${DISCS_PER_PLAYER} of your discs are committed` : null; return why ? <div className="text-[9px]" style={{ color: "#fca5a5" }}>Can't launch: {why}.</div> : null; })()}
-          <div className="text-[9px] text-gray-500">Pick a BP, then click its plot(s) on the board — owned, unoccupied plots only. Horizontal industries at level 2+ need a connected cluster.</div>
+          <div className="text-[9px] text-gray-500">{t("Pick a BP, then click its plot(s) on the board — owned, unoccupied plots only. Horizontal industries at level 2+ need a connected cluster.")}</div>
           <button onClick={() => setMode(null)} className="text-[10px] text-gray-500 underline">back</button>
         </div>
       )}
@@ -4796,7 +4797,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
         <div className="space-y-2">
           <div className="text-[10px] text-gray-400">
             Take over a distressed structure from the bank &mdash; including one you sold yourself.
-            <b> Buy it as it stands</b> for what the bank paid for it, keeping its Blueprint and level, or
+            <b> {t("Buy it as it stands")}</b> for what the bank paid for it, keeping its Blueprint and level, or
             <b> renovate it</b> with a card from your hand for half that card&rsquo;s setup. Location matters,
             since renovating changes industry. A renovation card must match the shell&rsquo;s level, and from
             level 2 up its scaling type too; a level-1 shell takes any level-1 card:
@@ -4809,7 +4810,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                 <div key={db.id} className="rounded p-1.5" style={{ backgroundColor: "#161920", border: "1px solid #33384355" }}>
                   <div className="text-[9px] text-gray-500 mb-1">
                     Was {db.bp.ind} L{db.level} — {locs.join("+")} ({db.footprint.length} plot{db.footprint.length > 1 ? "s" : ""}){nearLH ? " \u00b7 near a Logistic Hub" : ""}
-                    {human.businesses.includes(db) && <span style={{ color: "#8fd3b6" }}> &middot; yours before you sold it</span>}
+                    {human.businesses.includes(db) && <span style={{ color: "#8fd3b6" }}> {t("· yours before you sold it")}</span>}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {/* take it over exactly as it stands, keeping its Blueprint and level */}
@@ -4827,7 +4828,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                   </div>
                 </div>
               );
-            }) : <span className="text-[10px] text-gray-600 italic">Nothing distressed in the bank right now.</span>}
+            }) : <span className="text-[10px] text-gray-600 italic">{t("Nothing distressed in the bank right now.")}</span>}
           </div>
           <div className="text-[10px] text-gray-400">
             Buy a plot ({unownedPlots.length ? `$${Math.min(...unownedPlots.map((pk) => plotValue(state, pk)))}\u2013$${Math.max(...unownedPlots.map((pk) => plotValue(state, pk)))}` : "none left"}):
@@ -4856,7 +4857,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
 
       {entry.track === "rd" && mode === null && (
         <div className="flex gap-2">
-          <button onClick={() => setMode("research")} disabled={human.hand.length >= 5} className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Research (choose a deck)</button>
+          <button onClick={() => setMode("research")} disabled={human.hand.length >= 5} className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Research (choose a deck)")}</button>
           <button onClick={() => setMode("upgrade")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Upgrade</button>
         </div>
       )}
@@ -4913,7 +4914,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                   {why && <div className="text-[9px] mt-0.5" style={{ color: "#fca5a5" }}>{why}</div>}
                 </div>
               );
-            }) : <span className="text-[10px] text-gray-600 italic">Nothing eligible to upgrade.</span>}
+            }) : <span className="text-[10px] text-gray-600 italic">{t("Nothing eligible to upgrade.")}</span>}
           </div>
           <button onClick={() => setMode(null)} className="text-[10px] text-gray-500 underline">back</button>
         </div>
@@ -4935,9 +4936,9 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
               className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
               {megacorpMatch
                 ? `Go Public \u2014 form "${megacorpMatch.tile[0]}" (+${megacorpMatch.tile[2]} EP${!state.ipoTileClaimed ? " + IPO tile" : ""})`
-                : "Go Public"}
+                : t("Go Public")}
             </button>
-            <button onClick={() => { if (NET) return NET.send("act", { type: "reposition" }); doReposition(state, human, log); finish(); }} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Reposition (become 1st)</button>
+            <button onClick={() => { if (NET) return NET.send("act", { type: "reposition" }); doReposition(state, human, log); finish(); }} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Reposition (become 1st)")}</button>
           </div>
           {blocked && <div className="text-[10px] mt-1" style={{ color: "#fca5a5" }}>Can&rsquo;t go public: {blocked}. Reposition is your only option this turn.</div>}
         </div>
@@ -4998,7 +4999,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
         </div>
       )}
 
-      <button onClick={() => { if (NET) return NET.send("act", { type: "pass" }); finish(); }} className="text-[10px] text-gray-500 underline">Pass this action</button>
+      <button onClick={() => { if (NET) return NET.send("act", { type: "pass" }); finish(); }} className="text-[10px] text-gray-500 underline">{t("Pass this action")}</button>
     </div>
   );
 }
@@ -5069,13 +5070,13 @@ function ArtChain() {                       // the six industries feeding each o
 function ArtPrices() {                      // build your own -> down; pay a supplier -> up
   return (
     <svg viewBox="0 0 200 92" style={{ width: "100%", height: 92 }}>
-      <text x="6" y="16" fontSize="8" fill="#8b93a3">you build Retail</text>
+      <text x="6" y="16" fontSize="8" fill="#8b93a3">{t("you build Retail")}</text>
       <line x1="6" y1="26" x2="194" y2="26" stroke="#262a33" strokeWidth="1" />
       <g style={{ animation: "tutSlideL 3s ease-in-out infinite" }}>
         <rect x="96" y="19" width="14" height="14" rx="2" fill={IND_COLOR.RE} />
         <text x="103" y="30" textAnchor="middle" fontSize="8" fontWeight="700" fill="#14161a">RE</text>
       </g>
-      <text x="6" y="46" fontSize="7" fill="#fca5a5">price falls &mdash; more supply</text>
+      <text x="6" y="46" fontSize="7" fill="#fca5a5">{t("price falls — more supply")}</text>
 
       <text x="6" y="66" fontSize="8" fill="#8b93a3">its supplier is paid</text>
       <line x1="6" y1="76" x2="194" y2="76" stroke="#262a33" strokeWidth="1" />
@@ -5083,7 +5084,7 @@ function ArtPrices() {                      // build your own -> down; pay a sup
         <rect x="96" y="69" width="14" height="14" rx="2" fill={IND_COLOR.TE} />
         <text x="103" y="80" textAnchor="middle" fontSize="8" fontWeight="700" fill="#14161a">TE</text>
       </g>
-      <text x="112" y="92" fontSize="7" fill="#8fd3b6">price rises &mdash; more demand</text>
+      <text x="112" y="92" fontSize="7" fill="#8fd3b6">{t("price rises — more demand")}</text>
     </svg>
   );
 }
@@ -5103,7 +5104,7 @@ function ArtFilo() {                        // placed left to right, resolved ri
         <circle key={i} cx={31 + i * 44} cy={58} r="4" fill="#8fd3b6"
           style={{ animation: `tutPop 2.4s ease-in-out ${k * 0.5}s infinite` }} />
       ))}
-      <text x="6" y="80" fontSize="7.5" fill="#8fd3b6">resolved right to left &mdash; last in acts first</text>
+      <text x="6" y="80" fontSize="7.5" fill="#8fd3b6">{t("resolved right to left — last in acts first")}</text>
     </svg>
   );
 }
@@ -5135,7 +5136,7 @@ function ArtScaling() {
       {plot(6, 45, "#67e8f9", "#67e8f9", { opacity: 0.55,
         style: { animation: "tutPop 3s ease-in-out infinite" } })}
       <text x="50" y="36" fontSize="6.5" fill="#8b93a3">a level 2 card</text>
-      <text x="50" y="45" fontSize="6.5" fill="#8b93a3">needs 2 plots;</text>
+      <text x="50" y="45" fontSize="6.5" fill="#8b93a3">{t("needs 2 plots;")}</text>
       <text x="50" y="54" fontSize="6.5" fill="#67e8f9">upgrading takes</text>
       <text x="50" y="63" fontSize="6.5" fill="#67e8f9">a 3rd beside it</text>
 
@@ -5149,7 +5150,7 @@ function ArtScaling() {
       <rect x="116" y="31" width="9" height="5" rx="1" fill="#f5a623" opacity="0.55"
         style={{ animation: "tutPop 3s ease-in-out infinite" }} />
       <text x="152" y="36" fontSize="6.5" fill="#8b93a3">any level fits</text>
-      <text x="152" y="45" fontSize="6.5" fill="#8b93a3">on 1 plot;</text>
+      <text x="152" y="45" fontSize="6.5" fill="#8b93a3">{t("on 1 plot;")}</text>
       <text x="152" y="54" fontSize="6.5" fill="#f5a623">upgrading</text>
       <text x="152" y="63" fontSize="6.5" fill="#f5a623">adds a storey</text>
 
@@ -5159,7 +5160,7 @@ function ArtScaling() {
         Ground rent: ${RENT_PER_LEVEL} per level on a plot, to whoever owns it.
       </text>
       <text x="6" y="93" fontSize="6.5" fill="#8b93a3">
-        Spreading splits it between plots; stacking piles it on one.
+        {t("Spreading splits it between plots; stacking piles it on one.")}
       </text>
     </svg>
   );
@@ -5200,10 +5201,10 @@ function ArtMegacorp() {
       <text x="8" y="89" fontSize="6.5" fill={RIVAL}>each rival: −{MEGACORP_TITHE_EP} EP</text>
 
       {/* what it earns and what it ends */}
-      <text x="76" y="20" fontSize="7.5" fontWeight="700" fill="#e5e7eb">GOING PUBLIC</text>
+      <text x="76" y="20" fontSize="7.5" fontWeight="700" fill="#e5e7eb">{t("GOING PUBLIC")}</text>
       <text x="76" y="31" fontSize="6.5" fill="#8b93a3">Tile: {MEGACORP_EP.lo}–{MEGACORP_EP.hi} EP at once</text>
-      <text x="76" y="40" fontSize="6.5" fill="#8b93a3">then price ÷ tier, every quarter</text>
-      <text x="76" y="53" fontSize="6.5" fill={RIVAL}>Every rival company touching</text>
+      <text x="76" y="40" fontSize="6.5" fill="#8b93a3">{t("then price ÷ tier, every quarter")}</text>
+      <text x="76" y="53" fontSize="6.5" fill={RIVAL}>{t("Every rival company touching")}</text>
       <text x="76" y="62" fontSize="6.5" fill={RIVAL}>it takes {MEGACORP_TITHE_EP} EP a quarter off you</text>
       <text x="76" y="75" fontSize="6.5" fill="#8b93a3">A player's {MEGACORPS_TO_END}nd Megacorp calls</text>
       <text x="76" y="84" fontSize="6.5" fill="#8b93a3">the final quarter for everybody</text>
@@ -5406,12 +5407,12 @@ function Tutorial({ onClose }) {
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#8fd3b6" }}>
-            HOW TO PLAY &nbsp;{i + 1}/{TUTORIAL.length}
+            {t("HOW TO PLAY")} &nbsp;{i + 1}/{TUTORIAL.length}
           </span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 11, cursor: "pointer" }}>skip</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 11, cursor: "pointer" }}>{t("skip")}</button>
         </div>
 
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#fff", margin: "6px 0 8px" }}>{step.title}</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#fff", margin: "6px 0 8px" }}>{t(step.title)}</h2>
 
         {Art && (
           <div style={{ backgroundColor: "#0f1115", border: "1px solid #262a33", borderRadius: 8, padding: 6, marginBottom: 10 }}>
@@ -5419,19 +5420,19 @@ function Tutorial({ onClose }) {
           </div>
         )}
 
-        <p style={{ fontSize: 12.5, lineHeight: 1.5, color: "#c3c9d4", margin: 0 }}>{step.body}</p>
+        <p style={{ fontSize: 12.5, lineHeight: 1.5, color: "#c3c9d4", margin: 0 }}>{t(step.body)}</p>
 
         <ul style={{ margin: "10px 0 0", padding: 0, listStyle: "none" }}>
           {step.points.map((pt, k) => (
             <li key={k} style={{ display: "flex", gap: 8, fontSize: 11.5, lineHeight: 1.45, color: "#9aa3b2", marginBottom: 4 }}>
-              <span style={{ color: "#2c5f4f", fontWeight: 700 }}>&#9679;</span><span>{pt}</span>
+              <span style={{ color: "#2c5f4f", fontWeight: 700 }}>&#9679;</span><span>{t(pt)}</span>
             </li>
           ))}
         </ul>
 
         {rect && (
           <div style={{ fontSize: 10, color: "#8fd3b6", marginTop: 9 }}>
-            The highlighted area on screen is what this step is about.
+            {t("The highlighted area on screen is what this step is about.")}
           </div>
         )}
 
@@ -5703,7 +5704,7 @@ function GameScreens({ online }) {
         `Launching ${bp.name}`, doConfirmPick);
     }
     if (pickMode.kind === "buy") {
-      return guardSpend(plotValue(state, pickMode.selected[0]), 0, "Buying that plot", doConfirmPick);
+      return guardSpend(plotValue(state, pickMode.selected[0]), 0, t("Buying that plot"), doConfirmPick);
     }
     if (pickMode.kind === "grow") {
       const b = pickMode.biz;
@@ -5865,10 +5866,10 @@ function GameScreens({ online }) {
           <div style={{ minWidth: 0 }}>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-lg font-bold text-white tracking-tight">ENTREPRENEURS</h1>
-              <button onClick={() => setTutorial(true)} title="How to play"
+              <button onClick={() => setTutorial(true)} title={t("How to play")}
                 className="text-[10px] px-2 py-0.5 rounded"
                 style={{ backgroundColor: "#1c1f26", border: "1px solid #2c5f4f", color: "#8fd3b6", cursor: "pointer" }}>
-                How to play
+                {t("How to play")}
               </button>
             </div>
             <MatchTracker state={state} elapsed={elapsed}
@@ -5887,12 +5888,12 @@ function GameScreens({ online }) {
           <div className="rounded-lg p-2 mb-3 flex items-center justify-between flex-wrap gap-2"
             style={{ backgroundColor: "#1a2e26", border: "1px solid #2c5f4f" }}>
             <span className="text-xs" style={{ color: "#d3fcec" }}>
-              Reviewing the final board &mdash; the game is over, nothing can be changed.
+              {t("Reviewing the final board — the game is over, nothing can be changed.")}
             </span>
             <button onClick={() => setReviewing(false)}
               className="text-xs font-bold px-3 py-1 rounded"
               style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
-              Back to results
+              {t("Back to results")}
             </button>
           </div>
         )}
@@ -5913,27 +5914,29 @@ function GameScreens({ online }) {
               <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
                 <div className="text-xs font-bold mb-2" style={{ color: "#d3fcec" }}>Place a meeple ({humanMeeplesLeft} left this quarter)</div>
                 <div className="flex flex-wrap gap-2">
-                  {["raise_capital", "ma", "rd"].map((t) => (
-                    <span key={t} className="inline-flex items-center gap-1">
-                      <button onClick={() => handlePlaceMeeple(t)} disabled={!state.tracks[t].includes(null)}
+                  {/* `trk`, not `t` - `t` is the translate function, and a parameter of
+                      that name shadowed it and crashed the whole screen. */}
+                  {["raise_capital", "ma", "rd"].map((trk) => (
+                    <span key={trk} className="inline-flex items-center gap-1">
+                      <button onClick={() => handlePlaceMeeple(trk)} disabled={!state.tracks[trk].includes(null)}
                         className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
-                        {TRACK_LABEL[t]}
+                        {t(TRACK_LABEL[trk])}
                       </button>
-                      <Help text={TRACK_HELP[t]} />
+                      <Help text={t(TRACK_HELP[trk])} />
                     </span>
                   ))}
                   <span className="inline-flex items-center gap-1">
                     <button onClick={() => handlePlaceMeeple("board_meeting")}
                       disabled={!state.tracks.board_meeting.some((s, i) => s === null && (i === 0 || state.ipoTileClaimed))}
                       className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
-                      Board Meeting (both meeples)
+                      {t("Board Meeting (both meeples)")}
                     </button>
                     <Help text={TRACK_HELP.board_meeting} />
                   </span>
                 </div>
                 {!state.ipoTileClaimed && (
                   <div className="text-[10px] text-gray-500 mt-1.5">
-                    Board Meeting seats two players, but the second seat is under the IPO tile until the first Megacorp is formed.
+                    {t("Board Meeting seats two players, but the second seat is under the IPO tile until the first Megacorp is formed.")}
                   </div>
                 )}
               </div>
@@ -5945,7 +5948,7 @@ function GameScreens({ online }) {
                     : pickMode.kind === "grow" ? (() => {
                         const dirs = new Set(pickMode.options.map((o) => o.dir));
                         const what = dirs.size > 1 ? "stack on a plot it stands on, or spread onto one beside it?"
-                          : dirs.has("H") ? "where does the new wing go?" : "which plot gets the new storey?";
+                          : dirs.has("H") ? "where does the new wing go?" : t("which plot gets the new storey?");
                         return `Upgrading ${pickMode.biz.bp.name} \u2014 ${what} ${pickMode.selected.length}/1 picked`;
                       })()
                     : `Pick a plot to buy \u2014 ${pickMode.selected.length}/1 selected`}
@@ -5953,11 +5956,11 @@ function GameScreens({ online }) {
                 <div className="text-[10px] text-gray-400 mb-2">
                   Click highlighted plots on the board above.
                   {pickMode.kind === "launch" && pickMode.nPlots > 1 &&
-                    " Plots must share an edge — corners do not count."}
-                  {pickMode.kind === "grow" && " A plot beside the building takes a new wing, which can sell into that plot's district; a plot under it takes a new storey, and rent for every storey goes to that plot's owner."}
+                    t(" Plots must share an edge — corners do not count.")}
+                  {pickMode.kind === "grow" && t(" A plot beside the building takes a new wing, which can sell into that plot's district; a plot under it takes a new storey, and rent for every storey goes to that plot's owner.")}
                 </div>
                 {pickMode.kind !== "grow" && computeEligiblePlots(state.board, pickMode, { state, player: human }).size === 0 && pickMode.selected.length < (pickMode.kind === "buy" ? 1 : pickMode.nPlots) && (
-                  <div className="text-[10px] text-red-400 mb-2">No more eligible adjacent plots — this cluster can't be completed here. Cancel and try elsewhere, or buy more land first.</div>
+                  <div className="text-[10px] text-red-400 mb-2">{t("No more eligible adjacent plots — this cluster can't be completed here. Cancel and try elsewhere, or buy more land first.")}</div>
                 )}
                 <div className="flex gap-2">
                   <button onClick={handleConfirmPick} disabled={pickMode.selected.length < (pickMode.kind === "launch" ? pickMode.nPlots : 1)}
@@ -5981,12 +5984,12 @@ function GameScreens({ online }) {
                   <button onClick={() => { const go = riskyConfirm.go; setRiskyConfirm(null); go(); }}
                     className="text-[11px] font-semibold px-3 py-1.5 rounded"
                     style={{ backgroundColor: "#7a3f3f", color: "#ffe4e4" }}>
-                    Do it anyway
+                    {t("Do it anyway")}
                   </button>
                   <button onClick={() => setRiskyConfirm(null)}
                     className="text-[11px] px-3 py-1.5 rounded"
                     style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
-                    Cancel
+                    {t("Cancel")}
                   </button>
                 </div>
               </div>
@@ -6002,8 +6005,7 @@ function GameScreens({ online }) {
                   Concession Holder — sell Utilities at ${price(state.pm, "UT") + 1} this quarter?
                 </div>
                 <div className="text-[10px] text-gray-400 mb-2">
-                  That is $1 over the price. If you sell at the premium, the Utilities price falls
-                  one step at the end of the quarter, for everyone.
+                  {t("That is $1 over the price. If you sell at the premium, the Utilities price falls one step at the end of the quarter, for everyone.")}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   <button onClick={() => handleSupplyChain("concession:on")} className="text-[10px] px-2 py-1 rounded"
@@ -6011,31 +6013,30 @@ function GameScreens({ online }) {
                     Switch it on <span style={{ color: "#9ca3af" }}>${price(state.pm, "UT") + 1} a unit</span>
                   </button>
                   <button onClick={() => handleSupplyChain("concession:off")} className="text-[10px] px-2 py-1 rounded"
-                    style={{ backgroundColor: "#20232c", border: "1px solid #33384355", color: "#9ca3af" }}>Leave it off</button>
+                    style={{ backgroundColor: "#20232c", border: "1px solid #33384355", color: "#9ca3af" }}>{t("Leave it off")}</button>
                 </div>
               </div>
             )}
             {isHumanSupplyChain && scOptions.length > 0 && (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
-                  Supply Chain Expert — you may raise one industry you do not operate
+                  {t("Supply Chain Expert — you may raise one industry you do not operate")}
                 </div>
                 <div className="text-[10px] text-gray-400 mb-2">
-                  Its demand goes up one step, which helps whoever sells there. In exchange your
-                  Retail reaches one extra district this quarter.
+                  {t("Its demand goes up one step, which helps whoever sells there. In exchange your Retail reaches one extra district this quarter.")}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {scOptions.map((i) => (
                     <button key={i} onClick={() => handleSupplyChain(i)}
                       className="text-[10px] px-2 py-1 rounded"
                       style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
-                      {IND_NAME[i] || i} <span style={{ color: "#9ca3af" }}>${price(state.pm, i)}</span>
+                      {t(IND_NAME[i] || i)} <span style={{ color: "#9ca3af" }}>${price(state.pm, i)}</span>
                     </button>
                   ))}
                   {/* Lifting a rival industry helps whoever sells there, so declining is a
                       real option and not only a way to skip a screen. */}
                   <button onClick={() => handleSupplyChain("skip")} className="text-[10px] px-2 py-1 rounded"
-                    style={{ backgroundColor: "#20232c", border: "1px solid #33384355", color: "#9ca3af" }}>Don't raise anything</button>
+                    style={{ backgroundColor: "#20232c", border: "1px solid #33384355", color: "#9ca3af" }}>{t("Don't raise anything")}</button>
                 </div>
               </div>
             )}
@@ -6046,7 +6047,7 @@ function GameScreens({ online }) {
                 </div>
                 <div className="text-[10px] text-gray-400 mb-2">
                   Retail may sell to any district(s) beyond its own, one per level. Choose which.
-                  {reAllow > deliveringBiz.level && <span style={{ color: "#4ade80" }}> Supply Chain Expert adds one more this quarter.</span>}
+                  {deliveringBiz.bp.name} may reach {reAllow} extra district{reAllow > 1 ? "s" : ""} this delivery — pick {reSelection.length}/{reAllow}
                 </div>
                 <div className="flex flex-wrap gap-1.5 mb-2" style={{ maxHeight: 160, overflowY: "auto" }}>
                   {allDistrictKeys(state.board).filter((d) => !footprintDistricts(state.board, deliveringBiz.footprint).has(d)).map((d) => {
@@ -6062,7 +6063,7 @@ function GameScreens({ online }) {
                 </div>
                 <button onClick={handleConfirmREChoice} disabled={reSelection.length < 1 && reAllow > 0}
                   className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
-                  Confirm reach
+                  {t("Confirm reach")}
                 </button>
               </div>
             )}
@@ -6115,7 +6116,7 @@ function GameScreens({ online }) {
                   const why = ind === "HC" ? "Healthcare already reaches the whole hub network."
                     : !canLH ? `${ind} cannot use Logistic Hubs — its reach grows only with level.`
                     : onLH ? "It is on the hub network; more hubs will open more districts."
-                    : "It is not touching a Logistic Hub, so it can only sell in its own district.";
+                    : t("It is not touching a Logistic Hub, so it can only sell in its own district.");
                   return (
                     <div className="rounded p-1.5 mb-2" style={{ backgroundColor: "#2a2415", border: "1px solid #7a6a3f" }}>
                       <div className="text-[10px]" style={{ color: "#f5d76e" }}>
@@ -6132,13 +6133,13 @@ function GameScreens({ online }) {
                 })()}
                 <div className="text-[10px] text-gray-400 mb-2">
                   Click a highlighted demand cell (white border) to sell there.
-                  {bizInd(deliveringBiz) === "MA" && <span> Amber-bordered cells are cross-sell slots — Manufacturing may fill another industry's demand within its own footprint.</span>}
-                  {bizInd(deliveringBiz) === "HO" && <span> Hospitality trades whatever the icons cannot take to the businesses and hubs around it, at full price, when you move on.</span>}
+                  {bizInd(deliveringBiz) === "MA" && <span> {t("Amber-bordered cells are cross-sell slots — Manufacturing may fill another industry's demand within its own footprint.")}</span>}
+                  {bizInd(deliveringBiz) === "HO" && <span> {t("Hospitality trades whatever the icons cannot take to the businesses and hubs around it, at full price, when you move on.")}</span>}
                 </div>
                 <button onClick={handleSkipDelivery} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
                   {hoBonusUnits(state, deliveringBiz, human) > 0 && (state.deliveryRemaining[deliveringBiz.id] || 0) > 0
-                    ? <>Sell to neighbours &amp; move on</>
-                    : <>Recycle remainder &amp; move on</>}
+                    ? <>{t("Sell to neighbours & move on")}</>
+                    : <>{t("Recycle remainder & move on")}</>}
                 </button>
               </div>
             )}
@@ -6159,16 +6160,16 @@ function GameScreens({ online }) {
                     })()}
                   </div>
                 ) : (
-                  <div className="text-[10px] text-gray-400 mb-2">Click two adjacent plots on the board to place the hub between them.</div>
+                  <div className="text-[10px] text-gray-400 mb-2">{t("Click two adjacent plots on the board to place the hub between them.")}</div>
                 )}
                 {!state.board.lhOnPlots && pickMode.selected.length === 1 && computeEligiblePlots(state.board, pickMode).size === 0 && (
-                  <div className="text-[10px] text-red-400 mb-2">That plot&rsquo;s neighbours all already have a hub &mdash; reset and pick a different starting plot.</div>
+                  <div className="text-[10px] text-red-400 mb-2">{t("That plot’s neighbours all already have a hub — reset and pick a different starting plot.")}</div>
                 )}
                 <div className="flex gap-2">
                   <button onClick={handleConfirmLH} disabled={pickMode.selected.length < (state.board.lhOnPlots ? 1 : 2)}
-                    className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#0e5f6f", color: "#d3fcec" }}>Confirm placement</button>
+                    className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#0e5f6f", color: "#d3fcec" }}>{t("Confirm placement")}</button>
                   {pickMode.selected.length > 0 && (
-                    <button onClick={() => setPickMode({ kind: "lh", selected: [] })} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Reset selection</button>
+                    <button onClick={() => setPickMode({ kind: "lh", selected: [] })} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Reset selection")}</button>
                   )}
                 </div>
               </div>
@@ -6188,7 +6189,7 @@ function GameScreens({ online }) {
                         {awaitedName} has not acted for {waitSecs}s. If they have disconnected you can hand their seat to a bot.
                       </div>
                     ) : (
-                      <div className="text-[10px] text-gray-600 mb-1.5">Host controls</div>
+                      <div className="text-[10px] text-gray-600 mb-1.5">{t("Host controls")}</div>
                     )}
                     <button onClick={() => {
                         if (window.confirm(`Replace ${awaitedName} with a bot for the rest of the game? They will not be able to rejoin.`)) online.onKick(awaitedId);
@@ -6213,7 +6214,7 @@ function GameScreens({ online }) {
                     Repay 1 disc (−${LOAN_REPAY_RATE[state.quarter]})
                   </button>
                   <button onClick={handleDoneRepaying} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
-                    Done
+                    {t("Done")}
                   </button>
                 </div>
               </div>
@@ -6221,7 +6222,7 @@ function GameScreens({ online }) {
 
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
               <div className="flex items-center justify-between mb-2">
-                <span data-tut="ledger" className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">Your player board <Help text="Your twelve discs are your whole footprint: one per plot you own, one per company (a Megacorp HQ still holds its own), and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up." /></span>
+                <span data-tut="ledger" className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">{t("Your player board")} <Help text="Your twelve discs are your whole footprint: one per plot you own, one per company (a Megacorp HQ still holds its own), and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up." /></span>
                 <span className="text-[9px] font-mono text-gray-600">{human.name}</span>
               </div>
 
@@ -6232,9 +6233,9 @@ function GameScreens({ online }) {
                 }}>
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <Chip color={IND_COLOR[PERSONAS[human.persona].ind]}>{PERSONAS[human.persona].ind}</Chip>
-                    <span className="text-xs font-bold text-gray-100">{PERSONAS[human.persona].name}</span>
+                    <span className="text-xs font-bold text-gray-100">{t(PERSONAS[human.persona].name)}</span>
                   </div>
-                  <div className="text-[10px] text-gray-400 leading-snug">{PERSONAS[human.persona].blurb}</div>
+                  <div className="text-[10px] text-gray-400 leading-snug">{t(PERSONAS[human.persona].blurb)}</div>
                 </div>
               )}
 
@@ -6271,11 +6272,11 @@ function GameScreens({ online }) {
                 const discs = human.discsInBank;
                 const tiles = [
                   { label: "CASH", value: `$${Math.round(human.cash)}`, color: "#8fd3b6" },
-                  { label: "SUPPLIERS / QTR", value: `$${Math.round(suppliers)}`, color: "#f3b0a5" },
-                  { label: "GROUND RENT", value: `$${Math.round(rent)}`, color: rent > 0 ? "#e0b060" : "#6b7280" },
-                  { label: "AFTER BILLS", value: `${after < 0 ? "\u2212" : ""}$${Math.abs(Math.round(after))}`, color: after < 0 ? "#fca5a5" : "#e5e7eb" },
-                  { label: "LOAN DISCS", value: `${discs}`, sub: discs ? `\u2212${discs * 5} EP` : "none", color: discs ? "#fca5a5" : "#6b7280" },
-                  { label: "DISCS USED", value: `${discsUsed(state, human)}/${DISCS_PER_PLAYER}`,
+                  { label: t("SUPPLIERS / QTR"), value: `$${Math.round(suppliers)}`, color: "#f3b0a5" },
+                  { label: t("GROUND RENT"), value: `$${Math.round(rent)}`, color: rent > 0 ? "#e0b060" : "#6b7280" },
+                  { label: t("AFTER BILLS"), value: `${after < 0 ? "\u2212" : ""}$${Math.abs(Math.round(after))}`, color: after < 0 ? "#fca5a5" : "#e5e7eb" },
+                  { label: t("LOAN DISCS"), value: `${discs}`, sub: discs ? `\u2212${discs * 5} EP` : "none", color: discs ? "#fca5a5" : "#6b7280" },
+                  { label: t("DISCS USED"), value: `${discsUsed(state, human)}/${DISCS_PER_PLAYER}`,
                     sub: `${plotsOwned(state, human)} land \u00b7 ${activeBiz(human).length} biz \u00b7 ${discs} loan`,
                     color: discsFree(state, human) <= 0 ? "#fca5a5" : discsFree(state, human) <= 2 ? "#f5a623" : "#e5e7eb" },
                 ];
@@ -6343,11 +6344,11 @@ function GameScreens({ online }) {
                           {b.footprint.map((pk) => plotShort(state.board, pk)).join(" + ")}
                         </div>
                       </div>
-                      {!canProd && <div className="text-[9px] text-red-400 mt-0.5">Land unowned &mdash; can't produce</div>}
+                      {!canProd && <div className="text-[9px] text-red-400 mt-0.5">{t("Land unowned — can't produce")}</div>}
                     </div>
                   );
                 })}
-                {!activeBiz(human).length && <span className="text-xs text-gray-500 italic">None yet.</span>}
+                {!activeBiz(human).length && <span className="text-xs text-gray-500 italic">{t("None yet.")}</span>}
               </div>
             </div>
             </div>
@@ -6375,7 +6376,7 @@ function GameScreens({ online }) {
                           merging three companies into a Megacorp dropped you
                           from "3biz" to "0biz" with the Megacorp shown nowhere,
                           and the disc number was discsInBank (LOAN discs only)
-                          while the player board's "DISCS USED" counts plots,
+                          while the player board's t("DISCS USED") counts plots,
                           companies AND loans. Two different quantities, both
                           labelled "disc", that could never be reconciled.
                           Megacorps are now counted, and the discs shown here are
@@ -6383,7 +6384,7 @@ function GameScreens({ online }) {
                       <div className="flex items-center justify-between text-[9px] font-mono text-gray-500 mt-0.5">
                         <span>
                           ${Math.round(p.cash)} &middot;{" "}
-                          <span title="Active companies">{activeBiz(p).length}biz</span>
+                          <span title={t("Active companies")}>{activeBiz(p).length}biz</span>
                           {megacorpHQs(p).length > 0 && (
                             <span title={`Megacorp HQ: ${megacorpHQs(p).map((b) => b.megacorpName).join(", ")}`}
                               style={{ color: "#f5d76e" }}> +{megacorpHQs(p).length}MC</span>
@@ -6392,23 +6393,23 @@ function GameScreens({ online }) {
                             {discsUsed(state, p)}/{DISCS_PER_PLAYER} discs
                           </span>
                           {p.discsInBank > 0 && (
-                            <span title="Loan discs - 5 EP each at game end" style={{ color: "#fca5a5" }}> ({p.discsInBank} loan)</span>
+                            <span title={t("Loan discs - 5 EP each at game end")} style={{ color: "#fca5a5" }}> ({p.discsInBank} loan)</span>
                           )}
                         </span>
                       </div>
                       {p.persona && PERSONAS[p.persona] && (
                         <div className="text-[9px] mt-0.5" style={{ color: IND_COLOR[PERSONAS[p.persona].ind] }}
-                          title={PERSONAS[p.persona].blurb}>
-                          {PERSONAS[p.persona].name}
+                          title={t(PERSONAS[p.persona].blurb)}>
+                          {t(PERSONAS[p.persona].name)}
                         </div>
                       )}
                       <div className="flex items-center gap-2 text-[9px] font-mono mt-0.5">
-                        <span title="Plots owned - the outright leader at every year end scores The Real-Estate Mogul"
+                        <span title={t("Plots owned - the outright leader at every year end scores The Real-Estate Mogul")}
                           style={{ color: landLead.plots.has(p.id) ? "#f5d76e" : "#6b7280" }}>
                           {landLead.plots.has(p.id) ? "\u265B " : ""}{plotCount(state, p)} plots
                         </span>
                         <span style={{ color: "#3a4152" }}>|</span>
-                        <span title="Districts you have a presence in - the outright leader at every year end scores The Omnipresent"
+                        <span title={t("Districts you have a presence in - the outright leader at every year end scores The Omnipresent")}
                           style={{ color: landLead.districts.has(p.id) ? "#f5d76e" : "#6b7280" }}>
                           {landLead.districts.has(p.id) ? "\u265B " : ""}{districtCount(state, p)} districts
                         </span>
@@ -6417,12 +6418,12 @@ function GameScreens({ online }) {
                   );
                 })}
               </div>
-              <div className="text-[9px] text-gray-600 mt-1.5">Hover a player for a full scoring breakdown.</div>
+              <div className="text-[9px] text-gray-600 mt-1.5">{t("Hover a player for a full scoring breakdown.")}</div>
             </div>
 
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">The Bank <Help text="Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$35/$40. Distressed companies sit here until someone renovates them via M&amp;A - Buy. The players are listed in TURN ORDER: delivery runs in that sequence and demand icons are first come first served, so anyone above you sells before you do. Reposition moves a player to the front of it." /></div>
-              <div className="text-[9px] text-gray-500 mb-1.5">Loan discs (−5 EP each at game end) &middot; <span title="Delivery runs in this order, and demand is first come first served">in turn order</span>:</div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("The Bank")} <Help text="Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$35/$40. Distressed companies sit here until someone renovates them via M&amp;A - Buy. The players are listed in TURN ORDER: delivery runs in that sequence and demand icons are first come first served, so anyone above you sells before you do. Reposition moves a player to the front of it." /></div>
+              <div className="text-[9px] text-gray-500 mb-1.5">{t("Loan discs (−5 EP each at game end) ·")} <span title={t("Delivery runs in this order, and demand is first come first served")}>in turn order</span>:</div>
               <div className="space-y-1 mb-2">
                 {/* Seat order until now, which is fixed for the whole game and tells
                     nobody anything. This list was the only per-player roster on screen
@@ -6447,7 +6448,7 @@ function GameScreens({ online }) {
                   );
                 })}
               </div>
-              <div className="text-[9px] text-gray-500 mb-1.5">Distressed companies (renovate via M&A → Buy):</div>
+              <div className="text-[9px] text-gray-500 mb-1.5">{t("Distressed companies (renovate via M&A → Buy):")}</div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 120 }}>
                 {state.players.flatMap((p) => p.businesses.filter((b) => b.distressed).map((b) => (
                   <div key={b.id} className="flex items-center justify-between text-[9px] rounded p-1" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}44` }}>
@@ -6457,7 +6458,7 @@ function GameScreens({ online }) {
                     <span className="font-mono text-gray-500">{b.bp.ind} L{b.level}</span>
                   </div>
                 )))}
-                {!state.players.some((p) => p.businesses.some((b) => b.distressed)) && <div className="text-[9px] text-gray-600 italic">None yet.</div>}
+                {!state.players.some((p) => p.businesses.some((b) => b.distressed)) && <div className="text-[9px] text-gray-600 italic">{t("None yet.")}</div>}
               </div>
             </div>
 
@@ -6493,7 +6494,7 @@ function GameScreens({ online }) {
                   </div>
                 ))}
               </div>
-              <div className="text-[9px] text-gray-600 mt-1">{state.ipoTileClaimed ? "IPO tile taken \u2014 both Board Meeting seats are open." : "IPO tile: a sixth company bay and Board Meeting's second seat, to whoever forms the first Megacorp."}</div>
+              <div className="text-[9px] text-gray-600 mt-1">{state.ipoTileClaimed ? "IPO tile taken \u2014 both Board Meeting seats are open." : t("IPO tile: a sixth company bay and Board Meeting's second seat, to whoever forms the first Megacorp.")}</div>
               <div style={{ height: 1, backgroundColor: "#262a33", margin: "10px 0" }} />
 
               <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Log</div>
@@ -6520,15 +6521,15 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
     <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
       <div className="max-w-md w-full rounded-xl p-6" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
         <h1 className="text-2xl font-bold text-white tracking-tight mb-1">ENTREPRENEURS</h1>
-        <p className="text-sm text-gray-400 mb-6">Build, produce, sell, score — 3 fiscal years, solo vs bots.</p>
+        <p className="text-sm text-gray-400 mb-6">{t("Build, produce, sell, score — 3 fiscal years, solo vs bots.")}</p>
         {onTutorial && (
           <button onClick={onTutorial} className="w-full mb-5 py-2 rounded-md text-xs font-semibold"
             style={{ backgroundColor: "#1c1f26", border: "1px solid #2c5f4f", color: "#8fd3b6" }}>
-            New here? Read How to play first
+            {t("New here? Read How to play first")}
           </button>
         )}
         <div className="mb-5">
-          <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Your name</div>
+          <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Your name")}</div>
           <input value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="You" maxLength={16}
             className="w-full rounded-md px-3 py-2 text-sm"
             style={{ backgroundColor: "#1c1f26", border: "1px solid #262a33", color: "#e5e7eb", outline: "none" }} />
@@ -6546,7 +6547,7 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
               </span>
             </div>
             <div className="text-[10px] text-gray-500 mt-0.5">
-              Deal each player a random specialist power, one per industry.
+              {t("Deal each player a random specialist power, one per industry.")}
             </div>
           </button>
 
@@ -6557,19 +6558,19 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
             style={{ background: "none", border: "none", color: "#8b93a3", cursor: "pointer" }}>
             {showVariants ? "\u25be" : "\u25b8"} Rule variants
             {variantsOn.length ? <span style={{ color: "#8fd3b6" }}> &mdash; {variantsOn.length} on</span>
-              : <span style={{ color: "#4b5563" }}> &mdash; standard rules</span>}
+              : <span style={{ color: "#4b5563" }}> {t("— standard rules")}</span>}
           </button>
           {showVariants && VARIANTS.map((v) => (
             <button key={v.key} onClick={() => setVariants({ ...variants, [v.key]: !variants[v.key] })}
               className="w-full rounded-md px-3 py-2 text-left mt-1.5"
               style={{ backgroundColor: "#1c1f26", border: `1px solid ${variants[v.key] ? "#2c5f4f" : "#262a33"}` }}>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold" style={{ color: variants[v.key] ? "#8fd3b6" : "#8b93a3" }}>{v.name}</span>
+                <span className="text-xs font-bold" style={{ color: variants[v.key] ? "#8fd3b6" : "#8b93a3" }}>{t(v.name)}</span>
                 <span className="text-[10px] shrink-0" style={{ color: variants[v.key] ? "#8fd3b6" : "#4b5563" }}>
                   {variants[v.key] ? "ON \u2713" : "OFF"}
                 </span>
               </div>
-              <div className="text-[10px] text-gray-500 mt-0.5" style={{ lineHeight: 1.4 }}>{v.blurb}</div>
+              <div className="text-[10px] text-gray-500 mt-0.5" style={{ lineHeight: 1.4 }}>{t(v.blurb)}</div>
             </button>
           ))}
         </div>
@@ -6585,16 +6586,14 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
             ))}
           </div>
           <div className="text-[10px] text-gray-500 mt-1.5" style={{ lineHeight: 1.4 }}>
-            A table seats six. All four Megacorp tiers are in from four players. The fifth
-            and sixth seats open a fifth and sixth slot on each of the three working tracks,
-            and draw three, then four, tiles from each tier instead of two.
+            {t("A table seats six. All four Megacorp tiers are in from four players. The fifth and sixth seats open a fifth and sixth slot on each of the three working tracks, and draw three, then four, tiles from each tier instead of two.")}
           </div>
         </div>
         <div className="mb-6 flex flex-wrap gap-1.5">
-          {INDUSTRIES.map((ind) => (<Chip key={ind} color={IND_COLOR[ind]}>{IND_NAME[ind]}</Chip>))}
+          {INDUSTRIES.map((ind) => (<Chip key={ind} color={IND_COLOR[ind]}>{t(IND_NAME[ind])}</Chip>))}
         </div>
         <button onClick={onStart} className="w-full py-2.5 rounded-md text-sm font-bold" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
-          Start Game
+          {t("Start Game")}
         </button>
       </div>
     </div>
@@ -6672,7 +6671,7 @@ function IndustryReference({ state }) {
   };
   const deckHelp = hasVariant(state, "orderedDecks")
     ? "Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."
-    : "Six separate decks, each shuffled whole, so any level can be on top. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from.";
+    : t("Six separate decks, each shuffled whole, so any level can be on top. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from.");
   return (
     <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
       <div data-tut="pots" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">
@@ -6680,7 +6679,7 @@ function IndustryReference({ state }) {
         <Help text={"POT \u2014 a company's supplier bill lands in its suppliers' pots (its ground rent is billed separately, to landlords). Each quarter every pot is split evenly among the active businesses of that industry and any Megacorp HQ of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative.\n\nDECK \u2014 " + deckHelp} />
       </div>
       <div className="text-[9px] text-gray-500 mb-2">
-        Pot, then the top Blueprint. Hover an industry for what it does.
+        {t("Pot, then the top Blueprint. Hover an industry for what it does.")}
       </div>
       <div className="grid grid-cols-2 gap-1.5">
         {INDUSTRIES.map((ind) => {
@@ -6713,7 +6712,7 @@ function IndustryReference({ state }) {
                       {top.deps.map((d) => `${d.ind} $${d.val}`).join(" \u00b7 ")}
                     </div>
                   </>
-                ) : <div className="text-[9px] text-gray-600 italic">Deck empty</div>}
+                ) : <div className="text-[9px] text-gray-600 italic">{t("Deck empty")}</div>}
               </div>
             </div>
           );
@@ -6726,8 +6725,8 @@ function IndustryReference({ state }) {
           padding: "7px 9px", fontSize: 10, lineHeight: 1.45, color: "#d1d5db",
           boxShadow: "0 6px 20px rgba(0,0,0,0.6)", pointerEvents: "none",
         }}>
-          <span style={{ color: IND_COLOR[over], fontWeight: 700 }}>{IND_NAME[over] || over}</span>
-          <br />{IND_ABILITY[over]}
+          <span style={{ color: IND_COLOR[over], fontWeight: 700 }}>{t(IND_NAME[over] || over)}</span>
+          <br />{t(IND_ABILITY[over])}
         </span></Floating>
       )}
     </div>
@@ -6769,7 +6768,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
   return (
     <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
       <div className="w-full rounded-xl p-6" style={{ maxWidth: 620, backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-        <h1 className="text-xl font-bold text-white mb-1">Draft your starting Blueprints</h1>
+        <h1 className="text-xl font-bold text-white mb-1">{t("Draft your starting Blueprints")}</h1>
         <p className="text-sm text-gray-400 mb-1">
           You are seated <span className="text-gray-200 font-semibold">{ord}</span> this game.
           Later seats start with less cash but draft earlier &mdash; pick {need} card{need === 1 ? "" : "s"}.
@@ -6789,9 +6788,9 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
           }}>
             <div className="flex items-center gap-2 mb-1">
               <Chip color={IND_COLOR[PERSONAS[human.persona].ind]}>{PERSONAS[human.persona].ind}</Chip>
-              <span className="text-sm font-bold text-white">You are the {PERSONAS[human.persona].name}</span>
+              <span className="text-sm font-bold text-white">{t("You are the")} {t(PERSONAS[human.persona].name)}</span>
             </div>
-            <div className="text-[11px] text-gray-300 leading-snug">{PERSONAS[human.persona].blurb}</div>
+            <div className="text-[11px] text-gray-300 leading-snug">{t(PERSONAS[human.persona].blurb)}</div>
             <div className="text-[10px] mt-1.5" style={{ color: IND_COLOR[PERSONAS[human.persona].ind] }}>
               Worth weighing as you draft &mdash; but the {INDUSTRY_DEBUT_EP} EP for entering each industry still rewards breadth.
             </div>
@@ -6801,21 +6800,21 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
         {state.players.some((p) => p.persona && p.id !== human.id) && (
           <div className="mb-4">
             <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-              Others at the table
+              {t("Others at the table")}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {state.players.filter((p) => p.persona && p.id !== human.id).map((p) => (
-                <div key={p.id} className="rounded px-2 py-1" title={PERSONAS[p.persona].blurb}
+                <div key={p.id} className="rounded px-2 py-1" title={t(PERSONAS[p.persona].blurb)}
                   style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[PERSONAS[p.persona].ind]}55` }}>
                   <span className="text-[10px] text-gray-400">{p.name}: </span>
                   <span className="text-[10px] font-bold" style={{ color: IND_COLOR[PERSONAS[p.persona].ind] }}>
-                    {PERSONAS[p.persona].name}
+                    {t(PERSONAS[p.persona].name)}
                   </span>
                 </div>
               ))}
             </div>
             <div className="text-[10px] text-gray-600 mt-1.5">
-              Expect them to lean into those industries &mdash; and the prices to move accordingly.
+              {t("Expect them to lean into those industries — and the prices to move accordingly.")}
             </div>
           </div>
         )}
@@ -6825,7 +6824,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
         {state.draftTaken && state.draftTaken.length > 0 && (
           <div className="mb-4">
             <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-              Taken so far &mdash; and what it does to prices
+              {t("Taken so far — and what it does to prices")}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {INDUSTRIES.map((ind) => {
@@ -6880,7 +6879,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
           <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Your hand &mdash; {picked}/{need}</div>
           <div className="flex flex-wrap gap-2">
             {human.hand.map((bp, i) => <BPCard key={i} bp={bp} player={human} disabled small />)}
-            {!picked && <span className="text-[10px] text-gray-600 italic">Nothing drafted yet.</span>}
+            {!picked && <span className="text-[10px] text-gray-600 italic">{t("Nothing drafted yet.")}</span>}
           </div>
         </div>
 
@@ -6911,7 +6910,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
           <button onClick={onDone} disabled={picked < need}
             className="w-full py-2.5 rounded-md text-sm font-bold disabled:opacity-30"
             style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
-            {picked < need ? `Pick ${need - picked} more` : "Start Year 1"}
+            {picked < need ? `Pick ${need - picked} more` : t("Start Year 1")}
           </button>
         ) : (
           <div className="w-full py-2.5 rounded-md text-sm font-bold text-center"
@@ -6944,14 +6943,14 @@ function FinalQuarterNotice({ state, human, onClose }) {
     <Floating>
       <div style={{ position: "fixed", inset: 0, zIndex: 10050, backgroundColor: "rgba(6,8,11,.82)" }} />
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 10051 }} />
-      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Final quarter called" style={{
+      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t("Final quarter called")} style={{
         position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)",
         width: "min(92vw,460px)", zIndex: 10052, backgroundColor: "#14161a",
         border: "1px solid #f5a623", borderRadius: 12, padding: 20,
         boxShadow: "0 20px 60px rgba(0,0,0,.75)",
       }}>
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.4, color: "#f5a623", marginBottom: 6 }}>
-          ⏹ THE DEADLINE IS CALLED
+          {t("⏹ THE DEADLINE IS CALLED")}
         </div>
         <div style={{ fontSize: 17, fontWeight: 800, color: "#f3f4f6", marginBottom: 10 }}>
           Quarter {q} is the FINAL quarter.
@@ -7060,7 +7059,7 @@ function MatchTracker({ state, elapsed, lastActive, idleLimit }) {
       </span>
       {detail && <span style={{ color: "#8fd3b6" }}>({detail})</span>}
       <span style={{ color: "#3a4152" }}>|</span>
-      <span title="Time played" style={{ color: "#8b93a3" }}>{clock}</span>
+      <span title={t("Time played")} style={{ color: "#8b93a3" }}>{clock}</span>
       {/* How long since anybody did anything, and what happens if that keeps up.
           A table where somebody stopped answering is closed after idleLimit, and
           the play in it is written down as unfinished - so the countdown is worth
@@ -7098,7 +7097,7 @@ function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
     <div className="w-full min-h-screen flex items-start justify-center p-4 overflow-y-auto" style={{ backgroundColor: "#0e1014" }}>
       <div className="w-full rounded-xl p-6" style={{ maxWidth: 1200, backgroundColor: "#14161a", border: "1px solid #262a33" }}>
         <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
-          <h1 className="text-xl font-bold text-white">Game Over</h1>
+          <h1 className="text-xl font-bold text-white">{t("Game Over")}</h1>
           <span className="text-xs font-mono text-gray-500">
             match time {clock}
           </span>
@@ -7125,7 +7124,7 @@ function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
                 {open && (
                   <div className="px-2.5 pb-2.5">
                     <div className="rounded p-2" style={{ backgroundColor: "#101318" }}>
-                      {!log.length && <div className="text-[10px] text-gray-500 italic">No points scored.</div>}
+                      {!log.length && <div className="text-[10px] text-gray-500 italic">{t("No points scored.")}</div>}
                       <div className="space-y-0.5">
                         {log.map((e, k) => (
                           <div key={k} className="flex items-start justify-between gap-2 text-[10px]">
@@ -7157,17 +7156,17 @@ function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
         {online && !online.host ? (
           <div className="w-full py-2.5 rounded-md text-sm font-bold text-center"
             style={{ backgroundColor: "#1c1f26", color: "#8fd3b6" }}>
-            Waiting for the host to start a rematch&hellip;
+            {t("Waiting for the host to start a rematch…")}
           </div>
         ) : (
         <button onClick={onRestart} className="w-full py-2.5 rounded-md text-sm font-bold" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
-          {online ? "Play again \u2014 same players" : "Play Again"}
+          {online ? "Play again \u2014 same players" : t("Play Again")}
         </button>
         )}
         {onReview && (
           <button onClick={onReview} className="w-full mt-2 py-2 rounded-md text-xs font-semibold"
             style={{ backgroundColor: "#1c1f26", color: "#8b93a3", border: "1px solid #262a33" }}>
-            Review the final board, log and stats
+            {t("Review the final board, log and stats")}
           </button>
         )}
       </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { t, useLang } from "./i18n.js";
 
 /* ============================================================================
    Records: the hall of fame, the statistics, and the last games played.
@@ -72,25 +73,24 @@ function Stat({ label, value, sub }) {
 function HallOfFame({ data }) {
   const hof = data.hallOfFame || [];
   if (!hof.length) {
-    return <Empty text="No finished games with a human at the table yet. Play one and this fills in." />;
+    return <Empty text={t("No finished games with a human at the table yet. Play one and this fills in.")} />;
   }
   const most = Math.max(...hof.map((e) => e.ep));
   return (
     <>
       <p style={{ fontSize: 11.5, color: INK.dim, margin: "0 0 12px", lineHeight: 1.5 }}>
-        Total EP scored across every recorded game. Matches and wins sit beside it on purpose:
-        a big total built out of forty games is a different thing from the same total built out of five.
+        {t("Total EP scored across every recorded game. Matches and wins sit beside it on purpose: a big total built out of forty games is a different thing from the same total built out of five.")}
       </p>
       <div style={{ overflowX: "auto" }}>
         <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 12 }}>
           <thead><tr>
             <th style={th}>#</th><th style={th}>Player</th>
-            <th style={{ ...th, textAlign: "right" }}>Total EP</th>
+            <th style={{ ...th, textAlign: "right" }}>{t("Total EP")}</th>
             <th style={{ ...th, textAlign: "right" }}>Games</th>
             <th style={{ ...th, textAlign: "right" }}>Wins</th>
             <th style={{ ...th, textAlign: "right" }}>Average</th>
             <th style={{ ...th, textAlign: "right" }}>Best</th>
-            <th style={th}>Last seen</th>
+            <th style={th}>{t("Last seen")}</th>
           </tr></thead>
           <tbody>
             {hof.map((e, i) => (
@@ -114,8 +114,7 @@ function HallOfFame({ data }) {
         </table>
       </div>
       <p style={{ fontSize: 10.5, color: INK.dim, marginTop: 12, lineHeight: 1.5 }}>
-        Players are matched on the name they type, so two people sharing a name share a row.
-        Bots are never listed, and a seat handed to a bot part-way through earns its player nothing for that game.
+        {t("Players are matched on the name they type, so two people sharing a name share a row. Bots are never listed, and a seat handed to a bot part-way through earns its player nothing for that game.")}
       </p>
     </>
   );
@@ -125,26 +124,26 @@ function HallOfFame({ data }) {
 
 function Statistics({ data }) {
   const s = data.summary;
-  if (!s) return <Empty text="Nothing recorded yet." />;
+  if (!s) return <Empty text={t("Nothing recorded yet.")} />;
   const maxEntered = Math.max(1, ...(data.industries || []).map((i) => i.entered));
   return (
     <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 16 }}>
-        <Stat label="Games recorded" value={s.matches} sub={`${s.contested} with more than one human`} />
-        <Stat label="Highest score" value={s.topScore ? `${s.topScore.ep} EP` : "—"} sub={s.topScore ? `${s.topScore.name}, ${when(s.topScore.at)}` : ""} />
-        <Stat label="Average winning score" value={`${s.avgWinningEP} EP`} sub={`humans average ${s.avgHumanEP} EP`} />
-        <Stat label="Humans win" value={`${s.humanWinRate}%`} sub="of games they are in" />
+        <Stat label={t("Games recorded")} value={s.matches} sub={`${s.contested} with more than one human`} />
+        <Stat label={t("Highest score")} value={s.topScore ? `${s.topScore.ep} EP` : "—"} sub={s.topScore ? `${s.topScore.name}, ${when(s.topScore.at)}` : ""} />
+        <Stat label={t("Average winning score")} value={`${s.avgWinningEP} EP`} sub={`humans average ${s.avgHumanEP} EP`} />
+        <Stat label={t("Humans win")} value={`${s.humanWinRate}%`} sub="of games they are in" />
         <Stat label="Megacorps" value={s.megacorpsPerMatch} sub="formed per game" />
-        <Stat label="Typical length" value={duration(s.avgDurationMs)} sub={s.avgQuarters ? `${s.avgQuarters} quarters` : "quarters"} />
+        <Stat label={t("Typical length")} value={duration(s.avgDurationMs)} sub={s.avgQuarters ? `${s.avgQuarters} quarters` : "quarters"} />
       </div>
 
-      <Section title="Where the points come from" hint="Average EP per player per game, across every recorded match.">
+      <Section title={t("Where the points come from")} hint={t("Average EP per player per game, across every recorded match.")}>
         {(data.epSources || []).map((e) => {
           const w = Math.min(100, Math.abs(e.perPlayer) * 4);
           const neg = e.perPlayer < 0;
           return (
             <div key={e.source} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 11, color: INK.text, width: 190, flexShrink: 0 }}>{SOURCE_LABEL[e.source] || e.source}</span>
+              <span style={{ fontSize: 11, color: INK.text, width: 190, flexShrink: 0 }}>{t(SOURCE_LABEL[e.source] || e.source)}</span>
               <span style={{ flex: 1, height: 8, backgroundColor: "#1c1f26", borderRadius: 4, overflow: "hidden" }}>
                 <span style={{ display: "block", height: "100%", width: `${w}%`, backgroundColor: neg ? "#7a3f3f" : "#2c5f4f" }} />
               </span>
@@ -156,11 +155,11 @@ function Statistics({ data }) {
         })}
       </Section>
 
-      <Section title="Industries" hint="How often each was entered, and how often the winner was in it.">
+      <Section title="Industries" hint={t("How often each was entered, and how often the winner was in it.")}>
         <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 12 }}>
           <thead><tr>
             <th style={th}>Industry</th><th style={{ ...th, textAlign: "right" }}>Entered</th>
-            <th style={{ ...th, textAlign: "right" }}>By the winner</th><th style={th} />
+            <th style={{ ...th, textAlign: "right" }}>{t("By the winner")}</th><th style={th} />
           </tr></thead>
           <tbody>
             {(data.industries || []).map((i) => (
@@ -179,13 +178,13 @@ function Statistics({ data }) {
       </Section>
 
       {!!(data.personas || []).length && (
-        <Section title="Personas" hint="Only games played with the persona module on.">
+        <Section title="Personas" hint={t("Only games played with the persona module on.")}>
           <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 12 }}>
             <thead><tr>
               <th style={th}>Persona</th><th style={th}>Industry</th>
               <th style={{ ...th, textAlign: "right" }}>Played</th>
               <th style={{ ...th, textAlign: "right" }}>Won</th>
-              <th style={{ ...th, textAlign: "right" }}>Win rate</th>
+              <th style={{ ...th, textAlign: "right" }}>{t("Win rate")}</th>
             </tr></thead>
             <tbody>
               {data.personas.map((p) => (
@@ -209,7 +208,7 @@ function Statistics({ data }) {
 
 function Recent({ data }) {
   const games = data.recent || [];
-  if (!games.length) return <Empty text="No games finished yet." />;
+  if (!games.length) return <Empty text={t("No games finished yet.")} />;
   return (
     <>
       {games.map((m) => (
@@ -279,7 +278,7 @@ function Filters({ data, filter, setFilter }) {
   const narrowed = filter.engine || filter.standard || filter.people;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-      <select value={filter.engine || ""} style={control} aria-label="Which ruleset"
+      <select value={filter.engine || ""} style={control} aria-label={t("Which ruleset")}
         onChange={(e) => setFilter({ ...filter, engine: e.target.value || null })}>
         <option value="">Every ruleset ({data.total} game{data.total === 1 ? "" : "s"})</option>
         {eds.map((ed, i) => (
@@ -290,10 +289,10 @@ function Filters({ data, filter, setFilter }) {
           </option>
         ))}
       </select>
-      <button style={toggle(filter.standard)} title="Leave out games with optional rules switched on (personas are part of the standard game)"
-        onClick={() => setFilter({ ...filter, standard: !filter.standard })}>Standard rules only</button>
-      <button style={toggle(filter.people)} title="Leave out solo games against bots"
-        onClick={() => setFilter({ ...filter, people: !filter.people })}>Two or more people</button>
+      <button style={toggle(filter.standard)} title={t("Leave out games with optional rules switched on (personas are part of the standard game)")}
+        onClick={() => setFilter({ ...filter, standard: !filter.standard })}>{t("Standard rules only")}</button>
+      <button style={toggle(filter.people)} title={t("Leave out solo games against bots")}
+        onClick={() => setFilter({ ...filter, people: !filter.people })}>{t("Two or more people")}</button>
       {narrowed && (
         <button style={{ ...control, color: INK.dim, border: "none" }}
           onClick={() => setFilter({ engine: null, standard: false, people: false })}>Clear</button>
@@ -327,7 +326,7 @@ export function Records({ onClose }) {
     fetch(`/api/stats${qs ? `?${qs}` : ""}`, { cache: "no-store" })
       .then((r) => { if (!r.ok) throw new Error("no records endpoint"); return r.json(); })
       .then((j) => { if (!stop) setData(j); })
-      .catch(() => { if (!stop) setErr("These records live on the game server, so they are only here when you are playing online."); });
+      .catch(() => { if (!stop) setErr(t("These records live on the game server, so they are only here when you are playing online.")); });
     return () => { stop = true; };
   }, [filter]);
 
@@ -359,7 +358,7 @@ export function Records({ onClose }) {
                 border: `1px solid ${tab === k ? "#7a6a3f" : INK.edge}`,
                 backgroundColor: tab === k ? INK.accentBg : "transparent",
                 color: tab === k ? INK.accent : INK.dim,
-              }}>{label}</button>
+              }}>{t(label)}</button>
             ))}
           </div>
           <button onClick={onClose} aria-label="Close" style={{ background: "none", border: "none",
@@ -368,10 +367,10 @@ export function Records({ onClose }) {
 
         <div style={{ flex: 1, overflowY: "auto", padding: "14px 18px 40px" }}>
           {err && <Empty text={err} />}
-          {!err && !data && <Empty text="Reading the record book…" />}
+          {!err && !data && <Empty text={t("Reading the record book…")} />}
           {!err && data && <Filters data={data} filter={filter} setFilter={setFilter} />}
           {!err && data && data.matches === 0 && (
-            <Empty text="No games in the book match that. Widen the filter, or clear it." />
+            <Empty text={t("No games in the book match that. Widen the filter, or clear it.")} />
           )}
           {!err && data && data.matches > 0 && tab === "hof" && <HallOfFame data={data} />}
           {!err && data && data.matches > 0 && tab === "stats" && <Statistics data={data} />}
