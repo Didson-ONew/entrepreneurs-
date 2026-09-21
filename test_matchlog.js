@@ -104,7 +104,10 @@ section("Classifying where EP came from");
 {
   const cases = [
     ["Entered RE", "industries"], ["Company: Corner Store I L2", "companies"],
-    ["Megacorp: Local Syndicate", "megacorps"], ["IPO tile", "ipo"],
+    ["Megacorp: Local Syndicate", "megacorps"],
+    /* the quarterly brand dividend and the tithe are Megacorp money too - they used to
+       fall into "other", and the IPO tile pays no EP at all so it has no bucket */
+    ["Megacorp brand: Local Syndicate", "megacorps"], ["Megacorp orbit: Local Syndicate", "megacorps"], ["Megacorp tithe: Local Syndicate", "megacorps"],
     ["The Real-Estate Mogul", "land"], ["The Omnipresent", "land"],
     ["Cash on hand ($35)", "cash"], ["Unpaid loans (2 discs)", "loans"],
   ];

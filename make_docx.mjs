@@ -7,7 +7,7 @@
    away from it. Now there is one source and four outputs.
 
      node make_docx.mjs --table   -> ..._Tabletop.docx        the physical game
-     node make_docx.mjs           -> Entrepreneurs_Rulebook_v13.docx      (the app)
+     node make_docx.mjs           -> Entrepreneurs_Rulebook_v18.docx      (the app)
      node make_docx.mjs --full    -> ..._Designers_Edition.docx           (+ notes)
      node make_docx.mjs --all     -> all three
 
@@ -32,7 +32,7 @@ const wantTable = args.includes("--table") || all;
 const wantFull = args.includes("--full") || all;
 const wantPlayers = all || (!args.includes("--full") && !args.includes("--table"));
 
-const VERSION = EDITION.replace(/[^0-9v]/gi, "").toLowerCase();   // "Rulebook v13" -> "v13"
+const VERSION = EDITION.replace(/[^0-9v]/gi, "").toLowerCase();   // "Rulebook v18" -> "v18"
 
 /* ---------- house style ----------
    The components are near-black with a violet cast and the industries carry fixed

@@ -67,7 +67,7 @@ Starting Blueprints are drafted in reverse seat order - the LAST seat picks firs
 ### The rest
 
 - Twelve discs each. Nothing else marks what you own.
-- Megacorp tiles: sixteen exist in four tiers of four. Two are drawn from each tier that is in play - which is twice the number of players. Tiers 4 and 3 are always in; tier 2 joins at three players, tier 1 only at four.
+- Megacorp tiles: sixteen exist in four tiers of four. Two are drawn from each tier that is in play - three at five players, all four at six. Tiers 4 and 3 are always in; tier 2 joins at three players, tier 1 only at four.
 - Personas are dealt to everyone by default - one each, drawn from six. Leave them out for a first game if you like.
 
 ---
@@ -92,7 +92,7 @@ Separately, you have five company slots. Every active company fills one, and so 
 
 ## A quarter, step by step
 
-All twelve quarters run the same five phases. You only make decisions in the first two - the rest resolves around you.
+All twelve quarters run the same five phases. Planning and Action are where you act; the later phases resolve around you and stop only when there is a choice to make - where to deliver, what to sell short, where the hub goes, whether to repay a loan.
 
 | Phase | What happens |
 | --- | --- |
@@ -164,14 +164,14 @@ Renovating moves the price markers exactly as launching does - the industry you 
 - RESEARCH - draw the face-up top card of any industry deck. Hand limit is five cards.
 - UPGRADE - pay a company's setup cost again. Its production and its OPEX both double and its level goes up by one.
 
-A horizontal company (Utilities, Manufacturing, Technology) grows sideways: upgrading needs an adjacent plot that you own and that is empty. A vertical company (Retail, Hospitality, Healthcare) stacks on the plot it already occupies. Each company may be upgraded once.
+A horizontal company (Utilities, Manufacturing, Technology) grows sideways: upgrading needs an adjacent plot that is empty and owned - by you or by anyone else, in which case you pay them rent for it, exactly as when you build. A vertical company (Retail, Hospitality, Healthcare) stacks on the plot it already occupies. Each company may be upgraded once.
 
 Adjacent means sharing an edge - up, down, left or right - whether the two plots are in the same district or across the border into the next one. Plots that meet only at a corner are not adjacent, so a company can never stand on both. The same rule decides where a multi-plot company may be built in the first place: its plots must form one connected shape.
 
 ### Board Meeting
 
 - GO PUBLIC - merge companies to claim a Megacorp tile. You may only take this action if you actually hold the exact combination one of the available tiles asks for.
-- REPOSITION - move to first in turn order, and place both of your workers together at the start of next quarter's planning.
+- REPOSITION - move to first in turn order, and place your workers together at the start of next quarter's planning (two of your three at a two-player table).
 
 The IPO tile is not an action you can take. It is the prize for being first: whoever forms the first Megacorp of the game also takes it. It is a SIXTH company bay - so being first to merge does not narrow how wide you can operate - and it is what opens the second Board Meeting seat for the rest of the game. Until then only one player can sit here each quarter, and a player who cannot form a Megacorp has only Reposition available.
 
@@ -183,7 +183,7 @@ The IPO tile is not an action you can take. It is the prize for being first: who
 
 ### What a plot costs
 
-A plot's value is its printed road price plus $1 for every occupied plot next to it, plus $1 if it touches a Logistic Hub. Road prices run from 1 at the outer edge to 6 in the dead centre of the city. You pay that to buy, and you receive it when you sell - so land near the action genuinely appreciates as the city fills in.
+A plot's value is its printed road price plus $1 for every occupied plot touching it - corners included, inside a district - plus $1 if it touches a Logistic Hub. Road prices run from 1 at the outer edge to 6 in the dead centre of the city. You pay that to buy, and you receive it when you sell - so land near the action genuinely appreciates as the city fills in.
 
 ### Footprints
 
@@ -193,7 +193,7 @@ A plot can carry more than one level, and rent follows the levels rather than th
 
 ### Selling the ground out from under a building
 
-A company can only produce while every plot it stands on is owned by SOMEBODY - not necessarily by you. Selling one of those plots does not destroy the building, but it stops producing until somebody buys that ground, and whoever does collects its rent from then on.
+A company can only produce while every plot it stands on is owned by SOMEBODY - not necessarily by you. Selling one of those plots does not destroy the building, but it stops producing until somebody buys that ground, and whoever does collects its rent from then on. Its bills are still charged while it stands idle.
 
 ---
 
@@ -239,7 +239,7 @@ Setup / OPEX / Production, by level.
 
 ### Who pays whom
 
-Every company pays OPEX to companies in other industries - its suppliers, printed on its Blueprint. The chain closes a loop, so no industry is ever a dead end. Level 1 cards have one supplier, level 2 have two, and level 3 have all three.
+Every company pays a supplier bill - its printed OPEX less $2 a level of ground rent - to companies in other industries: its suppliers, printed on its Blueprint. The chain closes a loop, so no industry is ever a dead end. Level 1 cards have one supplier, level 2 have two, and level 3 have all three.
 
 | Industry | Supplier 1 | Supplier 2 | Supplier 3 |
 | --- | --- | --- | --- |
@@ -267,7 +267,7 @@ Every active company pays two bills each quarter, automatically, whether or not 
 
 Before OPEX is charged, any player whose cash will not cover their whole bill gets a window to choose what to sell. This is a forced sale and everything in it goes at HALF what a planned sale through Raise Capital would fetch: Blueprints $2 / $4 / $6 by level, plots half their value, a company half what it would have paid voluntarily. What you keep control of is which assets go, not the price.
 
-If the bill still cannot be met once a company's OPEX comes due, that company enters SOLVENCY: the bank sells for you, at those same half rates, and the company that triggered it goes to the bank as a Distressed Asset.
+If you close the window with the bill still short, the bank sells for you at those same half rates - Blueprints first, then your cheapest plots, then your weakest companies - and if that is still not enough when a company's bill comes due, that company enters SOLVENCY: whatever else you have goes at half, and the company that triggered it goes to the bank as a Distressed Asset.
 
 ---
 
@@ -288,7 +288,7 @@ Every district shows a 4x4 grid of demand. Each row is an industry; the four col
 - Rows 3 and 4 of every district stay closed until Quarter 5.
 - At the end of Quarter 8 the entire demand grid is wiped clean and every icon reopens for Year 3.
 - AN ICON TAKES ITS OWN COLUMN IN GOODS: the level-1 icon takes one unit, the level-2 icon two, the level-3 icon three, the level-4 icon four. A level-3 company reaching columns 1, 2 and 3 therefore sells 1 + 2 + 3 = 6 units into a single clean row of its industry.
-- Each icon can be sold to once, by whoever gets there first - and it is filled whole, however many units it took.
+- Each icon can be sold to once, by whoever gets there first - and it is filled whole, however many units it took, though you are only paid for units you actually had.
 - Anything you cannot sell is recycled for $1 a unit.
 
 ### How far a company reaches
@@ -308,7 +308,7 @@ A company can always sell into the district or districts its own plots sit in. B
 | Hospitality | May sell to the businesses and hubs around it instead of to demand icons - one unit at market price for each business or hub within its level in plots, no icon needed. Those units come out of its production like any other. |
 | Manufacturing | May route up to its level in units into OTHER industries' rows in its own district. Those units come out of its production - cross-selling is a place to send goods, not extra goods. |
 | Healthcare | Reaches every district on the hub network without touching a hub. |
-| Technology | Delivers two units to every icon it reaches instead of one. |
+| Technology | Every icon it fills takes twice its column in units - 2, 4, 6 or 8 - and pays for all of them. |
 
 ### B2B: the pots pay out
 
@@ -324,11 +324,11 @@ A pot with no company of that type to pay carries over in full, growing quarter 
 
 ## Closing and the year end
 
-Every quarter ends with a new Logistic Hub being built on an empty plot. The first player in turn order chooses which one. That plot is filled for good - nothing can be built there afterwards - and the hub adds its own district to the network.
+Every quarter ends with a new Logistic Hub being built on an empty plot that nobody owns. The first player in turn order chooses which one. That plot is filled for good - nothing can be built there afterwards - and the hub adds its own district to the network.
 
 ### At the end of Quarter 4, 8 and 12
 
-- The Real-Estate Mogul and The Omnipresent are awarded - 5 EP each to the outright leader at 2-3 players, 10 EP each at 4 or more.
+- The Real-Estate Mogul and The Omnipresent are awarded - 5 EP each to the outright leader at 2-3 players, 10 EP each at 4 or more. They are also paid at the final quarter if the game is called before Q12.
 - You may buy back loan discs: $30 at the end of Year 1, $35 at Year 2, $40 at Year 3.
 
 Companies do not wait for the year end. A company scores the moment it is finished - see below - so by the time a year ends its EP are already banked. What a year end decides is who is holding the city.
@@ -339,7 +339,7 @@ The moment a company is built it scores 2 EP per level, straight into your bank.
 
 So a level-2 company built and then upgraded pays 4 EP on the day it opens and 6 more on the day it grows.
 
-There is nothing held back and nothing to keep track of on the cards: every EP you have earned is banked, and the standings are the score. You never lose EP you have already scored - not when a company is sold, not when it goes distressed, not when it is merged into a Megacorp.
+There is nothing held back and nothing to keep track of on the cards: every EP you have earned is banked, and the standings are the score. You never lose EP you have already scored - not when a company is sold, not when it goes distressed, not when it is merged into a Megacorp. A distressed shell that is bought back scores its levels again for its new owner, so a company can score twice in its life.
 
 ---
 
@@ -347,7 +347,7 @@ There is nothing held back and nothing to keep track of on the cards: every EP y
 
 ## Going public and Megacorps
 
-Going public always means merging companies to claim a Megacorp tile, from the very first time it is done. Each tile names an exact combination of company levels and pays between 8 and 22 EP, and you must hold precisely that combination of active companies.
+Going public always means merging companies to claim a Megacorp tile, from the very first time it is done. Each tile names a combination of company levels and pays between 8 and 22 EP; you must hold at least those companies, and any beyond the combination stay yours. If your companies match more than one tile, the best-paying one is claimed; what you choose is which of the merged companies becomes the headquarters.
 
 Whoever forms the first Megacorp of the game also takes the IPO tile: a sixth company bay for the rest of the game, and the second Board Meeting seat opens for everyone.
 
@@ -358,12 +358,12 @@ Whoever forms the first Megacorp of the game also takes the IPO tile: a sixth co
 - The HQ stops trading: with no Blueprint it produces nothing and pays no OPEX. It still draws its equal share of its industry's pot every B2B - a headquarters that has stopped building has not stopped collecting.
 - Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry DIVIDED BY THE TILE'S TIER, rounded down. A tier 1 headquarters in an industry at $3 banks 3 EP a quarter; a tier 4 headquarters in the same industry banks nothing at all until that industry reaches $4. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for eight more quarters than one formed in Year 3.
 - It has no supplier bill, but it still stands on the ground, so its owner pays ground rent every quarter like any other building - $2 for every level standing on a plot, to that plot's owner. On your own land nothing is owed.
-- A headquarters is public infrastructure: it counts as a Logistic Hub. Any company built orthogonally beside one joins the network through it, whoever owns them. A monument that only collected would be a monument nobody wanted to build near - and the companies that gather round it are exactly the ones it scores 3 EP each for at the end.
+- A headquarters is public infrastructure: it counts as a Logistic Hub. Any company built orthogonally beside one joins the network through it, whoever owns them. A monument that only collected would be a monument nobody wanted to build near - and the companies that gather round it are exactly the ones it pays a tithe to.
 - Sell a plot out from under a headquarters and it collects nothing at all - no pot share, no points, and it stops being a hub. A monument still needs its ground.
 - It keeps its disc, and it permanently locks one of your five company slots. Every Megacorp you form narrows how wide you can operate.
 - Every quarter it stands, the HQ pays 1 EP to every RIVAL company standing orthogonally beside it, and that company's owner banks it. Your OWN companies beside your own HQ cost you nothing - they are paid and you are charged in the same breath, which cancels. So a headquarters wedged into somebody else's district bleeds all game, and where you put it is a bet on who builds next to you.
 
-Twice the number of players are in play - eight at a four-player table - so a combination you are working toward is usually still there, but the best-paying ones are contested.
+Eight tiles are in play at a four-player table, twelve at five and all sixteen at six, so a combination you are working toward is usually still there, but the best-paying ones are contested.
 
 ### The tiles
 
@@ -411,11 +411,11 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 
 | Source | EP |
 | --- | --- |
-| Entering an industry for the first time | +5 each, once per industry per game, banked immediately |
+| Entering an industry for the first time | +3 each, once per industry per game, banked immediately |
 | Each company, when it is built - and again when it is upgraded | +2 per level |
 | Megacorp tile | +8 to +22 as printed |
 | Megacorp HQ, each quarter it stands | + its industry's price / its tile's tier, rounded down |
-| Megacorp HQ, at the end | +3 for each other company beside it |
+| Megacorp HQ, every quarter | +its industry's price divided by the tile's tier; and it pays 1 EP to each rival company beside it, which that owner banks |
 | The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone, +10 at 4+ players |
 | The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone, +10 at 4+ players |
 | Cash on hand at the end | +1 per full $50 |
@@ -425,9 +425,7 @@ For The Omnipresent, a district counts if you own a plot in it or one of your ac
 
 Ground rent is simply money. It is collected as it is earned and scores inside your cash at the end like every other dollar - there is nothing separate to track. What is worth knowing is how much of your income it quietly becomes: a plot with somebody else’s building on it pays you every quarter, and by six players half the plots a player owns carry a rival’s building.
 
-Only the outright leader scores a land award, and a shared lead pays badly. At two and three players: 5 EP alone, 2 EP each if two tie, 1 EP each if three or more do. **At four players and up every figure doubles** - 10 EP alone, 4 each for a two-way tie, 2 each beyond that. Second place gets nothing at any count.
-
-> **Designer's note.** Both awards pay out the same ~29 EP over a game whether two people are chasing them or six, so a rate tuned for a small table is a rounding error at a big one: land is 17% of a winning score at two seats and 3.5% at six. At 5 EP the player who ends up holding the most ground wins BELOW what an indifferent seat would take, at every single count - chasing land was a trap, not a strategy. Doubling the rate from four players up puts that race back at or above chance without flattening the game: lead changes go UP at every table size and wire-to-wire games go DOWN. The same change at two and three players makes land 41% and 33% of a winning score and the trajectory measurably settles - fewer lead changes, the winner in front longer, games decided most of a quarter earlier - so the small tables keep the old rate. Paying a runner-up was tested and is worse than paying nobody: it costs half again as much EP and makes the land leader win LESS often, because a consolation prize dilutes the race it is meant to sharpen. See audit_ep_mix.js and audit_tension.js.
+Only the outright leader scores a land award, and a shared lead pays badly. At two and three players: 5 EP alone, 2 EP each if two tie, 1 EP each if three or more do. At four players and up every figure doubles - 10 EP alone, 4 each for a two-way tie, 2 each beyond that. Second place gets nothing at any count.
 
 ### When the game ends
 
@@ -441,7 +439,7 @@ Most EP wins. If the final scores tie, the player still running more ACTIVE COMP
 
 ## Personas
 
-Personas are asymmetric powers, one tied to each industry. They are dealt by default - leave them out for a first game if you like - and only as many as there are players are dealt, so at least two always sit out. Everyone's persona is public from the start, so you can weigh your own specialism and everybody else's while drafting.
+Personas are asymmetric powers, one tied to each industry. They are dealt by default - leave them out for a first game if you like - and only as many as there are players are dealt, so at a small table some sit out. Everyone's persona is public from the start, so you can weigh your own specialism and everybody else's while drafting.
 
 | Persona | Power |
 | --- | --- |
@@ -449,8 +447,8 @@ Personas are asymmetric powers, one tied to each industry. They are dealt by def
 | Public Health Director (HC) | Your Healthcare companies may serve any column of a Healthcare row whatever their level - but a unit sold above your company's level pays $1 less than the price. |
 | White-Label Supplier (MA) | When your Manufacturing cross-sells into another industry's row, it may be paid that industry's price instead of its own - whichever is higher. |
 | Resort Developer (HO) | Your Hospitality companies may upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them - or stack as Hospitality usually does. You choose at each upgrade. |
-| Supply Chain Expert (RE) | At the start of Revenue, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline. |
-| Concession Holder (UT) | At the start of Revenue you may switch your concession on: your Utilities production then sells for $1 above the current price this quarter. Every quarter you sell at that premium, the Utilities price falls one step at the end of the quarter. |
+| Supply Chain Expert (RE) | At the start of Production, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline. |
+| Concession Holder (UT) | At the start of Production you may switch your concession on: your Utilities production then sells for $1 above the current price this quarter. Every quarter you sell at that premium, the Utilities price falls one step at the end of the quarter. |
 
 ---
 
@@ -511,13 +509,13 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Unsold production | $1 per unit |
 | Industry pot | split evenly among that industry's active companies; the remainder rides forward |
 | Renovation | card must match the shell's level; from level 2 up, its scaling type too |
-| Final tie | most money, then fewest loan discs in the bank |
+| Final tie | most active companies, then most money, then fewest loan discs in the bank |
 | Demand rows 3-4 | closed until Quarter 5 |
 | Demand grid | wiped clean at the end of Quarter 8 |
 | Company scoring | 2 EP per level, the moment it is built - and again when it is upgraded |
 | Industry debut | 3 EP the first time you build in each industry, banked at once |
-| Land awards | 5 EP to the outright leader in plots, and in districts, at every year end |
-| Logistic Hub | one per quarter, on an empty plot; reaches its own district; joins orthogonally |
+| Land awards | 5 EP to the outright leader in plots, and in districts, at every year end - 10 at 4+ players |
+| Logistic Hub | one per quarter, on an empty unowned plot; reaches its own district; joins orthogonally |
 
 ---
 
@@ -534,13 +532,13 @@ Almost every term in this game is a real one, used the way a real business uses 
 | M&A | Mergers and Acquisitions - the department that buys, builds and combines businesses. In the game: where you launch a company, buy ground, or take a distressed building back off the bank. |
 | R&D | Research and Development - spending now for capability later. In the game: draw Blueprints, or upgrade a company you already own. Nothing on this track pays out this quarter. |
 | Raise Capital | Going to lenders or investors for money, against interest or a share of the firm. In the game: take a $20 loan against a disc, or sell an asset for cash. |
-| Board Meeting | Where the owners, not the managers, decide - restructures, flotations, who chairs the table. In the game: go public to form a Megacorp, or reposition yourself to first in turn order. Costs both your workers. |
+| Board Meeting | Where the owners, not the managers, decide - restructures, flotations, who chairs the table. In the game: go public to form a Megacorp, or reposition yourself to first in turn order. Your workers go here together. |
 
 ### Money in and money out
 
 | Term | Meaning, and use in play |
 | --- | --- |
-| OPEX | Operating expenditure - the recurring cost of running what you already own. Wages, power, stock: the things that bill you again next month whether or not you sold anything. In the game: your supplier bill, charged every quarter per company, paid to the industries your Blueprint lists as suppliers. |
+| OPEX | Operating expenditure - the recurring cost of running what you already own. Wages, power, stock: the things that bill you again next month whether or not you sold anything. In the game: the running cost printed on each Blueprint, charged every quarter - $2 a level of it is ground rent to the landlord, the rest is the supplier bill paid to the industries the card lists. |
 | Setup cost | Capital expenditure, or CAPEX - what it costs to build the thing in the first place, paid once. In the game: the price on the Blueprint, paid again in full to upgrade. |
 | Ground rent | What a tenant pays a freeholder for standing on their land, regardless of trade. In the game: $2 for every company level, to whoever owns each plot it stands on. Nothing on land you own yourself. |
 | Liquidity | Having cash to hand, as opposed to wealth tied up in things you would have to sell. In the game: the reason a board full of buildings can still lose you the game - bills are paid in cash, not in assets. |
@@ -568,8 +566,8 @@ Almost every term in this game is a real one, used the way a real business uses 
 | Industry pot | A sector's total spend, which the firms in it divide between them. In the game: every company in an industry draws one equal share, whatever its size. Supplying an industry nobody has built in is very lucrative. |
 | Demand | What the market will actually buy, at a price, right now. In the game: the coloured squares in each district. First come, first served. |
 | Vertical integration | Growing by owning more of your own supply chain - upward, on one site. In the game: how Retail, Hospitality and Healthcare upgrade, stacking the new level on a plot the company already holds. |
-| Horizontal integration | Growing by taking more ground at the same stage - outward, across sites. In the game: how Utilities, Manufacturing and Technology upgrade, each new level needing an empty plot of yours beside the building. |
-| Logistic Hub | A distribution centre - it moves goods rather than making them. In the game: opens on an empty plot each quarter and extends what the companies beside it can reach. |
+| Horizontal integration | Growing by taking more ground at the same stage - outward, across sites. In the game: how Utilities, Manufacturing and Technology upgrade, each new level needing an empty owned plot beside the building. |
+| Logistic Hub | A distribution centre - it moves goods rather than making them. In the game: opens on an empty unowned plot each quarter and extends what the companies beside it can reach. |
 
 ### Time and score
 

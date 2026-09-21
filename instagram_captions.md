@@ -130,8 +130,8 @@ Megacorp piece (a physical prototype choice, not in the code) and the historical
 > table has built.
 >
 > Each industry has one marker on a track from **$2 to $12**. Build a company in
-> an industry → its marker slides down a dollar. That company pays its suppliers
-> every quarter, and each of those climbs a dollar.
+> an industry → its marker slides down a dollar, and each supplier printed on the
+> card climbs a dollar, the day it opens.
 >
 > An industry built as often as it's needed doesn't move at all.
 >
@@ -264,10 +264,11 @@ Powers are quoted verbatim from the engine, so they cannot drift from the game.
 > sit out every game, and which ones changes what's on the table before anyone has
 > placed a worker.
 >
-> The Systems Architect stacks Technology vertically instead of spreading it.
-> The Public Health Director's level-1 clinic can serve any column of a Healthcare
-> row.
-> The Concession Holder sells Utilities a dollar above market.
+> The Systems Architect may stack Technology vertically instead of spreading it.
+> The Public Health Director's level-1 clinic may serve any column of a Healthcare
+> row, a dollar cheaper above its level.
+> The Concession Holder may sell Utilities a dollar above market, and the market
+> pays for it afterwards.
 >
 > Which would you pick?
 
@@ -568,14 +569,16 @@ the online hover tips until this cycle.
 
 **3 · The OPEX split on every company card is pre-split.** P5's Smart Grid Node
 shows OPEX −$7 and an OPEX SPLIT of HO $4 / HC $3 — the whole bill going to
-suppliers. Since ground rent came out of OPEX, a level-1 copy of that card pays
-**$5** into the pots (HO $3 / HC $2) and $2 per level in ground rent on any plot
-it stands on that it does not own. The card cannot show that without a reprint,
+suppliers. Since ground rent came out of OPEX, that card (a level-2 card, built at
+level 2) pays **$3** into the pots (HO $2 / HC $1) and $4 in ground rent - $2 a
+level - on any plot it stands on that it does not own. The card cannot show that without a reprint,
 but a one-line insert in the box covers it.
 
 Everything else I checked on those sheets is correct: the $20 loan, the
 $30 / $35 / $40 buyback, −5 EP per disc left pledged, the scaling directions on
-all six industries, the Megacorp $5 siphon, and the Q4 / Q8 / Q12 year-end rings.
+all six industries, and the Q4 / Q8 / Q12 year-end rings. (The Megacorp $5 siphon on
+those sheets is gone: an HQ now draws one share of its own industry's pot and pays
+1 EP a quarter to each rival company beside it.)
 
 Post J below turns error 1 into content, which is the cheapest fix available
 and the most on-brand one.
@@ -634,10 +637,10 @@ it read as real rather than as a render. P6 last — it is the payoff.*
 feed size and every number on it has a consequence. If you make only one carousel
 from this set, make this one.*
 
-*Correct the supplier line before you post: under the current rules a level-1
-copy pays $5 into the pots, not $7 — the rest is ground rent. Either reshoot with
-a corrected card or phrase it as "HO and HC get most of that $7; the rest is rent
-on the ground it stands on."*
+*Correct the supplier line before you post: under the current rules that card is
+built at level 2 and pays $3 into the pots, not $7 — the other $4 is ground rent.
+Either reshoot with a corrected card or phrase it as "HO and HC get some of that
+$7; the rest is rent on the ground it stands on."*
 
 ---
 
@@ -651,18 +654,18 @@ on the ground it stands on."*
 > That is a real failure, and personas are the fix. Not because they make you
 > stronger — because they give you somewhere to look first.
 >
-> **Concession Holder** (Utilities) — your production sells for $1 above the
-> current price.
-> **Supply Chain Expert** (Retail) — raise one industry you're *not* in, then
-> reach one extra district.
-> **Resort Developer** (Hospitality) — your hotels upgrade sideways, so more
-> businesses end up adjacent to them.
+> **Concession Holder** (Utilities) — you may switch on a $1 premium on your
+> production each quarter; every quarter you use it, the Utilities price drops a step.
+> **Supply Chain Expert** (Retail) — you may raise one industry you're *not* in,
+> then reach one extra district. Or decline.
+> **Resort Developer** (Hospitality) — your hotels may upgrade sideways, so more
+> businesses end up adjacent to them. Your call at each upgrade.
 > **White-Label Supplier** (Manufacturing) — when you cross-sell into another
-> industry's demand, you get paid *that* industry's price.
-> **Public Health Director** (Healthcare) — your companies ignore the level
-> restriction entirely.
-> **Systems Architect** (Technology) — your companies upgrade straight up, on one
-> plot, instead of needing a free one beside them.
+> industry's demand, you get paid *that* industry's price if it is higher.
+> **Public Health Director** (Healthcare) — your companies may serve any column,
+> whatever their level; a unit above your level pays $1 less.
+> **Systems Architect** (Technology) — your companies may upgrade straight up, on
+> one plot, instead of needing a free one beside them. Your call at each upgrade.
 >
 > Six specialists, 2,400 simulated games, and a spread of twelve points between
 > the best and the worst. Not balanced. Balanced enough that the worst one still
@@ -686,12 +689,13 @@ problem rather than a feature list. Put P3 first and one persona per slide after
 > **Skyline Consolidated — 15 EP.** Three level-3 companies.
 > **Apex Group — 16 EP.** Two L2 and two L3.
 >
-> You merge the companies, all but one get discarded, and the survivor becomes a
-> headquarters. It stops trading. It sits there as a monument, and every quarter
-> it takes **$5 out of the industry pot of every business standing next to it.**
+> You merge the companies, all but one go to the bank as distressed shells anyone
+> can renovate, and the survivor becomes a headquarters. It stops trading. It sits
+> there as a monument, banks its industry's price ÷ tier in EP every quarter, and
+> **pays 1 EP a quarter to every rival company standing next to it.**
 >
-> So the tile is worth 11 to 16 points, and the HQ is worth whatever the
-> neighbourhood is worth. You are not just picking the biggest number. You are
+> So the tile is worth 11 to 16 points, and the HQ costs whatever the
+> neighbourhood decides to charge it. You are not just picking the biggest number. You are
 > picking a corner and betting the district fills in around it.
 >
 > The first player to form one also takes the IPO tile. Everyone else is racing
@@ -807,17 +811,18 @@ grid post too.*
 > One piece on the board is not a building.
 >
 > When you merge companies into a Megacorp, the survivor stops being a business
-> and becomes a headquarters. It never trades again. It just sits there and takes
-> $5 a quarter out of the industry pot of everything built beside it.
+> and becomes a headquarters. It never trades again. It just sits there, banks its
+> industry's price ÷ tier every quarter, and pays a tithe - 1 EP a quarter - to
+> every rival company built beside it.
 >
 > So it gets the black pyramid, and the pyramid sits on top of whatever the
 > building used to be. You can see at a glance which corner of the city somebody
 > decided to own.
 >
-> At the end of the game it scores again for every company standing next to it —
-> counted at the *end*, not when it formed. Which makes it a bet rather than a
+> Every quarter it pays for every rival company standing next to it — counted
+> as they arrive, not when it formed. Which makes it a bet rather than a
 > snapshot: you pick the corner, and then you either build the district up
-> yourself or watch everybody else refuse to.
+> yourself or watch everybody else move in and collect.
 >
 > 🏗️
 

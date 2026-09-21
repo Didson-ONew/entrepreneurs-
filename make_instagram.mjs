@@ -245,8 +245,8 @@ add("03_prices/2.png", shell(1080, 1350, `
       <div style="font-size:30px;color:#C9CFDA;margin-top:10px">Retail's marker slides down a dollar.<br>More supply.</div>
     </div>
     <div style="background:${CARD};border:1px solid ${LINE};border-radius:20px;padding:34px">
-      <div style="font-size:34px;font-weight:820;color:${E.IND_COLOR.TE}">That shop pays Technology, every quarter</div>
-      <div style="font-size:30px;color:#C9CFDA;margin-top:10px">Technology's marker climbs a dollar.<br>More demand.</div>
+      <div style="font-size:34px;font-weight:820;color:${E.IND_COLOR.TE}">That shop lists Technology as a supplier</div>
+      <div style="font-size:30px;color:#C9CFDA;margin-top:10px">Technology's marker climbs a dollar the day it opens.<br>More demand.</div>
     </div>
     <p style="font-size:27px;color:${MUTE}">An industry built as often as it's needed<br>doesn't move at all.</p>
   </div>
@@ -438,7 +438,7 @@ add("10_ask/1.png", shell(1080, 1350, `
   ${foot(0, 0)}`));
 
 /* ---- 11. the personas ------------------------------------------------- */
-const PERSONA_ORDER = ["sys_arch", "preventive", "product_mgr", "customer_or", "supply_chain", "gov_rel"];
+const PERSONA_ORDER = ["tech_savvy", "preventive", "product_mgr", "customer_or", "supply_chain", "gov_rel"];
 const personaKeys = Object.keys(E.PERSONAS);
 const order = PERSONA_ORDER.filter((k) => personaKeys.includes(k))
   .concat(personaKeys.filter((k) => !PERSONA_ORDER.includes(k)));

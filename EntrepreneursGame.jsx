@@ -12,12 +12,12 @@ const SCALING = { UT: "H", MA: "H", TE: "H", RE: "V", HO: "V", HC: "V" };
 const IND_COLOR = { UT: "#E8B330", RE: "#3FAE6A", HO: "#D65B4A", MA: "#9066C8", HC: "#3E8FD0", TE: "#D6428B" };
 const IND_NAME = { UT: "Utilities", RE: "Retail", HO: "Hospitality", MA: "Manufacturing", HC: "Healthcare", TE: "Technology" };
 const IND_ABILITY = {
-  UT: "Access demand on its level\u00d7level grid. No LH.",
-  RE: "Sell to 1 extra district per level. No LH.",
-  HO: "Sell 1 extra production per business/LH around it, per level.",
-  MA: "Sell 1 extra production to another industry's rows, per level.",
-  HC: "Reach any district near any LH, not just its own.",
-  TE: "Sell 2 tokens to every demand icon it reaches.",
+  UT: "Reaches a level\u00d7level block of districts around it. Never uses hubs.",
+  RE: "Reaches 1 extra district per level, of its choice. Never uses hubs.",
+  HO: "Sells one unit to each business or hub within [level] plots of it, at full price, once the icons are full.",
+  MA: "May route up to [level] units into other industries' rows in its home district.",
+  HC: "Reaches every district on the hub network, not just its own.",
+  TE: "Every icon it fills takes twice its column in units - 2, 4, 6, 8.",
 };
 
 const PLAYER_COLORS = ["#22D3EE", "#FB923C", "#A78BFA", "#FB7185", "#4ADE80", "#FACC15"];
@@ -323,7 +323,7 @@ function lhEdgeOptions(state) {
 function logNewLH(state, districts, log) {
   const names = districts.map((d) => state.board.tiles[d]).filter(Boolean);
   const grows = districts.some((d) => DEMAND_ROWS[districtFamily(state.board.tiles[d])].includes("HC"));
-  log(`A new Logistic Hub opens near ${names.join("/")}${grows ? " \u2014 Healthcare demand grows." : "."}`, null);
+  log(`A new Logistic Hub opens near ${names.join("/")}${grows ? " \u2014 Healthcare can now reach it." : "."}`, null);
 }
 const districtOf = (board, plot) => { const c = board.cellOf[plot]; return c ? `${c.r},${c.c}` : null; };
 
@@ -955,18 +955,22 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
   if ((state.deliveryRemaining[bizId] || 0) <= 0) return false;
   const got = deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross);
   if (got <= 0) return false;
+  /* The icon is filled whole, but the player is paid only for the units they actually
+     had left - exactly as autoDeliver caps a bot. A human with one unit left clicking
+     a column-3 icon used to be paid for three. */
+  const n = Math.min(got, state.deliveryRemaining[bizId] || 0);
   /* Pay through unitPrice, the same as the bots. This used to charge the plain market
      price, so a human holding White-Label Supplier or Concession Holder never actually
      collected what their persona promised - only the bots did. */
-  const paid = got * slotPay(state, human, biz, { tileKey, rowIdx, levelIdx, cross });
+  const paid = n * slotPay(state, human, biz, { tileKey, rowIdx, levelIdx, cross });
   human.cash += paid;
-  noteConcessionSale(state, human, biz, got);
+  noteConcessionSale(state, human, biz, n);
   /* Cross-selling spends production like any other delivery. crossSellRemaining is a
      CAP on how many of those units may be routed outside the company's own industry,
      not a second pile of goods. */
-  state.deliveryRemaining[bizId] = Math.max(0, (state.deliveryRemaining[bizId] || 0) - got);
-  if (cross) state.crossSellRemaining[bizId] = Math.max(0, (state.crossSellRemaining[bizId] || 0) - got);
-  log(`${human.name} delivers ${got} ${bizInd(biz)}${cross ? " (cross-sell)" : ""} to ${state.board.tiles[tileKey]} for $${paid}.`, human.id);
+  state.deliveryRemaining[bizId] = Math.max(0, (state.deliveryRemaining[bizId] || 0) - n);
+  if (cross) state.crossSellRemaining[bizId] = Math.max(0, (state.crossSellRemaining[bizId] || 0) - n);
+  log(`${human.name} delivers ${n} ${bizInd(biz)}${cross ? " (cross-sell)" : ""} to ${state.board.tiles[tileKey]} for $${paid}.`, human.id);
   return true;
 }
 
@@ -997,9 +1001,9 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
    Two things move a marker, and they are deliberately asymmetric:
 
      APPEARING AS A SUPPLIER on a Blueprint somebody builds moves it UP one cell.
-     BEING BUILT moves that industry's own marker DOWN one cell. So it takes two
-     of either to move the price a whole dollar - the two pressures are equal and
-     opposite, and an industry that is built as often as it is needed sits still.
+     BEING BUILT moves that industry's own marker DOWN one step. Each step is a whole
+     dollar - the two pressures are equal and opposite, and an industry that is built
+     as often as it is needed sits still.
 
    The marker STOPS at each end. That is the reason this is one clamped position
    rather than the two counters it used to be: with separate demand and offer
@@ -1076,9 +1080,9 @@ const PERSONAS = {
   customer_or: { ind: "HO", name: "Resort Developer",
     blurb: "Your Hospitality companies may upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them - or stack as Hospitality usually does. You choose at each upgrade." },
   supply_chain:{ ind: "RE", name: "Supply Chain Expert",
-    blurb: "At the start of Revenue, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline." },
+    blurb: "At the start of Production, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline." },
   gov_rel:     { ind: "UT", name: "Concession Holder",
-    blurb: "At the start of Revenue you may switch your concession on: your Utilities production then sells for $1 above the current price this quarter. Every quarter you sell at that premium, the Utilities price falls one step at the end of the quarter." },
+    blurb: "At the start of Production you may switch your concession on: your Utilities production then sells for $1 above the current price this quarter. Every quarter you sell at that premium, the Utilities price falls one step at the end of the quarter." },
 };
 /* ============================== VARIANTS ==============================
    Optional rule changes the host turns on before a game starts. Every one is off
@@ -1091,7 +1095,7 @@ const PERSONAS = {
 
    They all read as "play it the older way", because that is what they are. Five
    rules that used to be optional became standard in v13 - companies score the
-   moment they are finished, a level is worth 3 EP, the decks are shuffled whole,
+   moment they are finished, a level is worth 2 EP, the decks are shuffled whole,
    hubs stand on plots, and the land awards pay every year - so what remains
    switchable is the way the game worked before. Keeping them costs a boolean each
    and makes it possible to play the two side by side. */
@@ -1317,7 +1321,7 @@ function safeToSpend(p, spend, addedOpex = 0, buffer = 0.4) {
 function expansionBuffer(state) {
   return state.quarter >= 9 ? 0.15 : state.quarter >= 5 ? 0.28 : 0.4;
 }
-/* $10 of cash is worth 1 EP at the end; a company is worth its level once, plus its level
+/* $50 of cash is worth 1 EP at the end; a company is worth its level once, plus its level
    again on every upgrade, plus the entry bonus if it opens a new industry. Sitting on money is close to the worst thing a bot
    can do, so the safety buffer relaxes hard once the game is nearly over. */
 function endgameSpendMode(state, p) {
@@ -1465,7 +1469,7 @@ function priceAfterMyBuild(pm, ind) {
      - what it earns each quarter, for the quarters that are actually left
      - the money it earns, converted at the rate the game really pays for cash
      - the points the building scores, once
-     - the 5 points for entering an industry, once, and only if it is really owed
+     - the 3 points for entering an industry, once, and only if it is really owed
      - minus what it costs to get standing, also converted to points
 
    A company that cannot sell now scores negative, which is the whole point. */
@@ -1787,7 +1791,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "703ac410";
+const ENGINE_VERSION = "08437716";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -1894,23 +1898,29 @@ function runProduction(state, log) {
   const { players, board, pm } = state;
   for (const p of players) {
     let bill = quarterBill(state, p);
+    /* A FORCED sale, at the half rates the shortfall window charges. This used to sell
+       at full price and then hand out a $20 loan with no disc check - so a human who
+       chose what to sell in the window paid half, and a human who pressed "done" and
+       let this run got full price plus free credit. Skipping the window was strictly
+       better than using it, the exact opposite of what the rulebook promises. The
+       bank now sells the same way the window does, and there is no hidden loan: what
+       cannot be met sends the company into solvency below. */
     while (p.cash < bill && p.hand.length) {
-      const bp = p.hand.reduce((a, b) => ((BP_SELL_PRICE[a.lvl] || 4) < (BP_SELL_PRICE[b.lvl] || 4) ? a : b));
-      sellBpFromHand(state, p, bp, false);
+      const bp = p.hand.reduce((a, b) => ((BP_SOLVENCY_PRICE[a.lvl] || 2) < (BP_SOLVENCY_PRICE[b.lvl] || 2) ? a : b));
+      sellBpFromHand(state, p, bp, true);
     }
     while (p.cash < bill) {
       const cheapPlot = cheapestOwnedPlot(state, p);
       if (!cheapPlot) break;
-      doSellPlot(state, p, cheapPlot, log, false);
+      doSellPlot(state, p, cheapPlot, log, true);
       bill = quarterBill(state, p);
     }
     while (p.cash < bill) {
       const worst = worstRoiBusiness(p, pm, state.quarter, 0);
       if (!worst) break;
-      sellCompany(p, worst, false);
+      sellCompany(p, worst, true);
       bill = quarterBill(state, p);
     }
-    if (p.cash < bill) { p.cash += 20; p.discsInBank += 1; }
   }
   for (const p of players) payHqRent(state, p, log);
   for (const p of players) {
@@ -2031,7 +2041,7 @@ function applySupplyChainFor(state, p, ind, log) {
   moveMarker(state.pm, pick, SUPPLIER_CELLS);
   state.reExtraDistrict = state.reExtraDistrict || {};
   state.reExtraDistrict[p.id] = true;
-  if (log) log(`${p.name} works the supply chain: ${pick} demand rises, and Retail reaches one extra district this quarter.`, p.id);
+  if (log) log(`${p.name} works the supply chain: the ${pick} price rises one step, and Retail reaches one extra district this quarter.`, p.id);
   return true;
 }
 /* Bots only. Humans are handled by the supplyChain phase. */
@@ -2061,7 +2071,7 @@ function chooseSupplyChain(state, p, ind, log, rng) {
 }
 /* A Megacorp headquarters is a standing asset, not a business. It produces nothing, but
    the sector still pays it - a full share of its industry's pot - and its name is worth
-   points every quarter: EP equal to what one unit of its industry currently sells for.
+   points every quarter: EP equal to its industry's price divided by the tile's tier.
    An industry climbing while nobody serves it makes an old headquarters quietly
    valuable, and forming one early is worth more than forming one late.
 
@@ -2201,7 +2211,7 @@ function botRepayLoans(state, p, quarter, log) {
   if (!rate) return;
   if (quarter === 12) {
     // Final scoring: there is no next quarter to fund. An unpaid disc is -5 EP, while
-    // the $40 it costs is only worth 4 EP as cash, so clearing debt is strictly better.
+    // the $40 it costs is under 1 EP as cash, so clearing debt is strictly better.
     while (p.discsInBank > 0 && p.cash >= rate) {
       if (!doRepayLoan(p, quarter, log)) break;
     }
@@ -2229,7 +2239,11 @@ function runClosingRest(state, log) {
        now scoring the moment they are finished, these two are what a year end is
        FOR. Quarter 12 is left to finalizeGame, which awards them once as part of
        final scoring. Under "Land awards at the end only" that is the sole payout. */
-    if (!hasVariant(state, "endgameLandAwards") && quarter !== 12) {
+    /* A game called early can end ON a year end. finalizeGame pays the awards once
+       as part of final scoring, so a Q8 that is also the final quarter must not pay
+       them here as well - it did, and the land leader scored twice. */
+    const isFinal = quarter === 12 || (state.finalQuarter && quarter >= state.finalQuarter);
+    if (!hasVariant(state, "endgameLandAwards") && !isFinal) {
       awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", log);
       awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", log);
     }
@@ -2683,7 +2697,7 @@ function trackBonusOrder(slots) {
 function doReposition(state, p, log) {
   state.turnOrder = [p.id, ...state.turnOrder.filter((id) => id !== p.id)];
   state.doubleFirstPlayer = p.id;
-  log(`${p.name} takes REPOSITION \u2014 moves to 1st in turn order and places both meeples at once next quarter.`, p.id);
+  log(`${p.name} takes REPOSITION \u2014 moves to 1st in turn order and places their meeples together next quarter.`, p.id);
 }
 
 const TRACK_ACTIONS = { raise_capital: ["LOAN", "SELL"], ma: ["BUY", "LAUNCH"], rd: ["RESEARCH", "UPGRADE"] };
@@ -2692,9 +2706,9 @@ const TRACK_LABEL = { raise_capital: "Raise Capital", ma: "M&A", rd: "R&D", boar
    placement buttons, so a new player never has to guess what a track does. */
 const TRACK_HELP = {
   raise_capital: "Turn assets into cash. LOAN takes $20 from the bank for one of your discs (buy it back later or lose 5 EP). SELL turns a plot, an unbuilt Blueprint, or a whole company into money at market value.",
-  ma: "Grow your footprint. BUY takes an unowned plot, or renovates a distressed company for half its Blueprint's setup cost. LAUNCH builds a Blueprint from your hand onto plots you own \u2014 and pays you 3 EP the first time you enter each industry.",
+  ma: "Grow your footprint. BUY takes an unowned plot, or takes over a distressed company \u2014 as it stands for what the bank paid, or renovated with a card from your hand for half that card's setup. LAUNCH builds a Blueprint from your hand onto plots you own \u2014 and pays you 3 EP the first time you enter each industry.",
   rd: "Improve what you have. RESEARCH draws the face-up top card of any industry deck. UPGRADE pays a company's setup cost again to double its production and OPEX, and raise its level by one.",
-  board_meeting: "The power track. Both your workers go here together. GO PUBLIC merges companies into a Megacorp tile for big EP \u2014 you need the exact combination one of the tiles asks for. Whoever does it first also takes the IPO tile \u2014 a sixth company bay \u2014 which opens this track's second seat. REPOSITION moves you to first in turn order.",
+  board_meeting: "The power track. Your workers go here together (two of your three at a two-player table). GO PUBLIC merges companies into a Megacorp tile for big EP \u2014 you need the exact combination one of the tiles asks for. Whoever does it first also takes the IPO tile \u2014 a sixth company bay \u2014 which opens this track's second seat. REPOSITION moves you to first in turn order.",
 };
 
 /* How much does this bot want the Board Meeting track this quarter?
@@ -3160,7 +3174,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     }
   } else if (track === "board_meeting") {
     const match = bestMegacorpMatch(activeBiz(p), state.megacorpPool);
-    // merging first also wins the IPO tile's 5 EP, which is worth reaching for
+    // merging first also wins the IPO tile - a sixth company bay - which is worth reaching for
     const worth = match && (megacorpWorthIt(state, p, match) || !state.ipoTileClaimed);
     if (worth) claimMegacorp(state, p, log);
     else doReposition(state, p, log);
@@ -4269,7 +4283,7 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
 }
 
 /* The ground-rent ledger, shown wherever a score is broken down. Rent never appears
-   as EP while the game is running - it arrives as cash and scores at the $10 line at
+   as EP while the game is running - it arrives as cash and scores at the $50 line at
    the end - so without this the biggest thing land does is invisible until the final
    tally, and at a big table that is most of what land does at all. */
 function RentLine({ p }) {
@@ -4440,7 +4454,7 @@ function BizTooltip({ state, hover }) {
           {unowned > 0 && <span className="text-red-400">{unowned} unowned</span>}
           {!holders.length && !unowned && <span className="text-gray-500">&mdash;</span>}
         </div>
-        <div>Setup: ${bizSetup(b)} &middot; Suppliers: ${bizPotBill(b)} &middot; Ground rent: ${RENT_PER_LEVEL * b.level}</div>
+        <div>Setup: ${bizSetup(b)} &middot; Suppliers: ${bizPotBill(b)} &middot; Ground rent: ${RENT_PER_LEVEL * b.level} (none on your own land)</div>
         <div>Split: {b.bp.deps.map((d, i) => `${d.ind} $${potShares(b)[i]}`).join(", ") || "\u2014"}</div>
         <div>Production: {bizProd(b)}/qtr</div>
         {!canProduce && <div className="text-red-400">Land unowned — not producing</div>}
@@ -4462,7 +4476,7 @@ function PlotInfo({ board, players, selectedPlot, pm }) {
   return (
     <div className="text-[10px] font-mono text-gray-300 px-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
       <span className="text-gray-500">{tname} &middot; {pos}</span>
-      <span title="Printed road price, +$1 per adjacent business, +$1 beside a Logistic Hub. What it costs to buy, and what it sells for.">
+      <span title="Printed road price, +$1 per occupied plot touching it (corners count inside a district), +$1 beside a Logistic Hub. What it costs to buy, and what it sells for.">
         Value: <span className="text-gray-100">${plotValue({ board }, selectedPlot)}</span></span>
       <span>Land owner: <span className="text-gray-100">{ownerName}</span></span>
       {biz ? (
@@ -4637,7 +4651,7 @@ function LiquidationPanel({ state, human, log, onContinue }) {
   return (
     <div className="rounded-lg p-3" style={{ backgroundColor: "#2a1a1a", border: "1px solid #7a3f3f" }}>
       <div className="text-xs font-bold mb-1" style={{ color: "#fca5a5" }}>
-        Cash shortfall — this quarter's OPEX bill is ${needed}, you have ${Math.round(human.cash)} ({short > 0 ? `$${Math.round(short)} short` : "covered, you may continue"})
+        Cash shortfall — this quarter's bills (suppliers and rent) come to ${needed}, you have ${Math.round(human.cash)} ({short > 0 ? `$${Math.round(short)} short` : "covered, you may continue"})
       </div>
       <div className="text-[10px] mb-2" style={{ color: "#e0b060" }}>
         This is a forced sale: <b>everything goes for half</b> what a planned sale through Raise
@@ -4747,7 +4761,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
               </button>
             ))}
           </div>
-          <div className="text-[10px] text-gray-400">Owned plots (value = printed road price, +$1 per adjacent business, +$1 if adjacent to an LH):</div>
+          <div className="text-[10px] text-gray-400">Owned plots (value = printed road price, +$1 per occupied plot touching it, +$1 if adjacent to an LH):</div>
           <div className="flex flex-wrap gap-2">
             {ownedPlots.length ? ownedPlots.map((pk) => (
               <button key={pk} onClick={() => { if (NET) return NET.send("act", { type: "sellPlot", plot: pk }); doSellPlot(state, human, pk, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
@@ -4773,7 +4787,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
             ))}
             {!human.hand.length && <span className="text-xs text-gray-500 italic">Hand is empty.</span>}
           </div>
-          {(() => { const why = !canLaunchMore(human) ? "you already have 5 active companies" : discsFree(state, human) <= 0 ? `all ${DISCS_PER_PLAYER} of your discs are committed` : null; return why ? <div className="text-[9px]" style={{ color: "#fca5a5" }}>Can't launch: {why}.</div> : null; })()}
+          {(() => { const why = !canLaunchMore(human) ? `all ${companySlotsFor(human)} of your company slots are taken (a Megacorp HQ holds one)` : discsFree(state, human) <= 0 ? `all ${DISCS_PER_PLAYER} of your discs are committed` : null; return why ? <div className="text-[9px]" style={{ color: "#fca5a5" }}>Can't launch: {why}.</div> : null; })()}
           <div className="text-[9px] text-gray-500">Pick a BP, then click its plot(s) on the board — owned, unoccupied plots only. Horizontal industries at level 2+ need a connected cluster.</div>
           <button onClick={() => setMode(null)} className="text-[10px] text-gray-500 underline">back</button>
         </div>
@@ -4782,7 +4796,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
         <div className="space-y-2">
           <div className="text-[10px] text-gray-400">
             Take over a distressed structure from the bank &mdash; including one you sold yourself.
-            <b> Buy it as it stands</b> for half its own setup, keeping its Blueprint and level, or
+            <b> Buy it as it stands</b> for what the bank paid for it, keeping its Blueprint and level, or
             <b> renovate it</b> with a card from your hand for half that card&rsquo;s setup. Location matters,
             since renovating changes industry. A renovation card must match the shell&rsquo;s level, and from
             level 2 up its scaling type too; a level-1 shell takes any level-1 card:
@@ -4920,7 +4934,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
               onClick={() => { if (megacorpMatch) return setMode("hq"); if (NET) return NET.send("act", { type: "megacorp" }); claimMegacorp(state, human, log); finish(); }}
               className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
               {megacorpMatch
-                ? `Go Public \u2014 form "${megacorpMatch.tile[0]}" (+${megacorpMatch.tile[2]} EP${!state.ipoTileClaimed ? " +5 IPO" : ""})`
+                ? `Go Public \u2014 form "${megacorpMatch.tile[0]}" (+${megacorpMatch.tile[2]} EP${!state.ipoTileClaimed ? " + IPO tile" : ""})`
                 : "Go Public"}
             </button>
             <button onClick={() => { if (NET) return NET.send("act", { type: "reposition" }); doReposition(state, human, log); finish(); }} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>Reposition (become 1st)</button>
@@ -4939,7 +4953,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
             BP to its industry deck. It stops trading but keeps drawing its industry&rsquo;s pot share and banks EP
             equal to that industry&rsquo;s price divided by the tile&rsquo;s tier every quarter &mdash; and it pays
             {" "}{MEGACORP_TITHE_EP} EP a quarter to every RIVAL company standing beside it, so pick a quiet corner.
-            It also counts as a Logistic Hub for anything built beside it, whoever owns it.
+            It also counts as a Logistic Hub for anything built beside it, whoever owns it, as long as its ground stays owned.
             You pay its ground rent from pocket, and it collects nothing at all if you sell the land under it.
             The other {megacorpMatch.have.length - 1} go to the bank as Distressed Assets.
           </div>
@@ -5269,7 +5283,7 @@ const TUTORIAL = [
     body: "Every company pays OPEX each quarter to companies in other industries \u2014 its suppliers, printed on its Blueprint. Those payments are the heart of the game.",
     points: [`Every industry buys from ${SUPPLY.each} others \u2014 and sells to ${SUPPLY.each} others`,
              `${SUPPLY.lines} supply lines in all: no dead ends, and no safe corner`,
-             "Your OPEX lands in your suppliers' industry pots",
+             "Your supplier bill lands in your suppliers' industry pots; ground rent goes to landlords",
              "Each pot is split evenly among that industry's companies",
              "So an industry nobody serves quietly piles up money"] },
 
@@ -5301,7 +5315,7 @@ const TUTORIAL = [
              "Placing last means acting first, with only one action"] },
 
   { title: "A quarter, step by step", target: "tracks", art: null,
-    body: "Each of the 12 quarters runs the same five phases. You only make decisions in the first two.",
+    body: "Each of the 12 quarters runs the same five phases. Planning and Action are where you act; the rest ask you only when there is a choice to make - where to deliver, what to sell short, where the hub goes.",
     points: ["PLANNING \u2014 place your workers",
              "ACTION \u2014 tracks resolve and you act",
              "PRODUCTION \u2014 supplier bills and ground rent are paid automatically",
@@ -5309,7 +5323,7 @@ const TUTORIAL = [
              "CLOSING \u2014 a Logistic Hub is placed; years end with scoring"] },
 
   { title: "Selling what you produce", target: "board", art: null,
-    body: "In Revenue you deliver to demand icons your company can reach. Each icon pays the current market price for that industry.",
+    body: "In Revenue you deliver to demand icons your company can reach. Every unit sold pays the current market price; an icon in column 1 takes one unit, column 2 two, and so on.",
     points: ["A company reaches its own district, plus whatever its ability grants",
              "Logistic Hubs link districts \u2014 but Utilities and Retail can never use them",
              "Anything you cannot sell recycles for just $1 a unit"] },
@@ -5331,7 +5345,7 @@ const TUTORIAL = [
     body: "Score steadily rather than chasing one big move. Breadth pays early, size pays late.",
     points: [`${INDUSTRY_DEBUT_EP} EP the first time you build in each industry \u2014 paid immediately`,
              `${TUT_LEVEL_EP} EP per company level, banked the moment you build or upgrade it`,
-             `${LAND_AWARD.sole} EP for most plots and ${LAND_AWARD.sole} for most districts at every year end \u2014 ${LAND_AWARD_LARGE.sole} each from ${LAND_AWARD_LARGE_FROM} players up`,
+             `${LAND_AWARD.sole} EP for most plots and ${LAND_AWARD.sole} for most districts at every year end \u2014 ${LAND_AWARD_LARGE.sole} each from ${LAND_AWARD_LARGE_FROM} players up; a tie pays ${LAND_AWARD.two} (${LAND_AWARD_LARGE.two}) each`,
              `A Megacorp is worth ${MEGACORP_EP.lo}\u2013${MEGACORP_EP.hi} EP, but eats companies and locks a slot`] },
 ];
 
@@ -6077,7 +6091,7 @@ function GameScreens({ online }) {
                   const all = eligibleSlotsFor(state, deliveringBiz, human);
                   const rate = exchangeRate(state, deliveringBiz);
                   const crossLeft = state.crossSellRemaining[deliveringBiz.id] || 0;
-                  const direct = all.filter((s) => !s.cross).length * rate;
+                  const direct = all.filter((s) => !s.cross).reduce((a, s) => a + (s.levelIdx + 1) * rate, 0);   // an icon takes its column in units
                   const crossable = Math.min(crossLeft, all.filter((s) => s.cross).length);
                   const nbrs = hoBonusUnits(state, deliveringBiz, human);
                   const left = state.deliveryRemaining[deliveringBiz.id] || 0;
@@ -6233,7 +6247,7 @@ function GameScreens({ online }) {
                   const done = (human.industriesScored || []).includes(ind);
                   const live = activeBiz(human).some((b) => bizInd(b) === ind);
                   return (
-                    <div key={ind} title={done ? `${ind}: 5 EP already scored` : live ? `${ind}: scores 5 EP at the next year end` : `${ind}: 5 EP available - build one`}
+                    <div key={ind} title={done ? `${ind}: ${INDUSTRY_DEBUT_EP} EP banked` : `${ind}: ${INDUSTRY_DEBUT_EP} EP the moment you build one`}
                       className="flex-1 rounded text-center" style={{
                         padding: "3px 0", fontSize: 9, fontWeight: 800, letterSpacing: 0.3,
                         backgroundColor: done ? IND_COLOR[ind] : "transparent",
@@ -6295,7 +6309,7 @@ function GameScreens({ online }) {
               </div>
 
               <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">
-                Portfolio &mdash; {activeBiz(human).length}/5
+                Portfolio &mdash; {companySlotsUsed(human)}/{companySlotsFor(human)}
               </div>
               <div className="flex flex-wrap gap-2">
                 {activeBiz(human).map((b) => {
@@ -6341,7 +6355,7 @@ function GameScreens({ online }) {
 
           <div className="side-col space-y-3">
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text={`Score = ${levelEP(state)} EP per company level, banked the moment you build or upgrade it, plus ${INDUSTRY_DEBUT_EP} EP the first time you build in each industry (once per game). Plus land awards at every year end, endgame bonuses, $${CASH_PER_EP} = 1 EP, and -5 EP per unpaid loan disc. A tie is settled by money, then by fewer loan discs. Hover a player for the full breakdown.`} /></div>
+              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Standings <Help text={`Score = ${levelEP(state)} EP per company level, banked the moment you build or upgrade it, plus ${INDUSTRY_DEBUT_EP} EP the first time you build in each industry (once per game). Plus Megacorp tiles, their brand EP and tithe, land awards at every year end, $${CASH_PER_EP} = 1 EP, and -5 EP per unpaid loan disc. A tie is settled by more active companies, then money, then fewer loan discs. Hover a player for the full breakdown.`} /></div>
               <div className="space-y-2">
                 {[...state.players].sort((a, b) => epTotal(b) - epTotal(a)).map((p) => {
                   return (
@@ -6389,12 +6403,12 @@ function GameScreens({ online }) {
                         </div>
                       )}
                       <div className="flex items-center gap-2 text-[9px] font-mono mt-0.5">
-                        <span title="Plots owned - most at game end scores The Real-Estate Mogul"
+                        <span title="Plots owned - the outright leader at every year end scores The Real-Estate Mogul"
                           style={{ color: landLead.plots.has(p.id) ? "#f5d76e" : "#6b7280" }}>
                           {landLead.plots.has(p.id) ? "\u265B " : ""}{plotCount(state, p)} plots
                         </span>
                         <span style={{ color: "#3a4152" }}>|</span>
-                        <span title="Districts you have a presence in - most at game end scores The Omnipresent"
+                        <span title="Districts you have a presence in - the outright leader at every year end scores The Omnipresent"
                           style={{ color: landLead.districts.has(p.id) ? "#f5d76e" : "#6b7280" }}>
                           {landLead.districts.has(p.id) ? "\u265B " : ""}{districtCount(state, p)} districts
                         </span>
@@ -6455,7 +6469,7 @@ function GameScreens({ online }) {
                 keeps a single, full-width block instead of two stubby ones. */}
             <div data-tut="megacorps" className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
 
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text={`Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks its industry's price DIVIDED BY THE TILE'S TIER as EP every quarter (the \u00f7 number on each tile, rounded down - so a \u00f72 tile on a $7 good pays 3 EP a quarter, and pays nothing at all while the price is below the tier), counts as a Logistic Hub for anything built beside it, and pays ${MEGACORP_TITHE_EP} EP a quarter to every RIVAL company standing beside it - your own neighbours cost you nothing, since they pay themselves. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots - unless you were first to go public, which wins the IPO tile and a sixth bay.`} /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text={`Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks its industry's price DIVIDED BY THE TILE'S TIER as EP every quarter (the \u00f7 number on each tile, rounded down - so a \u00f72 tile on a $7 good pays 3 EP a quarter, and pays nothing at all while the price is below the tier), counts as a Logistic Hub for anything built beside it, and pays ${MEGACORP_TITHE_EP} EP a quarter to every RIVAL company standing beside it - your own neighbours cost you nothing, since they pay themselves. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots; the first to go public wins the IPO tile, which adds a sixth bay.`} /></div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
                 {state.megacorpPool.map(([name, combo, ep], i) => (
                   <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>
@@ -6479,7 +6493,7 @@ function GameScreens({ online }) {
                   </div>
                 ))}
               </div>
-              <div className="text-[9px] text-gray-600 mt-1">{state.ipoTileClaimed ? "IPO tile taken \u2014 both Board Meeting seats are open." : "IPO tile: +5 EP to whoever forms the first Megacorp."}</div>
+              <div className="text-[9px] text-gray-600 mt-1">{state.ipoTileClaimed ? "IPO tile taken \u2014 both Board Meeting seats are open." : "IPO tile: a sixth company bay and Board Meeting's second seat, to whoever forms the first Megacorp."}</div>
               <div style={{ height: 1, backgroundColor: "#262a33", margin: "10px 0" }} />
 
               <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Log</div>
@@ -6571,8 +6585,9 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
             ))}
           </div>
           <div className="text-[10px] text-gray-500 mt-1.5" style={{ lineHeight: 1.4 }}>
-            A table seats six. The fifth and sixth seats open a fifth and sixth slot on
-            each of the three working tracks, and put all four Megacorp tiers in the box.
+            A table seats six. All four Megacorp tiers are in from four players. The fifth
+            and sixth seats open a fifth and sixth slot on each of the three working tracks,
+            and draw three, then four, tiles from each tier instead of two.
           </div>
         </div>
         <div className="mb-6 flex flex-wrap gap-1.5">
@@ -6662,7 +6677,7 @@ function IndustryReference({ state }) {
     <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
       <div data-tut="pots" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">
         Industries
-        <Help text={"POT \u2014 a company's supplier bill lands in its suppliers' pots (its ground rent is billed separately, to landlords). Each quarter every pot is split evenly among the active businesses of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative.\n\nDECK \u2014 " + deckHelp} />
+        <Help text={"POT \u2014 a company's supplier bill lands in its suppliers' pots (its ground rent is billed separately, to landlords). Each quarter every pot is split evenly among the active businesses of that industry and any Megacorp HQ of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative.\n\nDECK \u2014 " + deckHelp} />
       </div>
       <div className="text-[9px] text-gray-500 mb-2">
         Pot, then the top Blueprint. Hover an industry for what it does.
