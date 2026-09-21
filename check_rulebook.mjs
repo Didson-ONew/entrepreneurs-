@@ -27,7 +27,7 @@ runInContext(
   src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "") + `
   this.E = { BASE_PRICE, PRICE_MIN, PRICE_MAX, SUPPLIER_CELLS, BUILT_CELLS, CASH_PER_EP,
              DISCS_PER_PLAYER, MEGACORPS_TO_END, COMPANY_SLOTS, MEGACORP_TIER,
-             MEGACORP_TITHE_EP, INDUSTRIES, BP_DATA, STARTING, MEGACORP_TILES,
+             MEGACORP_TITHE_EP, INDUSTRIES, BP_DATA, STARTING, MEGACORP_TILES, SCALING,
              PERSONAS, IND_NAME: typeof IND_NAME !== "undefined" ? IND_NAME : null,
              makePriceMatrix, price };`, box);
 const E = box.E;
@@ -290,6 +290,44 @@ section("Reclaiming and renovating a distressed structure");
   check("the book says renovating moves the price markers and reclaiming does not",
     everyString.some((s) => /renovat/i.test(s) && /price|marker/i.test(s) && /reclaim|buy(ing)? it back|as it stands/i.test(s)),
     "the difference is not stated anywhere");
+}
+
+/* ------------------------------------------------------- the Blueprint annex
+   The annex prints all sixty cards. It is generated out of BP_DATA, and this is
+   what keeps it that way: every cell is compared with the card it claims to
+   describe, in order, so retuning one card's OPEX and forgetting the book is a
+   failing check rather than a rulebook that quietly lies about the deck. */
+section("Annex: the sixty Blueprints");
+{
+  const annex = RULEBOOK.find((sec) => sec.id === "blueprints");
+  check("the annex is in the book", !!annex);
+  if (annex) {
+    const tables = annex.blocks.filter((b) => b.table).map((b) => b.table);
+    const heads = annex.blocks.filter((b) => b.h).map((b) => b.h);
+    check(`one table per industry (${tables.length})`, tables.length === E.INDUSTRIES.length);
+    check(`sixty cards in all (${tables.reduce((a, t) => a + t.rows.length, 0)})`,
+      tables.reduce((a, t) => a + t.rows.length, 0) === E.BP_DATA.length);
+    E.INDUSTRIES.forEach((ind, i) => {
+      const t = tables[i], h = heads[i] || "";
+      const cards = E.BP_DATA.filter((b) => b.ind === ind);
+      if (!t) { check(`${ind} has a table`, false); return; }
+      check(`${ind} heading gives the base price and scaling`,
+        h.includes(`$${E.BASE_PRICE[ind]}`) && new RegExp(E.SCALING[ind] === "H" ? "horizontal" : "vertical").test(h), h);
+      check(`${ind} table is the ${ind} cards, in order (${t.rows.length})`, t.rows.length === cards.length);
+      let bad = [];
+      t.rows.forEach((row, j) => {
+        const c = cards[j];
+        if (!c) { bad.push(`row ${j + 1} has no card`); return; }
+        if (row[0] !== c.name) bad.push(`${row[0]} != ${c.name}`);
+        if (row[1] !== String(c.lvl)) bad.push(`${c.name} level ${row[1]} != ${c.lvl}`);
+        const want = `${c.setup} / ${c.opex} / ${c.prod}`;
+        if (row[2].replace(/\s+/g, " ").trim() !== want) bad.push(`${c.name} ${row[2]} != ${want}`);
+        const deps = c.deps.map((d) => `${d.ind} ${d.val}`).join(", ");
+        if (row[3] !== deps) bad.push(`${c.name} suppliers ${row[3]} != ${deps}`);
+      });
+      check(`${ind}: every cell matches the card`, bad.length === 0, bad.slice(0, 3).join("; "));
+    });
+  }
 }
 
 console.log(fails ? `\n${fails} of ${n} check(s) failed\n` : `\nall ${n} checks passed\n`);
