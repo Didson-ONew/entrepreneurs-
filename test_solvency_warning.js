@@ -77,11 +77,11 @@ const check = (what, ok, note = "") => {
 
   /* The wiring has to be there, at every door the player can spend through. */
   const src = require("fs").readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
-  check("launch goes through the guard", /`Launching \$\{bp\.name\}`/.test(src));
+  check("launch goes through the guard", /`Launching \$\{t\(bp\.name\)\}`/.test(src));
   check("buying ground goes through the guard", /guardSpend\(plotValue/.test(src));
   check("buying back a distressed company does too", /guardSpend\(reclaimCost/.test(src));
   check("renovating does too", /Renovating into/.test(src));
-  check("upgrading does too", /`Upgrading \$\{b\.bp\.name\}`/.test(src));
+  check("upgrading does too", /`Upgrading \$\{t\(b\.bp\.name\)\}`/.test(src));
   check("the guard tests the bill AFTER the purchase, not before",
     /quarterBill\(state, human\) \+ addedBill/.test(src));
 
