@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import { t, useLang } from "./i18n.js";
 
 /* ============================================================================
    Playtest feedback, and the designer's view of it.
@@ -77,19 +78,19 @@ function WriteIn({ context, onClose }) {
       await post("/api/feedback", { kind, rating, text, ...context });
       setSent(true);
     } catch (e) {
-      setErr(e.message || "That did not go through.");
+      setErr(e.message || t("That did not go through."));
     } finally { setBusy(false); }
   };
 
   if (sent) return (
     <div style={{ padding: "22px 18px", textAlign: "center" }}>
       <div style={{ fontSize: 26, marginBottom: 8 }} aria-hidden="true">&#10003;</div>
-      <div style={{ fontSize: 13.5, color: INK.head, fontWeight: 700, marginBottom: 4 }}>Noted, thank you.</div>
+      <div style={{ fontSize: 13.5, color: INK.head, fontWeight: 700, marginBottom: 4 }}>{t("Noted, thank you.")}</div>
       <div style={{ fontSize: 11.5, color: INK.dim, marginBottom: 16, lineHeight: 1.5 }}>
-        It went in with the rules version you were playing, so it will still make sense later.
+        {t("It went in with the rules version you were playing, so it will still make sense later.")}
       </div>
       <button onClick={() => { setSent(false); setText(""); setRating(null); }}
-        style={btn(INK.accentBg, "#2c5f4f", INK.accent)}>Write another</button>
+        style={btn(INK.accentBg, "#2c5f4f", INK.accent)}>{t("Write another")}</button>
       <button onClick={onClose} style={{ ...btn("transparent", INK.edge, INK.dim), marginLeft: 8 }}>Close</button>
     </div>
   );
@@ -104,8 +105,8 @@ function WriteIn({ context, onClose }) {
               border: `1px solid ${kind === k.key ? "#2c5f4f" : INK.edge}`,
               backgroundColor: kind === k.key ? INK.accentBg : "transparent",
             }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: kind === k.key ? INK.accent : INK.text }}>{k.label}</div>
-            <div style={{ fontSize: 10, color: INK.dim, marginTop: 2, lineHeight: 1.35 }}>{k.blurb}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: kind === k.key ? INK.accent : INK.text }}>{t(k.label)}</div>
+            <div style={{ fontSize: 10, color: INK.dim, marginTop: 2, lineHeight: 1.35 }}>{t(k.blurb)}</div>
           </button>
         ))}
       </div>
@@ -120,7 +121,7 @@ function WriteIn({ context, onClose }) {
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} maxLength={2000}
         placeholder={kind === "issue"
           ? "What happened, and what did you expect instead?"
-          : kind === "session" ? "What made it a 3, or a 5?" : "What would you change?"}
+          : kind === "session" ? "What made it a 3, or a 5?" : t("What would you change?")}
         style={{
           width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 7, resize: "vertical",
           backgroundColor: "#1c1f26", border: `1px solid #33384a`, color: "#e5e7eb",
@@ -129,8 +130,8 @@ function WriteIn({ context, onClose }) {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
         <div style={{ fontSize: 10, color: INK.dim, flex: 1, lineHeight: 1.4 }}>
           {context.room
-            ? <>Sent from table <b style={{ color: INK.text }}>{context.room}</b>{context.quarter ? <> in Quarter {context.quarter}</> : null}.</>
-            : "Sent from the lobby."}
+            ? <>{t("Sent from table")} <b style={{ color: INK.text }}>{context.room}</b>{context.quarter ? <> in Quarter {context.quarter}</> : null}.</>
+            : t("Sent from the lobby.")}
         </div>
         <span style={{ fontSize: 10, color: INK.dim }}>{text.length}/2000</span>
         <button onClick={send} disabled={busy}
@@ -160,13 +161,13 @@ function Notes() {
     let stop = false;
     fetch("/api/feedback", { cache: "no-store", credentials: "same-origin" })
       .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
-      .then(({ ok, j }) => { if (stop) return; if (!ok) setErr(j.error || "Could not read those."); else setData(j); })
-      .catch(() => { if (!stop) setErr("Could not reach the server."); });
+      .then(({ ok, j }) => { if (stop) return; if (!ok) setErr(j.error || t("Could not read those.")); else setData(j); })
+      .catch(() => { if (!stop) setErr(t("Could not reach the server.")); });
     return () => { stop = true; };
   }, []);
 
   if (err) return <div style={{ padding: 16, fontSize: 12, color: "#ff8f8f" }}>{err}</div>;
-  if (!data) return <div style={{ padding: 16, fontSize: 12, color: INK.dim }}>Reading&hellip;</div>;
+  if (!data) return <div style={{ padding: 16, fontSize: 12, color: INK.dim }}>{t("Reading…")}</div>;
 
   const s = data.summary;
   const shown = filter === "all" ? data.entries : data.entries.filter((e) => e.kind === filter);
@@ -174,7 +175,7 @@ function Notes() {
   return (
     <div style={{ padding: "12px 14px" }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-        {[["all", `Everything (${s.total})`]].concat(KINDS.map((k) => [k.key, `${k.label} (${s.byKind[k.key] || 0})`]))
+        {[["all", `Everything (${s.total})`]].concat(KINDS.map((k) => [k.key, `${t(k.label)} (${s.byKind[k.key] || 0})`]))
           .map(([key, label]) => (
             <button key={key} onClick={() => setFilter(key)} style={{
               ...btn(filter === key ? INK.accentBg : "transparent", filter === key ? "#2c5f4f" : INK.edge,
@@ -188,14 +189,14 @@ function Notes() {
         )}
       </div>
 
-      {!shown.length && <div style={{ fontSize: 12, color: INK.dim, padding: "10px 0" }}>Nothing here yet.</div>}
+      {!shown.length && <div style={{ fontSize: 12, color: INK.dim, padding: "10px 0" }}>{t("Nothing here yet.")}</div>}
 
       {shown.map((e) => (
         <div key={e.id} style={{ border: `1px solid ${INK.edge}`, borderRadius: 8, padding: "9px 11px",
           marginBottom: 8, backgroundColor: INK.panel }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 5 }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: INK.accent }}>
-              {(KINDS.find((k) => k.key === e.kind) || {}).label || e.kind}
+              {t((KINDS.find((k) => k.key === e.kind) || {}).label || e.kind)}
             </span>
             <span style={{ fontSize: 11.5, color: INK.head, fontWeight: 600 }}>
               {e.account || e.name || "someone"}
@@ -249,17 +250,17 @@ function Backup() {
       const text = await file.text();
       let parsed;
       try { parsed = JSON.parse(text); }
-      catch (_) { setErr("That file is not a backup - it is not even JSON."); setBusy(false); return; }
+      catch (_) { setErr(t("That file is not a backup - it is not even JSON.")); setBusy(false); return; }
       const r = await fetch("/api/restore", {
         method: "POST", credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(parsed),
       });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) setErr(j.error || "The server would not take that file.");
+      if (!r.ok) setErr(j.error || t("The server would not take that file."));
       else setSaid(j.message || "Done.");
     } catch (_) {
-      setErr("Could not reach the server.");
+      setErr(t("Could not reach the server."));
     }
     setBusy(false);
     if (input.current) input.current.value = "";     // so the same file can be chosen twice
@@ -268,8 +269,7 @@ function Backup() {
   return (
     <div style={{ padding: "14px 16px", fontSize: 12.5, color: INK.text, lineHeight: 1.6 }}>
       <div style={{ marginBottom: 14 }}>
-        Everything the server remembers between games &mdash; the hall of fame, the
-        registered names, and the notes people have written in &mdash; in one file.
+        {t("Everything the server remembers between games — the hall of fame, the registered names, and the notes people have written in — in one file.")}
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
@@ -278,7 +278,7 @@ function Backup() {
         </a>
         <button style={action(false)} disabled={busy}
           onClick={() => input.current && input.current.click()}>
-          {busy ? "Reading…" : "Put a copy back"}
+          {busy ? "Reading…" : t("Put a copy back")}
         </button>
         <input ref={input} type="file" accept="application/json,.json" style={{ display: "none" }}
           onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) restore(f); }} />
@@ -299,7 +299,7 @@ function Backup() {
 
       <div style={{ color: INK.dim, fontSize: 11.5, lineHeight: 1.65 }}>
         <div style={{ marginBottom: 8 }}>
-          <b style={{ color: INK.text }}>Putting a copy back never deletes anything.</b> It adds
+          <b style={{ color: INK.text }}>{t("Putting a copy back never deletes anything.")}</b> It adds
           games and notes the server has not seen, and adds names that are not registered here.
           A name that <i>is</i> registered is left exactly as it is, so an old copy can never undo
           somebody&rsquo;s new password. The worst a wrong file can do is add games that already
@@ -307,9 +307,7 @@ function Backup() {
         </div>
         <div style={{ padding: "8px 10px", borderRadius: 7,
           backgroundColor: INK.warnBg, border: `1px solid ${INK.warn}55`, color: INK.warn }}>
-          The file holds password hashes and the email addresses people gave. Keep it as
-          carefully as you would keep a password list &mdash; don&rsquo;t put it in a shared
-          folder or a public repository.
+          {t("The file holds password hashes and the email addresses people gave. Keep it as carefully as you would keep a password list — don’t put it in a shared folder or a public repository.")}
         </div>
       </div>
     </div>
@@ -324,21 +322,21 @@ function Matches() {
     let stop = false;
     const read = () => fetch("/api/matches", { cache: "no-store", credentials: "same-origin" })
       .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
-      .then(({ ok, j }) => { if (stop) return; if (!ok) setErr(j.error || "Could not read those."); else setData(j); })
-      .catch(() => { if (!stop) setErr("Could not reach the server."); });
+      .then(({ ok, j }) => { if (stop) return; if (!ok) setErr(j.error || t("Could not read those.")); else setData(j); })
+      .catch(() => { if (!stop) setErr(t("Could not reach the server.")); });
     read();
     const t = setInterval(read, 5000);      // tables change while you are looking
     return () => { stop = true; clearInterval(t); };
   }, []);
 
   if (err) return <div style={{ padding: 16, fontSize: 12, color: "#ff8f8f" }}>{err}</div>;
-  if (!data) return <div style={{ padding: 16, fontSize: 12, color: INK.dim }}>Reading&hellip;</div>;
-  if (!data.matches.length) return <div style={{ padding: 16, fontSize: 12, color: INK.dim }}>Nobody is playing right now.</div>;
+  if (!data) return <div style={{ padding: 16, fontSize: 12, color: INK.dim }}>{t("Reading…")}</div>;
+  if (!data.matches.length) return <div style={{ padding: 16, fontSize: 12, color: INK.dim }}>{t("Nobody is playing right now.")}</div>;
 
   return (
     <div style={{ padding: "12px 14px" }}>
       <div style={{ fontSize: 10.5, color: INK.dim, marginBottom: 10 }}>
-        Refreshes itself every few seconds. A seat shows as a bot once the server has taken it over.
+        {t("Refreshes itself every few seconds. A seat shows as a bot once the server has taken it over.")}
       </div>
       {data.matches.map((m) => (
         <div key={m.code} style={{ border: `1px solid ${INK.edge}`, borderRadius: 8, padding: "9px 11px",
@@ -397,14 +395,14 @@ export function FeedbackPanel({ admin, context, onClose, onOpened }) {
   useEffect(() => { if (onOpened) onOpened(); }, [onOpened]);
 
   const tabs = admin
-    ? [["write", "Write in"], ["notes", "What came in"], ["matches", "Who is playing"], ["backup", "Backup"]]
-    : [["write", "Write in"]];
+    ? [["write", t("Write in")], ["notes", t("What came in")], ["matches", t("Who is playing")], ["backup", "Backup"]]
+    : [["write", t("Write in")]];
 
   return (
     <Portal>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 10040,
         backgroundColor: "rgba(6,8,11,.82)", backdropFilter: "blur(2px)" }} />
-      <div role="dialog" aria-label="Playtest feedback" onClick={(e) => e.stopPropagation()} style={{
+      <div role="dialog" aria-label={t("Playtest feedback")} onClick={(e) => e.stopPropagation()} style={{
         position: "fixed", zIndex: 10041, top: "5vh", bottom: "5vh",
         left: "50%", transform: "translateX(-50%)", width: "min(96vw, 720px)",
         backgroundColor: INK.bg, border: "1px solid #2c5f4f", borderRadius: 12,
@@ -414,10 +412,10 @@ export function FeedbackPanel({ admin, context, onClose, onOpened }) {
           borderBottom: `1px solid ${INK.edge}`, flexShrink: 0 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: INK.head, letterSpacing: -0.2 }}>
-              Tell me how it played
+              {t("Tell me how it played")}
             </div>
             <div style={{ fontSize: 10, color: INK.dim }}>
-              The game is still being tuned &mdash; every note goes to the designer.
+              {t("The game is still being tuned — every note goes to the designer.")}
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" style={{ marginLeft: "auto", background: "none",
