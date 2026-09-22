@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import SiteChrome from "./Rulebook.jsx";
+import { EndOfGameThanks, shouldThank } from "./Feedback.jsx";
 import { t, useLang } from "./i18n.js";
 
 /* ============================== DATA ============================== */
@@ -1814,7 +1815,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "e66c512e";
+const ENGINE_VERSION = "8f56006d";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -5643,6 +5644,16 @@ function GameScreens({ online }) {
   // A spectator has no seat, so fall back to the first player purely so the read-only
   // panels have something to render. Every control is gated on `isSpectator` below.
   const isSpectator = !!(online && online.spectator);
+  /* One match, one ask. Online a match is its room and the quarter it ended on;
+     solo it is the seed, so two games in a row are two different matches. */
+  const matchId = state && state.phase === "gameover"
+    ? (online ? `room:${online.code}:${state.quarter}` : `solo:${state.rngSeed ?? ""}:${state.quarter}`)
+    : null;
+  const [askThanks, setAskThanks] = useState(false);
+  useEffect(() => {
+    if (!matchId || isSpectator) { setAskThanks(false); return; }
+    if (shouldThank(matchId)) setAskThanks(true);
+  }, [matchId, isSpectator]);
   const human = online
     ? (state?.players.find((p) => p.id === online.seat) || state?.players[0])
     : state?.players[0];
@@ -5747,10 +5758,17 @@ function GameScreens({ online }) {
         personas={personas} setPersonas={setPersonas} variants={variants} setVariants={setVariants} />
     </>
   );
-  if (screen === "gameover" && !reviewing) return <GameOverScreen state={state} elapsed={elapsed} onRestart={() => setScreen("setup")} onReview={() => setReviewing(true)} />;
+  /* The match is over, so ask the player how it went - once, here, while they
+     still remember it. A spectator is not asked: they did not play. */
+  const thanks = askThanks && (
+    <EndOfGameThanks matchId={matchId} onClose={() => setAskThanks(false)}
+      context={{ room: online ? online.code : null,
+                 quarter: state ? state.quarter : null, where: "end of game" }} />
+  );
+  if (screen === "gameover" && !reviewing) return <>{thanks}<GameOverScreen state={state} elapsed={elapsed} onRestart={() => setScreen("setup")} onReview={() => setReviewing(true)} /></>;
   // Online the server owns the phase, so surface the end screen straight from state.
   if (online && state && state.phase === "gameover") {
-    if (!reviewing) return <GameOverScreen state={state} online={online} elapsed={elapsed} onRestart={online.onRematch} onReview={() => setReviewing(true)} />;
+    if (!reviewing) return <>{thanks}<GameOverScreen state={state} online={online} elapsed={elapsed} onRestart={online.onRematch} onReview={() => setReviewing(true)} /></>;
   }
 
   if (!state) return null;
