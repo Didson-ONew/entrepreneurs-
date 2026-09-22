@@ -1199,7 +1199,7 @@ function OnlineTable({ onTable }) {
            guess made from when this tab happened to open. */
         if (msg.lastActive) setLastActive(msg.lastActive);
         if (msg.idleLimitMs) setIdleLimit(msg.idleLimitMs);
-        setLogs((msg.logs || []).map((l, i) => ({ id: i, msg: l.msg, pid: l.pid })));
+        setLogs((msg.logs || []).map((l, i) => ({ id: i, msg: l.msg, k: l.k, a: l.a, pid: l.pid })));
       }
     };
 

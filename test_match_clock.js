@@ -97,11 +97,11 @@ section("Standings count Megacorps and label discs honestly");
 {
   check("the old activeBiz-only line is gone",
     !/\{activeBiz\(p\)\.length\}biz &middot; \{p\.hand\.length\}BP &middot; \{p\.discsInBank\}disc/.test(SRC));
-  check("Megacorp HQs are shown", /\+\{megacorpHQs\(p\)\.length\}MC/.test(SRC));
+  check("Megacorp HQs are shown", /t\("\+\{0\}MC", megacorpHQs\(p\)\.length\)/.test(SRC));
   check("the disc figure is the same used-of-twelve the player board shows",
-    /\{discsUsed\(state, p\)\}\/\{DISCS_PER_PLAYER\} discs/.test(SRC));
+    /t\("\{0\}\/\{1\} discs", discsUsed\(state, p\), DISCS_PER_PLAYER\)/.test(SRC));
   check("loan discs are still called out separately",
-    /\(\{p\.discsInBank\} loan\)/.test(SRC));
+    /t\("\(\{0\} loan\)", p\.discsInBank\)/.test(SRC));
 }
 
 console.log(fails ? `\n${fails} of ${n} check(s) failed\n` : `\nall ${n} checks passed\n`);

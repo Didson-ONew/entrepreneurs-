@@ -321,10 +321,32 @@ function lhEdgeOptions(state) {
   }
   return out;
 }
+/* ---------------------------- the game log ----------------------------
+   A log line is written once, on the server, into a room that players of
+   different languages share - so it cannot be written as a finished sentence in
+   anybody's language. logMsg() records the SHAPE of the line and the values that
+   go in it; fmtEn() renders the English, which is what gets stored, and the
+   client renders whichever language that player is reading.
+
+   The placeholders are numbered, not positional: Portuguese reorders them.
+
+   Old rooms hold plain strings from before this change. Both log
+   implementations pass those straight through, so a game in progress keeps its
+   history and only new lines are translatable. */
+function logMsg(k, ...a) { return { k, a }; }
+function fmtEn(k, a) {
+  return String(k).replace(/\{(\d+)\}/g, (m, i) => (a[+i] === undefined ? m : String(a[+i])));
+}
+/* A log entry, whichever form it arrives in. */
+function logEntry(msg, pid) {
+  return (msg && typeof msg === "object" && msg.k !== undefined)
+    ? { msg: fmtEn(msg.k, msg.a), k: msg.k, a: msg.a, pid }
+    : { msg, pid };
+}
 function logNewLH(state, districts, log) {
   const names = districts.map((d) => state.board.tiles[d]).filter(Boolean);
   const grows = districts.some((d) => DEMAND_ROWS[districtFamily(state.board.tiles[d])].includes("HC"));
-  log(`A new Logistic Hub opens near ${names.join("/")}${grows ? " \u2014 Healthcare can now reach it." : "."}`, null);
+  log(logMsg("A new Logistic Hub opens near {0}{1}", names.join("/"), grows ? " \u2014 Healthcare can now reach it." : "."), null);
 }
 const districtOf = (board, plot) => { const c = board.cellOf[plot]; return c ? `${c.r},${c.c}` : null; };
 
@@ -971,7 +993,7 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
      not a second pile of goods. */
   state.deliveryRemaining[bizId] = Math.max(0, (state.deliveryRemaining[bizId] || 0) - n);
   if (cross) state.crossSellRemaining[bizId] = Math.max(0, (state.crossSellRemaining[bizId] || 0) - n);
-  log(`${human.name} delivers ${n} ${bizInd(biz)}${cross ? " (cross-sell)" : ""} to ${state.board.tiles[tileKey]} for $${paid}.`, human.id);
+  log(logMsg("{0} delivers {1} {2}{3} to {4} for ${5}.", human.name, n, bizInd(biz), cross ? " (cross-sell)" : "", state.board.tiles[tileKey], paid), human.id);
   return true;
 }
 
@@ -1687,7 +1709,7 @@ function claimIndustryBonus(state, p, ind, log) {
   if (p.industriesScored.includes(ind)) return;
   p.industriesScored.push(ind);
   addEP(p, INDUSTRY_DEBUT_EP, `Entered ${ind}`, state.quarter);
-  if (log) log(`${p.name} enters ${ind} for the first time (+${INDUSTRY_DEBUT_EP} EP).`, p.id);
+  if (log) log(logMsg("{0} enters {1} for the first time (+{2} EP).", p.name, ind, INDUSTRY_DEBUT_EP), p.id);
 }
 function doLaunch(state, p, bp, rng, log, manualFootprint) {
   const nPlots = SCALING[bp.ind] === "H" ? bp.lvl : 1;
@@ -1704,7 +1726,7 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   p.hand = p.hand.filter((x) => x !== bp);
   scoreCompanyOnCompletion(state, p, biz);
   onLaunch(state.pm, bp.ind, bp.deps.map((d) => d.ind));
-  log(`${p.name} launches ${bp.name} (${bp.ind} L${bp.lvl}) for $${bp.setup} (cash: $${Math.round(p.cash)}).`, p.id);
+  log(logMsg("{0} launches {1} ({2} L{3}) for ${4} (cash: ${5}).", p.name, bp.name, bp.ind, bp.lvl, bp.setup, Math.round(p.cash)), p.id);
   claimIndustryBonus(state, p, bp.ind, log);
   return true;
 }
@@ -1779,20 +1801,20 @@ function doUpgrade(state, p, b, rng, log, manualPlot, dir) {
   b.upgraded = true; b.level += 1;
   b.scored = false;
   scoreCompanyOnCompletion(state, p, b);
-  log(`${p.name} upgrades ${b.bp.name} to level ${b.level} for $${bizSetup(b)} (cash: $${Math.round(p.cash)}).`, p.id);
+  log(logMsg("{0} upgrades {1} to level {2} for ${3} (cash: ${4}).", p.name, b.bp.name, b.level, bizSetup(b), Math.round(p.cash)), p.id);
   return true;
 }
 function doDraw(state, p, industry, log) {
   if (!state.decks[industry] || !state.decks[industry].length || p.hand.length >= 5) return false;
   p.hand.push(state.decks[industry].shift());
-  log(`${p.name} draws from the ${industry} deck.`, p.id);
+  log(logMsg("{0} draws from the {1} deck.", p.name, industry), p.id);
   return true;
 }
 /* Stamped by build.mjs from a hash of the rules code above - do not edit by hand. The
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "65d9172c";
+const ENGINE_VERSION = "e66c512e";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -1843,15 +1865,15 @@ function discsUsed(state, p) {
 function discsFree(state, p) { return DISCS_PER_PLAYER - discsUsed(state, p); }
 
 function doLoan(state, p, log) {
-  if (p.discsInBank >= DISCS_PER_PLAYER) { log(`${p.name} has no discs left to pledge for a loan.`, p.id); return false; }
-  if (discsFree(state, p) <= 0) { log(`${p.name} has all ${DISCS_PER_PLAYER} discs committed \u2014 cannot take a loan.`, p.id); return false; }
+  if (p.discsInBank >= DISCS_PER_PLAYER) { log(logMsg("{0} has no discs left to pledge for a loan.", p.name), p.id); return false; }
+  if (discsFree(state, p) <= 0) { log(logMsg("{0} has all {1} discs committed \u2014 cannot take a loan.", p.name, DISCS_PER_PLAYER), p.id); return false; }
   p.cash += 20; p.discsInBank += 1;
-  log(`${p.name} takes a loan (+$20, +1 disc) (cash: $${Math.round(p.cash)}, discs used: ${discsUsed(state, p)}/${DISCS_PER_PLAYER}).`, p.id);
+  log(logMsg("{0} takes a loan (+$20, +1 disc) (cash: ${1}, discs used: {2}/{3}).", p.name, Math.round(p.cash), discsUsed(state, p), DISCS_PER_PLAYER), p.id);
   return true;
 }
 function doSellCompany(p, b, log, solvency = false) {
   const recv = sellCompany(p, b, solvency);
-  log(`${p.name} sells ${b.bp.name} for $${recv}${solvency ? " (SOLVENCY - half price)" : ""} (cash: $${Math.round(p.cash)}).`, p.id);
+  log(logMsg("{0} sells {1} for ${2}{3} (cash: ${4}).", p.name, b.bp.name, recv, solvency ? " (SOLVENCY - half price)" : "", Math.round(p.cash)), p.id);
 }
 /* `solvency` is set when the sale is forced by a bill you cannot pay. Everything then
    goes for half what a planned sale through Raise Capital would fetch - which is the
@@ -1859,7 +1881,7 @@ function doSellCompany(p, b, log, solvency = false) {
 function doSellBP(state, p, bp, log, solvency = false) {
   const before = p.cash;
   sellBpFromHand(state, p, bp, solvency);
-  log(`${p.name} sells ${bp.name} from hand for $${Math.round(p.cash - before)}${solvency ? " (SOLVENCY - half price)" : ""} (cash: $${Math.round(p.cash)}).`, p.id);
+  log(logMsg("{0} sells {1} from hand for ${2}{3} (cash: ${4}).", p.name, bp.name, Math.round(p.cash - before), solvency ? " (SOLVENCY - half price)" : "", Math.round(p.cash)), p.id);
 }
 
 /* What a Megacorp headquarters costs its owner every quarter. It has no Blueprint and
@@ -1891,7 +1913,7 @@ function payHqRent(state, p, log) {
       owner.cash += due;
       owner.rentIn = (owner.rentIn || 0) + due;
       p.rentOut = (p.rentOut || 0) + due;
-      if (log) log(`${p.name} pays $${due} ground rent on Megacorp "${hq.megacorpName}" to ${owner.name}.`, p.id);
+      if (log) log(logMsg("{0} pays ${1} ground rent on Megacorp \"{2}\" to {3}.", p.name, due, hq.megacorpName, owner.name), p.id);
     }
   }
 }
@@ -1946,7 +1968,7 @@ function runProduction(state, log) {
         const liquidatable = activeBiz(p).filter((x) => x.id !== b.id);
         for (const x of liquidatable) { if (debt <= 0) break; const before = p.cash; sellCompany(p, x, true); debt -= p.cash - before; }
         sellCompany(p, b, true);
-        log(`${p.name} enters SOLVENCY on ${b.bp.name}.`, p.id);
+        log(logMsg("{0} enters SOLVENCY on {1}.", p.name, b.bp.name), p.id);
         continue;
       }
       p.cash -= cost;
@@ -2019,8 +2041,8 @@ function botWantsConcession(state, p) {
 function setConcession(state, p, on, log) {
   state.concessionOn = state.concessionOn || {};
   state.concessionOn[p.id] = !!on;
-  if (log && on) log(`${p.name} switches the concession on: Utilities sells for $1 over the price this quarter.`, p.id);
-  if (log && !on) log(`${p.name} leaves the concession off this quarter.`, p.id);
+  if (log && on) log(logMsg("{0} switches the concession on: Utilities sells for $1 over the price this quarter.", p.name), p.id);
+  if (log && !on) log(logMsg("{0} leaves the concession off this quarter.", p.name), p.id);
 }
 /* The bill for the premium: one step off Utilities per holder who used it, at the end
    of the quarter, in plain view of everyone selling Utilities next quarter. */
@@ -2029,7 +2051,7 @@ function runConcessionErosion(state, log) {
   for (const p of state.players) {
     if (!used[p.id]) continue;
     moveMarker(state.pm, "UT", -SUPPLIER_CELLS);
-    if (log) log(`Concession: ${p.name} sold Utilities at a premium, so the Utilities price falls to $${price(state.pm, "UT")}.`, p.id);
+    if (log) log(logMsg("Concession: {0} sold Utilities at a premium, so the Utilities price falls to ${1}.", p.name, price(state.pm, "UT")), p.id);
   }
   state.concessionUsed = {};
   state.concessionOn = {};
@@ -2042,7 +2064,7 @@ function applySupplyChainFor(state, p, ind, log) {
   moveMarker(state.pm, pick, SUPPLIER_CELLS);
   state.reExtraDistrict = state.reExtraDistrict || {};
   state.reExtraDistrict[p.id] = true;
-  if (log) log(`${p.name} works the supply chain: the ${pick} price rises one step, and Retail reaches one extra district this quarter.`, p.id);
+  if (log) log(logMsg("{0} works the supply chain: the {1} price rises one step, and Retail reaches one extra district this quarter.", p.name, pick), p.id);
   return true;
 }
 /* Bots only. Humans are handled by the supplyChain phase. */
@@ -2059,7 +2081,7 @@ function chooseSupplyChain(state, p, ind, log, rng) {
   if (!state.scQueue || state.scQueue[0] !== p.id) return false;
   /* Lifting a rival industry's price helps whoever sells there, so the holder may
      decide the extra district is not worth it this quarter. */
-  if (ind === "skip") { if (log) log(`${p.name} declines to raise any industry this quarter.`, p.id); }
+  if (ind === "skip") { if (log) log(logMsg("{0} declines to raise any industry this quarter.", p.name), p.id); }
   else if (ind === "concession:on" || ind === "concession:off") {
     if (concessionAvailable(state, p)) setConcession(state, p, ind === "concession:on", log);
   }
@@ -2083,18 +2105,18 @@ function runMegacorpDividend(state, log) {
   for (const p of state.players) {
     for (const hq of megacorpHQs(p)) {
       if (!businessCanProduce(state, hq)) {
-        if (log) log(`Megacorp "${hq.megacorpName}" stands on land ${p.name} no longer owns \u2014 it collects nothing this quarter.`, p.id);
+        if (log) log(logMsg("Megacorp \"{0}\" stands on land {1} no longer owns \u2014 it collects nothing this quarter.", hq.megacorpName, p.name), p.id);
         continue;
       }
       const goods = price(state.pm, bizInd(hq));
       const tier = tierOfHQ(hq);
       const ep = brandEPFor(goods, tier);
       if (!ep) {
-        if (log) log(`Megacorp "${hq.megacorpName}" (tier ${tier}) banks nothing \u2014 ${bizInd(hq)} sells at $${goods}, and a tier ${tier} brand needs $${tier}.`, p.id);
+        if (log) log(logMsg("Megacorp \"{0}\" (tier {1}) banks nothing \u2014 {2} sells at ${3}, and a tier {4} brand needs ${5}.", hq.megacorpName, tier, bizInd(hq), goods, tier, tier), p.id);
         continue;
       }
       addEP(p, ep, `Megacorp brand: ${hq.megacorpName}`, state.quarter);
-      if (log) log(`Megacorp "${hq.megacorpName}" banks ${ep} EP \u2014 ${bizInd(hq)} sells at $${goods}, divided by tier ${tier}.`, p.id);
+      if (log) log(logMsg("Megacorp \"{0}\" banks {1} EP \u2014 {2} sells at ${3}, divided by tier {4}.", hq.megacorpName, ep, bizInd(hq), goods, tier), p.id);
     }
   }
 }
@@ -2114,7 +2136,7 @@ function runMegacorpTithe(state, log) {
         /* The owner's own buildings pay themselves, so say nothing - a log line
            reading "+1 EP" beside "-1 EP" for the same player is noise. */
         if (q.id !== p.id) {
-          log(`${q.name} takes ${due} EP from "${hq.megacorpName}" \u2014 ${n} compan${n === 1 ? "y" : "ies"} beside it.`, q.id);
+          log(logMsg("{0} takes {1} EP from \"{2}\" \u2014 {3} {4} beside it.", q.name, due, hq.megacorpName, n, n === 1 ? "company" : "companies"), q.id);
         }
       }
     }
@@ -2144,7 +2166,7 @@ function runB2B(state, log) {
     if (share < 1) continue;                             // too small to split: it rides forward
     recipients.forEach((r) => { r.p.cash += share; });
     state.pots[ind] = pot - share * recipients.length;
-    if (log) log(`${ind} pot pays $${share} to each of ${recipients.length} ${ind} business${recipients.length === 1 ? "" : "es"}${state.pots[ind] >= 1 ? `; $${Math.floor(state.pots[ind])} carries over` : ""}.`, null);
+    if (log) log(logMsg("{0} pot pays ${1} to each of {2} {3} {4}{5}.", ind, share, recipients.length, ind, recipients.length === 1 ? "business" : "businesses", state.pots[ind] >= 1 ? `; $${Math.floor(state.pots[ind])} carries over` : ""), null);
   }
 }
 function potRecipients(state, ind) {
@@ -2204,7 +2226,7 @@ function doRepayLoan(p, quarter, log) {
   if (!rate || p.discsInBank <= 0 || p.cash < rate) return false;
   p.cash -= rate;
   p.discsInBank -= 1;
-  log(`${p.name} repays a loan for $${rate} (${p.discsInBank} disc${p.discsInBank === 1 ? "" : "s"} left).`, p.id);
+  log(logMsg("{0} repays a loan for ${1} ({2} disc{3} left).", p.name, rate, p.discsInBank, p.discsInBank === 1 ? "" : "s"), p.id);
   return true;
 }
 function botRepayLoans(state, p, quarter, log) {
@@ -2248,7 +2270,7 @@ function runClosingRest(state, log) {
       awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", log);
       awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", log);
     }
-    log(`\u2014\u2014\u2014 Year-end scoring complete (Q${quarter}) \u2014\u2014\u2014`, null);
+    log(logMsg("\u2014\u2014\u2014 Year-end scoring complete (Q{0}) \u2014\u2014\u2014", quarter), null);
     for (const p of players) if (!p.isHuman) botRepayLoans(state, p, quarter, log);
   }
 }
@@ -2295,7 +2317,7 @@ function awardRanked(state, scoreFn, label, log) {
     // stamp the quarter it was actually awarded in - the land awards pay at every year
     // end, and hardcoding 12 made the scoring log claim otherwise
     addEP(p, share, label, state.quarter);
-    if (log) log(`${p.name} earns ${label} (+${share} EP).`, p.id);
+    if (log) log(logMsg("{0} earns {1} (+{2} EP).", p.name, label, share), p.id);
   }
 }
 /* The two endgame land awards, exposed so the standings can show the same running
@@ -2494,7 +2516,7 @@ function bestMegacorpMatch(bizList, pool) {
    the second Board Meeting seat. */
 function claimMegacorp(state, p, log, hqChoice) {
   const match = bestMegacorpMatch(activeBiz(p), state.megacorpPool);
-  if (!match) { log(`${p.name} has no company combo matching an available Megacorp tile.`, p.id); return false; }
+  if (!match) { log(logMsg("{0} has no company combo matching an available Megacorp tile.", p.name), p.id); return false; }
   const [name, combo, ep] = match.tile;
   // One of the merged companies becomes the Megacorp HQ: it keeps its building and the
   // owner's disc, gains a Megacorp block, and its BP returns to its industry deck.
@@ -2512,13 +2534,13 @@ function claimMegacorp(state, p, log, hqChoice) {
   if (state.decks && state.decks[hq.bp.ind]) state.decks[hq.bp.ind].push(hq.bp);   // BP back to its deck
   addEP(p, ep, `Megacorp: ${name}`, state.quarter);
   state.megacorpPool = state.megacorpPool.filter((t) => t !== match.tile);
-  log(`${p.name} forms Megacorp "${name}" (+${ep} EP, EP total: ${p.epBank.toFixed(0)}) \u2014 ${hq.bp.name} becomes its HQ, ${match.have.length - 1} other compan${match.have.length - 1 === 1 ? "y goes" : "ies go"} distressed.`, p.id);
+  log(logMsg("{0} forms Megacorp \"{1}\" (+{2} EP, EP total: {3}) \u2014 {4} becomes its HQ, {5} other {6} distressed.", p.name, name, ep, p.epBank.toFixed(0), hq.bp.name, match.have.length - 1, match.have.length - 1 === 1 ? "company goes" : "companies go"), p.id);
   // first Megacorp of the game also takes the IPO tile, which opens Board Meeting's second seat
   if (!state.ipoTileClaimed) {
     state.ipoTileClaimed = true;
     state.ipoOwner = p.id;
     p.ipoTile = true;
-    log(`${p.name} was first to go public and takes the IPO tile \u2014 a sixth company bay, and Board Meeting's second seat is now open.`, p.id);
+    log(logMsg("{0} was first to go public and takes the IPO tile \u2014 a sixth company bay, and Board Meeting's second seat is now open.", p.name), p.id);
   }
   return true;
 }
@@ -2572,7 +2594,7 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   p.hand = p.hand.filter((x) => x !== bp);
   p.businesses.push(distressedBiz);
   const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
-  log(`${p.name} renovates a distressed structure${from} into ${bp.name} (${bp.ind} L${bp.lvl}) (cash: $${Math.round(p.cash)}).`, p.id);
+  log(logMsg("{0} renovates a distressed structure{1} into {2} ({3} L{4}) (cash: ${5}).", p.name, from, bp.name, bp.ind, bp.lvl, Math.round(p.cash)), p.id);
   claimIndustryBonus(state, p, bp.ind, log);
   return true;
 }
@@ -2618,7 +2640,7 @@ function doReclaim(state, p, biz, log) {
   scoreCompanyOnCompletion(state, p, biz);
   p.businesses.push(biz);
   const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
-  log(`${p.name} buys the distressed ${biz.bp.name} (${bizInd(biz)} L${biz.level}) back from the bank${from} for $${cost} (cash: $${Math.round(p.cash)}).`, p.id);
+  log(logMsg("{0} buys the distressed {1} ({2} L{3}) back from the bank{4} for ${5} (cash: ${6}).", p.name, biz.bp.name, bizInd(biz), biz.level, from, cost, Math.round(p.cash)), p.id);
   claimIndustryBonus(state, p, bizInd(biz), log);
   return true;
 }
@@ -2628,7 +2650,7 @@ function doSellPlot(state, p, plotKeyStr, log, solvency = false) {
   const val = solvency ? Math.floor(fullVal / 2) : fullVal;
   delete state.board.owner[plotKeyStr];
   p.cash += val;
-  log(`${p.name} sells a plot for $${val}${solvency ? " (SOLVENCY)" : ""}. Any business standing on it can no longer produce until it's bought back.`, p.id);
+  log(logMsg("{0} sells a plot for ${1}{2}. Any business standing on it can no longer produce until it's bought back.", p.name, val, solvency ? " (SOLVENCY)" : ""), p.id);
   return true;
 }
 function cheapestOwnedPlot(state, p) {
@@ -2646,7 +2668,7 @@ function doBuyPlot(state, p, plotKeyStr, log) {
   if (p.cash < cost) return false;
   p.cash -= cost;
   state.board.owner[plotKeyStr] = p.id;
-  log(`${p.name} buys a plot for $${cost} (cash: $${Math.round(p.cash)}).`, p.id);
+  log(logMsg("{0} buys a plot for ${1} (cash: ${2}).", p.name, cost, Math.round(p.cash)), p.id);
   return true;
 }
 /* Human-readable plot label: district tile name + compass slot + grid coords,
@@ -2698,7 +2720,7 @@ function trackBonusOrder(slots) {
 function doReposition(state, p, log) {
   state.turnOrder = [p.id, ...state.turnOrder.filter((id) => id !== p.id)];
   state.doubleFirstPlayer = p.id;
-  log(`${p.name} takes REPOSITION \u2014 moves to 1st in turn order and places their meeples together next quarter.`, p.id);
+  log(logMsg("{0} takes REPOSITION \u2014 moves to 1st in turn order and places their meeples together next quarter.", p.name), p.id);
 }
 
 const TRACK_ACTIONS = { raise_capital: ["LOAN", "SELL"], ma: ["BUY", "LAUNCH"], rd: ["RESEARCH", "UPGRADE"] };
@@ -2982,22 +3004,22 @@ function botResolveOneAction(state, p, track, rng, log) {
       && p.cash + bizSetup(collapsed) / 2 >= bp.setup);
     if (collapsed && replacement && state.quarter <= 9) {
       const got = sellCompany(p, collapsed, false);
-      log(`${p.name} sells ${collapsed.bp.name}: ${bizInd(collapsed)} has collapsed to $${PRICE_MIN} and it was losing money (+$${got}).`, p.id);
+      log(logMsg("{0} sells {1}: {2} has collapsed to ${3} and it was losing money (+${4}).", p.name, collapsed.bp.name, bizInd(collapsed), PRICE_MIN, got), p.id);
       return;
     }
     const dead = activeBiz(p).find((b) => !businessCanProduce(state, b));
-    if (dead) { sellCompany(p, dead, false); log(`${p.name} sells ${dead.bp.name} \u2014 it sits on land nobody owns and cannot produce.`, p.id); return; }
+    if (dead) { sellCompany(p, dead, false); log(logMsg("{0} sells {1} \u2014 it sits on land nobody owns and cannot produce.", p.name, dead.bp.name), p.id); return; }
     if (genuineNeed && p.discsInBank >= 3 && activeBiz(p).length) {
       // already carrying real debt just to keep the lights on - cut the worst offender loose
       // instead of financing it forever with more loans
       const worst = worstRoiBusiness(p, state.pm, state.quarter, 0);
-      if (worst) { sellCompany(p, worst, false); log(`${p.name} cuts loose ${worst.bp.name} rather than take another loan to cover it (cash: $${Math.round(p.cash)}).`, p.id); }
+      if (worst) { sellCompany(p, worst, false); log(logMsg("{0} cuts loose {1} rather than take another loan to cover it (cash: ${2}).", p.name, worst.bp.name, Math.round(p.cash)), p.id); }
       else doLoan(state, p, log);
     } else if (genuineNeed) doLoan(state, p, log);
-    else if (p.hand.length > 3) { sellBpFromHand(state, p, p.hand.reduce((a, b) => (BP_SELL_PRICE[a.lvl] || 4) > (BP_SELL_PRICE[b.lvl] || 4) ? a : b), false); log(`${p.name} sells a BP from hand.`, p.id); }
+    else if (p.hand.length > 3) { sellBpFromHand(state, p, p.hand.reduce((a, b) => (BP_SELL_PRICE[a.lvl] || 4) > (BP_SELL_PRICE[b.lvl] || 4) ? a : b), false); log(logMsg("{0} sells a BP from hand.", p.name), p.id); }
     else if (p.cash < LOAN_CEILING && p.discsInBank < MAX_VOLUNTARY_DISCS
              && p.hand.length > 0 && canLaunchMore(p) && discsFree(state, p) > 0) doLoan(state, p, log);
-    else log(`${p.name} has plenty of cash and nothing to sell \u2014 sits this one out.`, p.id);
+    else log(logMsg("{0} has plenty of cash and nothing to sell \u2014 sits this one out.", p.name), p.id);
   } else if (track === "ma") {
     // A company standing on land nobody owns cannot produce. Buy the ground back if it is
     // affordable and worth it; otherwise cut the dead weight loose rather than sit on it.
@@ -3010,7 +3032,7 @@ function botResolveOneAction(state, p, track, rng, log) {
       if (worthIt) {
         let bought = 0;
         for (const pk of missing) if (doBuyPlot(state, p, pk, log)) bought++;
-        if (bought) { log(`${p.name} buys back land under ${b.bp.name} so it can produce again.`, p.id); return; }
+        if (bought) { log(logMsg("{0} buys back land under {1} so it can produce again.", p.name, b.bp.name), p.id); return; }
       }
     }
     const distressed = findDistressedTargets(state);
@@ -3141,7 +3163,7 @@ function botResolveOneAction(state, p, track, rng, log) {
         && (!r.growth || p.cash - r.cost >= minUpgradeCost));
       if (pick && doBuyPlot(state, p, pick.k, log)) return;
     }
-    log(`${p.name} finds nothing worth building right now.`, p.id);
+    log(logMsg("{0} finds nothing worth building right now.", p.name), p.id);
   } else if (track === "rd") {
     // A bot with no Blueprints cannot expand at all, so restocking beats upgrading
     // whenever the hand is thin and there is still room to build.
@@ -3220,7 +3242,7 @@ function advancePlanning(state, rng, log) {
     const track = botChoosePlanningTrack(state, p);
     const ok = placeMeeple(state, pid, track);
     if (!ok) { state.planningQueue.shift(); continue; }
-    log(`${p.name} places on ${TRACK_LABEL[track]}.`, p.id);
+    log(logMsg("{0} places on {1}.", p.name, TRACK_LABEL[track]), p.id);
     consumePlanningTurn(state, pid, track);
   }
   state.resolutionQueue = buildResolutionQueue(state);
@@ -3346,10 +3368,10 @@ function skipDelivery(state, human, bizId, log) {
       human.cash += paid;
       remaining -= bonus;
       state.hoBonusPaid[bizId] = (state.hoBonusPaid[bizId] || 0) + bonus;
-      log(`${biz.bp.name} moves ${bonus} unit${bonus === 1 ? "" : "s"} to neighbouring businesses/hubs for $${paid}.`, human.id);
+      log(logMsg("{0} moves {1} unit{2} to neighbouring businesses/hubs for ${3}.", biz.bp.name, bonus, bonus === 1 ? "" : "s", paid), human.id);
     }
   }
-  if (remaining > 0) { human.cash += remaining; log(`Unsold production recycled for $${remaining}.`, human.id); }
+  if (remaining > 0) { human.cash += remaining; log(logMsg("Unsold production recycled for ${0}.", remaining), human.id); }
   state.deliveryRemaining[bizId] = 0;
   state.crossSellRemaining[bizId] = 0;
 }
@@ -3391,7 +3413,7 @@ function finishQuarterAfterRepay(state, log, rng) {
     state.awaitingPlayerId = null;
   }
   const summary = state.players.map((p) => `${p.name} $${Math.round(p.cash)}/${p.epBank.toFixed(0)}EP/${activeBiz(p).length}biz`).join("  \u00b7  ");
-  log(`\u2500 End of Q${state.quarter}: ${summary}`, null);
+  log(logMsg("\u2500 End of Q{0}: {1}", state.quarter, summary), null);
   /* The second Megacorp CALLS the final quarter rather than being it: the game ends
      at the close of the FOLLOWING quarter, capped at Q12. The table gets one full
      round to answer - cash out, merge, buy the ground - instead of finding out the
@@ -3403,16 +3425,16 @@ function finishQuarterAfterRepay(state, log, rng) {
   if (rushers.length && !state.finalQuarter) {
     state.finalQuarter = Math.min(12, state.quarter + 1);
     const who = rushers.map((p) => p.name).join(" and ");
-    log(`\u23f9 ${who} ${rushers.length === 1 ? "has" : "have"} launched ${MEGACORPS_TO_END} Megacorps \u2014 Q${state.finalQuarter} is the FINAL QUARTER.`, null);
+    log(logMsg("\u23f9 {0} {1} launched {2} Megacorps \u2014 Q{3} is the FINAL QUARTER.", who, rushers.length === 1 ? "has" : "have", MEGACORPS_TO_END, state.finalQuarter), null);
   }
   if (state.quarter >= 12 || (state.finalQuarter && state.quarter >= state.finalQuarter)) {
     finalizeGame(state);
     state.phase = "gameover";
-    log("=== GAME OVER \u2014 final scoring complete ===", null);
+    log(logMsg("=== GAME OVER \u2014 final scoring complete ==="), null);
     return;
   }
   state.quarter += 1;
-  log(`\u25b6 Year ${Math.ceil(state.quarter / 4)}, Quarter ${state.quarter}`, null);
+  log(logMsg("\u25b6 Year {0}, Quarter {1}", Math.ceil(state.quarter / 4), state.quarter), null);
   startPlanning(state);
   advancePlanning(state, rng, log);
 }
@@ -3539,7 +3561,7 @@ function advanceDraft(state, log) {
     }
     if (!p.isHuman) {
       while (p.hand.length < need && botDraftPick(state, p)) { /* takes its whole hand */ }
-      if (log) log(`${p.name} drafts ${p.hand.length} Blueprint${p.hand.length === 1 ? "" : "s"}.`, p.id);
+      if (log) log(logMsg("{0} drafts {1} Blueprint{2}.", p.name, p.hand.length, p.hand.length === 1 ? "" : "s"), p.id);
     }
     state.draftCursor++;
   }
@@ -4607,7 +4629,7 @@ function TrackBoard({ state, human }) {
   ];
   return (
     <div data-tut="tracks" className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-      <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">{t("Planning & Action Tracks")} <Help text="Place two workers, then tracks resolve first-in, last-out: whoever placed LAST acts FIRST. Committing early earns +1 extra action for every player who joins after you, but they all act before you do." /></div>
+      <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">{t("Planning & Action Tracks")} <Help text={t("Place two workers, then tracks resolve first-in, last-out: whoever placed LAST acts FIRST. Committing early earns +1 extra action for every player who joins after you, but they all act before you do.")} /></div>
       {tracks.map(([key, label, actions]) => (
         <div key={key} className="flex items-center gap-2">
           <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0 flex items-center gap-1">
@@ -4626,7 +4648,7 @@ function TrackBoard({ state, human }) {
       ))}
       <div className="flex items-center gap-2">
         <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0 flex items-center gap-1">
-          {t("Board Mtg")} <Help text={TRACK_HELP.board_meeting} />
+          {t("Board Mtg")} <Help text={t(TRACK_HELP.board_meeting)} />
         </div>
         <div className="flex gap-1">
           {state.tracks.board_meeting.map((pid, i) => {
@@ -4876,7 +4898,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                   </div>
                   {top ? (
                     <>
-                      <div className="text-[10px] font-semibold text-gray-200 leading-tight" style={{ minHeight: 22 }}>{top.name}</div>
+                      <div className="text-[10px] font-semibold text-gray-200 leading-tight" style={{ minHeight: 22 }}>{t(top.name)}</div>
                       <div className="text-[9px] font-mono text-gray-500">{t("Lvl {0} · ${1}", top.lvl, top.setup)}</div>
                     </>
                   ) : <div className="text-[9px] text-gray-600 italic">Empty</div>}
@@ -5493,6 +5515,8 @@ function GameScreens({ online }) {
   // dispatched through NET and comes back as a pushed state.
   const state = online ? online.state : localState;
   const logs = online ? online.logs : localLogs;
+  /* Names are data, not text: they must never be run through the dictionary. */
+  const playerNames = new Set((state && state.players ? state.players : []).map((p) => p.name));
   const setState = online ? (() => {}) : setLocalState;
   const setLogs = online ? (() => {}) : setLocalLogs;
   const [selectedPlot, setSelectedPlot] = useState(null);
@@ -5593,7 +5617,7 @@ function GameScreens({ online }) {
   }, [state]);
 
   const log = useCallback((msg, pid) => {
-    setLogs((L) => [...L.slice(-79), { msg, pid, id: Math.random() }]);
+    setLogs((L) => [...L.slice(-79), { ...logEntry(msg, pid), id: Math.random() }]);
   }, []);
 
   function startGame() {
@@ -5607,8 +5631,10 @@ function GameScreens({ online }) {
     rngRef.current = mulberry32(seedNum + 777);
     setLogs([]);
     const seat = s.turnOrder.indexOf(0) + 1;
+    /* The ordinal and the plural are whole words, so another language can
+       replace them rather than being handed an English suffix to glue on. */
     const ord = seat === 1 ? "1st" : seat === 2 ? "2nd" : seat === 3 ? "3rd" : `${seat}th`;
-    log(`New game: You vs ${numBots} bot${numBots > 1 ? "s" : ""}. You are seated ${ord} in turn order.`, null);
+    log(logMsg("New game: You vs {0} {1}. You are seated {2} in turn order.", numBots, numBots > 1 ? "bots" : "bot", ord), null);
     if (s.phase !== "drafting") { startPlanning(s); advancePlanning(s, rngRef.current, log); }
     setState(s);
     setScreen(s.phase === "gameover" ? "gameover" : "playing");
@@ -5626,8 +5652,8 @@ function GameScreens({ online }) {
     if (!state || state.phase !== "planning") return;
     if (state.planningQueue[0] !== human.id) return;
     const ok = placeMeeple(state, human.id, track);
-    if (!ok) { log(`No open slot on ${TRACK_LABEL[track]}.`, human.id); setState({ ...state }); return; }
-    log(`You place on ${TRACK_LABEL[track]}.`, human.id);
+    if (!ok) { log(logMsg("No open slot on {0}.", TRACK_LABEL[track]), human.id); setState({ ...state }); return; }
+    log(logMsg("You place on {0}.", TRACK_LABEL[track]), human.id);
     consumePlanningTurn(state, human.id, track);
     advancePlanning(state, rngRef.current, log);
     setState({ ...state });
@@ -5680,14 +5706,14 @@ function GameScreens({ online }) {
     }
     if (pickMode.kind === "launch") {
       const ok = doLaunch(state, human, pickMode.bp, rngRef.current, log, pickMode.selected);
-      if (!ok) log(`Couldn't launch ${t(pickMode.bp.name)} on that selection.`, human.id);
+      if (!ok) log(logMsg("Couldn't launch {0} on that selection.", t(pickMode.bp.name)), human.id);
     } else if (pickMode.kind === "buy") {
       const ok = doBuyPlot(state, human, pickMode.selected[0], log);
-      if (!ok) log(`Couldn't buy that plot.`, human.id);
+      if (!ok) log(logMsg("Couldn't buy that plot."), human.id);
     } else if (pickMode.kind === "grow") {
       const pick = pickMode.options.find((o) => o.plot === pickMode.selected[0]) || {};
       const ok = doUpgrade(state, human, pickMode.biz, rngRef.current, log, pick.plot, pick.dir);
-      if (!ok) log(`Couldn't upgrade ${t(pickMode.biz.bp.name)} onto that plot.`, human.id);
+      if (!ok) log(logMsg("Couldn't upgrade {0} onto that plot.", t(pickMode.biz.bp.name)), human.id);
     }
     setPickMode(null);
     humanCompleteResolutionAction(state, rngRef.current, log);
@@ -5931,7 +5957,7 @@ function GameScreens({ online }) {
                       className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
                       {t("Board Meeting (both meeples)")}
                     </button>
-                    <Help text={TRACK_HELP.board_meeting} />
+                    <Help text={t(TRACK_HELP.board_meeting)} />
                   </span>
                 </div>
                 {!state.ipoTileClaimed && (
@@ -6222,7 +6248,7 @@ function GameScreens({ online }) {
 
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
               <div className="flex items-center justify-between mb-2">
-                <span data-tut="ledger" className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">{t("Your player board")} <Help text="Your twelve discs are your whole footprint: one per plot you own, one per company (a Megacorp HQ still holds its own), and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up." /></span>
+                <span data-tut="ledger" className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">{t("Your player board")} <Help text={t("Your twelve discs are your whole footprint: one per plot you own, one per company (a Megacorp HQ still holds its own), and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up.")} /></span>
                 <span className="text-[9px] font-mono text-gray-600">{human.name}</span>
               </div>
 
@@ -6356,7 +6382,7 @@ function GameScreens({ online }) {
 
           <div className="side-col space-y-3">
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("Standings")} <Help text={`Score = ${levelEP(state)} EP per company level, banked the moment you build or upgrade it, plus ${INDUSTRY_DEBUT_EP} EP the first time you build in each industry (once per game). Plus Megacorp tiles, their brand EP and tithe, land awards at every year end, $${CASH_PER_EP} = 1 EP, and -5 EP per unpaid loan disc. A tie is settled by more active companies, then money, then fewer loan discs. Hover a player for the full breakdown.`} /></div>
+              <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("Standings")} <Help text={t("Score = {0} EP per company level, banked the moment you build or upgrade it, plus {1} EP the first time you build in each industry (once per game). Plus Megacorp tiles, their brand EP and tithe, land awards at every year end, ${2} = 1 EP, and -5 EP per unpaid loan disc. A tie is settled by more active companies, then money, then fewer loan discs. Hover a player for the full breakdown.", levelEP(state), INDUSTRY_DEBUT_EP, CASH_PER_EP)} /></div>
               <div className="space-y-2">
                 {[...state.players].sort((a, b) => epTotal(b) - epTotal(a)).map((p) => {
                   return (
@@ -6384,16 +6410,16 @@ function GameScreens({ online }) {
                       <div className="flex items-center justify-between text-[9px] font-mono text-gray-500 mt-0.5">
                         <span>
                           ${Math.round(p.cash)} &middot;{" "}
-                          <span title={t("Active companies")}>{activeBiz(p).length}biz</span>
+                          <span title={t("Active companies")}>{t("{0}biz", activeBiz(p).length)}</span>
                           {megacorpHQs(p).length > 0 && (
-                            <span title={`Megacorp HQ: ${megacorpHQs(p).map((b) => t(b.megacorpName)).join(", ")}`}
-                              style={{ color: "#f5d76e" }}> +{megacorpHQs(p).length}MC</span>
-                          )} &middot; {p.hand.length}BP &middot;{" "}
-                          <span title={`Discs committed: ${plotsOwned(state, p)} on land, ${companySlotsUsed(p)} on companies, ${p.discsInBank} pledged for loans`}>
-                            {discsUsed(state, p)}/{DISCS_PER_PLAYER} discs
+                            <span title={t("Megacorp HQ: {0}", megacorpHQs(p).map((b) => t(b.megacorpName)).join(", "))}
+                              style={{ color: "#f5d76e" }}> {t("+{0}MC", megacorpHQs(p).length)}</span>
+                          )} &middot; {t("{0}BP", p.hand.length)} &middot;{" "}
+                          <span title={t("Discs committed: {0} on land, {1} on companies, {2} pledged for loans", plotsOwned(state, p), companySlotsUsed(p), p.discsInBank)}>
+                            {t("{0}/{1} discs", discsUsed(state, p), DISCS_PER_PLAYER)}
                           </span>
                           {p.discsInBank > 0 && (
-                            <span title={t("Loan discs - 5 EP each at game end")} style={{ color: "#fca5a5" }}> ({p.discsInBank} loan)</span>
+                            <span title={t("Loan discs - 5 EP each at game end")} style={{ color: "#fca5a5" }}> {t("({0} loan)", p.discsInBank)}</span>
                           )}
                         </span>
                       </div>
@@ -6406,12 +6432,12 @@ function GameScreens({ online }) {
                       <div className="flex items-center gap-2 text-[9px] font-mono mt-0.5">
                         <span title={t("Plots owned - the outright leader at every year end scores The Real-Estate Mogul")}
                           style={{ color: landLead.plots.has(p.id) ? "#f5d76e" : "#6b7280" }}>
-                          {landLead.plots.has(p.id) ? "\u265B " : ""}{plotCount(state, p)} plots
+                          {landLead.plots.has(p.id) ? "\u265B " : ""}{t("{0} plots", plotCount(state, p))}
                         </span>
                         <span style={{ color: "#3a4152" }}>|</span>
                         <span title={t("Districts you have a presence in - the outright leader at every year end scores The Omnipresent")}
                           style={{ color: landLead.districts.has(p.id) ? "#f5d76e" : "#6b7280" }}>
-                          {landLead.districts.has(p.id) ? "\u265B " : ""}{districtCount(state, p)} districts
+                          {landLead.districts.has(p.id) ? "\u265B " : ""}{t("{0} districts", districtCount(state, p))}
                         </span>
                       </div>
                     </div>
@@ -6422,7 +6448,7 @@ function GameScreens({ online }) {
             </div>
 
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("The Bank")} <Help text="Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$35/$40. Distressed companies sit here until someone renovates them via M&amp;A - Buy. The players are listed in TURN ORDER: delivery runs in that sequence and demand icons are first come first served, so anyone above you sells before you do. Reposition moves a player to the front of it." /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("The Bank")} <Help text={t("Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$35/$40. Distressed companies sit here until someone renovates them via M&amp;A - Buy. The players are listed in TURN ORDER: delivery runs in that sequence and demand icons are first come first served, so anyone above you sells before you do. Reposition moves a player to the front of it.")} /></div>
               <div className="text-[9px] text-gray-500 mb-1.5">{t("Loan discs (−5 EP each at game end) ·")} <span title={t("Delivery runs in this order, and demand is first come first served")}>in turn order</span>:</div>
               <div className="space-y-1 mb-2">
                 {/* Seat order until now, which is fixed for the whole game and tells
@@ -6470,7 +6496,7 @@ function GameScreens({ online }) {
                 keeps a single, full-width block instead of two stubby ones. */}
             <div data-tut="megacorps" className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
 
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text={`Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks its industry's price DIVIDED BY THE TILE'S TIER as EP every quarter (the \u00f7 number on each tile, rounded down - so a \u00f72 tile on a $7 good pays 3 EP a quarter, and pays nothing at all while the price is below the tier), counts as a Logistic Hub for anything built beside it, and pays ${MEGACORP_TITHE_EP} EP a quarter to every RIVAL company standing beside it - your own neighbours cost you nothing, since they pay themselves. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots; the first to go public wins the IPO tile, which adds a sixth bay.`} /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text={t("Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks its industry's price DIVIDED BY THE TILE'S TIER as EP every quarter (the \u00f7 number on each tile, rounded down - so a \u00f72 tile on a $7 good pays 3 EP a quarter, and pays nothing at all while the price is below the tier), counts as a Logistic Hub for anything built beside it, and pays {0} EP a quarter to every RIVAL company standing beside it - your own neighbours cost you nothing, since they pay themselves. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots; the first to go public wins the IPO tile, which adds a sixth bay.", MEGACORP_TITHE_EP)} /></div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
                 {state.megacorpPool.map(([name, combo, ep], i) => (
                   <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>
@@ -6499,9 +6525,14 @@ function GameScreens({ online }) {
 
               <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">Log</div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 220 }}>
+                {/* A line arrives as a key and its values. A value that is itself
+                    game text - a card name, "(SOLVENCY - half price)" - is
+                    translated too; a value that is a PLAYER'S NAME never is, even
+                    if somebody names themselves after a game term. */}
                 {logs.map((l) => (
                   <div key={l.id} className="text-[10px] font-mono leading-snug" style={{ color: l.pid !== null ? PLAYER_COLORS[l.pid] : "#8b93a3" }}>
-                    {l.msg}
+                    {l.k === undefined ? l.msg
+                      : t(l.k, ...(l.a || []).map((x) => (typeof x === "string" && !playerNames.has(x) ? t(x) : x)))}
                   </div>
                 ))}
                 <div ref={logEndRef} />
@@ -6670,13 +6701,13 @@ function IndustryReference({ state }) {
     setOver(ind);
   };
   const deckHelp = hasVariant(state, "orderedDecks")
-    ? "Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from."
+    ? t("Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from.")
     : t("Six separate decks, each shuffled whole, so any level can be on top. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from.");
   return (
     <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
       <div data-tut="pots" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">
         {t("Industries")}
-        <Help text={"POT \u2014 a company's supplier bill lands in its suppliers' pots (its ground rent is billed separately, to landlords). Each quarter every pot is split evenly among the active businesses of that industry and any Megacorp HQ of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative.\n\nDECK \u2014 " + deckHelp} />
+        <Help text={t("POT \u2014 a company's supplier bill lands in its suppliers' pots (its ground rent is billed separately, to landlords). Each quarter every pot is split evenly among the active businesses of that industry and any Megacorp HQ of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative.") + "\n\n" + t("DECK \u2014 ") + deckHelp} />
       </div>
       <div className="text-[9px] text-gray-500 mb-2">
         {t("Pot, then the top Blueprint. Hover an industry for what it does.")}
@@ -6702,11 +6733,10 @@ function IndustryReference({ state }) {
                 {top ? (
                   <>
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-[9px] text-gray-300 leading-tight truncate">{top.name}</span>
+                      <span className="text-[9px] text-gray-300 leading-tight truncate">{t(top.name)}</span>
                       <span className="text-[8px] font-mono text-gray-500 shrink-0">{deck.length} left</span>
                     </div>
-                    <div className="text-[8px] font-mono text-gray-500 leading-tight">
-                      L{top.lvl} &middot; set ${top.setup} &middot; opex ${top.opex} &middot; prod {top.prod}
+                    <div className="text-[8px] font-mono text-gray-500 leading-tight">{t("L{0} · set ${1} · opex ${2} · prod {3}", top.lvl, top.setup, top.opex, top.prod)}
                     </div>
                     <div className="text-[8px] font-mono leading-tight" style={{ color: "#a5b4cf" }}>
                       {top.deps.map((d) => `${d.ind} $${d.val}`).join(" \u00b7 ")}
@@ -6761,7 +6791,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
     human.hand.push(card);
     state.draftTaken = state.draftTaken || [];
     state.draftTaken.push(card.ind);
-    log(`You draft ${card.name} (${card.ind} L${card.lvl}).`, human.id);
+    log(logMsg("You draft {0} ({1} L{2}).", card.name, card.ind, card.lvl), human.id);
     force((v) => v + 1);
   }
 
@@ -6863,8 +6893,8 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
                 </div>
                 {top ? (
                   <>
-                    <div className="text-[10px] font-semibold text-gray-100 leading-tight" style={{ minHeight: 26 }}>{top.name}</div>
-                    <div className="text-[9px] font-mono text-gray-500">L{top.lvl} &middot; set ${top.setup} &middot; opex ${top.opex} &middot; prod {top.prod}</div>
+                    <div className="text-[10px] font-semibold text-gray-100 leading-tight" style={{ minHeight: 26 }}>{t(top.name)}</div>
+                    <div className="text-[9px] font-mono text-gray-500">{t("L{0} · set ${1} · opex ${2} · prod {3}", top.lvl, top.setup, top.opex, top.prod)}</div>
                     <div className="text-[9px] font-mono" style={{ color: "#a5b4cf" }}>
                       {top.deps.map((d) => `${d.ind} $${d.val}`).join(" \u00b7 ")}
                     </div>
