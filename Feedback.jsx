@@ -491,3 +491,121 @@ export function useFeedbackAccess() {
 }
 
 export default FeedbackPanel;
+
+/* ============================================================================
+   The end of a match.
+
+   A playtest is only worth as much as what comes back from it, and the moment a
+   player is most able to say how it felt is the moment the final score goes up -
+   not later, from the Feedback button they have to think to press. So the game
+   asks, once, right there.
+
+   Once is the whole design. It is shown a single time per match per browser, it
+   can be waved away, and waving it away is remembered, because a prompt that
+   nags is a prompt people learn to dismiss without reading. The note goes in as
+   a "session" note with the room, the quarter it ended on and the rules version,
+   which is what makes an old note still legible after the rules move.
+   ========================================================================== */
+const ASKED_KEY = "entrepreneurs_thanks";
+
+function alreadyAsked(matchId) {
+  try {
+    const seen = JSON.parse(localStorage.getItem(ASKED_KEY) || "[]");
+    return Array.isArray(seen) && seen.includes(matchId);
+  } catch (_) { return false; }
+}
+function rememberAsked(matchId) {
+  try {
+    const seen = JSON.parse(localStorage.getItem(ASKED_KEY) || "[]");
+    const next = (Array.isArray(seen) ? seen : []).concat(matchId).slice(-40);
+    localStorage.setItem(ASKED_KEY, JSON.stringify(next));
+  } catch (_) {}
+}
+
+export function EndOfGameThanks({ matchId, context, onClose }) {
+  useLang();
+  const [rating, setRating] = useState(null);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [err, setErr] = useState("");
+
+  /* Remembered as soon as it is shown, not when it is answered: a player who
+     closes the tab has still been asked, and should not be asked again. */
+  useEffect(() => { if (matchId) rememberAsked(matchId); }, [matchId]);
+
+  const dismiss = () => { if (onClose) onClose(); };
+
+  const send = async () => {
+    setBusy(true); setErr("");
+    try {
+      await post("/api/feedback", { kind: "session", rating, text, ...(context || {}) });
+      setSent(true);
+      setTimeout(dismiss, 1600);
+    } catch (e) {
+      setErr(e.message || t("That did not go through."));
+    } finally { setBusy(false); }
+  };
+
+  return (
+    /* A card in the corner, not a sheet over the whole screen. The player has
+       just been shown the final board and may want to hit Play again; an ask
+       that blocks that button is an ask that gets closed unread. */
+    <Portal>
+      <div style={{
+        position: "fixed", right: 12, bottom: 56, zIndex: 10050,
+        maxWidth: "calc(100vw - 24px)", pointerEvents: "none",
+      }}>
+        <div role="dialog" aria-label={t("Thanks for playing")}
+          style={{
+            width: "min(92vw, 380px)", backgroundColor: INK.bg, border: `1px solid ${INK.edge}`,
+            borderRadius: 12, boxShadow: "0 24px 70px rgba(0,0,0,.75)", overflow: "hidden",
+            pointerEvents: "auto",
+          }}>
+          {sent ? (
+            <div style={{ padding: "26px 20px", textAlign: "center" }}>
+              <div style={{ fontSize: 26, marginBottom: 8 }} aria-hidden="true">&#10003;</div>
+              <div style={{ fontSize: 13.5, color: INK.head, fontWeight: 700 }}>{t("Noted, thank you.")}</div>
+            </div>
+          ) : (
+            <div style={{ padding: "18px 18px 16px" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: INK.head, marginBottom: 4 }}>
+                {t("Thanks for playing")}
+              </div>
+              <div style={{ fontSize: 11.5, color: INK.dim, lineHeight: 1.5, marginBottom: 14 }}>
+                {t("The game is still being tuned, and what you say here is what moves it. Did you enjoy it?")}
+              </div>
+
+              <Stars value={rating} onChange={setRating} />
+
+              <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4}
+                placeholder={t("What worked, what dragged, what you would change.")}
+                style={{
+                  width: "100%", marginTop: 12, padding: "8px 10px", borderRadius: 7, resize: "vertical",
+                  backgroundColor: INK.panel, border: `1px solid ${INK.edge}`, color: INK.text,
+                  fontSize: 12, lineHeight: 1.45, fontFamily: "inherit", boxSizing: "border-box",
+                }} />
+
+              {err && <div style={{ fontSize: 11, color: "#fca5a5", marginTop: 8 }}>{err}</div>}
+
+              <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
+                <button onClick={send} disabled={busy || (rating === null && !text.trim())}
+                  style={{
+                    ...btn(INK.accentBg, "#2c5f4f", INK.accent),
+                    opacity: busy || (rating === null && !text.trim()) ? 0.5 : 1,
+                  }}>{busy ? t("Sending…") : t("Send it")}</button>
+                <button onClick={dismiss} style={btn("transparent", INK.edge, INK.dim)}>{t("Not now")}</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+/* Should this player be asked about this match? Only a human who has just seen a
+   game end, and only once. */
+export function shouldThank(matchId) {
+  return !!matchId && !alreadyAsked(matchId);
+}
