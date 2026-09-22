@@ -43,7 +43,7 @@ function loadEngine() {
       botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, advanceDelivery, ENGINE_VERSION,
       bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER,
       PERSONAS, MEGACORP_TILES, VARIANTS, VARIANT_KEYS, normaliseVariants,
-      chooseSupplyChain, supplyChainOptions, reAllowance, TRACK_LABEL };
+      chooseSupplyChain, supplyChainOptions, reAllowance, TRACK_LABEL, logEntry, fmtEn, logMsg };
   `, sandbox);
   return box.exports;
 }
@@ -154,7 +154,11 @@ function anyMember(room, tok) {
   return room.members.find((m) => m.token === tok) || (room.spectators || []).find((m) => m.token === tok);
 }
 function log(room) {
-  return (msg, pid) => { room.logs.push({ msg, pid }); if (room.logs.length > 400) room.logs.shift(); };
+  /* The engine hands over either a plain string (old call sites) or a
+     { k, a } shape - a key and its values - which is what lets every client
+     render the line in its own language. Both are stored; `msg` stays the
+     English sentence so nothing downstream has to change. */
+  return (msg, pid) => { room.logs.push(E.logEntry(msg, pid)); if (room.logs.length > 400) room.logs.shift(); };
 }
 
 function payloadFor(room) {
@@ -274,7 +278,7 @@ function convertToBot(room, seat) {
   st.delQueue = drop("delQueue");
   st.liqQueue = drop("liqQueue");
   st.repayQueue = drop("repayQueue");
-  lg(`${p.name} is now played by a bot.`, seat);
+  lg(E.logMsg("{0} is now played by a bot.", p.name), seat);
 
   // if the game was waiting on this seat, resolve that step as the bot
   const waiting = whoIsAwaited(st) === seat;
@@ -341,7 +345,7 @@ function applyAction(room, seat, action, data) {
       p.hand.push(card);
       st.draftTaken = st.draftTaken || [];
       st.draftTaken.push(card.ind);
-      lg(`${p.name} drafts ${card.name}.`, seat);
+      lg(E.logMsg("{0} drafts {1}.", p.name, card.name), seat);
       // hand back to the draft order: any bots seated between this player and the next
       // human take their picks now, in order
       if (p.hand.length >= (st.draftCounts[seat] || 0)) {
@@ -353,7 +357,7 @@ function applyAction(room, seat, action, data) {
       if (st.phase !== "planning") return { error: "Not planning." };
       if (!E.placeMeeple(st, seat, d.track)) return { error: "That track is full." };
       E.consumePlanningTurn(st, seat, d.track);
-      lg(`${p.name} places on ${E.TRACK_LABEL[d.track] || d.track}.`, seat);
+      lg(E.logMsg("{0} places on {1}.", p.name, E.TRACK_LABEL[d.track] || d.track), seat);
       E.advancePlanning(st, rng, lg);
       break;
     }

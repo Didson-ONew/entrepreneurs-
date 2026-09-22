@@ -57,6 +57,24 @@ E.BP_DATA.forEach((b) => add(b.name));
 E.MEGACORP_TILES.forEach((tile) => add(tile[0]));
 /* The five phase names on the quarter strip, which the strip holds as data. */
 ["Planning", "Action", "Production", "Revenue", "Closing"].forEach(add);
+/* Every log line shape, and the fragments that get slotted into one. The engine
+   writes these as logMsg("...", args) - the string is the key. */
+for (const f of ["EntrepreneursGame.jsx", "server.js"]) {
+  const text = fs.readFileSync(path.join(__dirname, f), "utf8");
+  for (const m of text.matchAll(/logMsg\("((?:[^"\\]|\\.)*)"/g)) add(JSON.parse('"' + m[1] + '"'));
+  /* Fragments that ride INTO a log line as an argument rather than being one:
+     a scan for them picks up half the surrounding expression, so they are named. */
+  for (const frag of [" (SOLVENCY - half price)", " (SOLVENCY)",
+       "company", "companies", "company goes", "companies go", "business", "businesses",
+       "bot", "bots", "has", "have", "1st", "2nd", "3rd"]) {
+    if (text.includes(JSON.stringify(frag).slice(1, -1))) add(frag);
+  }
+  /* `${seat}th` builds 4th, 5th and 6th at run time, so they never appear as
+     literals for the scan above to find. */
+  for (const n of ["4th", "5th", "6th"]) {
+    if (/\$\{seat\}th/.test(text)) add(n);
+  }
+}
 
 /* Tables the UI hands to t() by value rather than by literal, so the scan above
    cannot see them: Records' scoring-source labels and tabs, the feedback kinds,

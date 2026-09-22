@@ -9,7 +9,7 @@ const src = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8
 const engine = src.slice(0, src.indexOf("/* ============================== REACT UI ============================== */")).replace(/^\s*(import|export)\s.*$/gm, "");
 const box = {}; const sb = { console, Math, Set, Object, Array, JSON, String, box };
 vm.createContext(sb);
-vm.runInContext(engine + `box.E = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning, activeBiz, bizInd, autoDeliver, reAllowance, businessCanProduce };`, sb);
+vm.runInContext(engine + `box.E = { logEntry, initGame, mulberry32, advanceDraft, startPlanning, advancePlanning, activeBiz, bizInd, autoDeliver, reAllowance, businessCanProduce };`, sb);
 const E = box.E;
 
 /* Find a seeded game where a bot holds a producing Retail company by Q6. */
@@ -20,7 +20,7 @@ for (let seed = 1; seed <= 60 && !found; seed++) {
   if (st.phase === "drafting") { E.advanceDraft(st, () => {}); E.startPlanning(st); }
   E.advancePlanning(st, E.mulberry32(seed + 777), (m) => {
     if (found) return;
-    if (!/Quarter 6/.test(String(m))) return;
+    if (!/Quarter 6/.test(E.logEntry(m, null).msg)) return;   // a log line is { k, a } now
     for (const p of st.players) for (const b of E.activeBiz(p)) if (E.bizInd(b) === "RE" && E.businessCanProduce(st, b)) { found = { seed, st: JSON.parse(JSON.stringify(st)), pid: p.id, bid: b.id }; return; }
   });
 }

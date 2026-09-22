@@ -31,7 +31,7 @@ vm.createContext(sandbox);
 vm.runInContext(engine + "\n" + grab("computeEligiblePlots") + grab("growOptions") + grab("growthFor") + `
   box.E = { initGame, byId, orthOf, plotFree, doUpgrade, upgradeScaling, upgradeDirs, upgradeBlockedReason,
     SCALING, BP_DATA, INDUSTRIES, computeEligiblePlots, growOptions, growthFor, adjacentOwnedFreePlots,
-    newBusiness, hasPersona, unitPrice, price, chooseSupplyChain, supplyChainOptions, PERSONAS };
+    newBusiness, hasPersona, unitPrice, price, chooseSupplyChain, supplyChainOptions, PERSONAS, logEntry };
 `, sandbox);
 const E = box.E;
 
@@ -143,7 +143,9 @@ console.log("\nA Supply Chain Expert MAY decline");
   st.phase = "supplyChain"; st.scQueue = [me.id, other.id]; st.awaitingPlayerId = me.id;
   const before = JSON.stringify(st.pm);
   const logged = [];
-  const ok = E.chooseSupplyChain(st, me, "skip", (m) => logged.push(String(m)), () => 0.5);
+  /* A log line arrives as { k, a } now - the shape and its values - so the test
+     renders the English the same way the server stores it. */
+  const ok = E.chooseSupplyChain(st, me, "skip", (m) => logged.push(E.logEntry(m, null).msg), () => 0.5);
   check("declining is accepted", ok === true);
   check("and moves no price at all", JSON.stringify(st.pm) === before);
   check("the queue moves on to the next player", st.awaitingPlayerId === other.id && st.scQueue[0] === other.id);

@@ -26,7 +26,7 @@ function loadEngine() {
   const sandbox = { console, Math, Set, Object, Array, JSON, box };
   vm.createContext(sandbox);
   vm.runInContext(logic + `
-    box.exports = { initGame, mulberry32, byId, activeBiz, megacorpHQs, epTotal,
+    box.exports = { initGame, mulberry32, logEntry, byId, activeBiz, megacorpHQs, epTotal,
       advanceDraft, startPlanning, advancePlanning, finishQuarterAfterRepay,
       workingTrackSlots, makeTracks, endgameRushers, MEGACORPS_TO_END, finalRank,
       drawMegacorpPool, MEGACORP_TIER, MEGACORP_TILES, PLAYER_COLORS, STARTING,
@@ -148,7 +148,7 @@ section("The deadline CALLS the final quarter rather than being it");
     footprint: [], bp: { ind: "MA", name: "shell" } });
   st.players[1].businesses.push(hq("Local Syndicate"), hq("Silent Merger"));
   const lines = [];
-  E.finishQuarterAfterRepay(st, (m) => lines.push(m), E.mulberry32(1));
+  E.finishQuarterAfterRepay(st, (m) => lines.push(E.logEntry(m, null).msg), E.mulberry32(1));
   check("the game does NOT end in the quarter it was called", st.phase !== "gameover",
     `phase ${st.phase}`);
   check("Q7 is named as the final quarter", st.finalQuarter === 7, `got ${st.finalQuarter}`);
@@ -211,7 +211,7 @@ section("Both quarters are played out in full, then final scoring runs");
     footprint: [], bp: { ind: "MA", name: "shell" } });
   p.businesses.push(hq("Local Syndicate"), hq("Silent Merger"));
   const lines = [];
-  E.finishQuarterAfterRepay(st, (m) => lines.push(m), E.mulberry32(1));
+  E.finishQuarterAfterRepay(st, (m) => lines.push(E.logEntry(m, null).msg), E.mulberry32(1));
   check("Q6 closes without ending the game", st.phase !== "gameover", `phase ${st.phase}`);
   check("the log says why", lines.some((m) => /launched 2 Megacorps/.test(m)),
     lines.filter((m) => /Megacorps/.test(m)).slice(-1)[0] || "(no line)");
