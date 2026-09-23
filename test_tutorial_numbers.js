@@ -98,8 +98,12 @@ check("it no longer promises 10 EP for land",
   /* The picture reads the same constants as the words beside it. A drawing is not
      something anybody thinks to re-read, so a figure typed into it outlives the rule. */
   const artSrc = src.slice(src.indexOf("function ArtMegacorp()"), src.indexOf("function ArtScoring()"));
-  check("the picture reads the tithe rate from the engine", /\{MEGACORP_TITHE_EP\}/.test(artSrc));
-  check("and the deadline count", /\{MEGACORPS_TO_END\}/.test(artSrc));
+  /* The constant is what matters, not the shape of the expression it sits in:
+     the figure may be interpolated straight into the drawing, or handed to t()
+     as an argument now that the labels are translated. Either way it is read
+     off the engine, which is the whole point of the check. */
+  check("the picture reads the tithe rate from the engine", /\bMEGACORP_TITHE_EP\b/.test(artSrc));
+  check("and the deadline count", /\bMEGACORPS_TO_END\b/.test(artSrc));
   check("and has no tithe or deadline figure typed by hand",
     !/[^A-Z_]\b[123] EP\b/.test(artSrc.replace(/\{[^}]*\}/g, "")) && !/\b2nd\b/.test(artSrc.replace(/\{[^}]*\}/g, "")));
 }
