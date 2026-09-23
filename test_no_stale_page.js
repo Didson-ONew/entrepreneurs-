@@ -78,8 +78,12 @@ const section = (t) => console.log(`\n${t}`);
       !/running older game rules than this page/.test(src));
     check("a player is told to reload, not to upload a file",
       /Reload the page/.test(src) && !/Upload the current/.test(src));
+    /* Both versions, each in its own <code>. Asserted on the values rather than
+       on the English around them: the words are translated now, and a test that
+       pins the chrome fails on a translation while the banner is perfectly
+       correct. */
     check("and it still names both versions",
-      /page <code>\{getEngineVersion\(\)\}<\/code>, server <code>\{serverEngine\}<\/code>/.test(src));
+      /<code>\{getEngineVersion\(\)\}<\/code>/.test(src) && /<code>\{serverEngine\}<\/code>/.test(src));
   }
 
   console.log(fails ? `\n${fails} of ${n} check(s) failed\n` : `\nall ${n} checks passed\n`);

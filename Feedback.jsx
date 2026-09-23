@@ -91,7 +91,7 @@ function WriteIn({ context, onClose }) {
       </div>
       <button onClick={() => { setSent(false); setText(""); setRating(null); }}
         style={btn(INK.accentBg, "#2c5f4f", INK.accent)}>{t("Write another")}</button>
-      <button onClick={onClose} style={{ ...btn("transparent", INK.edge, INK.dim), marginLeft: 8 }}>Close</button>
+      <button onClick={onClose} style={{ ...btn("transparent", INK.edge, INK.dim), marginLeft: 8 }}>{t("Close")}</button>
     </div>
   );
 
@@ -113,15 +113,15 @@ function WriteIn({ context, onClose }) {
 
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: 10.5, color: INK.dim, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>
-          How is it playing?{kind === "session" ? "" : " (optional)"}
+          {t("How is it playing?")}{kind === "session" ? "" : " " + t("(optional)")}
         </div>
         <Stars value={rating} onChange={setRating} />
       </div>
 
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} maxLength={2000}
         placeholder={kind === "issue"
-          ? "What happened, and what did you expect instead?"
-          : kind === "session" ? "What made it a 3, or a 5?" : t("What would you change?")}
+          ? t("What happened, and what did you expect instead?")
+          : kind === "session" ? t("What made it a 3, or a 5?") : t("What would you change?")}
         style={{
           width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 7, resize: "vertical",
           backgroundColor: "#1c1f26", border: `1px solid #33384a`, color: "#e5e7eb",
@@ -130,13 +130,13 @@ function WriteIn({ context, onClose }) {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
         <div style={{ fontSize: 10, color: INK.dim, flex: 1, lineHeight: 1.4 }}>
           {context.room
-            ? <>{t("Sent from table")} <b style={{ color: INK.text }}>{context.room}</b>{context.quarter ? <> in Quarter {context.quarter}</> : null}.</>
+            ? <>{t("Sent from table")} <b style={{ color: INK.text }}>{context.room}</b>{context.quarter ? t(" in Quarter {0}", context.quarter) : null}.</>
             : t("Sent from the lobby.")}
         </div>
         <span style={{ fontSize: 10, color: INK.dim }}>{text.length}/2000</span>
         <button onClick={send} disabled={busy}
           style={{ ...btn(INK.accentBg, "#2c5f4f", INK.accent), opacity: busy ? 0.6 : 1 }}>
-          {busy ? "Sending…" : "Send"}
+          {busy ? t("Sending…") : t("Send it")}
         </button>
       </div>
       {err && <div style={{ marginTop: 8, fontSize: 11.5, color: "#ff8f8f" }}>{err}</div>}
@@ -175,7 +175,7 @@ function Notes() {
   return (
     <div style={{ padding: "12px 14px" }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-        {[["all", `Everything (${s.total})`]].concat(KINDS.map((k) => [k.key, `${t(k.label)} (${s.byKind[k.key] || 0})`]))
+        {[["all", `${t("Everything")} (${s.total})`]].concat(KINDS.map((k) => [k.key, `${t(k.label)} (${s.byKind[k.key] || 0})`]))
           .map(([key, label]) => (
             <button key={key} onClick={() => setFilter(key)} style={{
               ...btn(filter === key ? INK.accentBg : "transparent", filter === key ? "#2c5f4f" : INK.edge,
@@ -184,7 +184,7 @@ function Notes() {
           ))}
         {s.averageRating !== null && (
           <span style={{ marginLeft: "auto", fontSize: 11, color: "#f5d76e" }}>
-            &#9733; {s.averageRating} average, from {s.rated} score{s.rated === 1 ? "" : "s"}
+            &#9733; {t(s.rated === 1 ? "{0} average, from {1} score" : "{0} average, from {1} scores", s.averageRating, s.rated)}
           </span>
         )}
       </div>
@@ -199,8 +199,8 @@ function Notes() {
               {t((KINDS.find((k) => k.key === e.kind) || {}).label || e.kind)}
             </span>
             <span style={{ fontSize: 11.5, color: INK.head, fontWeight: 600 }}>
-              {e.account || e.name || "someone"}
-              {e.account && <span style={{ color: INK.accent, marginLeft: 4 }} title="signed in">&#10003;</span>}
+              {e.account || e.name || t("someone")}
+              {e.account && <span style={{ color: INK.accent, marginLeft: 4 }} title={t("signed in")}>&#10003;</span>}
             </span>
             {e.rating !== null && e.rating !== undefined && (
               <span style={{ fontSize: 11, color: "#f5d76e" }}>{"★".repeat(e.rating)}</span>
@@ -274,11 +274,11 @@ function Backup() {
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
         <a href="/api/backup" style={{ ...action(true), textDecoration: "none", display: "inline-block" }}>
-          Download a copy
+          {t("Download a copy")}
         </a>
         <button style={action(false)} disabled={busy}
           onClick={() => input.current && input.current.click()}>
-          {busy ? "Reading…" : t("Put a copy back")}
+          {busy ? t("Reading…") : t("Put a copy back")}
         </button>
         <input ref={input} type="file" accept="application/json,.json" style={{ display: "none" }}
           onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) restore(f); }} />
@@ -299,11 +299,8 @@ function Backup() {
 
       <div style={{ color: INK.dim, fontSize: 11.5, lineHeight: 1.65 }}>
         <div style={{ marginBottom: 8 }}>
-          <b style={{ color: INK.text }}>{t("Putting a copy back never deletes anything.")}</b> It adds
-          games and notes the server has not seen, and adds names that are not registered here.
-          A name that <i>is</i> registered is left exactly as it is, so an old copy can never undo
-          somebody&rsquo;s new password. The worst a wrong file can do is add games that already
-          happened.
+          <b style={{ color: INK.text }}>{t("Putting a copy back never deletes anything.")}</b>{" "}
+          {t("It adds games and notes the server has not seen, and adds names that are not registered here. A name that IS registered is left exactly as it is, so an old copy can never undo somebody’s new password. The worst a wrong file can do is add games that already happened.")}
         </div>
         <div style={{ padding: "8px 10px", borderRadius: 7,
           backgroundColor: INK.warnBg, border: `1px solid ${INK.warn}55`, color: INK.warn }}>
@@ -344,12 +341,12 @@ function Matches() {
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: INK.head, fontFamily: "ui-monospace, monospace" }}>{m.code}</span>
             <span style={{ fontSize: 11, color: m.phase === "lobby" ? INK.warn : INK.accent }}>
-              {m.phase === "lobby" ? "waiting to start" : m.phase === "gameover" ? "finished" : `Quarter ${m.quarter} · ${m.phase}`}
+              {m.phase === "lobby" ? t("waiting to start") : m.phase === "gameover" ? t("finished") : t("Quarter {0} · {1}", m.quarter, t(m.phase))}
             </span>
-            {m.awaiting && <span style={{ fontSize: 11, color: INK.dim }}>waiting on <b style={{ color: INK.text }}>{m.awaiting}</b></span>}
+            {m.awaiting && <span style={{ fontSize: 11, color: INK.dim }}>{t("waiting on")} <b style={{ color: INK.text }}>{m.awaiting}</b></span>}
             {!!m.watchers.length && (
               <span style={{ fontSize: 10.5, color: INK.dim }}>
-                watching: {m.watchers.join(", ")}
+                {t("watching:")} {m.watchers.join(", ")}
               </span>
             )}
           </div>
@@ -362,8 +359,8 @@ function Matches() {
                 color: seat.human ? INK.accent : INK.dim,
               }}>
                 {seat.name}
-                {seat.host && <span title="host" style={{ marginLeft: 4, opacity: 0.7 }}>&#9733;</span>}
-                {!seat.human && <span style={{ marginLeft: 4, opacity: 0.7 }}>bot</span>}
+                {seat.host && <span title={t("host")} style={{ marginLeft: 4, opacity: 0.7 }}>&#9733;</span>}
+                {!seat.human && <span style={{ marginLeft: 4, opacity: 0.7 }}>{t("bot")}</span>}
               </span>
             ))}
           </div>
@@ -395,7 +392,7 @@ export function FeedbackPanel({ admin, context, onClose, onOpened }) {
   useEffect(() => { if (onOpened) onOpened(); }, [onOpened]);
 
   const tabs = admin
-    ? [["write", t("Write in")], ["notes", t("What came in")], ["matches", t("Who is playing")], ["backup", "Backup"]]
+    ? [["write", t("Write in")], ["notes", t("What came in")], ["matches", t("Who is playing")], ["backup", t("Backup")]]
     : [["write", t("Write in")]];
 
   return (
@@ -418,7 +415,7 @@ export function FeedbackPanel({ admin, context, onClose, onOpened }) {
               {t("The game is still being tuned — every note goes to the designer.")}
             </div>
           </div>
-          <button onClick={onClose} aria-label="Close" style={{ marginLeft: "auto", background: "none",
+          <button onClick={onClose} aria-label={t("Close")} style={{ marginLeft: "auto", background: "none",
             border: "none", color: INK.dim, fontSize: 18, lineHeight: 1, cursor: "pointer", padding: "0 2px" }}>&times;</button>
         </div>
 

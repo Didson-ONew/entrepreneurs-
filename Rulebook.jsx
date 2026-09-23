@@ -300,7 +300,7 @@ export function useLiveCounts() {
   return counts;
 }
 
-const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const plural = (n, one, many) => t(n === 1 ? one : many, n);
 
 export function LiveCounts({ counts }) {
   /* The names are shown to an admin and to nobody else - the server only sends
@@ -311,14 +311,14 @@ export function LiveCounts({ counts }) {
   const who = counts.who;
 
   const names = who && who.length
-    ? who.map((w) => `${w.name}${w.registered ? "" : " (guest)"}${w.tabs > 1 ? ` \u00d7${w.tabs}` : ""}`)
+    ? who.map((w) => `${w.name}${w.registered ? "" : " " + t("(guest)")}${w.tabs > 1 ? ` \u00d7${w.tabs}` : ""}`)
     : null;
   /* A title is a hover, and a hover does not exist on a phone - so the same list
      is a tap away as well. */
   const title = names
-    ? `Online now:\n${names.join("\n")}`
+    ? `${t("Online now:")}\n${names.join("\n")}`
     : counts.waiting
-      ? `${plural(counts.waiting, "room is", "rooms are")} waiting for players`
+      ? t("{0} waiting for players", plural(counts.waiting, "{0} room is", "{0} rooms are"))
       : t("Everyone currently on the site, and the games under way");
 
   return (
@@ -331,21 +331,21 @@ export function LiveCounts({ counts }) {
           cursor: who ? "pointer" : "default" }}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#3ddc97",
           boxShadow: "0 0 6px #3ddc9799", flexShrink: 0 }} />
-        <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.online}</span> online
+        <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.online}</span> {t("online")}
         <span style={{ color: "#3a4152" }}>|</span>
         <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.matches}</span>
-        {counts.matches === 1 ? " match" : " matches"}
+        {" "}{t(counts.matches === 1 ? "match" : "matches")}
         {/* Two numbers, because they are two different things and showing only the
             first read as a miscount: registering is optional, so the register can say
             2 while three people have played. */}
         {counts.accounts !== null && counts.accounts !== undefined && (<>
           <span style={{ color: "#3a4152" }}>|</span>
-          <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.accounts}</span> registered
+          <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.accounts}</span> {t("registered")}
         </>)}
         {counts.players !== null && counts.players !== undefined && (<>
           <span style={{ color: "#3a4152" }}>|</span>
           <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.players}</span>
-          {counts.players === 1 ? " player" : " players"}
+          {" "}{t(counts.players === 1 ? "player" : "players")}
         </>)}
       </span>
 
@@ -364,7 +364,7 @@ export function LiveCounts({ counts }) {
             <span key={i} style={{ display: "block", lineHeight: 1.6,
               color: w.registered ? "#d5d9e0" : "#8b93a3" }}>
               {w.name}
-              {!w.registered && <span style={{ color: "#6b7280" }}> (guest)</span>}
+              {!w.registered && <span style={{ color: "#6b7280" }}> {t("(guest)")}</span>}
               {w.tabs > 1 && <span style={{ color: "#6b7280" }}> &times;{w.tabs}</span>}
             </span>
           ))}
