@@ -58,7 +58,7 @@ function Stars({ value, onChange }) {
           }}>&#9733;</button>
       ))}
       <span style={{ fontSize: 10.5, color: INK.dim, marginLeft: 4 }}>
-        {value === null ? "no score" : `${value} of 5`}
+        {value === null ? t("no score") : t("{0} of 5", value)}
       </span>
     </div>
   );
@@ -322,8 +322,8 @@ function Matches() {
       .then(({ ok, j }) => { if (stop) return; if (!ok) setErr(j.error || t("Could not read those.")); else setData(j); })
       .catch(() => { if (!stop) setErr(t("Could not reach the server.")); });
     read();
-    const t = setInterval(read, 5000);      // tables change while you are looking
-    return () => { stop = true; clearInterval(t); };
+    const timer = setInterval(read, 5000);   // tables change while you are looking
+    return () => { stop = true; clearInterval(timer); };
   }, []);
 
   if (err) return <div style={{ padding: 16, fontSize: 12, color: "#ff8f8f" }}>{err}</div>;
