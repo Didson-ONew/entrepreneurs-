@@ -182,6 +182,7 @@ export default {
   "Done": "Pronto",
   "Download a copy": "Baixar uma cópia",
   "Draft your starting Blueprints": "Drafte seus Projetos iniciais",
+  "ENTREPRENEURS": "EMPREENDEDORES",
   "Each deck is shuffled whole, so any level can be on top — a level 3 may be there from the first draft. Its top card is always public.": "Cada baralho é embaralhado inteiro, então qualquer nível pode estar no topo — um nível 3 pode estar lá desde o primeiro draft. A carta do topo é sempre pública.",
   "Each industry deck is ordered level 1 on top, level 3 at the bottom, and its top card is always public.": "Cada baralho de setor é ordenado do nível 1 no topo ao nível 3 no fundo, e a carta do topo é sempre pública.",
   "Each industry deck runs level 1 down to level 3, instead of being shuffled whole. The early game holds no surprises and no level 3 can be drafted.": "Cada baralho de setor vai do nível 1 até o nível 3, em vez de ser embaralhado por inteiro. O início de partida não guarda surpresas e nenhum nível 3 pode ser draftado.",

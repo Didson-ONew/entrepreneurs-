@@ -178,7 +178,7 @@ for (const [file, anchor] of TABLES) {
    logMsg("{0} enters {1}") cannot be mistaken for markup, and then looks for
    text sitting directly between tags or beside an expression.
    --------------------------------------------------------------------------- */
-const ALLOWED = new Set(["ENTREPRENEURS"]);        // the game's own name
+const ALLOWED = new Set();       // nothing is exempt: even the game's own name is translated
 function blankNonMarkup(src) {
   const out = src.split("");
   for (let i = 0; i < src.length; i++) {

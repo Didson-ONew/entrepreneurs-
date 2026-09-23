@@ -184,6 +184,7 @@ export default {
   "Done": "完成",
   "Download a copy": "下载一份备份",
   "Draft your starting Blueprints": "轮抽你的起始蓝图",
+  "ENTREPRENEURS": "创业家",
   "Each deck is shuffled whole, so any level can be on top — a level 3 may be there from the first draft. Its top card is always public.": "每个牌堆整体洗混，所以任何等级都可能在顶上——第一次轮抽就可能出现等级 3。顶牌永远是公开的。",
   "Each industry deck is ordered level 1 on top, level 3 at the bottom, and its top card is always public.": "每个产业牌堆从顶上的等级 1 排到底下的等级 3，顶牌永远是公开的。",
   "Each industry deck runs level 1 down to level 3, instead of being shuffled whole. The early game holds no surprises and no level 3 can be drafted.": "每个产业牌堆从等级 1 排到等级 3，而不是整堆洗混。开局没有意外，也轮抽不到等级 3 的卡。",

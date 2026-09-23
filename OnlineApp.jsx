@@ -361,7 +361,7 @@ function Lobby({ onEnter }) {
   return (
     <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
       <div className="rounded-xl p-6" style={{ ...box, width: "100%", maxWidth: 420 }}>
-        <h1 className="text-2xl font-bold text-white tracking-tight mb-1">ENTREPRENEURS</h1>
+        <h1 className="text-2xl font-bold text-white tracking-tight mb-1">{t("ENTREPRENEURS")}</h1>
         <p className="text-sm text-gray-400 mb-5">{t("Play online with friends — 2 to 6 players.")}</p>
 
         <AccountPanel account={account} setAccount={(u) => { setAccount(u); if (!u) setNick(null); }}

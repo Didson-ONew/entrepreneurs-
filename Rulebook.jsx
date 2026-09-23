@@ -13,8 +13,8 @@ import { t, useLang, getLang, LanguageSwitch } from "./i18n.js";
    contents list, the search index, the section numbers) works on any of them. */
 const BOOKS = {
   en: { book: forEdition(BOOK_ALL, "digital"), edition: EDITION, sub: "the complete rules", title: "Entrepreneurs \u2014 how to play" },
-  pt: { book: forEdition(RULEBOOK_PT, "digital"), edition: EDITION_PT, sub: "as regras completas", title: "Entrepreneurs \u2014 como se joga" },
-  zh: { book: forEdition(RULEBOOK_ZH, "digital"), edition: EDITION_ZH, sub: "\u5b8c\u6574\u89c4\u5219", title: "Entrepreneurs \u2014 \u600e\u4e48\u73a9" },
+  pt: { book: forEdition(RULEBOOK_PT, "digital"), edition: EDITION_PT, sub: "as regras completas", title: "Empreendedores \u2014 como se joga" },
+  zh: { book: forEdition(RULEBOOK_ZH, "digital"), edition: EDITION_ZH, sub: "\u5b8c\u6574\u89c4\u5219", title: "\u521b\u4e1a\u5bb6 \u2014 \u600e\u4e48\u73a9" },
 };
 const bookFor = (lang) => BOOKS[lang] || BOOKS.en;
 import Records from "./Records.jsx";

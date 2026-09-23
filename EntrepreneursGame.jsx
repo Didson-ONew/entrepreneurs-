@@ -5923,7 +5923,7 @@ function GameScreens({ online }) {
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div style={{ minWidth: 0 }}>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-lg font-bold text-white tracking-tight">ENTREPRENEURS</h1>
+              <h1 className="text-lg font-bold text-white tracking-tight">{t("ENTREPRENEURS")}</h1>
               <button onClick={() => setTutorial(true)} title={t("How to play")}
                 className="text-[10px] px-2 py-0.5 rounded"
                 style={{ backgroundColor: "#1c1f26", border: "1px solid #2c5f4f", color: "#8fd3b6", cursor: "pointer" }}>
@@ -6588,7 +6588,7 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
   return (
     <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
       <div className="max-w-md w-full rounded-xl p-6" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-        <h1 className="text-2xl font-bold text-white tracking-tight mb-1">ENTREPRENEURS</h1>
+        <h1 className="text-2xl font-bold text-white tracking-tight mb-1">{t("ENTREPRENEURS")}</h1>
         <p className="text-sm text-gray-400 mb-6">{t("Build, produce, sell, score — 3 fiscal years, solo vs bots.")}</p>
         {onTutorial && (
           <button onClick={onTutorial} className="w-full mb-5 py-2 rounded-md text-xs font-semibold"
