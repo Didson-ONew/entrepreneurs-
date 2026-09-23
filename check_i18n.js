@@ -145,7 +145,8 @@ for (const f of ["EntrepreneursGame.jsx", "server.js"]) {
    are translated where they are drawn. */
 const TABLES = [
   ["Records.jsx", "const SOURCE_LABEL = {"], ["Records.jsx", "const TABS = ["],
-  ["Feedback.jsx", "const KINDS = ["], ["EntrepreneursGame.jsx", "const DIST_TYPE_LABEL = {"],
+  ["Feedback.jsx", "const KINDS = ["], ["Feedback.jsx", "const ASPECTS = ["],
+  ["EntrepreneursGame.jsx", "const DIST_TYPE_LABEL = {"],
   ["EntrepreneursGame.jsx", "const SCALING_NAME = {"], ["EntrepreneursGame.jsx", "const SCALING_BLURB = {"],
 ];
 for (const [file, anchor] of TABLES) {

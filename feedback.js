@@ -21,6 +21,15 @@ const DEFAULT_FILE = require("./datadir.js").resolve("feedback.json", "FEEDBACK_
 /* What a note can be. Anything else is refused rather than coerced, so the list
    stays worth filtering by. */
 const KINDS = ["suggestion", "issue", "session"];
+/* The specific things a score can be about, as well as the one score for the
+   whole session. "It was a 3" is a mood; "the rules were a 5 and the pace was a
+   2" is a thing to go and fix. Every one runs 1 (bad) to 5 (good), including
+   `pace` and `again`, so an average over the column always points the same way.
+
+   The list is closed on purpose: a note is only comparable with the next one if
+   both answered the same questions, and the screen and the store have to agree
+   about what those are. */
+const ASPECTS = ["rules", "decisions", "interaction", "pace", "screen", "again"];
 const MAX_TEXT = 2000;
 /* Somebody has to be able to read every note in one sitting. This is a playtest,
    not a product; if it ever fills up, that is a good problem and a real database. */
@@ -70,9 +79,26 @@ function add(store, note) {
   if (rating !== null && (rating < 1 || rating > 5)) {
     return { ok: false, error: "A score has to be between 1 and 5." };
   }
+  /* Unknown keys are dropped rather than refused: an older page sending a
+     question this build no longer asks should still have its other answers
+     kept. A value out of range is a different matter - that is a bug or a
+     forgery, and silently rounding it would poison the average. */
+  const aspects = {};
+  if (note.aspects && typeof note.aspects === "object") {
+    for (const key of ASPECTS) {
+      const v = note.aspects[key];
+      if (v === null || v === undefined || v === "") continue;
+      const n = Number(v);
+      if (!Number.isFinite(n) || Math.round(n) < 1 || Math.round(n) > 5) {
+        return { ok: false, error: "A score has to be between 1 and 5." };
+      }
+      aspects[key] = Math.round(n);
+    }
+  }
+  const scored = rating !== null || Object.keys(aspects).length > 0;
   /* A note with neither words nor a score says nothing. A session score on its own
      is fine - it is still a data point - but a suggestion or an issue is not. */
-  if (!text && rating === null) return { ok: false, error: "Write something, or leave a score." };
+  if (!text && !scored) return { ok: false, error: "Write something, or leave a score." };
   if (!text && kind !== "session") return { ok: false, error: "Tell me what you have in mind." };
 
   const entry = {
@@ -80,6 +106,9 @@ function add(store, note) {
     at: new Date().toISOString(),
     kind,
     rating,
+    /* Absent rather than empty when nothing specific was answered, so an old
+       note and a new one that skipped the questions read the same. */
+    aspects: Object.keys(aspects).length ? aspects : null,
     text,
     /* Who sent it, as far as we can tell. `account` is a signed-in username and can
        be trusted; `name` is whatever they typed to play under and cannot. Keeping
@@ -109,17 +138,31 @@ function list(store, { limit = 200 } = {}) {
 /* Enough of a shape to see at a glance whether anything needs attention. */
 function summary(store) {
   const byKind = Object.fromEntries(KINDS.map((k) => [k, 0]));
+  const tally = Object.fromEntries(ASPECTS.map((k) => [k, { rated: 0, total: 0 }]));
   let rated = 0, ratingTotal = 0;
   for (const e of store.entries) {
     if (byKind[e.kind] !== undefined) byKind[e.kind]++;
     if (Number.isFinite(e.rating)) { rated++; ratingTotal += e.rating; }
+    if (e.aspects) {
+      for (const k of ASPECTS) {
+        if (Number.isFinite(e.aspects[k])) { tally[k].rated++; tally[k].total += e.aspects[k]; }
+      }
+    }
   }
+  /* Each column averaged over the notes that answered IT, not over every note:
+     a question nobody answered is `null`, which reads as "no answer" rather than
+     dragging an average down towards zero. */
+  const aspects = Object.fromEntries(ASPECTS.map((k) => [k, {
+    rated: tally[k].rated,
+    average: tally[k].rated ? Math.round((tally[k].total / tally[k].rated) * 10) / 10 : null,
+  }]));
   return {
     total: store.entries.length,
     byKind,
     rated,
     averageRating: rated ? Math.round((ratingTotal / rated) * 10) / 10 : null,
+    aspects,
   };
 }
 
-module.exports = { KINDS, MAX_TEXT, load, save, add, list, summary, DEFAULT_FILE };
+module.exports = { KINDS, ASPECTS, MAX_TEXT, load, save, add, list, summary, DEFAULT_FILE };

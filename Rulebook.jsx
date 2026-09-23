@@ -403,6 +403,31 @@ export default function SiteChrome({ table }) {
 
   return (
     <>
+      {/* Feedback is the one control here that the game NEEDS a player to press,
+          and it was the fourth pill in a row along the bottom edge - next to the
+          rulebook, which a player opens once, and the records, which are for
+          afterwards. It is its own button now, filled rather than outlined, at
+          the top of the screen where a browser puts anything that matters.
+
+          Top CENTRE, not a corner: the online chrome owns the top right and the
+          board's own title sits top left, so the middle is the one place it can
+          stand without covering something. */}
+      {access.server && (
+        <div style={{ position: "fixed", top: 6, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9995, maxWidth: "calc(100vw - 16px)" }}>
+          <button onClick={() => setOpen("feedback")}
+            title={access.admin ? t("Write in, read what came in, and see who is playing") : t("Tell the designer how it played (Esc closes)")}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 800,
+              color: "#241d14", backgroundColor: "#f0a868", border: "1px solid #f5d76e",
+              borderRadius: 999, padding: "6px 15px", cursor: "pointer", whiteSpace: "nowrap",
+              boxShadow: "0 4px 16px rgba(240,168,104,.35)",
+            }}>
+            <span aria-hidden="true">&#9998;</span>
+            {access.admin ? t("Playtest") : t("How is it playing?")}
+          </button>
+        </div>
+      )}
       <div style={{ position: "fixed", left: 8, bottom: 8, zIndex: 9994,
         display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", maxWidth: "calc(100vw - 16px)" }}>
         <LanguageSwitch style={pill("#1b2030", "#3a4560", "#c9d4ea")} />
@@ -414,13 +439,6 @@ export default function SiteChrome({ table }) {
           style={pill("#231f14", "#7a6a3f", "#f5d76e")}>
           <span aria-hidden="true">&#9733;</span> {t("Records")}
         </button>
-        {access.server && (
-          <button onClick={() => setOpen("feedback")}
-            title={access.admin ? t("Write in, read what came in, and see who is playing") : t("Tell the designer how it played (Esc closes)")}
-            style={pill("#241d14", "#7a6a3f", "#f0a868")}>
-            <span aria-hidden="true">&#9998;</span> {access.admin ? t("Playtest") : t("Feedback")}
-          </button>
-        )}
         <LiveCounts counts={counts} />
       </div>
       {open === "rules" && <Rulebook onClose={() => setOpen(null)} />}
