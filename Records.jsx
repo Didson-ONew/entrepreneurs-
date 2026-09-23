@@ -16,6 +16,11 @@ const INK = {
 };
 const GOLD = ["#f5d76e", "#c9ccd4", "#c98f5b"];   // 1st, 2nd, 3rd
 
+/* The record book stores industries as the two-letter code printed on the
+   components. The screen shows the name, which is a string the game already
+   translates everywhere else. */
+const IND_LABEL = { UT: "Utilities", RE: "Retail", HO: "Hospitality", MA: "Manufacturing", HC: "Healthcare", TE: "Technology" };
+
 function Portal({ children }) {
   if (typeof document === "undefined") return null;
   return createPortal(children, document.body);
@@ -30,14 +35,20 @@ const when = (ms) => {
 const ago = (ms) => {
   if (!ms) return "";
   const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
-  if (s < 90) return "just now";
+  if (s < 90) return t("just now");
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m} min ago`;
+  if (m < 60) return t("{0} min ago", m);
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} hour${h === 1 ? "" : "s"} ago`;
+  if (h < 24) return t(h === 1 ? "{0} hour ago" : "{0} hours ago", h);
   const d = Math.floor(h / 24);
-  return d < 30 ? `${d} day${d === 1 ? "" : "s"} ago` : when(ms);
+  return d < 30 ? t(d === 1 ? "{0} day ago" : "{0} days ago", d) : when(ms);
 };
+
+/* A count and its noun are one string, not a number glued to a word with an
+   English plural rule on the end. Every language counts differently, and some
+   do not inflect at all. */
+const games = (n) => t(n === 1 ? "{0} game" : "{0} games", n);
+const rulesets = (n) => t(n === 1 ? "{0} ruleset" : "{0} rulesets", n);
 /* Games played at full tilt by a script finish in under a second, and real ones
    run to the better part of an hour. One formatter that copes with both. */
 const duration = (ms) => {
@@ -84,12 +95,12 @@ function HallOfFame({ data }) {
       <div style={{ overflowX: "auto" }}>
         <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 12 }}>
           <thead><tr>
-            <th style={th}>#</th><th style={th}>Player</th>
+            <th style={th}>#</th><th style={th}>{t("Player")}</th>
             <th style={{ ...th, textAlign: "right" }}>{t("Total EP")}</th>
-            <th style={{ ...th, textAlign: "right" }}>Games</th>
-            <th style={{ ...th, textAlign: "right" }}>Wins</th>
-            <th style={{ ...th, textAlign: "right" }}>Average</th>
-            <th style={{ ...th, textAlign: "right" }}>Best</th>
+            <th style={{ ...th, textAlign: "right" }}>{t("Games")}</th>
+            <th style={{ ...th, textAlign: "right" }}>{t("Wins")}</th>
+            <th style={{ ...th, textAlign: "right" }}>{t("Average")}</th>
+            <th style={{ ...th, textAlign: "right" }}>{t("Best")}</th>
             <th style={th}>{t("Last seen")}</th>
           </tr></thead>
           <tbody>
@@ -129,12 +140,12 @@ function Statistics({ data }) {
   return (
     <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 16 }}>
-        <Stat label={t("Games recorded")} value={s.matches} sub={`${s.contested} with more than one human`} />
+        <Stat label={t("Games recorded")} value={s.matches} sub={t("{0} with more than one human", s.contested)} />
         <Stat label={t("Highest score")} value={s.topScore ? `${s.topScore.ep} EP` : "—"} sub={s.topScore ? `${s.topScore.name}, ${when(s.topScore.at)}` : ""} />
-        <Stat label={t("Average winning score")} value={`${s.avgWinningEP} EP`} sub={`humans average ${s.avgHumanEP} EP`} />
-        <Stat label={t("Humans win")} value={`${s.humanWinRate}%`} sub="of games they are in" />
-        <Stat label="Megacorps" value={s.megacorpsPerMatch} sub="formed per game" />
-        <Stat label={t("Typical length")} value={duration(s.avgDurationMs)} sub={s.avgQuarters ? `${s.avgQuarters} quarters` : "quarters"} />
+        <Stat label={t("Average winning score")} value={`${s.avgWinningEP} EP`} sub={t("humans average {0} EP", s.avgHumanEP)} />
+        <Stat label={t("Humans win")} value={`${s.humanWinRate}%`} sub={t("of games they are in")} />
+        <Stat label={t("Megacorps")} value={s.megacorpsPerMatch} sub={t("formed per game")} />
+        <Stat label={t("Typical length")} value={duration(s.avgDurationMs)} sub={s.avgQuarters ? t("{0} quarters", s.avgQuarters) : t("quarters")} />
       </div>
 
       <Section title={t("Where the points come from")} hint={t("Average EP per player per game, across every recorded match.")}>
@@ -155,16 +166,16 @@ function Statistics({ data }) {
         })}
       </Section>
 
-      <Section title="Industries" hint={t("How often each was entered, and how often the winner was in it.")}>
+      <Section title={t("Industries")} hint={t("How often each was entered, and how often the winner was in it.")}>
         <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 12 }}>
           <thead><tr>
-            <th style={th}>Industry</th><th style={{ ...th, textAlign: "right" }}>Entered</th>
+            <th style={th}>{t("Industry")}</th><th style={{ ...th, textAlign: "right" }}>{t("Entered")}</th>
             <th style={{ ...th, textAlign: "right" }}>{t("By the winner")}</th><th style={th} />
           </tr></thead>
           <tbody>
             {(data.industries || []).map((i) => (
               <tr key={i.ind}>
-                <td style={{ ...td, color: "#e5e7eb", fontWeight: 600 }}>{i.ind}</td>
+                <td style={{ ...td, color: "#e5e7eb", fontWeight: 600 }}>{t(IND_LABEL[i.ind] || i.ind)}</td>
                 <td style={num}>{i.entered}</td>
                 <td style={num}>{i.wonWith}</td>
                 <td style={{ ...td, width: "45%" }}>
@@ -178,19 +189,19 @@ function Statistics({ data }) {
       </Section>
 
       {!!(data.personas || []).length && (
-        <Section title="Personas" hint={t("Only games played with the persona module on.")}>
+        <Section title={t("Personas")} hint={t("Only games played with the persona module on.")}>
           <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 12 }}>
             <thead><tr>
-              <th style={th}>Persona</th><th style={th}>Industry</th>
-              <th style={{ ...th, textAlign: "right" }}>Played</th>
-              <th style={{ ...th, textAlign: "right" }}>Won</th>
+              <th style={th}>{t("Persona")}</th><th style={th}>{t("Industry")}</th>
+              <th style={{ ...th, textAlign: "right" }}>{t("Played")}</th>
+              <th style={{ ...th, textAlign: "right" }}>{t("Won")}</th>
               <th style={{ ...th, textAlign: "right" }}>{t("Win rate")}</th>
             </tr></thead>
             <tbody>
               {data.personas.map((p) => (
                 <tr key={p.key}>
-                  <td style={{ ...td, color: "#e5e7eb", fontWeight: 600 }}>{p.name}</td>
-                  <td style={{ ...td, color: INK.dim }}>{p.ind}</td>
+                  <td style={{ ...td, color: "#e5e7eb", fontWeight: 600 }}>{t(p.name)}</td>
+                  <td style={{ ...td, color: INK.dim }}>{t(IND_LABEL[p.ind] || p.ind)}</td>
                   <td style={num}>{p.played}</td>
                   <td style={num}>{p.won}</td>
                   <td style={num}>{p.winRate}%</td>
@@ -216,10 +227,11 @@ function Recent({ data }) {
           borderRadius: 8, padding: "9px 11px", marginBottom: 8 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
             <span style={{ fontSize: 10.5, color: INK.dim }}>
-              {ago(m.at)} &middot; {m.humans} human{m.humans === 1 ? "" : "s"}
-              {m.bots ? `, ${m.bots} bot${m.bots === 1 ? "" : "s"}` : ""}
-              {m.personas ? " \u00b7 personas" : ""}
-              {(m.variants || []).length ? ` \u00b7 ${m.variants.length} variant${m.variants.length === 1 ? "" : "s"}` : ""}
+              {ago(m.at)} &middot; {t(m.humans === 1 ? "{0} human" : "{0} humans", m.humans)}
+              {m.bots ? t(m.bots === 1 ? ", {0} bot" : ", {0} bots", m.bots) : ""}
+              {m.personas ? " \u00b7 " + t("personas") : ""}
+              {(m.variants || []).length
+                ? " \u00b7 " + t(m.variants.length === 1 ? "{0} variant" : "{0} variants", m.variants.length) : ""}
               {m.durationMs ? ` \u00b7 ${duration(m.durationMs)}` : ""}
             </span>
             <span style={{ fontSize: 9.5, color: "#4b5563", fontFamily: "ui-monospace, monospace" }}>{m.engine}</span>
@@ -280,11 +292,11 @@ function Filters({ data, filter, setFilter }) {
     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
       <select value={filter.engine || ""} style={control} aria-label={t("Which ruleset")}
         onChange={(e) => setFilter({ ...filter, engine: e.target.value || null })}>
-        <option value="">Every ruleset ({data.total} game{data.total === 1 ? "" : "s"})</option>
+        <option value="">{t("Every ruleset")} ({games(data.total)})</option>
         {eds.map((ed, i) => (
           <option key={ed.engine} value={ed.engine}>
-            {i === 0 ? "Current rules" : `Rules ${ed.engine.slice(0, 6)}`}
-            {" · "}{ed.matches} game{ed.matches === 1 ? "" : "s"}
+            {i === 0 ? t("Current rules") : t("Rules {0}", ed.engine.slice(0, 6))}
+            {" · "}{games(ed.matches)}
             {" · "}{when(ed.firstAt)}{ed.lastAt - ed.firstAt > 864e5 ? `–${when(ed.lastAt)}` : ""}
           </option>
         ))}
@@ -295,10 +307,10 @@ function Filters({ data, filter, setFilter }) {
         onClick={() => setFilter({ ...filter, people: !filter.people })}>{t("Two or more people")}</button>
       {narrowed && (
         <button style={{ ...control, color: INK.dim, border: "none" }}
-          onClick={() => setFilter({ engine: null, standard: false, people: false })}>Clear</button>
+          onClick={() => setFilter({ engine: null, standard: false, people: false })}>{t("Clear")}</button>
       )}
       <span style={{ fontSize: 10, color: INK.dim, marginLeft: "auto" }}>
-        {narrowed ? `${data.matches} of ${data.total} games` : `${data.total} game${data.total === 1 ? "" : "s"}`}
+        {narrowed ? t("{0} of {1} games", data.matches, data.total) : games(data.total)}
       </span>
     </div>
   );
@@ -334,7 +346,7 @@ export function Records({ onClose }) {
     <Portal>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 10040,
         backgroundColor: "rgba(6,8,11,.82)", backdropFilter: "blur(2px)" }} />
-      <div role="dialog" aria-label="Records" onClick={(e) => e.stopPropagation()} style={{
+      <div role="dialog" aria-label={t("Records")} onClick={(e) => e.stopPropagation()} style={{
         position: "fixed", zIndex: 10041, top: "3vh", bottom: "3vh",
         left: "50%", transform: "translateX(-50%)", width: "min(96vw, 860px)",
         backgroundColor: INK.bg, border: "1px solid #7a6a3f", borderRadius: 12,
@@ -343,12 +355,9 @@ export function Records({ onClose }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
           borderBottom: `1px solid ${INK.edge}`, flexShrink: 0, flexWrap: "wrap" }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: INK.head, letterSpacing: -0.2 }}>Records</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: INK.head, letterSpacing: -0.2 }}>{t("Records")}</div>
             <div style={{ fontSize: 10, color: INK.dim }}>
-              {data
-                ? `${data.total} game${data.total === 1 ? "" : "s"} recorded, across `
-                  + `${(data.editions || []).length} ruleset${(data.editions || []).length === 1 ? "" : "s"}`
-                : " "}
+              {data ? t("{0} recorded, across {1}", games(data.total), rulesets((data.editions || []).length)) : " "}
             </div>
           </div>
           <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
@@ -361,7 +370,7 @@ export function Records({ onClose }) {
               }}>{t(label)}</button>
             ))}
           </div>
-          <button onClick={onClose} aria-label="Close" style={{ background: "none", border: "none",
+          <button onClick={onClose} aria-label={t("Close")} style={{ background: "none", border: "none",
             color: INK.dim, fontSize: 18, lineHeight: 1, cursor: "pointer", padding: "0 2px" }}>&times;</button>
         </div>
 

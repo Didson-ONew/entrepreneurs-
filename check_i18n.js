@@ -12,6 +12,10 @@
    Run: node check_i18n.js                (lists what is missing, per language)
         node check_i18n.js --strict       (exit 1 if anything is missing)
         node check_i18n.js --dump f.json  (write the English catalogue out)
+
+   It also reports text that never reached t() in the first place - see the
+   bottom of this file - because a string nobody wrapped is a string nobody can
+   see is missing.
 */
 const fs = require("fs");
 const path = require("path");
@@ -35,10 +39,50 @@ const readDict = (code) => {
 };
 const DICTS = Object.fromEntries(LANGS.map((l) => [l.code, readDict(l.code)]));
 
+/* Every string literal in the FIRST ARGUMENT of a t(...) call. Not just
+   t("plain string"): a count and its noun are one string per number, so the
+   call site is often t(n === 1 ? "{0} disc" : "{0} discs", n) and both arms
+   need translating. Scanning only the literal that follows `t(` missed every
+   one of those, silently. */
+function firstArgLiterals(src) {
+  const out = [];
+  for (const m of src.matchAll(/\bt\(/g)) {
+    let i = m.index + m[0].length, depth = 0;
+    const lits = [];
+    for (; i < src.length; i++) {
+      const c = src[i];
+      if (c === "(" || c === "[" || c === "{") depth++;
+      else if (c === ")" || c === "]" || c === "}") { if (depth === 0) break; depth--; }
+      else if (c === "," && depth === 0) break;
+      else if (c === '"') {
+        const j = i + 1, k = readString(src, i);
+        if (k < 0) break;
+        try { lits.push(JSON.parse(src.slice(i, k + 1))); } catch (_) {}
+        i = k;
+      } else if (c === "'" || c === "`") {
+        const k = readString(src, i);
+        if (k < 0) break;
+        i = k;              // a template or single-quoted string is not a key
+      }
+    }
+    out.push(...lits);
+  }
+  return out;
+}
+/* Where the string starting at `i` ends, or -1. */
+function readString(src, i) {
+  const q = src[i];
+  for (let j = i + 1; j < src.length; j++) {
+    if (src[j] === "\\") { j++; continue; }
+    if (src[j] === q) return j;
+  }
+  return -1;
+}
+
 const wanted = new Set();
 for (const f of FILES) {
   const s = fs.readFileSync(path.join(__dirname, f), "utf8");
-  for (const m of s.matchAll(/\bt\("((?:[^"\\]|\\.)*)"[,)]/g)) wanted.add(JSON.parse('"' + m[1] + '"'));
+  for (const lit of firstArgLiterals(s)) if (lit.trim()) wanted.add(lit);
 }
 
 /* the tables the UI translates by value rather than by literal */
@@ -119,6 +163,64 @@ for (const [file, anchor] of TABLES) {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Text that never reached t() at all.
+
+   Everything above finds strings the dictionaries are missing. This finds the
+   other half of the problem, which was invisible for far longer: JSX text that
+   was never wrapped in t(), so it was never a string anybody could translate
+   and never showed up as missing. About 150 fragments were sitting in the game
+   that way - the Upgrade and Sell buttons on every company card, the Records
+   table headers, "You are seated 1st this game" on the draft screen - reading
+   as English in a Portuguese game and in a Chinese one.
+
+   The scan blanks comments and string literals first, so a format string like
+   logMsg("{0} enters {1}") cannot be mistaken for markup, and then looks for
+   text sitting directly between tags or beside an expression.
+   --------------------------------------------------------------------------- */
+const ALLOWED = new Set(["ENTREPRENEURS"]);        // the game's own name
+function blankNonMarkup(src) {
+  const out = src.split("");
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    let end = -1;
+    if (c === "/" && src[i + 1] === "*") { end = src.indexOf("*/", i + 2); end = end < 0 ? src.length : end + 2; }
+    else if (c === "/" && src[i + 1] === "/") { end = src.indexOf("\n", i); end = end < 0 ? src.length : end; }
+    else if (c === '"' || c === "`" || (c === "'" && !/[A-Za-z]/.test(src[i - 1] || ""))) {
+      /* an apostrophe inside prose ("quarter's") is not a string opening */
+      const k = readString(src, i);
+      if (k > 0) { for (let j = i + 1; j < k; j++) if (out[j] !== "\n") out[j] = " "; i = k; }
+      continue;
+    }
+    if (end > 0) { for (let j = i; j < end; j++) if (out[j] !== "\n") out[j] = " "; i = end - 1; }
+  }
+  return out.join("");
+}
+const CODEY = /[={}()\[\];$]|&&|\|\||=>|\.\w|\b(?:const|return|else|try|finally|typeof|new)\b/;
+const bare = [];
+for (const f of FILES) {
+  const raw = fs.readFileSync(path.join(__dirname, f), "utf8");
+  const src = blankNonMarkup(raw);
+  for (const m of src.matchAll(/[>}]([^<>{}]+)[<{]/g)) {
+    const txt = m.group ? m.group(1) : m[1];
+    const one = txt.replace(/\s+/g, " ").trim();
+    if (!one || !/[A-Za-z]{3,}/.test(one)) continue;
+    if (CODEY.test(one) || ALLOWED.has(one)) continue;
+    if (/^(?:&\w+;|[\s\d\W])*$/.test(one)) continue;
+    /* Two shapes of JavaScript that survive the blanking and are not markup:
+       the tail of an object literal spread over lines, and a ternary whose
+       branches were strings. */
+    if (/^,\s*\w+\s*:$/.test(one)) continue;
+    if (/^[\d\s]*\?.*:/.test(one)) continue;
+    bare.push(`${f}:${src.slice(0, m.index).split("\n").length}  ${JSON.stringify(one.slice(0, 90))}`);
+  }
+}
+if (bare.length) {
+  console.log(`${bare.length} piece(s) of text are not going through t() at all:`);
+  bare.forEach((b) => console.log("   " + b));
+  console.log("");
+}
+
 const dumpAt = process.argv.indexOf("--dump");
 if (dumpAt > 0 && process.argv[dumpAt + 1]) {
   fs.writeFileSync(process.argv[dumpAt + 1], JSON.stringify([...wanted].sort(), null, 1));
@@ -144,4 +246,4 @@ for (const { code, label } of LANGS) {
   }
   if (missing.length || stale.length) console.log("");
 }
-process.exit(STRICT && short ? 1 : 0);
+process.exit(STRICT && (short || bare.length) ? 1 : 0);
