@@ -259,13 +259,13 @@ function Lobby({ onEnter }) {
     const wanted = name.trim();
     if (!wanted) { setNick(null); return; }
     let stop = false;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       fetch(`/api/nickname?name=${encodeURIComponent(wanted)}`, { cache: "no-store", credentials: "same-origin" })
         .then((r) => r.json())
         .then((s) => { if (!stop) setNick(s && s.name === wanted ? s : null); })
         .catch(() => { if (!stop) setNick(null); });
     }, 400);
-    return () => { stop = true; clearTimeout(t); };
+    return () => { stop = true; clearTimeout(timer); };
   }, [name]);
 
   const go = async (fn) => {
@@ -290,8 +290,8 @@ function Lobby({ onEnter }) {
       .then((d) => { if (!stop && d) setMine(d); })
       .catch(() => {});
     pull();
-    const t = setInterval(pull, 20000);      // so "your turn" does not go stale
-    return () => { stop = true; clearInterval(t); };
+    const timer = setInterval(pull, 20000);   // so "your turn" does not go stale
+    return () => { stop = true; clearInterval(timer); };
   }, [account && account.name]);
 
   const resumeGame = (g) => go(async () => {
@@ -318,7 +318,7 @@ function Lobby({ onEnter }) {
   /* "2d 5h", "5h", "12 min" - close enough for a list you only glance at. */
   const untilRetired = (at) => {
     const ms = (at || 0) - Date.now();
-    if (ms <= 0) return "any moment";
+    if (ms <= 0) return t("any moment");
     const h = Math.round(ms / 3600000);
     if (h >= 24) return `${Math.floor(h / 24)}d ${h % 24}h`;
     if (h >= 1) return `${h}h`;
@@ -328,7 +328,7 @@ function Lobby({ onEnter }) {
   const yourGames = mine.signedIn && mine.games.length ? (
     <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#101318", border: "1px solid #2c5f4f" }}>
       <div className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: "#8fd3b6" }}>
-        Your games ({mine.games.length})
+        {t("Your games ({0})", mine.games.length)}
       </div>
       <div className="text-[10px] text-gray-500 mb-2">
         {t("Every table you are sitting at. Open any of them from any device while you are signed in.")}
@@ -576,9 +576,9 @@ function WaitingRoom({ me, lobby, onLeave }) {
         {me.host ? (
           <>
             <button onClick={start} disabled={total < 2 || total > 6} style={{ ...btn("#2c5f4f", "#d3fcec"), opacity: total < 2 || total > 6 ? 0.35 : 1 }}>
-              {total < 2 ? "Need at least 2 players"
-                : total > 6 ? "A table seats 6 \u2014 remove someone"
-                  : `Start game (${total} players)`}
+              {total < 2 ? t("Need at least 2 players")
+                : total > 6 ? t("A table seats 6 — remove someone")
+                  : t("Start game ({0} players)", total)}
             </button>
             <p className="text-[10px] text-gray-600 mt-2">{t("You can start as soon as everyone has joined.")}</p>
           </>
@@ -590,7 +590,7 @@ function WaitingRoom({ me, lobby, onLeave }) {
         {lobby && lobby.watchers && lobby.watchers.length > 0 && (
           <div className="mt-3">
             <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">
-              Watching ({lobby.watchers.length})
+              {t("Watching ({0})", lobby.watchers.length)}
             </div>
             <div className="text-[11px] text-gray-400">{lobby.watchers.join(", ")}</div>
           </div>
@@ -602,7 +602,7 @@ function WaitingRoom({ me, lobby, onLeave }) {
         )}
         <button onClick={onLeave} className="w-full mt-3 text-xs"
           style={{ background: "none", border: "none", color: "#6b7280", textDecoration: "underline", cursor: "pointer", padding: "6px 0" }}>
-          {me.spectator ? "Stop watching" : me.host ? "Cancel this room and go back" : t("Leave this room")}
+          {me.spectator ? t("Stop watching") : me.host ? t("Cancel this room and go back") : t("Leave this room")}
         </button>
         <p className="text-[10px] text-gray-600 mt-1 text-center">
           {t("Meant to join a friend instead? Go back and use their room code.")}
@@ -687,8 +687,7 @@ function insecureReason() {
   const host = typeof window !== "undefined" ? window.location.hostname : "";
   const proto = typeof window !== "undefined" ? window.location.protocol : "";
   if (proto === "http:" && host && host !== "localhost" && host !== "127.0.0.1") {
-    return `Voice needs a secure connection. This page is on http://${host}, and browsers only give a microphone `
-      + "to https:// pages (or to localhost). Chat still works. To get voice, reach the game over https - a "
+    return t("Voice needs a secure connection. This page is on http://{0}, and browsers only give a microphone to https:// pages (or to localhost). Chat still works. To get voice, reach the game over https - a ", host)
       + t("tunnel such as ngrok or cloudflared gives you one, and so does hosting it on Render or Fly.");
   }
   return t("This browser will not give the page a microphone. Chat still works.");
@@ -732,7 +731,7 @@ function useVoice(me, active) {
   function makeConn(seat) {
     if (conns.current.has(seat)) return conns.current.get(seat);
     const pc = new RTCPeerConnection({ iceServers: ice.current });
-    if (localStream.current) localStream.current.getTracks().forEach((t) => pc.addTrack(t, localStream.current));
+    if (localStream.current) localStream.current.getTracks().forEach((tr) => pc.addTrack(tr, localStream.current));
     pc.onicecandidate = (e) => { if (e.candidate) post({ kind: "ice", to: seat, payload: e.candidate }); };
     pc.ontrack = (e) => attach(seat, e.streams[0]);
     pc.onconnectionstatechange = () => {
@@ -839,10 +838,10 @@ function useVoice(me, active) {
       });
     } catch (e) {
       setError(e && e.name === "NotAllowedError"
-        ? "Microphone permission was refused. Allow it in your browser's address bar to join the call."
+        ? t("Microphone permission was refused. Allow it in your browser's address bar to join the call.")
         : e && e.name === "NotFoundError"
-          ? "No microphone found on this device."
-          : `The microphone could not be opened (${(e && e.name) || "unknown error"}).`);
+          ? t("No microphone found on this device.")
+          : t("The microphone could not be opened ({0}).", (e && e.name) || t("unknown error")));
       return;
     }
     setOn(true);
@@ -886,7 +885,7 @@ function useVoice(me, active) {
     conns.current.forEach((pc) => pc.close()); conns.current.clear();
     audios.current.forEach((el) => el.remove()); audios.current.clear();
     pending.current.clear(); restarted.current.clear();
-    if (localStream.current) localStream.current.getTracks().forEach((t) => t.stop());
+    if (localStream.current) localStream.current.getTracks().forEach((tr) => tr.stop());
     localStream.current = null;
     setPeers([]); setOn(false); setMuted(false);
   }
@@ -894,7 +893,7 @@ function useVoice(me, active) {
   function toggleMute() {
     if (!localStream.current) return;
     const next = !muted;
-    localStream.current.getAudioTracks().forEach((t) => { t.enabled = !next; });
+    localStream.current.getAudioTracks().forEach((tr) => { tr.enabled = !next; });
     setMuted(next);
   }
 
@@ -920,9 +919,9 @@ function TablePanel({ me, chat, onSend }) {
   }, [chat.length, open, tab]);
 
   const send = () => {
-    const t = draft.trim();
-    if (!t) return;
-    onSend(t);
+    const body = draft.trim();
+    if (!body) return;
+    onSend(body);
     setDraft("");
   };
 
@@ -1035,8 +1034,8 @@ function TablePanel({ me, chat, onSend }) {
                           color: p.state === "failed" ? "#fca5a5"
                             : p.state === "connected" ? "#d5d9e0" : "#8b93a3" }}>
                           {p.name}
-                          {p.state === "failed" && " \u2014 could not connect"}
-                          {p.state === "connecting" && " \u2014 connecting\u2026"}
+                          {p.state === "failed" && " \u2014 " + t("could not connect")}
+                          {p.state === "connecting" && " \u2014 " + t("connecting…")}
                         </div>
                       ))}
                       {/* Without a relay a call between two mobile networks
@@ -1322,8 +1321,8 @@ function OnlineTable({ onTable }) {
           backgroundColor: conn === "offline" ? "#3a1f1f" : conn === "polling" ? "#33301a" : "#14301f",
           color: conn === "offline" ? "#fca5a5" : conn === "polling" ? "#f5d76e" : "#8fd3b6",
           border: "1px solid #2b3040",
-        }} title={conn === "polling" ? "Live stream blocked; updating by polling instead" : undefined}>
-          {conn === "offline" ? "offline" : conn === "polling" ? "syncing" : "live"}</span>
+        }} title={conn === "polling" ? t("Live stream blocked; updating by polling instead") : undefined}>
+          {conn === "offline" ? t("offline") : conn === "polling" ? t("syncing") : t("live")}</span>
       </div>
       {toast && (
         <div style={{

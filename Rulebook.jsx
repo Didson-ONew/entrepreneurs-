@@ -12,11 +12,19 @@ import { t, useLang, getLang, LanguageSwitch } from "./i18n.js";
    check_rulebook_i18n.mjs exists to keep true - so everything downstream (the
    contents list, the search index, the section numbers) works on any of them. */
 const BOOKS = {
-  en: { book: forEdition(BOOK_ALL, "digital"), edition: EDITION, sub: "the complete rules", title: "Entrepreneurs \u2014 how to play" },
-  pt: { book: forEdition(RULEBOOK_PT, "digital"), edition: EDITION_PT, sub: "as regras completas", title: "Empreendedores \u2014 como se joga" },
-  zh: { book: forEdition(RULEBOOK_ZH, "digital"), edition: EDITION_ZH, sub: "\u5b8c\u6574\u89c4\u5219", title: "\u521b\u4e1a\u5bb6 \u2014 \u600e\u4e48\u73a9" },
+  en: { book: forEdition(BOOK_ALL, "digital"), edition: EDITION },
+  pt: { book: forEdition(RULEBOOK_PT, "digital"), edition: EDITION_PT },
+  zh: { book: forEdition(RULEBOOK_ZH, "digital"), edition: EDITION_ZH },
 };
-const bookFor = (lang) => BOOKS[lang] || BOOKS.en;
+/* The panel's own heading and subtitle are ordinary strings, looked up WHEN IT
+   RENDERS. Holding a translated copy per language in the table above would have
+   been the shorter spelling and the wrong one: a module-level table is built
+   once, at import, so it would freeze whatever language the page opened in. */
+const bookFor = (lang) => ({
+  ...(BOOKS[lang] || BOOKS.en),
+  sub: t("the complete rules"),
+  title: t("Entrepreneurs \u2014 how to play"),
+});
 import Records from "./Records.jsx";
 import { FeedbackPanel, useFeedbackAccess } from "./Feedback.jsx";
 
@@ -292,10 +300,10 @@ export function useLiveCounts() {
       }
     };
     ping();
-    const t = setInterval(ping, PRESENCE_MS);
+    const timer = setInterval(ping, PRESENCE_MS);
     const onVis = () => { if (!document.hidden) ping(); };
     document.addEventListener("visibilitychange", onVis);
-    return () => { stop = true; clearInterval(t); document.removeEventListener("visibilitychange", onVis); };
+    return () => { stop = true; clearInterval(timer); document.removeEventListener("visibilitychange", onVis); };
   }, []);
   return counts;
 }

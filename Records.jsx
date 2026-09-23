@@ -276,7 +276,7 @@ const TABS = [["hof", "Hall of fame"], ["stats", "Statistics"], ["recent", "Rece
 function Filters({ data, filter, setFilter }) {
   if (!data) return null;
   const eds = data.editions || [];
-  const when = (t) => new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  const when = (ms) => new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short" });
   const control = {
     fontSize: 11, padding: "4px 8px", borderRadius: 6, cursor: "pointer",
     backgroundColor: INK.bg, color: INK.head, border: `1px solid ${INK.edge}`,

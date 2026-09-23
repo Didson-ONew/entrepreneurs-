@@ -1756,14 +1756,17 @@ function upgradeDirs(p, b) {
   const mine = upgradeScaling(p, b);
   return mine === usual ? [usual] : [mine, usual];
 }
+/* Why an upgrade is refused, as a KEY AND ITS VALUES rather than a sentence.
+   This runs in the engine, which has no t() - it is loaded into a bare sandbox
+   on the server - so the words are chosen where the screen is drawn. */
 function upgradeBlockedReason(state, p, b) {
-  if (b.isHQ) return "is a Megacorp HQ";
-  if (b.upgraded) return "already upgraded";
-  if (p.cash < bizSetup(b)) return `needs $${bizSetup(b)}, you have $${Math.round(p.cash)}`;
+  if (b.isHQ) return logMsg("is a Megacorp HQ");
+  if (b.upgraded) return logMsg("already upgraded");
+  if (p.cash < bizSetup(b)) return logMsg("needs ${0}, you have ${1}", bizSetup(b), Math.round(p.cash));
   /* Blocked only when NO direction works: stacking always can, spreading needs an
      owned empty plot beside the building. */
   const canGrow = upgradeDirs(p, b).some((d) => d === "V" || adjacentOwnedFreePlots(state.board, b.footprint).length > 0);
-  if (!canGrow) return "no owned, empty plot adjacent to it";
+  if (!canGrow) return logMsg("no owned, empty plot adjacent to it");
   return null;
 }
 /* The same orthogonal rule as freeNeighbors, phrased for the whole footprint - this
@@ -1821,7 +1824,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "e96fc23d";
+const ENGINE_VERSION = "891fe9a4";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2833,10 +2836,10 @@ function canGoPublic(state, p) {
 }
 function goPublicBlockedReason(state, p) {
   if (canGoPublic(state, p)) return null;
-  if (!state.megacorpPool.length) return "no Megacorp tiles left";
+  if (!state.megacorpPool.length) return logMsg("no Megacorp tiles left");
   const n = activeBiz(p).length;
-  if (!n) return "you have no active companies to merge";
-  return "none of the available Megacorp tiles match your companies";
+  if (!n) return logMsg("you have no active companies to merge");
+  return logMsg("none of the available Megacorp tiles match your companies");
 }
 /* Would an M&A action actually accomplish something this quarter? Bots were choosing
    the track with an empty hand, at the company cap, or with no land to build on, and
@@ -3713,8 +3716,10 @@ function distTypeOf(tname) { return ["FC", "IA", "CC", "LM"].includes(tname) ? "
 
 function DemandCenter({ tname, demand, quarter, tileKey, deliverInfo, onDeliver }) {
   const fam = districtFamily(tname);
-  const t = demand.tiles[tileKey];
-  const rows = t.rows;
+  /* `tile`, not `t`: a local named t shadows the translate function, and the
+     screen it breaks is the whole board. */
+  const tile = demand.tiles[tileKey];
+  const rows = tile.rows;
   const y2Open = quarter > 4;   // rows 3-4 open from Q5 (end of Year 1)
   return (
     <div className="flex flex-col items-center justify-center h-full w-full select-none" style={{ gap: 2, padding: 3 }}>
@@ -3723,10 +3728,10 @@ function DemandCenter({ tname, demand, quarter, tileKey, deliverInfo, onDeliver 
         const locked = rowIdx >= 2 && !y2Open;
         return (
           <div key={rowIdx} className="flex items-center" style={{ gap: 2, opacity: locked ? 0.45 : 1 }}
-            title={locked ? "Locked until Year 2 (opens at the end of Q4)" : undefined}>
+            title={locked ? t("Locked until Year 2 (opens at the end of Q4)") : undefined}>
             {locked && <span style={{ fontSize: 8, lineHeight: 1, marginRight: 1 }}>{"\uD83D\uDD12"}</span>}
             {[0, 1, 2, 3].map((levelIdx) => {
-              const filled = !!t.filled[rowIdx][levelIdx];
+              const filled = !!tile.filled[rowIdx][levelIdx];
               const isNormalEligible = !locked && !filled && deliverInfo && deliverInfo.ind === ind && levelIdx < deliverInfo.cap && deliverInfo.reach.has(tileKey);
               const isCrossEligible = !locked && !filled && deliverInfo && deliverInfo.crossActive && ind !== deliverInfo.ind && levelIdx < deliverInfo.level && deliverInfo.crossHome.has(tileKey);
               const isEligible = isNormalEligible || isCrossEligible;
@@ -3999,15 +4004,15 @@ function BoardViewport({ size, children }) {
     });
   }, [clamp, fit, vw, vpH]);
 
-  const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  const dist = (pts) => Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
 
   const onTouchStart = (e) => {
     if (e.touches.length === 2) {
       pinch.current = { d: dist(e.touches), z: zoom };
       drag.current = null;
     } else if (e.touches.length === 1 && zoom > 1) {
-      const t = e.touches[0];
-      drag.current = { x: t.clientX, y: t.clientY, px: pan.x, py: pan.y, moved: false };
+      const touch = e.touches[0];
+      drag.current = { x: touch.clientX, y: touch.clientY, px: pan.x, py: pan.y, moved: false };
     }
   };
   const onTouchMove = (e) => {
@@ -4022,8 +4027,8 @@ function BoardViewport({ size, children }) {
     }
     const d = drag.current;
     if (d && e.touches.length === 1) {
-      const t = e.touches[0];
-      const dx = t.clientX - d.x, dy = t.clientY - d.y;
+      const touch = e.touches[0];
+      const dx = touch.clientX - d.x, dy = touch.clientY - d.y;
       if (!d.moved && Math.hypot(dx, dy) < DRAG_SLOP) return;   // still a tap
       d.moved = true;
       setPanning(true);
@@ -4339,6 +4344,9 @@ function RentLine({ p }) {
 /* One scoring line, in the reader's language. Values that are themselves game
    text - a card name, a Megacorp's name - go through t() too; there are no
    player names in here. */
+/* A {k, a} pair from the engine, said in the reader's language. */
+const msgText = (m) => (m && typeof m === "object" ? t(m.k, ...(m.a || [])) : t(m));
+
 const epText = (e) => (e.k === undefined ? t(e.label)
   : t(e.k, ...(e.a || []).map((x) => (typeof x === "string" ? t(x) : x))));
 
@@ -4608,7 +4616,7 @@ function BPCard({ bp, onClick, disabled, small, player }) {
             but t("Horizontal * 1 plot") wraps on the 128px hand card. One plot is the
             assumption anyway, so the count only appears when it is not one. */}
         <div title={growthTitle(g, bp.ind)} style={{ color: IND_COLOR[bp.ind] }}>
-          {SCALING_GLYPH[g.dir]} {SCALING_NAME[g.dir]}{g.flipped ? " \u2605" : ""}
+          {SCALING_GLYPH[g.dir]} {t(SCALING_NAME[g.dir])}{g.flipped ? " \u2605" : ""}
           {plotsForBP(bp) > 1 ? " \u00b7 " + t("{0} plots", plotsForBP(bp)) : ""}
         </div>
       </div>
@@ -4952,7 +4960,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                     style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
                     {t(b.bp.name)} <span className="text-gray-500">L{b.level}&rarr;{b.level + 1}</span> <span style={{ color: "#a5d6f3" }}>${bizSetup(b)}</span>
                   </button>
-                  {why && <div className="text-[9px] mt-0.5" style={{ color: "#fca5a5" }}>{why}</div>}
+                  {why && <div className="text-[9px] mt-0.5" style={{ color: "#fca5a5" }}>{msgText(why)}</div>}
                 </div>
               );
             }) : <span className="text-[10px] text-gray-600 italic">{t("Nothing eligible to upgrade.")}</span>}
@@ -4981,7 +4989,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
             </button>
             <button onClick={() => { if (NET) return NET.send("act", { type: "reposition" }); doReposition(state, human, log); finish(); }} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Reposition (become 1st)")}</button>
           </div>
-          {blocked && <div className="text-[10px] mt-1" style={{ color: "#fca5a5" }}>{t("Can’t go public: {0}. Reposition is your only option this turn.", blocked)}</div>}
+          {blocked && <div className="text-[10px] mt-1" style={{ color: "#fca5a5" }}>{t("Can’t go public: {0}. Reposition is your only option this turn.", msgText(blocked))}</div>}
         </div>
         );
       })()}
@@ -5300,7 +5308,7 @@ const SUPPLY = (() => {
 })();
 
 const MEGACORP_EP = (() => {
-  const eps = MEGACORP_TILES.map((t) => t[2]);
+  const eps = MEGACORP_TILES.map((tile) => tile[2]);
   return { lo: Math.min(...eps), hi: Math.max(...eps) };
 })();
 
@@ -6237,7 +6245,7 @@ function GameScreens({ online }) {
             {!isHumanPlanningTurn && !isHumanResolving && !isHumanDelivering && !isHumanLiquidating && !isHumanPlacingLH && !isHumanRepaying && (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
                 <div className="text-xs italic" style={{ color: awaitedName ? "#8fd3b6" : "#6b7280" }}>
-                  {awaitedName ? `Waiting for ${awaitedName}\u2026` : "Waiting on other players\u2026"}
+                  {awaitedName ? t("Waiting for {0}…", awaitedName) : t("Waiting on other players…")}
                 </div>
                 {/* If someone has dropped out, the host can hand their seat to a bot so the
                     table is not stuck waiting on a browser that is never coming back. */}
@@ -6345,11 +6353,11 @@ function GameScreens({ online }) {
                 ];
                 return (
                   <div className="flex gap-1.5 mb-3">
-                    {tiles.map((t) => (
-                      <div key={t.label} className="flex-1 rounded p-1.5" style={{ backgroundColor: "#1c1f26", border: "1px solid #2b3040" }}>
-                        <div className="text-[8px] font-bold text-gray-500 tracking-wide mb-0.5">{t.label}</div>
-                        <div className="text-sm font-bold font-mono leading-tight" style={{ color: t.color }}>{t.value}</div>
-                        {t.sub && <div className="text-[8px] font-mono text-gray-600">{t.sub}</div>}
+                    {tiles.map((tile) => (
+                      <div key={tile.label} className="flex-1 rounded p-1.5" style={{ backgroundColor: "#1c1f26", border: "1px solid #2b3040" }}>
+                        <div className="text-[8px] font-bold text-gray-500 tracking-wide mb-0.5">{tile.label}</div>
+                        <div className="text-sm font-bold font-mono leading-tight" style={{ color: tile.color }}>{tile.value}</div>
+                        {tile.sub && <div className="text-[8px] font-mono text-gray-600">{tile.sub}</div>}
                       </div>
                     ))}
                   </div>
@@ -6399,7 +6407,7 @@ function GameScreens({ online }) {
                         </div>
                         {(() => { const g = growthFor(human, b.bp); return (
                           <div title={growthTitle(g, b.bp.ind)} style={{ color: IND_COLOR[b.bp.ind] }}>
-                            {SCALING_GLYPH[g.dir]} {SCALING_NAME[g.dir]}{g.flipped ? " \u2605" : ""} &middot; {t(b.footprint.length === 1 ? "{0} plot" : "{0} plots", b.footprint.length)}
+                            {SCALING_GLYPH[g.dir]} {t(SCALING_NAME[g.dir])}{g.flipped ? " \u2605" : ""} &middot; {t(b.footprint.length === 1 ? "{0} plot" : "{0} plots", b.footprint.length)}
                           </div>); })()}
                         {/* Where it actually stands. The full label with grid coordinates is
                             still what the plot tooltip and the bank list give. */}
@@ -6533,7 +6541,7 @@ function GameScreens({ online }) {
                 keeps a single, full-width block instead of two stubby ones. */}
             <div data-tut="megacorps" className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
 
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">Megacorp tiles ({state.megacorpPool.length} left) <Help text={t("Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks its industry's price DIVIDED BY THE TILE'S TIER as EP every quarter (the \u00f7 number on each tile, rounded down - so a \u00f72 tile on a $7 good pays 3 EP a quarter, and pays nothing at all while the price is below the tier), counts as a Logistic Hub for anything built beside it, and pays {0} EP a quarter to every RIVAL company standing beside it - your own neighbours cost you nothing, since they pay themselves. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots; the first to go public wins the IPO tile, which adds a sixth bay.", MEGACORP_TITHE_EP)} /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("Megacorp tiles ({0} left)", state.megacorpPool.length)} <Help text={t("Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks its industry's price DIVIDED BY THE TILE'S TIER as EP every quarter (the \u00f7 number on each tile, rounded down - so a \u00f72 tile on a $7 good pays 3 EP a quarter, and pays nothing at all while the price is below the tier), counts as a Logistic Hub for anything built beside it, and pays {0} EP a quarter to every RIVAL company standing beside it - your own neighbours cost you nothing, since they pay themselves. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots; the first to go public wins the IPO tile, which adds a sixth bay.", MEGACORP_TITHE_EP)} /></div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
                 {state.megacorpPool.map(([name, combo, ep], i) => (
                   <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>
@@ -6982,7 +6990,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
         ) : (
           <div className="w-full py-2.5 rounded-md text-sm font-bold text-center"
             style={{ backgroundColor: "#1c1f26", color: "#9ca3af" }}>
-            {picked < need ? `Pick ${need - picked} more` : "Waiting for the others\u2026"}
+            {picked < need ? t("Pick {0} more", need - picked) : t("Waiting for the others…")}
           </div>
         )}
       </div>
@@ -7100,10 +7108,10 @@ function MatchTracker({ state, elapsed, lastActive, idleLimit }) {
     : null;
   const detail =
     state.phase === "delivering" ? "B2C" :
-    state.phase === "liquidating" ? "cash shortfall" :
-    state.phase === "supplyChain" ? "supply chain" :
-    state.phase === "placingLH" ? "hub placement" :
-    state.phase === "repayingLoans" ? "loan repayment" : null;
+    state.phase === "liquidating" ? t("cash shortfall") :
+    state.phase === "supplyChain" ? t("supply chain") :
+    state.phase === "placingLH" ? t("hub placement") :
+    state.phase === "repayingLoans" ? t("loan repayment") : null;
   const pill = (label, on, done) => (
     <span key={label} style={{
       padding: "1.5px 6px", borderRadius: 3, fontSize: 10.5, fontWeight: on ? 800 : 600,
@@ -7227,7 +7235,7 @@ function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
           </div>
         ) : (
         <button onClick={onRestart} className="w-full py-2.5 rounded-md text-sm font-bold" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
-          {online ? "Play again \u2014 same players" : t("Play Again")}
+          {online ? t("Play again — same players") : t("Play Again")}
         </button>
         )}
         {onReview && (
