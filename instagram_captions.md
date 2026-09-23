@@ -901,3 +901,54 @@ carousels with no loss.
 
 Post J lands late on purpose: by then the account has shown the object
 enough times that an admission reads as confidence rather than as a disclaimer.
+
+---
+
+## K · Carousel — six industries, six business models
+`K_industries/1..8` — the hook, one slide per industry, then the market
+
+> An entrepreneur deciding what to open does not start with a theme. They start
+> with the numbers: what does it cost to get in, what does it sell for, how fast
+> does it pay me back, and what happens when the next person opens one too.
+>
+> That is the whole first act of this game, and the six industries answer those
+> questions completely differently.
+>
+> **Retail** — $10 to open, four units a quarter at $4. Cheapest door in the
+> game, repays in under a quarter, and it never needs a second plot. Small, fast,
+> everywhere.
+> **Utilities** — $15, four units at $4. The lowest price on the board and the
+> joint-highest output. You are not selling something precious; you are selling a
+> lot of it.
+> **Hospitality** — $10, three units at $5. The only industry whose customers are
+> *other players' buildings*: once the demand board is full, it sells to every
+> business and hub within reach, at full price.
+> **Manufacturing** — $20 to open and the joint-cheapest running cost in the game. It
+> sells into other industries' rows at home, so it does not wait for its own
+> demand to appear.
+> **Healthcare** — $20, two units at $6. The slowest money here — nearly three
+> quarters to repay — and the only one that is on the logistics network from the
+> day it opens, without touching a hub.
+> **Technology** — $15, two units at $6, and every order it fills is worth double
+> the column it sits in. The slowest start and the steepest curve.
+>
+> Then it moves. Every company built drops its own industry's price a dollar and
+> lifts each of its suppliers a dollar — so your operating costs are someone
+> else's income, and the industry everybody picked is the one selling into a glut.
+>
+> The board is dealt fresh every game. Two rows of demand stay locked until
+> Quarter 5. The whole grid is wiped at the end of Quarter 8.
+>
+> The business that was right in Year 1 is not the business that is right in
+> Year 3. That is not flavour text. That is the game.
+>
+> 🏗️
+
+*Every figure on these slides is computed from the cards at build time — entry
+cost, output, running bill, and the payback each one implies. Retune a card and
+the post follows. The one-line characterisations are the only judgement in it,
+and each sits beside the number that supports it.*
+
+*Slide 1 is the hook and works as a standalone if you want to test it first:
+"Which business would you start?" Post the full carousel mid-week; this is a
+read, not a scroll-past.*

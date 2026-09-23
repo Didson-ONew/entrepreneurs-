@@ -84,7 +84,7 @@ vm.createContext(sandbox);
 vm.runInContext(SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "")
   .replace(MERGE_NEEDLE, MERGE_PATCH)
   .replace(SALE_NEEDLE, SALE_HOOK) + `
-  box.E = { BP_DATA, INDUSTRIES, IND_NAME, IND_COLOR, BASE_PRICE, PERSONAS,
+  box.E = { BP_DATA, INDUSTRIES, IND_NAME, IND_COLOR, IND_ABILITY, BASE_PRICE, PERSONAS,
             MEGACORPS_TO_END, DISCS_PER_PLAYER, CASH_PER_EP, SCALING,
             PRICE_MIN, PRICE_MAX, RENT_PER_LEVEL, PLAYER_COLORS, COORDS };
   box.E2 = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
@@ -610,6 +610,131 @@ add("13_study/4.png", shell(1080, 1350, `
   </div>
   ${foot(4, 4)}`));
 
+
+
+/* ---- K. six industries, six business models --------------------------- */
+/* THE WHOLE POST IS DERIVED. Every figure below - the entry cost, the output,
+   the running bill, how long it takes to pay for itself, which industry is
+   cheapest and which is slowest - is computed from BP_DATA and BASE_PRICE at
+   build time. Nothing is typed in, so a retuned card changes the post rather
+   than making it wrong.
+
+   The characterisation in words is a judgement, which is why it sits beside the
+   number that supports it rather than instead of it. */
+const MODEL = {
+  UT: { what: "Infrastructure", line: "The lowest price in the game and the joint-highest output. You are not selling something precious. You are selling a lot of it." },
+  RE: { what: "The high street", line: "The cheapest door into the game, and it never needs a second plot. Small, fast, and everywhere at once." },
+  HO: { what: "Footfall", line: "The only industry whose customers are the other players' buildings. Once the demand board is full, it sells to the neighbours at full price." },
+  MA: { what: "Heavy industry", line: "Expensive to open, joint-cheapest to run, and it sells into other industries' rows at home. It does not wait for its own demand to appear." },
+  HC: { what: "The specialist", line: "The slowest money in the game, and the only one that is on the network from the day it opens without touching a hub." },
+  TE: { what: "Scale", line: "Two units a quarter, and every order it fills is worth double the column it sits in. The slowest start and the steepest curve." },
+};
+/* Sold out, at its base price, before it has grown: the plainest reading of a
+   card, and the one an entrepreneur would do first. Ground rent is inside OPEX,
+   so a company on its own land does better than this - it is the floor. */
+const L1 = {}, ECON = {};
+for (const ind of E.INDUSTRIES) {
+  const card = E.BP_DATA.filter((b) => b.ind === ind).sort((a, b) => a.lvl - b.lvl)[0];
+  const revenue = card.prod * E.BASE_PRICE[ind];
+  L1[ind] = card;
+  ECON[ind] = { revenue, gross: revenue - card.opex, payback: (revenue - card.opex) > 0
+    ? card.setup / (revenue - card.opex) : Infinity };
+}
+const cheapest = E.INDUSTRIES.slice().sort((a, b) => L1[a].setup - L1[b].setup)[0];
+const fastest = E.INDUSTRIES.slice().sort((a, b) => ECON[a].payback - ECON[b].payback)[0];
+const slowest = E.INDUSTRIES.slice().sort((a, b) => ECON[b].payback - ECON[a].payback)[0];
+const q = (n) => (Math.round(n * 10) / 10).toFixed(1);
+
+add("K_industries/1.png", shell(1080, 1350, `
+  <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div class="kicker">Before you build anything</div>
+    <h1 style="margin-top:28px">Which<br>business<br>would you<br>start?</h1>
+    <p style="margin-top:36px;font-size:32px">Six industries. Six completely different
+      business models &mdash; entry cost, margin, how they grow, who buys.</p>
+    <p style="margin-top:26px;font-size:29px;color:${MUTE}">Reading them is the game.
+      This is the whole table, off the cards.</p>
+  </div>
+  ${foot(1, 8)}`));
+
+E.INDUSTRIES.forEach((ind, i) => {
+  const c = L1[ind], m = MODEL[ind], col = E.IND_COLOR[ind];
+  const sideways = E.SCALING[ind] === "H";
+  const stat = (big, small) => `
+    <div style="flex:1">
+      <div style="font-size:52px;font-weight:870;letter-spacing:-1px" class="mono">${big}</div>
+      <div style="font-size:21px;color:${MUTE};margin-top:6px;letter-spacing:1px">${small}</div>
+    </div>`;
+  add(`K_industries/${i + 2}.png`, shell(1080, 1350, `
+    <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center">
+      <div style="display:flex;align-items:center;gap:18px">
+        <div style="width:44px;height:44px;border-radius:10px;background:${col}"></div>
+        <div>
+          <div style="font-size:44px;font-weight:850;letter-spacing:-1px">${E.IND_NAME[ind]}</div>
+          <div style="font-size:24px;color:${col};font-weight:750;letter-spacing:2px;text-transform:uppercase">${m.what}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:18px;margin-top:46px;padding:28px 0;border-top:1px solid ${LINE};border-bottom:1px solid ${LINE}">
+        ${stat(`$${c.setup}`, "TO OPEN")}
+        ${stat(`${c.prod}`, "UNITS / QTR")}
+        ${stat(`$${E.BASE_PRICE[ind]}`, "BASE PRICE")}
+        ${stat(`$${c.opex}`, "RUNNING")}
+      </div>
+
+      <div style="margin-top:30px;font-size:31px">
+        Sold out at its base price, it clears
+        <b style="color:${col}">$${ECON[ind].gross} a quarter</b> &mdash; so it pays for itself in
+        <b style="color:${col}">${q(ECON[ind].payback)} quarters</b>.
+      </div>
+
+      <p style="margin-top:28px;font-size:29px;color:#C9CFDA">${m.line}</p>
+
+      <div style="margin-top:32px;padding:22px 24px;border-radius:14px;background:${CARD};border:1px solid ${LINE}">
+        <div style="font-size:20px;color:${MUTE};letter-spacing:2px;font-weight:700">
+          ${sideways ? "GROWS SIDEWAYS" : "GROWS UPWARDS"}
+        </div>
+        <div style="font-size:26px;margin-top:8px;color:#C9CFDA">
+          ${sideways
+            ? `A level 3 covers <b>3 connected plots</b>. Every upgrade needs more land.`
+            : `Every level stands on <b>one plot</b>. It never needs more land.`}
+        </div>
+        <div style="font-size:26px;margin-top:14px;color:#C9CFDA">
+          ${/* The engine writes "[level]" as a placeholder the game fills in at
+                render time. On a slide it reads as a bug, so it is said in words. */ ""}
+          <span style="color:${col};font-weight:750">Reach.</span>
+          ${E.IND_ABILITY[ind].replace(/\[level\]/g, "its level in")}
+        </div>
+      </div>
+    </div>
+    ${foot(i + 2, 8)}`));
+});
+
+add("K_industries/8.png", shell(1080, 1350, `
+  <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div class="kicker">And then the market moves</div>
+    <h2 style="margin-top:26px">None of this<br>holds still.</h2>
+    ${/* The cheapest door in and the fastest to repay are often the same industry,
+          and naming it twice in one sentence reads like a mistake. */ ""}
+    <p style="margin-top:32px;font-size:30px">
+      <b style="color:${E.IND_COLOR[cheapest]}">${E.IND_NAME[cheapest]}</b> opens for
+      $${L1[cheapest].setup}${cheapest === fastest
+        ? ` and repays in ${q(ECON[fastest].payback)} quarters`
+        : `; <b style="color:${E.IND_COLOR[fastest]}">${E.IND_NAME[fastest]}</b> repays fastest,`
+          + ` in ${q(ECON[fastest].payback)} quarters`}.
+      <b style="color:${E.IND_COLOR[slowest]}">${E.IND_NAME[slowest]}</b> costs
+      $${L1[slowest].setup} and takes ${q(ECON[slowest].payback)}.</p>
+    <p style="margin-top:26px;font-size:30px">
+      But every company built drops its own industry's price <b>$1</b> and lifts each of its
+      suppliers <b>$1</b>. Build where everyone else built and you are selling into a glut.</p>
+    <div style="margin-top:30px;padding:24px 26px;border-radius:14px;background:${CARD};border:1px solid ${LINE}">
+      <div style="font-size:27px;color:#C9CFDA">The board is drawn fresh every game: four centres
+        shuffled, twelve of sixteen suburbs dealt. <b>Rows 3 and 4 are locked until Q5</b>, and the
+        whole demand grid is <b>wiped at the end of Q8</b>.</div>
+    </div>
+    <p style="margin-top:28px;font-size:31px;font-weight:800;color:${GOLD}">
+      The industry that was right in Year 1 is not the one that is right in Year 3.</p>
+  </div>
+  ${foot(8, 8)}`));
 
 /* ---------------------------------------------------------------- reels */
 /* Self-contained animated pages at Reel size. Screen-record to get the video. */
