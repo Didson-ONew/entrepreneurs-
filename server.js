@@ -962,6 +962,7 @@ const server = http.createServer(async (req, res) => {
       kind: b.kind,
       text: b.text,
       rating: b.rating === null || b.rating === undefined || b.rating === "" ? null : Number(b.rating),
+      aspects: b.aspects && typeof b.aspects === "object" ? b.aspects : null,
       account: me ? me.name : null,
       name: who && who.name ? who.name : null,
       room: b.room,

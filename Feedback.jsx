@@ -26,11 +26,33 @@ function Portal({ children }) {
   return createPortal(children, document.body);
 }
 
+/* "How it played" comes first and opens selected. It is the note worth the most
+   and the one nobody thinks to write, so it is the one the box offers by
+   default; an idea or a bug report is something a player already arrived
+   wanting to send. */
 const KINDS = [
+  { key: "session", label: "How it played", blurb: "Score the session and say why." },
   { key: "suggestion", label: "An idea", blurb: "Something you would change or add." },
   { key: "issue", label: "Something wrong", blurb: "A rule that misfired, or a bug." },
-  { key: "session", label: "How it played", blurb: "Score the session and say why." },
 ];
+
+/* Six direct questions, asked in words rather than named as categories. "Pace"
+   is a heading somebody has to interpret; "Did it run at a good pace?" is a
+   question with an answer. Every one runs 1 to 5 in the same direction - 5 is
+   always the good end - so a column average always points the same way.
+
+   The keys are the store's, in feedback.js, and the two lists have to stay the
+   same or a column silently stops being counted. */
+const ASPECTS = [
+  { key: "rules", q: "Were the rules clear?", label: "Rules" },
+  { key: "decisions", q: "Were the decisions interesting?", label: "Decisions" },
+  { key: "interaction", q: "Did what other players did matter?", label: "Interaction" },
+  { key: "pace", q: "Did it run at a good pace?", label: "Pace" },
+  { key: "screen", q: "Was the screen easy to read?", label: "Screen" },
+  { key: "again", q: "Would you play it again?", label: "Play again" },
+];
+const noAspects = () => Object.fromEntries(ASPECTS.map((a) => [a.key, null]));
+const anyAspect = (a) => ASPECTS.some((x) => a[x.key] !== null && a[x.key] !== undefined);
 
 async function post(url, body) {
   const r = await fetch(url, {
@@ -44,29 +66,67 @@ async function post(url, body) {
 
 /* ------------------------------------------------------------- the form */
 
-function Stars({ value, onChange }) {
+function Stars({ value, onChange, compact, bare }) {
+  const size = compact ? 21 : 30;
   return (
-    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+    <div style={{ display: "flex", gap: compact ? 2 : 4, alignItems: "center", flexShrink: 0 }}>
       {[1, 2, 3, 4, 5].map((n) => (
         <button key={n} type="button" onClick={() => onChange(value === n ? null : n)}
-          aria-label={`${n} out of 5`} aria-pressed={value === n}
+          aria-label={t("{0} of 5", n)} aria-pressed={value === n}
           style={{
-            width: 30, height: 30, borderRadius: 6, cursor: "pointer", fontSize: 15, lineHeight: 1,
-            border: `1px solid ${value !== null && n <= value ? "#7a6a3f" : INK.edge}`,
-            backgroundColor: value !== null && n <= value ? "#231f14" : "transparent",
-            color: value !== null && n <= value ? "#f5d76e" : INK.dim,
+            width: size, height: size, borderRadius: 6, cursor: "pointer",
+            fontSize: compact ? 11 : 15, lineHeight: 1, padding: 0,
+            border: `1px solid ${value != null && n <= value ? "#7a6a3f" : INK.edge}`,
+            backgroundColor: value != null && n <= value ? "#231f14" : "transparent",
+            color: value != null && n <= value ? "#f5d76e" : INK.dim,
           }}>&#9733;</button>
       ))}
-      <span style={{ fontSize: 10.5, color: INK.dim, marginLeft: 4 }}>
-        {value === null ? t("no score") : t("{0} of 5", value)}
-      </span>
+      {/* The running total belongs beside the one score for the whole session.
+          Beside six of them in a column it is six times the same sentence. */}
+      {!bare && (
+        <span style={{ fontSize: 10.5, color: INK.dim, marginLeft: 4 }}>
+          {value === null ? t("no score") : t("{0} of 5", value)}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* One question and its five stars, on a line. `compact` is the end-of-match card,
+   which is a corner of the screen rather than a dialog. */
+function AspectRow({ q, value, onChange, compact }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between",
+      padding: compact ? "2px 0" : "3px 0" }}>
+      <span style={{ fontSize: compact ? 11 : 11.5, color: INK.text, lineHeight: 1.3 }}>{t(q)}</span>
+      <Stars value={value} onChange={onChange} compact={compact} bare />
+    </div>
+  );
+}
+
+/* The six questions together, under a heading that says they are optional - a
+   form that looks compulsory is a form people close. */
+function AspectBlock({ aspects, setAspects, compact }) {
+  return (
+    <div style={{ marginTop: compact ? 10 : 12, paddingTop: compact ? 8 : 10,
+      borderTop: `1px solid ${INK.edge}` }}>
+      <div style={{ fontSize: 10.5, color: INK.dim, marginBottom: compact ? 2 : 4,
+        textTransform: "uppercase", letterSpacing: 0.5 }}>
+        {t("A few specifics")}{" "}
+        <span style={{ textTransform: "none", letterSpacing: 0 }}>{t("(optional)")}</span>
+      </div>
+      {ASPECTS.map((a) => (
+        <AspectRow key={a.key} q={a.q} compact={compact} value={aspects[a.key]}
+          onChange={(v) => setAspects({ ...aspects, [a.key]: v })} />
+      ))}
     </div>
   );
 }
 
 function WriteIn({ context, onClose }) {
-  const [kind, setKind] = useState("suggestion");
+  const [kind, setKind] = useState("session");
   const [rating, setRating] = useState(null);
+  const [aspects, setAspects] = useState(noAspects);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -75,7 +135,7 @@ function WriteIn({ context, onClose }) {
   const send = async () => {
     setBusy(true); setErr("");
     try {
-      await post("/api/feedback", { kind, rating, text, ...context });
+      await post("/api/feedback", { kind, rating, aspects, text, ...context });
       setSent(true);
     } catch (e) {
       setErr(e.message || t("That did not go through."));
@@ -89,7 +149,7 @@ function WriteIn({ context, onClose }) {
       <div style={{ fontSize: 11.5, color: INK.dim, marginBottom: 16, lineHeight: 1.5 }}>
         {t("It went in with the rules version you were playing, so it will still make sense later.")}
       </div>
-      <button onClick={() => { setSent(false); setText(""); setRating(null); }}
+      <button onClick={() => { setSent(false); setText(""); setRating(null); setAspects(noAspects()); }}
         style={btn(INK.accentBg, "#2c5f4f", INK.accent)}>{t("Write another")}</button>
       <button onClick={onClose} style={{ ...btn("transparent", INK.edge, INK.dim), marginLeft: 8 }}>{t("Close")}</button>
     </div>
@@ -113,17 +173,22 @@ function WriteIn({ context, onClose }) {
 
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: 10.5, color: INK.dim, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>
-          {t("How is it playing?")}{kind === "session" ? "" : " " + t("(optional)")}
+          {t("How was it overall?")}{kind === "session" ? "" : " " + t("(optional)")}
         </div>
         <Stars value={rating} onChange={setRating} />
       </div>
 
-      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} maxLength={2000}
+      {/* Only on a note about a session. Asking how clear the rules were on top
+          of a bug report is asking a question the sender did not come to answer. */}
+      {kind === "session" && <AspectBlock aspects={aspects} setAspects={setAspects} />}
+
+      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={5} maxLength={2000}
         placeholder={kind === "issue"
           ? t("What happened, and what did you expect instead?")
           : kind === "session" ? t("What made it a 3, or a 5?") : t("What would you change?")}
         style={{
           width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 7, resize: "vertical",
+          marginTop: 12,
           backgroundColor: "#1c1f26", border: `1px solid #33384a`, color: "#e5e7eb",
           fontSize: 12.5, lineHeight: 1.5, fontFamily: "inherit",
         }} />
@@ -189,6 +254,28 @@ function Notes() {
         )}
       </div>
 
+      {/* One row, six numbers: which question is dragging. An unanswered column
+          says so rather than showing a zero, because nobody having answered it
+          and everybody hating it are not the same reading. */}
+      {s.aspects && ASPECTS.some((a) => s.aspects[a.key] && s.aspects[a.key].rated) && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12,
+          padding: "7px 10px", borderRadius: 8, backgroundColor: INK.panel, border: `1px solid ${INK.edge}` }}>
+          {ASPECTS.map((a) => {
+            const col = s.aspects[a.key] || { rated: 0, average: null };
+            return (
+              <span key={a.key} title={t(a.q)} style={{ fontSize: 11, color: INK.dim }}>
+                {t(a.label)}{" "}
+                <b style={{ color: col.average === null ? "#4b5563"
+                  : col.average >= 4 ? "#8fd3b6" : col.average >= 3 ? "#f5d76e" : "#fca5a5" }}>
+                  {col.average === null ? "\u2014" : col.average}
+                </b>
+                <span style={{ color: "#4b5563" }}> ({col.rated})</span>
+              </span>
+            );
+          })}
+        </div>
+      )}
+
       {!shown.length && <div style={{ fontSize: 12, color: INK.dim, padding: "10px 0" }}>{t("Nothing here yet.")}</div>}
 
       {shown.map((e) => (
@@ -212,6 +299,18 @@ function Notes() {
               {e.engine ? ` · ${e.engine}` : ""}
             </span>
           </div>
+          {e.aspects && (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 5 }}>
+              {ASPECTS.filter((a) => Number.isFinite(e.aspects[a.key])).map((a) => (
+                <span key={a.key} title={t(a.q)} style={{ fontSize: 10.5, color: INK.dim }}>
+                  {t(a.label)}{" "}
+                  <b style={{ color: e.aspects[a.key] >= 4 ? "#8fd3b6" : e.aspects[a.key] >= 3 ? "#f5d76e" : "#fca5a5" }}>
+                    {e.aspects[a.key]}
+                  </b>
+                </span>
+              ))}
+            </div>
+          )}
           {e.text && (
             <div style={{ fontSize: 12.5, color: INK.text, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{e.text}</div>
           )}
@@ -522,6 +621,7 @@ function rememberAsked(matchId) {
 export function EndOfGameThanks({ matchId, context, onClose }) {
   useLang();
   const [rating, setRating] = useState(null);
+  const [aspects, setAspects] = useState(noAspects);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -536,7 +636,7 @@ export function EndOfGameThanks({ matchId, context, onClose }) {
   const send = async () => {
     setBusy(true); setErr("");
     try {
-      await post("/api/feedback", { kind: "session", rating, text, ...(context || {}) });
+      await post("/api/feedback", { kind: "session", rating, aspects, text, ...(context || {}) });
       setSent(true);
       setTimeout(dismiss, 1600);
     } catch (e) {
@@ -556,7 +656,10 @@ export function EndOfGameThanks({ matchId, context, onClose }) {
         <div role="dialog" aria-label={t("Thanks for playing")}
           style={{
             width: "min(92vw, 380px)", backgroundColor: INK.bg, border: `1px solid ${INK.edge}`,
-            borderRadius: 12, boxShadow: "0 24px 70px rgba(0,0,0,.75)", overflow: "hidden",
+            borderRadius: 12, boxShadow: "0 24px 70px rgba(0,0,0,.75)",
+            /* Six questions make this taller than the corner it sits in on a
+               short screen, so it scrolls rather than running off the bottom. */
+            maxHeight: "calc(100vh - 80px)", overflowY: "auto",
             pointerEvents: "auto",
           }}>
           {sent ? (
@@ -575,7 +678,9 @@ export function EndOfGameThanks({ matchId, context, onClose }) {
 
               <Stars value={rating} onChange={setRating} />
 
-              <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4}
+              <AspectBlock aspects={aspects} setAspects={setAspects} compact />
+
+              <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3}
                 placeholder={t("What worked, what dragged, what you would change.")}
                 style={{
                   width: "100%", marginTop: 12, padding: "8px 10px", borderRadius: 7, resize: "vertical",
@@ -586,10 +691,10 @@ export function EndOfGameThanks({ matchId, context, onClose }) {
               {err && <div style={{ fontSize: 11, color: "#fca5a5", marginTop: 8 }}>{err}</div>}
 
               <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
-                <button onClick={send} disabled={busy || (rating === null && !text.trim())}
+                <button onClick={send} disabled={busy || (rating === null && !anyAspect(aspects) && !text.trim())}
                   style={{
                     ...btn(INK.accentBg, "#2c5f4f", INK.accent),
-                    opacity: busy || (rating === null && !text.trim()) ? 0.5 : 1,
+                    opacity: busy || (rating === null && !anyAspect(aspects) && !text.trim()) ? 0.5 : 1,
                   }}>{busy ? t("Sending…") : t("Send it")}</button>
                 <button onClick={dismiss} style={btn("transparent", INK.edge, INK.dim)}>{t("Not now")}</button>
               </div>
