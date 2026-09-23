@@ -4532,7 +4532,7 @@ function PlotInfo({ board, players, selectedPlot, pm }) {
           {biz.distressed
             ? <span style={{ color: "#f5a623" }}>{t("Distressed · unowned (renovate via M&A → Buy)")}</span>
             : biz.isHQ
-              ? <span style={{ color: "#f5d76e" }}>Megacorp HQ &ldquo;{t(biz.megacorpName)}&rdquo; &middot; {bizOwnerName}
+              ? <span style={{ color: "#f5d76e" }}>{t("Megacorp HQ")} &ldquo;{t(biz.megacorpName)}&rdquo; &middot; {bizOwnerName}
                   {" "}&middot; <span style={{ color: "#c9a0ff" }}>{t("tier {0}", tierOfHQ(biz))}</span>
                   {" "}&middot; ${price(pm, bizInd(biz))} &divide; {tierOfHQ(biz)} ={" "}
                   <b style={{ color: brandEPFor(price(pm, bizInd(biz)), tierOfHQ(biz)) ? "#8fd3b6" : "#8b93a3" }}>
@@ -6369,7 +6369,7 @@ function GameScreens({ online }) {
               {quarterBill(state, human) > human.cash && (
                 <div className="rounded p-1.5 mb-3" style={{ backgroundColor: "#2a1a1a", border: "1px solid #7a3f3f" }}>
                   <div className="text-[9px] font-bold" style={{ color: "#fca5a5" }}>
-                    Short ${Math.round(quarterBill(state, human) - human.cash)} for next quarter's bills &mdash; raise cash or you'll be forced to liquidate.
+                    {t("Short ${0} for next quarter's bills — raise cash or you'll be forced to liquidate.", Math.round(quarterBill(state, human) - human.cash))}
                   </div>
                 </div>
               )}
@@ -6421,7 +6421,56 @@ function GameScreens({ online }) {
                     </div>
                   );
                 })}
-                {!activeBiz(human).length && <span className="text-xs text-gray-500 italic">{t("None yet.")}</span>}
+                {/* A headquarters is a company in every way that costs you something -
+                    it holds a slot and a disc, it stands on ground you pay rent for, and
+                    what happens around it moves your score - so it belongs in the ledger
+                    beside the companies rather than nowhere at all. What it does instead
+                    of producing goods is the whole card: a dividend off its industry's
+                    price, divided by its tile's tier, and a tithe to every rival who
+                    builds beside it. */}
+                {megacorpHQs(human).map((hq) => {
+                  const live = businessCanProduce(state, hq);
+                  const tier = tierOfHQ(hq);
+                  const goods = price(state.pm, bizInd(hq));
+                  const ep = brandEPFor(goods, tier);
+                  const rivals = hqRivalNeighbours(state, human, hq);
+                  const rent = bizGroundRent(state, human, hq);
+                  return (
+                    <div key={hq.id} className="rounded-md p-2" style={{ backgroundColor: "#211d14", border: "1px solid #7a6a3f", width: 148, opacity: live ? 1 : 0.5 }}
+                      onMouseEnter={(e) => { const r = e.currentTarget.getBoundingClientRect(); setHover({ biz: hq, x: r.right, y: r.top }); }}
+                      onMouseLeave={() => setHover(null)}>
+                      <div className="flex items-center justify-between mb-1">
+                        <Chip color={IND_COLOR[bizInd(hq)]}>{bizInd(hq)}</Chip>
+                        <span className="text-[10px] font-mono" style={{ color: "#c9a0ff" }}>{t("tier {0}", tier)}</span>
+                      </div>
+                      <div className="text-xs font-semibold leading-tight mb-1" style={{ color: "#f5d76e", minHeight: 28 }}>{t(hq.megacorpName)}</div>
+                      <div className="text-[9px] font-mono text-gray-400 space-y-0.5">
+                        <div style={{ color: "#f5d76e" }}>{t("Megacorp HQ")}</div>
+                        <div className="flex items-center justify-between">
+                          <span style={{ color: "#f3b0a5" }}>{t("rent ${0}", rent)}</span>
+                          <span style={{ color: live && ep ? "#8fd3b6" : "#8b93a3" }}>{t("{0} EP/quarter", live ? ep : 0)}</span>
+                        </div>
+                        <div title={t("It banks EP instead of producing goods: its industry's price, divided by its tile's tier, every quarter.")}>
+                          {t("brand ${0} ÷ {1}", goods, tier)}
+                        </div>
+                        <div style={{ color: rivals ? "#fca5a5" : "#8b93a3" }}
+                          title={t("Every RIVAL company standing beside a headquarters takes {0} EP a quarter off its owner. Your own neighbours cost you nothing.", MEGACORP_TITHE_EP)}>
+                          {rivals
+                            ? t("−{0} EP/quarter · {1}", rivals * MEGACORP_TITHE_EP,
+                                t(rivals === 1 ? "{0} rival neighbour" : "{0} rival neighbours", rivals))
+                            : t("no rival neighbours")}
+                        </div>
+                        <div className="text-gray-500" title={hq.footprint.map((pk) => plotLabel(state.board, pk)).join(" + ")}>
+                          {hq.footprint.map((pk) => plotShort(state.board, pk)).join(" + ")}
+                        </div>
+                        <div className="text-gray-500">{t("holds 1 disc and 1 slot — an HQ cannot be sold")}</div>
+                      </div>
+                      {!live && <div className="text-[9px] text-red-400 mt-0.5">{t("Land unowned — banks no EP")}</div>}
+                      {live && !ep && <div className="text-[9px] mt-0.5" style={{ color: "#e0b060" }}>{t("banks nothing until {0} reaches ${1}", bizInd(hq), tier)}</div>}
+                    </div>
+                  );
+                })}
+                {!activeBiz(human).length && !megacorpHQs(human).length && <span className="text-xs text-gray-500 italic">{t("None yet.")}</span>}
               </div>
             </div>
             </div>

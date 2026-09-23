@@ -207,6 +207,10 @@ const CODEY = /[={}()\[\];$]|&&|\|\||=>|\.\w|\b(?:const|return|else|try|finally|
    bracket in the MIDDLE is a function call. Trimming the ends before the test
    keeps both readings: that distinction is what hid the tile counter here. */
 const unbracket = (s) => s.replace(/^[()\s]+|[()\s]+$/g, "");
+/* An HTML entity ends in a semicolon, and a semicolon reads as code. Dropping
+   entities before the test is what makes "Megacorp HQ &ldquo;" visible; a node
+   that is ONLY entities loses its letters and falls out on its own. */
+const deEntity = (s) => s.replace(/&\w+;/g, " ");
 /* Only the half of the file that contains markup. Everything above the REACT UI
    marker is engine code with no JSX in it, and `if (a > bestScore)` reads as a
    text node to any scan this simple. */
@@ -223,7 +227,8 @@ for (const f of FILES) {
     const txt = m.group ? m.group(1) : m[1];
     const one = txt.replace(/\s+/g, " ").trim();
     if (!one || !/[A-Za-z]{3,}/.test(one)) continue;
-    if (CODEY.test(unbracket(one)) || ALLOWED.has(one)) continue;
+    if (CODEY.test(unbracket(deEntity(one))) || ALLOWED.has(one)) continue;
+    if (!/[A-Za-z]{3,}/.test(deEntity(one))) continue;
     /* a bare camelCase or snake_case identifier is a variable, not a sentence */
     if (/^[a-z][A-Za-z0-9]*[A-Z_]/.test(unbracket(one))) continue;
     /* one word with a bracket hanging off it is a call, not a label with a count:
