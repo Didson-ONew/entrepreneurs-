@@ -613,128 +613,212 @@ add("13_study/4.png", shell(1080, 1350, `
 
 
 /* ---- K. six industries, six business models --------------------------- */
-/* THE WHOLE POST IS DERIVED. Every figure below - the entry cost, the output,
-   the running bill, how long it takes to pay for itself, which industry is
-   cheapest and which is slowest - is computed from BP_DATA and BASE_PRICE at
-   build time. Nothing is typed in, so a retuned card changes the post rather
-   than making it wrong.
+/* BANDS, NOT FIGURES.
 
-   The characterisation in words is a judgement, which is why it sits beside the
-   number that supports it rather than instead of it. */
-const MODEL = {
-  UT: { what: "Infrastructure", line: "The lowest price in the game and the joint-highest output. You are not selling something precious. You are selling a lot of it." },
-  RE: { what: "The high street", line: "The cheapest door into the game, and it never needs a second plot. Small, fast, and everywhere at once." },
-  HO: { what: "Footfall", line: "The only industry whose customers are the other players' buildings. Once the demand board is full, it sells to the neighbours at full price." },
-  MA: { what: "Heavy industry", line: "Expensive to open, joint-cheapest to run, and it sells into other industries' rows at home. It does not wait for its own demand to appear." },
-  HC: { what: "The specialist", line: "The slowest money in the game, and the only one that is on the network from the day it opens without touching a hub." },
-  TE: { what: "Scale", line: "Two units a quarter, and every order it fills is worth double the column it sits in. The slowest start and the steepest curve." },
-};
-/* Sold out, at its base price, before it has grown: the plainest reading of a
-   card, and the one an entrepreneur would do first. Ground rent is inside OPEX,
-   so a company on its own land does better than this - it is the floor. */
-const L1 = {}, ECON = {};
-for (const ind of E.INDUSTRIES) {
-  const card = E.BP_DATA.filter((b) => b.ind === ind).sort((a, b) => a.lvl - b.lvl)[0];
-  const revenue = card.prod * E.BASE_PRICE[ind];
-  L1[ind] = card;
-  ECON[ind] = { revenue, gross: revenue - card.opex, payback: (revenue - card.opex) > 0
-    ? card.setup / (revenue - card.opex) : Infinity };
+   "$15 to open" is a number you have to hold six of to compare anything. "Average
+   among the six" is the comparison itself, which is what somebody deciding where
+   to invest actually wants. So every attribute here is banded Low / Average /
+   High against the other five, exactly as the quick-reference card bands them.
+
+   Banded by RANK, not by value, and that distinction matters: setup costs fan
+   out as companies grow - $10/$10/$15/$15/$20/$20 at level 1 becomes
+   $25/$25/$30/$40/$60/$60 at level 3 - so a band cut on the numbers would say
+   something different at each level. The ORDER never moves, so the band read off
+   the order is the same at every level, which is what lets the card claim it.
+
+   The assertion below is the point of writing it this way: if a retune ever
+   reorders an industry at one level and not another, the build stops instead of
+   printing a band that is true of level 1 and false of level 3. */
+const ATTRS = [
+  { key: "setup", label: "TO OPEN", goodIsLow: true },
+  { key: "opex", label: "TO RUN", goodIsLow: true },
+  { key: "prod", label: "OUTPUT", goodIsLow: false },
+  { key: "price", label: "PRICE", goodIsLow: false },
+];
+const cardAt = (ind, lvl) => E.BP_DATA.find((b) => b.ind === ind && b.lvl === lvl);
+const valueOf = (ind, lvl, key) => (key === "price" ? E.BASE_PRICE[ind] : cardAt(ind, lvl)[key]);
+/* Rank the six, then cut into three bands of two. Ties share the lower rank, so
+   two industries on the same figure always land in the same band. */
+function bandsFor(lvl, key) {
+  const sorted = E.INDUSTRIES.slice().sort((a, b) => valueOf(a, lvl, key) - valueOf(b, lvl, key));
+  const out = {};
+  sorted.forEach((ind, i) => { out[ind] = ["Low", "Low", "Average", "Average", "High", "High"][i]; });
+  /* A tie must not straddle a band edge: give both ends of a tie the band of the
+     first of them, which is how the reference card reads. */
+  sorted.forEach((ind, i) => {
+    if (i > 0 && valueOf(ind, lvl, key) === valueOf(sorted[i - 1], lvl, key)) out[ind] = out[sorted[i - 1]];
+  });
+  return out;
 }
-const cheapest = E.INDUSTRIES.slice().sort((a, b) => L1[a].setup - L1[b].setup)[0];
-const fastest = E.INDUSTRIES.slice().sort((a, b) => ECON[a].payback - ECON[b].payback)[0];
-const slowest = E.INDUSTRIES.slice().sort((a, b) => ECON[b].payback - ECON[a].payback)[0];
-const q = (n) => (Math.round(n * 10) / 10).toFixed(1);
+const BAND = {};
+for (const a of ATTRS) {
+  const atL1 = bandsFor(1, a.key);
+  for (const lvl of [2, 3]) {
+    const here = bandsFor(lvl, a.key);
+    const moved = E.INDUSTRIES.filter((i) => here[i] !== atL1[i]);
+    if (moved.length) {
+      console.error(`post K: ${a.key} bands differently at level ${lvl} (${moved.join(", ")}). `
+        + "The card claims one band per industry at every level - re-check the tuning "
+        + "or split the slide by level.");
+      process.exit(2);
+    }
+  }
+  BAND[a.key] = atL1;
+}
+
+/* Two industries per band per attribute, and no two industries alike. Said on
+   the slide, so checked here rather than trusted. */
+{
+  const sig = (i) => ATTRS.map((a) => BAND[a.key][i]).join("/");
+  const sigs = E.INDUSTRIES.map(sig);
+  const distinct = new Set(sigs).size === sigs.length;
+  const pairs = ATTRS.every((a) => ["Low", "Average", "High"]
+    .every((b) => E.INDUSTRIES.filter((i) => BAND[a.key][i] === b).length === 2));
+  if (!distinct || !pairs) {
+    console.error(`post K: the slide says every band holds exactly two industries and no two `
+      + `signatures repeat. Right now: pairs ${pairs}, distinct ${distinct}. Rewrite the slide.`);
+    process.exit(2);
+  }
+}
+
+/* The theme is the argument, and the mechanic is the conclusion. Each of these
+   says what the real business is like and then what the game does about it -
+   that order, because the second only lands if the first is already true. */
+const STORY = {
+  UT: { tag: "Infrastructure",
+        theme: "Power and water are a grid. It costs to lay and then it almost runs itself — the cheapest operation on the board. Nobody pays a premium for electricity, so the money is in volume, not margin. And you grow by putting more network in the ground.",
+        game: "So Utilities spreads <b>horizontally</b>: a level 3 covers three connected plots, and every upgrade is more land. It reads demand across a block of districts as wide as its level — a service territory, not a chain of shops. It never uses hubs. You cannot put a grid on a lorry." },
+  RE: { tag: "The high street",
+        theme: "One shop is cheap to open and thin on margin: you make it back on turnover, not on price. Running it is ordinary — staff, stock, rent. And a chain does not grow by building a bigger shop. It franchises, opening branches across the city.",
+        game: "So Retail is the <b>cheapest door into the game</b>, and it grows <b>vertically</b> — the chain is one business on one plot, exactly as Hospitality stacks its floors. What actually grows is its reach: one extra district of your choice per level. That is the franchise spreading. No hubs — a shop's customers walk in." },
+  HO: { tag: "Footfall",
+        theme: "A café or a small hotel opens for very little and then bleeds money to run: staff, food, laundry, the lights on all night. What keeps it alive is what is around it. A hotel beside a factory and a station is a different business from the same hotel in a field.",
+        game: "So Hospitality is <b>cheap to open and the dearest to run</b>, and it grows <b>upwards</b> — more rooms on the same plot. Its customers are the other players' buildings: it sells one unit to each business or hub within its level in plots, at full price, with no demand icon needed." },
+  MA: { tag: "Heavy industry",
+        theme: "A plant is an enormous cheque up front and then very cheap per unit — that is the whole bargain of industry. And a factory mostly does not sell to the public. It makes the components that go inside somebody else's product.",
+        game: "So Manufacturing is <b>among the dearest to open and the cheapest to run</b>, and it spreads <b>horizontally</b> — another line means another shed. It routes up to its level in units into <b>other industries' rows</b> in its own district: it does not wait for its own demand to appear." },
+  HC: { tag: "The specialist",
+        theme: "A hospital costs a fortune, treats comparatively few people, and every one of them is worth a great deal. And it serves a whole region by existing — people travel to the specialist, the specialist does not open a branch next to you.",
+        game: "So Healthcare is <b>dearest to open, lowest in output, highest in price</b>, and it grows <b>upwards</b> — wings and floors on one site. It is on the logistics network natively: it reaches every hub district without ever touching a hub." },
+  TE: { tag: "Scale",
+        theme: "Software is moderate to build and expensive to keep, because the cost is people. And the unit is not a thing on a pallet: one contract is worth a multiple of one sale, which is why a small team can serve an enormous order.",
+        game: "So Technology is <b>average to open, dearest to run, lowest in output and highest in price</b> — and every icon it reaches takes <b>two units instead of one</b>. Each order is worth double. It spreads <b>horizontally</b>: campuses and data centres take land." },
+};
+
+/* A three-step bar, the way the reference card draws it: height is the band,
+   colour is whether that band is good for you. */
+const bandBar = (ind, a) => {
+  const b = BAND[a.key][ind];
+  const step = b === "Low" ? 1 : b === "Average" ? 2 : 3;
+  const good = a.goodIsLow ? b === "Low" : b === "High";
+  const bad = a.goodIsLow ? b === "High" : b === "Low";
+  const col = good ? MINT : bad ? "#F3A5A5" : "#F5D76E";
+  return `
+    <div style="flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:10px">
+      <div style="height:78px;display:flex;align-items:flex-end">
+        <div style="width:54px;height:${26 * step}px;border-radius:6px 6px 2px 2px;background:${col}"></div>
+      </div>
+      <div style="font-size:26px;font-weight:820;color:${col};letter-spacing:-0.5px">${b}</div>
+      <div style="font-size:19px;color:${MUTE};letter-spacing:1.5px;font-weight:700">${a.label}</div>
+    </div>`;
+};
 
 add("K_industries/1.png", shell(1080, 1350, `
   <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center">
     <div class="kicker">Before you build anything</div>
     <h1 style="margin-top:28px">Which<br>business<br>would you<br>start?</h1>
-    <p style="margin-top:36px;font-size:32px">Six industries. Six completely different
-      business models &mdash; entry cost, margin, how they grow, who buys.</p>
-    <p style="margin-top:26px;font-size:29px;color:${MUTE}">Reading them is the game.
-      This is the whole table, off the cards.</p>
+    <p style="margin-top:36px;font-size:32px">Six industries. Six real business models &mdash;
+      what it takes to get in, what it costs to keep, what it sells and for how much.</p>
+    <p style="margin-top:26px;font-size:29px;color:${MUTE}">Not one of them is a reskin of another.
+      Reading which one the city needs <i>this</i> game is the whole first act.</p>
   </div>
-  ${foot(1, 8)}`));
+  ${foot(1, 9)}`));
+
+/* ---- the comparison, which is the thing a founder actually wants ------- */
+add("K_industries/2.png", shell(1080, 1350, `
+  <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div class="kicker">All six, side by side</div>
+    <h2 style="margin-top:22px;font-size:46px">Every band holds<br>exactly two.</h2>
+    <p style="margin-top:20px;font-size:26px;color:${MUTE}">Low, average or high <i>against the other
+      five</i> &mdash; and the order holds at every level.</p>
+
+    <div style="margin-top:34px;border:1px solid ${LINE};border-radius:16px;overflow:hidden">
+      <div style="display:flex;background:${CARD};padding:16px 20px;font-size:19px;
+                  color:${MUTE};letter-spacing:1.4px;font-weight:700">
+        <div style="flex:1.5"></div>
+        ${ATTRS.map((a) => `<div style="flex:1;text-align:center">${a.label}</div>`).join("")}
+        <div style="flex:1.1;text-align:right">GROWS</div>
+      </div>
+      ${E.INDUSTRIES.map((ind, i) => `
+        <div style="display:flex;align-items:center;padding:17px 20px;font-size:24px;
+                    border-top:1px solid ${LINE};background:${i % 2 ? "transparent" : "#101216"}">
+          <div style="flex:1.5;display:flex;align-items:center;gap:12px">
+            <div style="width:20px;height:20px;border-radius:5px;background:${E.IND_COLOR[ind]}"></div>
+            <span style="font-weight:780">${E.IND_NAME[ind]}</span>
+          </div>
+          ${ATTRS.map((a) => {
+            const b = BAND[a.key][ind];
+            const good = a.goodIsLow ? b === "Low" : b === "High";
+            const bad = a.goodIsLow ? b === "High" : b === "Low";
+            return `<div style="flex:1;text-align:center;font-weight:750;
+              color:${good ? MINT : bad ? "#F3A5A5" : "#F5D76E"}">${b}</div>`;
+          }).join("")}
+          <div style="flex:1.1;text-align:right;color:#C9CFDA;font-weight:700">
+            ${E.SCALING[ind] === "H" ? "sideways" : "upwards"}</div>
+        </div>`).join("")}
+    </div>
+
+    <p style="margin-top:30px;font-size:27px;color:#C9CFDA">
+      No two industries share a signature. Retail and Hospitality are both cheap to get into
+      &mdash; then Hospitality costs the most in the game to keep running and Retail is ordinary.
+      Retail and Utilities both sell a lot for very little. Only one of them needs land to do it.</p>
+  </div>
+  ${foot(2, 9)}`));
 
 E.INDUSTRIES.forEach((ind, i) => {
-  const c = L1[ind], m = MODEL[ind], col = E.IND_COLOR[ind];
-  const sideways = E.SCALING[ind] === "H";
-  const stat = (big, small) => `
-    <div style="flex:1">
-      <div style="font-size:52px;font-weight:870;letter-spacing:-1px" class="mono">${big}</div>
-      <div style="font-size:21px;color:${MUTE};margin-top:6px;letter-spacing:1px">${small}</div>
-    </div>`;
-  add(`K_industries/${i + 2}.png`, shell(1080, 1350, `
+  const st = STORY[ind], col = E.IND_COLOR[ind];
+  add(`K_industries/${i + 3}.png`, shell(1080, 1350, `
     <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center">
       <div style="display:flex;align-items:center;gap:18px">
         <div style="width:44px;height:44px;border-radius:10px;background:${col}"></div>
         <div>
           <div style="font-size:44px;font-weight:850;letter-spacing:-1px">${E.IND_NAME[ind]}</div>
-          <div style="font-size:24px;color:${col};font-weight:750;letter-spacing:2px;text-transform:uppercase">${m.what}</div>
+          <div style="font-size:23px;color:${col};font-weight:750;letter-spacing:2px;text-transform:uppercase">
+            ${st.tag} &middot; grows ${E.SCALING[ind] === "H" ? "sideways" : "upwards"}</div>
         </div>
       </div>
 
-      <div style="display:flex;gap:18px;margin-top:46px;padding:28px 0;border-top:1px solid ${LINE};border-bottom:1px solid ${LINE}">
-        ${stat(`$${c.setup}`, "TO OPEN")}
-        ${stat(`${c.prod}`, "UNITS / QTR")}
-        ${stat(`$${E.BASE_PRICE[ind]}`, "BASE PRICE")}
-        ${stat(`$${c.opex}`, "RUNNING")}
+      <div style="display:flex;gap:16px;margin-top:38px;padding:26px 0;
+                  border-top:1px solid ${LINE};border-bottom:1px solid ${LINE}">
+        ${ATTRS.map((a) => bandBar(ind, a)).join("")}
       </div>
 
-      <div style="margin-top:30px;font-size:31px">
-        Sold out at its base price, it clears
-        <b style="color:${col}">$${ECON[ind].gross} a quarter</b> &mdash; so it pays for itself in
-        <b style="color:${col}">${q(ECON[ind].payback)} quarters</b>.
-      </div>
-
-      <p style="margin-top:28px;font-size:29px;color:#C9CFDA">${m.line}</p>
-
-      <div style="margin-top:32px;padding:22px 24px;border-radius:14px;background:${CARD};border:1px solid ${LINE}">
-        <div style="font-size:20px;color:${MUTE};letter-spacing:2px;font-weight:700">
-          ${sideways ? "GROWS SIDEWAYS" : "GROWS UPWARDS"}
-        </div>
-        <div style="font-size:26px;margin-top:8px;color:#C9CFDA">
-          ${sideways
-            ? `A level 3 covers <b>3 connected plots</b>. Every upgrade needs more land.`
-            : `Every level stands on <b>one plot</b>. It never needs more land.`}
-        </div>
-        <div style="font-size:26px;margin-top:14px;color:#C9CFDA">
-          ${/* The engine writes "[level]" as a placeholder the game fills in at
-                render time. On a slide it reads as a bug, so it is said in words. */ ""}
-          <span style="color:${col};font-weight:750">Reach.</span>
-          ${E.IND_ABILITY[ind].replace(/\[level\]/g, "its level in")}
-        </div>
-      </div>
+      <p style="margin-top:30px;font-size:28px;line-height:1.5">${st.theme}</p>
+      <p style="margin-top:24px;font-size:28px;line-height:1.5;color:#C9CFDA">${st.game}</p>
     </div>
-    ${foot(i + 2, 8)}`));
+    ${foot(i + 3, 9)}`));
 });
 
-add("K_industries/8.png", shell(1080, 1350, `
+add("K_industries/9.png", shell(1080, 1350, `
   <div class="pad" style="flex:1;display:flex;flex-direction:column;justify-content:center">
     <div class="kicker">And then the market moves</div>
     <h2 style="margin-top:26px">None of this<br>holds still.</h2>
-    ${/* The cheapest door in and the fastest to repay are often the same industry,
-          and naming it twice in one sentence reads like a mistake. */ ""}
-    <p style="margin-top:32px;font-size:30px">
-      <b style="color:${E.IND_COLOR[cheapest]}">${E.IND_NAME[cheapest]}</b> opens for
-      $${L1[cheapest].setup}${cheapest === fastest
-        ? ` and repays in ${q(ECON[fastest].payback)} quarters`
-        : `; <b style="color:${E.IND_COLOR[fastest]}">${E.IND_NAME[fastest]}</b> repays fastest,`
-          + ` in ${q(ECON[fastest].payback)} quarters`}.
-      <b style="color:${E.IND_COLOR[slowest]}">${E.IND_NAME[slowest]}</b> costs
-      $${L1[slowest].setup} and takes ${q(ECON[slowest].payback)}.</p>
-    <p style="margin-top:26px;font-size:30px">
-      But every company built drops its own industry's price <b>$1</b> and lifts each of its
-      suppliers <b>$1</b>. Build where everyone else built and you are selling into a glut.</p>
+    <p style="margin-top:32px;font-size:30px">Every company built drops its own industry's price
+      <b>$1</b> and lifts each of its suppliers <b>$1</b>. Your running costs are somebody else's
+      income, and the industry everybody picked is the one selling into a glut.</p>
     <div style="margin-top:30px;padding:24px 26px;border-radius:14px;background:${CARD};border:1px solid ${LINE}">
-      <div style="font-size:27px;color:#C9CFDA">The board is drawn fresh every game: four centres
-        shuffled, twelve of sixteen suburbs dealt. <b>Rows 3 and 4 are locked until Q5</b>, and the
-        whole demand grid is <b>wiped at the end of Q8</b>.</div>
+      <div style="font-size:27px;color:#C9CFDA">The city is dealt fresh every game: four centres
+        shuffled, twelve of sixteen suburbs drawn. Each district wants a different four industries.
+        <b>Two rows of demand stay locked until Q5</b>, and the whole grid is
+        <b>wiped at the end of Q8</b>.</div>
     </div>
     <p style="margin-top:28px;font-size:31px;font-weight:800;color:${GOLD}">
-      The industry that was right in Year 1 is not the one that is right in Year 3.</p>
+      The business that was right in Year 1 is not the business that is right in Year 3.</p>
+    <p style="margin-top:22px;font-size:27px;color:${MUTE}">That is not flavour text. That is the game.</p>
   </div>
-  ${foot(8, 8)}`));
+  ${foot(9, 9)}`));
+
+
 
 /* ---------------------------------------------------------------- reels */
 /* Self-contained animated pages at Reel size. Screen-record to get the video. */

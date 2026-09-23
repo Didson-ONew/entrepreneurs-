@@ -905,50 +905,58 @@ enough times that an admission reads as confidence rather than as a disclaimer.
 ---
 
 ## K · Carousel — six industries, six business models
-`K_industries/1..8` — the hook, one slide per industry, then the market
+`K_industries/1..9` — hook, the comparison, one slide per industry, then the market
 
-> An entrepreneur deciding what to open does not start with a theme. They start
-> with the numbers: what does it cost to get in, what does it sell for, how fast
-> does it pay me back, and what happens when the next person opens one too.
+> An entrepreneur choosing what to open does not start with a theme. They start
+> with four questions: what does it take to get in, what does it cost to keep,
+> how much does it make, and what does that sell for. Every industry answers
+> those differently, and choosing between them *is* the first act of this game.
 >
-> That is the whole first act of this game, and the six industries answer those
-> questions completely differently.
+> So the numbers are not the interesting part. How they compare is.
 >
-> **Retail** — $10 to open, four units a quarter at $4. Cheapest door in the
-> game, repays in under a quarter, and it never needs a second plot. Small, fast,
-> everywhere.
-> **Utilities** — $15, four units at $4. The lowest price on the board and the
-> joint-highest output. You are not selling something precious; you are selling a
-> lot of it.
-> **Hospitality** — $10, three units at $5. The only industry whose customers are
-> *other players' buildings*: once the demand board is full, it sells to every
-> business and hub within reach, at full price.
-> **Manufacturing** — $20 to open and the joint-cheapest running cost in the game. It
-> sells into other industries' rows at home, so it does not wait for its own
-> demand to appear.
-> **Healthcare** — $20, two units at $6. The slowest money here — nearly three
-> quarters to repay — and the only one that is on the logistics network from the
-> day it opens, without touching a hub.
-> **Technology** — $15, two units at $6, and every order it fills is worth double
-> the column it sits in. The slowest start and the steepest curve.
+> **Retail and Hospitality** are the two low barriers to entry — a shop and a café
+> both open for very little. Then they part: Hospitality is the most expensive
+> business in the game to keep running (staff, food, laundry, the lights on all
+> night) while Retail is ordinary.
 >
-> Then it moves. Every company built drops its own industry's price a dollar and
-> lifts each of its suppliers a dollar — so your operating costs are someone
-> else's income, and the industry everybody picked is the one selling into a glut.
+> **Retail and Utilities** are the volume play: the highest output on the board and
+> the lowest price on it. You are not selling something precious, you are selling a
+> lot of it. But they scale in opposite ways, and this is where the theme drives
+> the rule. Utilities is a grid — it grows by putting more network in the ground,
+> so it spreads **horizontally** and its reach is a block of districts as wide as
+> its level, a service territory. Retail is a chain — it grows by opening branches,
+> so it stacks **vertically** on one plot and what expands is its reach: one extra
+> district of your choice per level. The franchise, spreading.
 >
-> The board is dealt fresh every game. Two rows of demand stay locked until
-> Quarter 5. The whole grid is wiped at the end of Quarter 8.
+> **Manufacturing and Healthcare** are the heavy cheques. A plant is enormous
+> capital and then very cheap per unit, and it mostly sells to other businesses —
+> so it routes units into *other industries'* rows at home. A hospital costs a
+> fortune, treats few people at very high value, and serves a whole region by
+> existing — so it is on the logistics network natively, reaching every hub
+> district without touching a hub.
+>
+> **Technology** is the odd one: average to open, dearest to run because the cost is
+> people, the lowest output and the highest price. Its unit is not a thing on a
+> pallet — one contract is worth a multiple of one sale — so every order it fills
+> takes two units instead of one.
+>
+> Then the market moves. Every company built drops its own industry's price a
+> dollar and lifts each of its suppliers a dollar. Your running costs are somebody
+> else's income. The city is dealt fresh every game, two rows of demand stay locked
+> until Quarter 5, and the whole grid is wiped at the end of Quarter 8.
 >
 > The business that was right in Year 1 is not the business that is right in
 > Year 3. That is not flavour text. That is the game.
 >
 > 🏗️
 
-*Every figure on these slides is computed from the cards at build time — entry
-cost, output, running bill, and the payback each one implies. Retune a card and
-the post follows. The one-line characterisations are the only judgement in it,
-and each sits beside the number that supports it.*
+*Bands, not figures, and banded by RANK rather than by value — setup costs fan
+out as companies grow ($10/$10/$15/$15/$20/$20 at level 1 becomes
+$25/$25/$30/$40/$60/$60 at level 3), so a band cut on the numbers would say one
+thing at level 1 and another at level 3. The order never moves, so the band read
+off the order is true at every level. The build asserts that, and asserts the
+claim on slide 2 — every band holds exactly two industries and no two signatures
+repeat — so if a retune breaks either, the kit stops instead of printing it.*
 
-*Slide 1 is the hook and works as a standalone if you want to test it first:
-"Which business would you start?" Post the full carousel mid-week; this is a
-read, not a scroll-past.*
+*Slide 2 is the whole pitch on one screen if you only post one. Slide 1 works as
+a standalone hook.*
