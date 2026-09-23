@@ -246,7 +246,7 @@ export function Rulebook({ onClose }) {
             ))}
             {!shown.length && (
               <p style={{ fontSize: 13, color: INK.dim }}>
-                No rule mentions &ldquo;{q.trim()}&rdquo;. Try a shorter word.
+                {t("No rule mentions “{0}”. Try a shorter word.", q.trim())}
               </p>
             )}
           </div>
