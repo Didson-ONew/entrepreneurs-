@@ -60,7 +60,10 @@ const feedbackCount = async () => {
   check("sending is disabled until there is something to send", await send.isDisabled().catch(() => false));
 
   const before = await feedbackCount();
-  await page.getByRole("button", { name: "4 out of 5" }).first().click().catch((e) => errs.push("star: " + e.message));
+  /* The star's label is a translated string now - "4 of 5" - rather than English
+     welded into the component, so this matches what t() produces rather than what
+     a template literal used to. */
+  await page.getByRole("button", { name: "4 of 5" }).first().click().catch((e) => errs.push("star: " + e.message));
   await page.locator("textarea").first().fill("The tithe changed how I built. Good.");
   await sleep(200);
   const enabled = !(await send.isDisabled().catch(() => true));
