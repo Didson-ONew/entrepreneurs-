@@ -1635,7 +1635,9 @@ const sellableForBiz = (state, owner, biz) => placeableFor(state, owner, biz);
    upgrade has to be pricable before it is bought. */
 function upgradeScore(state, p, b, assumePlot) {
   const blocked = upgradeBlockedReason(state, p, b);
-  if (blocked && !(assumePlot && blocked.startsWith("no owned"))) return -Infinity;
+  /* The reason is a key and its values now, not a sentence. The KEY is the
+     stable thing to test - the sentence is whatever language the reader has. */
+  if (blocked && !(assumePlot && blocked.k.startsWith("no owned"))) return -Infinity;
   const qLeft = Math.max(1, 13 - (state.quarter || 1));
   const px = price(state.pm, bizInd(b));   // upgrading adds no new supply to the market
   const spreads = upgradeScaling(p, b) === "H";
@@ -1824,7 +1826,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "891fe9a4";
+const ENGINE_VERSION = "892782b0";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the

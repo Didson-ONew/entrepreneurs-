@@ -37,7 +37,7 @@ const base = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
 const NEEDLES = {
   discs: "const DISCS_PER_PLAYER = 10;",
   used: "function discsUsed(state, p) {\n  return plotsOwned(state, p) + companySlotsUsed(p) + p.discsInBank;\n}",
-  blocked: 'function upgradeBlockedReason(state, p, b) {\n  if (b.isHQ) return "is a Megacorp HQ";',
+  blocked: 'function upgradeBlockedReason(state, p, b) {\n  if (b.isHQ) return logMsg("is a Megacorp HQ");',
   doUpgrade: "function doUpgrade(state, p, b, rng, log, manualPlot) {\n  if (b.upgraded) return false;",
   rd: "    const candidates = starved ? [] : activeBiz(p).filter((b) => !b.upgraded",
 };
@@ -56,7 +56,7 @@ function engineFor(discs, markUpgrades) {
       "  const marked = p.businesses.filter((b) => !b.distressed && b.upgraded).length;\n" +
       "  return plotsOwned(state, p) + companySlotsUsed(p) + p.discsInBank + marked;\n}");
     logic = logic.replace(NEEDLES.blocked,
-      NEEDLES.blocked + '\n  if (discsFree(state, p) <= 0) return "no free disc to mark it upgraded";');
+      NEEDLES.blocked + '\n  if (discsFree(state, p) <= 0) return logMsg("no free disc to mark it upgraded");');
     logic = logic.replace(NEEDLES.doUpgrade,
       NEEDLES.doUpgrade + "\n  if (discsFree(state, p) <= 0) return false;");
   }
