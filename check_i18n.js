@@ -1,13 +1,17 @@
 /* Which player-facing strings are still English?
 
    t() is keyed by the English source, so a missing translation is not a crash -
-   it is an English sentence in a Portuguese game. That is the right failure, and
-   it is also invisible, which is why this exists: it walks every t("...") call
-   in the app, plus the text tables the UI translates at render time, and reports
-   what the dictionary has no entry for.
+   it is an English sentence in a Chinese game. That is the right failure, and it
+   is also invisible, which is why this exists: it walks every t("...") call in
+   the app, plus the text tables the UI translates at render time, and reports
+   what each dictionary has no entry for.
 
-   Run: node check_i18n.js            (lists what is missing)
-        node check_i18n.js --strict   (exit 1 if anything is missing)
+   Every language registered in i18n.js is checked, so adding a third one does
+   not mean editing this file.
+
+   Run: node check_i18n.js                (lists what is missing, per language)
+        node check_i18n.js --strict       (exit 1 if anything is missing)
+        node check_i18n.js --dump f.json  (write the English catalogue out)
 */
 const fs = require("fs");
 const path = require("path");
@@ -16,9 +20,20 @@ const vm = require("vm");
 const FILES = ["EntrepreneursGame.jsx", "OnlineApp.jsx", "Rulebook.jsx", "Records.jsx", "Feedback.jsx"];
 const STRICT = process.argv.includes("--strict");
 
-/* the dictionary, read as source so this needs no bundler */
-const ptSrc = fs.readFileSync(path.join(__dirname, "i18n.pt.js"), "utf8");
-const dict = vm.runInNewContext("(" + ptSrc.slice(ptSrc.indexOf("export default {") + "export default ".length).replace(/;\s*$/, "") + ")");
+/* Which languages exist, straight out of the registry, so this file never has
+   to be told about a new one. English is the source and needs no dictionary. */
+const reg = fs.readFileSync(path.join(__dirname, "i18n.js"), "utf8");
+const LANGS = [...reg.matchAll(/\{\s*code:\s*"(\w+)"\s*,\s*label:\s*"((?:[^"\\]|\\.)*)"/g)]
+  .map((m) => ({ code: m[1], label: JSON.parse('"' + m[2] + '"') }))
+  .filter((l) => l.code !== "en");
+
+/* the dictionaries, read as source so this needs no bundler */
+const readDict = (code) => {
+  const src = fs.readFileSync(path.join(__dirname, `i18n.${code}.js`), "utf8");
+  const body = src.slice(src.indexOf("export default {") + "export default ".length).replace(/;\s*$/, "");
+  return vm.runInNewContext("(" + body + ")");
+};
+const DICTS = Object.fromEntries(LANGS.map((l) => [l.code, readDict(l.code)]));
 
 const wanted = new Set();
 for (const f of FILES) {
@@ -104,17 +119,29 @@ for (const [file, anchor] of TABLES) {
   }
 }
 
-const missing = [...wanted].filter((s) => !Object.prototype.hasOwnProperty.call(dict, s)).sort();
-const stale = Object.keys(dict).filter((s) => !wanted.has(s)).sort();
-const pct = Math.round(((wanted.size - missing.length) / wanted.size) * 100);
+const dumpAt = process.argv.indexOf("--dump");
+if (dumpAt > 0 && process.argv[dumpAt + 1]) {
+  fs.writeFileSync(process.argv[dumpAt + 1], JSON.stringify([...wanted].sort(), null, 1));
+  console.log(`${wanted.size} strings written to ${process.argv[dumpAt + 1]}`);
+}
 
-console.log(`pt-BR: ${wanted.size - missing.length}/${wanted.size} strings translated (${pct}%)`);
-if (missing.length) {
-  console.log(`\n${missing.length} still English:`);
-  missing.forEach((s) => console.log("   " + JSON.stringify(s.slice(0, 100))));
+let short = 0;
+for (const { code, label } of LANGS) {
+  const dict = DICTS[code];
+  const missing = [...wanted].filter((s) => !Object.prototype.hasOwnProperty.call(dict, s)).sort();
+  const stale = Object.keys(dict).filter((s) => !wanted.has(s)).sort();
+  const pct = Math.round(((wanted.size - missing.length) / wanted.size) * 100);
+  short += missing.length;
+
+  console.log(`${code}: ${wanted.size - missing.length}/${wanted.size} strings translated (${pct}%)  ${label}`);
+  if (missing.length) {
+    console.log(`\n${missing.length} still English:`);
+    missing.forEach((s) => console.log("   " + JSON.stringify(s.slice(0, 100))));
+  }
+  if (stale.length) {
+    console.log(`\n${stale.length} dictionary entries no longer used by the app:`);
+    stale.slice(0, 20).forEach((s) => console.log("   " + JSON.stringify(s.slice(0, 80))));
+  }
+  if (missing.length || stale.length) console.log("");
 }
-if (stale.length) {
-  console.log(`\n${stale.length} dictionary entries no longer used by the app:`);
-  stale.slice(0, 20).forEach((s) => console.log("   " + JSON.stringify(s.slice(0, 80))));
-}
-process.exit(STRICT && missing.length ? 1 : 0);
+process.exit(STRICT && short ? 1 : 0);

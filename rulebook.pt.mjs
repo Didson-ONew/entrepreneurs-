@@ -4,14 +4,15 @@
    Traducao de rulebook.data.mjs, secao por secao, com a MESMA ESTRUTURA: os
    mesmos ids, os mesmos blocos na mesma ordem, as mesmas tabelas com as mesmas
    dimensoes. Isso nao e estilo, e o que permite checar as duas versoes uma
-   contra a outra: check_rulebook_pt.mjs compara forma e numeros e falha se
+   contra a outra: check_rulebook_i18n.mjs compara forma e numeros e falha se
    alguem mexer em um lado so.
 
    O ingles continua sendo a fonte das REGRAS. Quando uma regra muda, muda la,
    e esta traducao e refeita - nunca o contrario.
 
-   Nomes proprios impressos nos componentes (cartas de Projeto, fichas de
-   Megacorporacao) ficam em ingles de proposito: e o que esta na mesa.
+   Nomes de cartas de Projeto e de fichas de Megacorporacao sao traduzidos, carta
+   por carta, com os mesmos nomes que o jogo usa em i18n.pt.js: numa edicao
+   brasileira e isso que estaria impresso no componente.
    ========================================================================== */
 
 export const EDITION_PT = "Manual v19";

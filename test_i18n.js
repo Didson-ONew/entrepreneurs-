@@ -1,4 +1,4 @@
-/* Does the game actually run in Portuguese?
+/* Does the game actually run in every language it offers?
 
    check_i18n.js proves the dictionary covers every string. This proves the far
    more important thing: that the translated app RENDERS. Two bugs made that
@@ -25,10 +25,14 @@ const check = (label, cond, note = "") => {
 };
 
 const PAGE = "file://" + path.join(__dirname, "Entrepreneurs.html");
-/* Words that can only come from the Portuguese dictionary, and can never be a
+/* Words that can only come from that language's dictionary, and can never be a
    coincidence of the English text. */
-const PT_MARKERS = ["Manual", "Registros", "Projeto", "trimestre", "Trimestre", "lote", "setor", "Iniciar", "Começar"];
-const EN_MARKERS = ["Rulebook", "Records"];
+const MARKERS = {
+  pt: ["Manual", "Registros", "Projeto", "trimestre", "Trimestre", "lote", "setor", "Iniciar", "Começar"],
+  zh: ["规则书", "记录", "蓝图", "季度", "地块", "产业", "开始游戏", "怎么玩"],
+  en: ["Rulebook", "Records"],
+};
+const LANG_NAME = { pt: "Portuguese", zh: "Chinese", en: "English" };
 
 async function run(lang) {
   const browser = await launchBrowser();
@@ -60,15 +64,15 @@ async function run(lang) {
     }
     return false;
   };
-  await click(/Start Game|Começar|Iniciar/);
+  await click(/Start Game|Começar|Iniciar|开始游戏/);
   await sleep(1200);
   let reached = false;
   for (let i = 0; i < 60 && !reached; i++) {
     if (await crashed()) break;
     const t = await txt();
-    if (/Your turn|Place a meeple|Sua vez|Coloque um trabalhador|Planning|Planejamento/.test(t) && /Q1/.test(t)) { reached = true; break; }
-    if (/Year 1|Ano 1/.test(t)) { await click(/Year 1|Ano 1/); await sleep(1000); continue; }
-    const deck = page.locator("button").filter({ hasText: /\d+\s*(?:left|restante)/i }).first();
+    if (/Your turn|Place a meeple|Sua vez|Coloque um trabalhador|Planning|Planejamento|轮到你了|放置一个工人|规划/.test(t) && /Q1/.test(t)) { reached = true; break; }
+    if (/Year 1|Ano 1|第 1 年/.test(t)) { await click(/Year 1|Ano 1|第 1 年/); await sleep(1000); continue; }
+    const deck = page.locator("button").filter({ hasText: /\d+\s*(?:left|restante)|还剩\s*\d+/i }).first();
     if (await deck.count() && await deck.isEnabled().catch(() => false)) { await deck.click({ timeout: 2500 }).catch(() => {}); await sleep(300); continue; }
     await sleep(350);
   }
@@ -76,32 +80,33 @@ async function run(lang) {
     reached ? "" : (await txt()).replace(/\n+/g, " | ").slice(0, 220));
 
   const board = await txt();
-  if (lang === "pt") {
-    const hits = PT_MARKERS.filter((w) => lobby.includes(w) || board.includes(w));
-    check("[pt] the screen is in Portuguese", hits.length >= 3, hits.join(", ") || "no Portuguese found");
-    check("[pt] the English chrome is gone", !/\bRulebook\b/.test(lobby), "the rulebook button is still English");
-  } else {
-    const hits = EN_MARKERS.filter((w) => lobby.includes(w));
+  const hits = MARKERS[lang].filter((w) => lobby.includes(w) || board.includes(w));
+  if (lang === "en") {
     check("[en] the screen is in English", hits.length >= 1, hits.join(", "));
+  } else {
+    check(`[${lang}] the screen is in ${LANG_NAME[lang]}`, hits.length >= 3, hits.join(", ") || "none of the markers appeared");
+    check(`[${lang}] the English chrome is gone`, !/\bRulebook\b/.test(lobby), "the rulebook button is still English");
   }
   check(`[${lang}] no uncaught page errors`, errs.length === 0, errs.slice(0, 2).join(" | "));
   await browser.close();
 }
 
 /* A missing translation is not a crash, so nothing else would catch it. This
-   makes the suite fail when a new English string lands without Portuguese. */
+   makes the suite fail when a new English string lands in any language without
+   a translation - every language check_i18n.js reports on, not just the first. */
 function coverage() {
   const { execFileSync } = require("child_process");
   const out = execFileSync("node", [path.join(__dirname, "check_i18n.js")], { encoding: "utf8" });
-  const m = /pt-BR: (\d+)\/(\d+)/.exec(out);
-  check("every player-facing string has a translation", !!m && m[1] === m[2],
-    m ? `${m[1]} of ${m[2]}` : "check_i18n.js printed nothing");
+  const lines = [...out.matchAll(/^(\w+): (\d+)\/(\d+) strings translated/gm)];
+  check("check_i18n.js reported on at least one language", lines.length > 0, out.slice(0, 200));
+  for (const [, code, done, all] of lines) {
+    check(`[${code}] every player-facing string has a translation`, done === all, `${done} of ${all}`);
+  }
 }
 
 (async () => {
   coverage();
-  await run("en");
-  await run("pt");
+  for (const lang of ["en", "pt", "zh"]) await run(lang);
   console.log(failures ? `\n${failures} check(s) failed\n` : "\nall checks passed\n");
   process.exit(failures ? 1 : 0);
 })();

@@ -2,17 +2,19 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { RULEBOOK as BOOK_ALL, EDITION, forEdition } from "./rulebook.data.mjs";
 import { RULEBOOK_PT, EDITION_PT } from "./rulebook.pt.mjs";
+import { RULEBOOK_ZH, EDITION_ZH } from "./rulebook.zh.mjs";
 import { t, useLang, getLang, LanguageSwitch } from "./i18n.js";
 
 /* The in-game book is the app's book, so it keeps the online section and drops
    anything written only for a physical table. */
-/* One book per language, both filtered to the app's edition. The translation
+/* One book per language, each filtered to the app's edition. Every translation
    has the same sections in the same order with the same ids, which is what
-   check_rulebook_pt.mjs exists to keep true - so everything downstream (the
-   contents list, the search index, the section numbers) works on either. */
+   check_rulebook_i18n.mjs exists to keep true - so everything downstream (the
+   contents list, the search index, the section numbers) works on any of them. */
 const BOOKS = {
   en: { book: forEdition(BOOK_ALL, "digital"), edition: EDITION, sub: "the complete rules", title: "Entrepreneurs \u2014 how to play" },
   pt: { book: forEdition(RULEBOOK_PT, "digital"), edition: EDITION_PT, sub: "as regras completas", title: "Entrepreneurs \u2014 como se joga" },
+  zh: { book: forEdition(RULEBOOK_ZH, "digital"), edition: EDITION_ZH, sub: "\u5b8c\u6574\u89c4\u5219", title: "Entrepreneurs \u2014 \u600e\u4e48\u73a9" },
 };
 const bookFor = (lang) => BOOKS[lang] || BOOKS.en;
 import Records from "./Records.jsx";
@@ -105,7 +107,7 @@ function sectionText(s) {
   }
   return bits.join(" ").toLowerCase();
 }
-const SEARCH_INDEX = { en: BOOKS.en.book.map(sectionText), pt: BOOKS.pt.book.map(sectionText) };
+const SEARCH_INDEX = Object.fromEntries(Object.entries(BOOKS).map(([code, b]) => [code, b.book.map(sectionText)]));
 
 export function Rulebook({ onClose }) {
   const lang = useLang();
