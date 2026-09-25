@@ -36,17 +36,18 @@ if (CUT < 0) { console.error("the engine marker moved - update this script"); pr
 
 /* Every needle is asserted before it is replaced. If any of these move, this
    stops rather than reporting numbers about a game that no longer exists. */
+/* Each needle is ONE line, and each is unique in the engine. They used to span two,
+   which meant any line inserted between them killed the probe - which is exactly what
+   happened when distressPayout was added to all three paths. A single line that says
+   "this company just went out of service" is the thing being hooked, so hook that. */
 const NEEDLES = {
-  sell: `  p.cash += recv; b.distressed = true;
-  return recv;`,
+  sell: "  p.cash += recv; b.distressed = true;",
   merge: `  match.have.forEach((b) => {
     if (b === hq) return;
     b.distressed = true;
   });`,
-  renovate: `  distressedBiz.distressed = false;
-  distressedBiz.bp = bp;`,
-  reclaim: `  biz.distressed = false;
-  biz.scored = false;          // it scores again for its new owner`,
+  renovate: "  distressedBiz.distressed = false;",
+  reclaim: "  biz.scored = false;          // it scores again for its new owner",
 };
 for (const [k, v] of Object.entries(NEEDLES)) {
   if (!SRC.includes(v)) { console.error(`the ${k} path has changed shape - update this script`); process.exit(2); }
@@ -56,8 +57,7 @@ const PATCHES = {
   /* A sale: the company stops trading, so its own good gets scarcer and the
      things it was buying get less wanted. */
   sell: `  p.cash += recv; b.distressed = true;
-  if (box.onRetire) box.onRetire(b, "sale");
-  return recv;`,
+  if (box.onRetire) box.onRetire(b, "sale");`,
   /* The Megacorp's name is passed through so the audit can tell one merge from
      the next - without it, consecutive merges look like a single enormous
      action and the "worst single action" figure runs away. */
@@ -69,10 +69,8 @@ const PATCHES = {
   /* Coming back online has to undo the retirement, or sell-then-renovate is a
      ratchet that lifts a price for free, every turn, forever. */
   renovate: `  distressedBiz.distressed = false;
-  if (box.onReturn) box.onReturn(distressedBiz, bp);
-  distressedBiz.bp = bp;`,
-  reclaim: `  biz.distressed = false;
-  if (box.onReturn) box.onReturn(biz, biz.bp);
+  if (box.onReturn) box.onReturn(distressedBiz, bp);`,
+  reclaim: `  if (box.onReturn) box.onReturn(biz, biz.bp);
   biz.scored = false;          // it scores again for its new owner`,
 };
 

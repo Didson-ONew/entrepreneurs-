@@ -29,7 +29,11 @@ const SEATS = parseInt(process.argv[3] || "4", 10);
 const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
 const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
 let logic = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
-const HOOK_AT = "function autoDeliver(state, p, biz) {\n  let remaining = bizProd(biz);";
+/* autoDeliver now pins a Retail company's extra-district pick before it counts its
+   production - the change this probe first measured, since adopted - so the hook
+   anchors on the production line itself, which is the point the probe wants to be
+   at: after the pin, before the first slot. */
+const HOOK_AT = "  let remaining = bizProd(biz);";
 if (!logic.includes(HOOK_AT)) { console.error("autoDeliver changed shape - update this probe"); process.exit(2); }
 /* Before the company sells: what could it have sold into? Own-industry icons only -
    Manufacturing's cross-sell is a separate allowance and is not what is under test. */
@@ -50,13 +54,6 @@ if (process.argv.includes("--drift")) {
   /* Put the drift back: forget the pin so reachableDistricts re-chooses on every slot. */
   logic = logic.replace(HOOK_AT, HOOK_AT + `
   if (bizInd(biz) === "RE" && state.reChoices) delete state.reChoices[biz.id];`);
-}
-if (false) {
-  logic = logic.replace(HOOK_AT, HOOK_AT + `
-  if (bizInd(biz) === "RE" && !(state.reChoices && state.reChoices[biz.id])) {
-    state.reChoices = state.reChoices || {};
-    state.reChoices[biz.id] = bestExtraDistrictsForRE(state, biz, reAllowance(state, biz, p), footprintDistricts(state.board, biz.footprint));
-  }`);
 }
 const AFTER = "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;";
 if (!logic.includes(AFTER)) { console.error("autoDeliver's end changed - update this probe"); process.exit(2); }

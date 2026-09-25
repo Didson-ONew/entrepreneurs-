@@ -48,10 +48,15 @@ const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8
 const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
 if (CUT < 0) { console.error("the engine marker moved - update this probe"); process.exit(2); }
 
+/* The ceil12 proposal SHIPPED, whole: bases +$2, the $2..$12 track, the full-dollar
+   step and $50 an EP. So N anchors on the shipped economy and P holds the one it
+   replaced; "before" patches all the way back, and ceil10 is the first version of
+   the proposal, which raised the bases into a $10 ceiling. */
 const N = {
-  step: "const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;",
-  floor: "const PRICE_MIN = 1, PRICE_MAX = 10;",
-  base: "const BASE_PRICE = { UT: 2, RE: 2, HO: 3, MA: 3, HC: 4, TE: 4 };",
+  step: "const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;",
+  floor: "const PRICE_MIN = 2, PRICE_MAX = 12;",
+  base: "const BASE_PRICE = { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 };",
+  rate: "const CASH_PER_EP = 50;",
   /* the delivery hook, so sold units can be told from recycled ones */
   sale: "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;",
 };
@@ -59,17 +64,15 @@ for (const [k, v] of Object.entries(N)) {
   if (!SRC.includes(v)) { console.error(`the ${k} path has changed shape - update this probe`); process.exit(2); }
 }
 const P = {
-  step: "const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;",
-  base: "const BASE_PRICE = { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 };",
-  rate: "const CASH_PER_EP = 20;",
+  step: "const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;",
+  base: "const BASE_PRICE = { UT: 2, RE: 2, HO: 3, MA: 3, HC: 4, TE: 4 };",
 };
-if (!SRC.includes(P.rate)) { console.error("CASH_PER_EP has changed - update this probe"); process.exit(2); }
 
 /* The three worlds. `ceiling` and `rate` are what separate the two proposals. */
 const WORLDS = {
-  today:  { label: "today",  patch: (l) => l },
+  before: { label: "before", old: true },
   ceil10: { label: "ceil10", ceiling: 10, rate: 20 },
-  ceil12: { label: "ceil12", ceiling: 12, rate: 50 },
+  shipped: { label: "shipped", patch: (l) => l },
 };
 const NAMES = Object.keys(WORLDS);
 const SALE_HOOK = "  const leftover = Math.max(0, remaining);\n"
@@ -82,12 +85,18 @@ const SALE_HOOK = "  const leftover = Math.max(0, remaining);\n"
 function engine(which) {
   let logic = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
   const w = WORLDS[which];
-  if (which !== "today") {
+  if (w.old) {
+    /* all the way back: the old step, the old bases, the old $1..$10 track and the
+       cash rate that went with them */
     logic = logic
       .replace(N.step, P.step)
-      .replace(N.floor, `const PRICE_MIN = 2, PRICE_MAX = ${w.ceiling};`)
+      .replace(N.floor, "const PRICE_MIN = 1, PRICE_MAX = 10;")
       .replace(N.base, P.base)
-      .replace(P.rate, `const CASH_PER_EP = ${w.rate};`);
+      .replace(N.rate, "const CASH_PER_EP = 20;");
+  } else if (w.ceiling) {
+    logic = logic
+      .replace(N.floor, `const PRICE_MIN = 2, PRICE_MAX = ${w.ceiling};`)
+      .replace(N.rate, `const CASH_PER_EP = ${w.rate};`);
   }
   logic = logic.replace(N.sale, SALE_HOOK);
   const econ = { earned: 0, recycled: 0, prod: 0 };
@@ -107,7 +116,7 @@ function engine(which) {
 }
 const ENG = {};
 for (const n of NAMES) ENG[n] = engine(n);
-const INDS = ENG.today.E.INDUSTRIES;
+const INDS = ENG.shipped.E.INDUSTRIES;
 
 function run(seats, which) {
   const { E, E2, econ } = ENG[which];
@@ -192,7 +201,7 @@ function run(seats, which) {
 const R = {};
 for (const w of NAMES) for (const z of SIZES) R[`${w}|${z}`] = run(z, w);
 
-const Et = ENG.today.E;
+const Et = ENG.before.E;
 const W = (n) => ENG[n].E;
 console.log("Entrepreneurs - raising the bases, the ceiling and the cash rate");
 console.log(`${SEEDS} games at each of ${SIZES.length} table sizes, ${NAMES.length} ways `
@@ -201,7 +210,7 @@ for (const n of NAMES) {
   const E = W(n);
   console.log(`  ${n.padEnd(9)} $${E.PRICE_MIN}..$${E.PRICE_MAX}   bases `
     + INDS.map((i) => `${i} $${E.BASE_PRICE[i]}`).join(" ")
-    + `   $${E.CASH_PER_EP}/EP   ${n === "today" ? "half" : "full"}-dollar step`);
+    + `   $${E.CASH_PER_EP}/EP   ${n === "before" ? "half" : "full"}-dollar step`);
 }
 console.log("  recycling stays $1 in all three\n");
 
@@ -264,7 +273,7 @@ const line = (label, f, fmt = (v) => `$${v.toFixed(0)}`) => {
     + SIZES.map((z) => NAMES.map((n) => fmt(f(R[`${n}|${z}`]))).join("/").padStart(19)).join(""));
 };
 console.log(`  ${"".padEnd(28)}` + SIZES.map((z) => `${z} players`.padStart(19)).join(""));
-console.log(`  ${"(today / ceil10 / ceil12)".padEnd(28)}`);
+console.log(`  ${`(${NAMES.join(" / ")})`.padEnd(28)}`);
 line("cash per seat, mean", (t) => t.cashSeat / (t.samples * (t.endSeats / Math.max(1, t.games))));
 line("cash on the table, mean", (t) => t.cashTable / t.samples);
 line("cash on the table, peak", (t) => t.peakTable);
@@ -292,19 +301,19 @@ for (const z of SIZES) {
   const sc = (n) => g(n).winnerEP / g(n).games;
   console.log(`  ${z}p  ` + NAMES.map((n) => `$${tk(n).toFixed(0)}`.padStart(7)).join("")
     + "   " + NAMES.map((n) => sc(n).toFixed(0).padStart(6)).join("")
-    + `   ${((sc("ceil10") / sc("today") - 1) * 100).toFixed(0)}%`.padStart(8)
-    + `   ${((sc("ceil12") / sc("today") - 1) * 100).toFixed(0)}%`.padStart(8));
+    + `   ${((sc("ceil10") / sc("before") - 1) * 100).toFixed(0)}%`.padStart(8)
+    + `   ${((sc("shipped") / sc("before") - 1) * 100).toFixed(0)}%`.padStart(8));
 }
 {
   const tot = (n, f) => SIZES.reduce((s, z) => s + f(R[`${n}|${z}`]), 0) / SIZES.length;
-  const scT = tot("today", (t) => t.winnerEP / t.games);
+  const scT = tot("before", (t) => t.winnerEP / t.games);
   const sc10 = tot("ceil10", (t) => t.winnerEP / t.games);
-  const sc12 = tot("ceil12", (t) => t.winnerEP / t.games);
-  const tkT = tot("today", (t) => t.earned / t.games);
-  const tk12 = tot("ceil12", (t) => t.earned / t.games);
+  const sc12 = tot("shipped", (t) => t.winnerEP / t.games);
+  const tkT = tot("before", (t) => t.earned / t.games);
+  const tk12 = tot("shipped", (t) => t.earned / t.games);
   console.log(`\n  Pooled: takings ${((tk12 / tkT - 1) * 100).toFixed(0)}% higher, `
     + `winning score ${((sc12 / scT - 1) * 100).toFixed(0)}% `
-    + `with $${W("ceil12").CASH_PER_EP}/EP`);
+    + `with $${W("shipped").CASH_PER_EP}/EP`);
   console.log(`  (leaving the rate at $${Et.CASH_PER_EP} instead gives ${((sc10 / scT - 1) * 100).toFixed(0)}%)`);
   const ideal = Et.CASH_PER_EP * (tk12 / tkT);
   console.log(`  A rate that exactly tracked takings would be $${ideal.toFixed(0)}/EP.`);

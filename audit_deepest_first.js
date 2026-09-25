@@ -102,7 +102,7 @@ const CUT = SRC.indexOf("/* ============================== REACT UI ============
 if (CUT < 0) { console.error("the engine marker moved - update this probe"); process.exit(2); }
 const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
 
-const SORT_NEEDLE = "  })).sort((a, b) => b.pay - a.pay);";
+const SORT_NEEDLE = "    .sort((a, b) => b.pay - a.pay);";
 const SALE_NEEDLE = "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;";
 for (const [n, w] of [[SORT_NEEDLE, "autoDeliver's slot order"], [SALE_NEEDLE, "autoDeliver's tail"]]) {
   if (!BASE.includes(n)) { console.error(`the engine changed shape around ${w} - update this probe`); process.exit(2); }
@@ -114,7 +114,7 @@ function loadEngine(deepestFirst) {
   let logic = BASE;
   if (deepestFirst) {
     logic = logic.replace(SORT_NEEDLE,
-      "  })).sort((a, b) => b.levelIdx - a.levelIdx || b.pay - a.pay);");
+      "    .sort((a, b) => b.levelIdx - a.levelIdx || b.pay - a.pay);");
   }
   /* count icons consumed and capacity thrown away, inside the delivery loop */
   logic = logic.replace(

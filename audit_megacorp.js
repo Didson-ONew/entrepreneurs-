@@ -2,11 +2,10 @@
    Going public: how often it happens, and whether getting there first decides
    the game.
 
-   Sixteen Megacorp tiles exist and only some are shuffled into a game. The
-   count is the dial: at (players + 1) roughly a third of seats ever formed one
-   and the first arrived in Quarter 7; at twice the players it is half the
-   seats and Quarter 6.7. This sweeps that dial against the rules as they now
-   stand.
+   Sixteen Megacorp tiles exist in four tiers, and a game draws only some of each
+   tier - two a tier at small tables, three at five seats, four at six. How many
+   come out of each tier is the dial, and this sweeps it against the rules as they
+   now stand.
 
    Read "first to go public then won" against the 25% a seat wins by chance -
    but read it with the control in mind. Whoever merges first is usually the
@@ -30,7 +29,10 @@ const cut = src.indexOf("/* ============================== REACT UI ============
 const base = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
 
 const NEEDLES = {
-  pool: "const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers * 2);",
+  /* The pool is drawn tier by tier now, not as one flat shuffle, so the dial this
+     probe sweeps is how many tiles come out of EACH tier rather than how many come
+     out in total. MEGACORP_PER_TIER_DRAWN is that dial and it is one line. */
+  pool: "const MEGACORP_PER_TIER_DRAWN = (nPlayers) => (nPlayers >= 6 ? 4 : nPlayers >= 5 ? 3 : 2);",
   ipoBay: "    p.ipoTile = true;",
   hub: "    const hq = hqNetworkPlots(board);\n    return nbrs.some((n) => hq.includes(n));",
   denial: "    s += denied * 0.5;",
@@ -42,14 +44,14 @@ for (const [k, v] of Object.entries(NEEDLES)) {
 /* tiles: how many are shuffled in.  hub: does a headquarters carry the network for its
    neighbours.  push: do the bots build into a leader's industry to push its price down. */
 const CASES = [
-  { name: "as it stands (2n)", tiles: "nPlayers * 2", hub: true, push: true },
-  { name: "n+1 tiles", tiles: "nPlayers + 1", hub: true, push: true },
-  { name: "all 16 tiles", tiles: "MEGACORP_TILES.length", hub: true, push: true },
+  { name: "as it stands", tiles: null, hub: true, push: true },
+  { name: "2 a tier always", tiles: "2", hub: true, push: true },
+  { name: "every tile drawn", tiles: "MEGACORP_PER_TIER", hub: true, push: true },
 ];
 
 function engineFor(c) {
-  let logic = base.replace(NEEDLES.pool,
-    `const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, ${c.tiles});`);
+  let logic = c.tiles === null ? base : base.replace(NEEDLES.pool,
+    `const MEGACORP_PER_TIER_DRAWN = (nPlayers) => (${c.tiles});`);
   if (!c.hub) logic = logic.replace(NEEDLES.hub, "    return false;");
   if (!c.push) logic = logic.replace(NEEDLES.denial, "    s += 0;");
   const box = {};
@@ -132,7 +134,8 @@ for (const c of CASES) {
 /* ---------------------------------------------------------------- report */
 console.log("Entrepreneurs - going public: the IPO tile and how many tiles are in play");
 console.log(`${results[0].T.games} games per case, 4 seats, personas on.`);
-console.log("A four-seat game shuffles in 8 tiles at 2n, 5 at n+1, 16 for all of them.\n");
+console.log("At four seats the shipped draw is 2 tiles a tier, so the first two columns\n"
+  + "read alike; the third draws all four of every tier.\n");
 
 const cols = results.map((r) => r.c.name);
 const W = 21;

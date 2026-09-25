@@ -71,21 +71,32 @@ const CUT = SRC.indexOf("/* ============================== REACT UI ============
 if (CUT < 0) { console.error("the engine marker moved - update this probe"); process.exit(2); }
 const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
 
-const NEEDLE = `  const rushers = endgameRushers(state);
-  if (state.quarter >= 12 || rushers.length) {`;
-if (!BASE.includes(NEEDLE)) { console.error("the game-over check changed shape - update this probe"); process.exit(2); }
+/* The warning quarter SHIPPED. So the needles anchor on the shipped shape and the
+   control arm patches BACK to the old rule, where the second Megacorp WAS the last
+   quarter. Anchoring on the head and the tail rather than the whole block keeps the
+   log line between them - which carries translated text - out of the probe. */
+const HEAD = `  const rushers = endgameRushers(state);
+  if (rushers.length && !state.finalQuarter) {`;
+const TAIL = `  if (state.quarter >= 12 || (state.finalQuarter && state.quarter >= state.finalQuarter)) {`;
+for (const [what, needle] of [["the deadline call", HEAD], ["the game-over check", TAIL]]) {
+  if (!BASE.includes(needle)) { console.error(`${what} changed shape - update this probe`); process.exit(2); }
+}
 
-/* The warning version: the second Megacorp names the final quarter rather than
-   being it. Capped at 12, so it can only ever shorten the game. */
-const PATCHED = `  const rushers = endgameRushers(state);
-  if (rushers.length && !state.finalQuarter) state.finalQuarter = Math.min(12, state.quarter + 1);
-  if (state.quarter >= 12 || (state.finalQuarter && state.quarter >= state.finalQuarter)) {`;
+/* The old rule: the deadline fires and the game ends in the same breath. */
+const PLAIN = `  const rushers = endgameRushers(state);
+  if (state.quarter >= 12 || rushers.length) {`;
+function withoutWarning(src) {
+  const a = src.indexOf(HEAD);
+  const b = src.indexOf(TAIL, a);
+  if (a < 0 || b < 0) { console.error("the deadline block changed shape - update this probe"); process.exit(2); }
+  return src.slice(0, a) + PLAIN + src.slice(b + TAIL.length);
+}
 
 function loadEngine(warn) {
   const box = {};
   const sandbox = { console, Math, Set, Object, Array, JSON, box };
   vm.createContext(sandbox);
-  vm.runInContext((warn ? BASE.replace(NEEDLE, PATCHED) : BASE) + `
+  vm.runInContext((warn ? BASE : withoutWarning(BASE)) + `
     box.exports = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning,
       epTotal, finalRank, megacorpHQs, endgameRushers, activeBiz, plotCount };
   `, sandbox);
@@ -173,7 +184,6 @@ console.log("─".repeat(40 + W * SIZES.length));
 console.log("Does the trigger still win?  <- decides it");
 lpct("  ends at once", "ends at once", (T) => T.triggerWon / Math.max(1, T.fired));
 lpct("  one quarter's warning", "one quarter's warning", (T) => T.triggerWon / Math.max(1, T.fired));
-lpct("  chance at this table size", "ends at once", (T) => 0);
 console.log(pad("  chance at this table size", 40) + SIZES.map((s) => rp(`${(100 / s).toFixed(0)}%`, W)).join(""));
 console.log("");
 console.log("Was the trigger already leading when it fired?");

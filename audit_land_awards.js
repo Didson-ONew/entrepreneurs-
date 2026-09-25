@@ -87,7 +87,7 @@ const NEEDLES = {
     // stamp the quarter it was actually awarded in - the land awards pay at every year
     // end, and hardcoding 12 made the scoring log claim otherwise
     addEP(p, share, label, state.quarter);
-    if (log) log(\`\${p.name} earns \${label} (+\${share} EP).\`, p.id);
+    if (log) log(logMsg("{0} earns {1} (+{2} EP).", p.name, label, share), p.id);
   }`,
   quarterEnd: "function finishQuarterAfterLH(state, log, rng) {\n  runClosingRest(state, log);",
   mogulCall: '(p) => plotCount(state, p), "The Real-Estate Mogul"',

@@ -135,7 +135,7 @@ logic = logic.replace(NEEDLE,
 
 /* Shape guards for everything this probe reads back out of the engine. */
 for (const [what, needle] of [
-  ["EP is labelled as it is banked", "p.epLog.push({ label, amount, quarter });"],
+  ["EP is labelled as it is banked", "{ label, amount, quarter });"],
   ["the land awards are named", 'awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", log);'],
   ["the deadline names a final quarter", "state.finalQuarter = Math.min(12, state.quarter + 1);"],
 ]) {

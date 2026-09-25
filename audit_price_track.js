@@ -120,8 +120,12 @@ if (CUT < 0) { console.error("the engine marker moved - update this probe"); pro
 
 /* The two knobs, as they are written in the engine. If either moves, every number
    below would silently describe the wrong thing. */
-const CLIMB = "const SUPPLIER_CELLS = 2, BUILT_CELLS = -1;";
-const CASH = "    const cashEP = Math.floor(p.cash / 10);";
+/* Both dials this probe sweeps have since MOVED: a build now costs a full dollar
+   (BUILT_CELLS -2, not -1) and cash scores at CASH_PER_EP, not a hardcoded $10. The
+   needles anchor on the shipped shape and each ruleset patches away from it, so the
+   sweep still brackets the shipped rule instead of measuring a game nobody plays. */
+const CLIMB = "const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;";
+const CASH = "    const cashEP = Math.floor(p.cash / CASH_PER_EP);";
 for (const [what, needle] of [["the climb", CLIMB], ["the cash rate", CASH]]) {
   if (!SRC.includes(needle)) {
     console.error(`the engine changed shape - ${what} is no longer written as this probe expects`);
@@ -129,16 +133,18 @@ for (const [what, needle] of [["the climb", CLIMB], ["the cash rate", CASH]]) {
   }
 }
 
+/* `built` is the cells a build takes off its own industry; `cash` is the dollars an
+   EP costs at the close. Ruleset A is what ships. */
 const RULESETS = [
-  { key: "A", label: "as specified", climb: 2, cash: 10 },
-  { key: "B", label: "cash per $20", climb: 2, cash: 20 },
-  { key: "C", label: "half climb", climb: 1, cash: 10 },
-  { key: "D", label: "half + $20", climb: 1, cash: 20 },
+  { key: "A", label: "as it ships", climb: 2, built: -2, cash: 50 },
+  { key: "B", label: "cash per $20", climb: 2, built: -2, cash: 20 },
+  { key: "C", label: "half the build", climb: 2, built: -1, cash: 50 },
+  { key: "D", label: "half climb", climb: 1, built: -1, cash: 50 },
 ];
 
 function engineFor(rs) {
   let logic = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
-  logic = logic.replace(CLIMB, `const SUPPLIER_CELLS = ${rs.climb}, BUILT_CELLS = -1;`);
+  logic = logic.replace(CLIMB, `const SUPPLIER_CELLS = ${rs.climb}, BUILT_CELLS = ${rs.built};`);
   logic = logic.replace(CASH, `    const cashEP = Math.floor(p.cash / ${rs.cash});`);
   const box = {};
   const sandbox = { console, Math, Set, Map, Object, Array, JSON, box, String, Number };
@@ -202,10 +208,12 @@ function run(E, seats) {
 
 console.log("Entrepreneurs - the price track, and what has to move with it");
 console.log(`${SEEDS} games per ruleset per table size, personas on, same seeds throughout.\n`);
-console.log("  A  track as specified, cash per $10   (what is on the branch now)");
-console.log("  B  track as specified, cash per $20   (the cash-rate fix)");
-console.log("  C  half climb, cash per $10           (the old economy, new track)");
-console.log("  D  half climb, cash per $20\n");
+/* Printed from RULESETS so the legend cannot drift away from what was measured. */
+for (const rs of RULESETS) {
+  console.log(`  ${rs.key}  ${(rs.label + " ").padEnd(16, ".")} supplier +${rs.climb} cell${rs.climb === 1 ? "" : "s"}, `
+    + `build ${rs.built} cell${rs.built === -1 ? "" : "s"}, cash per $${rs.cash}`);
+}
+console.log("");
 
 const results = {};
 for (const rs of RULESETS) {

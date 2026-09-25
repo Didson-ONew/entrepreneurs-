@@ -56,9 +56,9 @@ const NEEDLES = {
     // stamp the quarter it was actually awarded in - the land awards pay at every year
     // end, and hardcoding 12 made the scoring log claim otherwise
     addEP(p, share, label, state.quarter);
-    if (log) log(\`\${p.name} earns \${label} (+\${share} EP).\`, p.id);
+    if (log) log(logMsg("{0} earns {1} (+{2} EP).", p.name, label, share), p.id);
   }`,
-  epLabel: "p.epLog.push({ label, amount, quarter });",
+  epLabel: "{ label, amount, quarter });",
   /* What a company level is worth. The bots read this too - it prices launching,
      upgrading and what a merger gives up - so moving it moves the whole game, not
      just the scoresheet. */

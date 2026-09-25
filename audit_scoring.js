@@ -24,18 +24,26 @@ const src = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8
 const cut = src.indexOf("/* ============================== REACT UI ============================== */");
 const base = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
 
+/* The shipped industry debut, read from the engine so this probe never has to be
+   told when it moves. Every case that wants a different one rewrites the constant. */
+const DEBUT_RE = /const INDUSTRY_DEBUT_EP = (\d+);/;
+const DEBUT_M = DEBUT_RE.exec(base);
+if (!DEBUT_M) { console.error("the industry debut constant moved - update this probe"); process.exit(2); }
+const INDUSTRY_DEBUT_EP = parseInt(DEBUT_M[1], 10);
+
 const NEEDLES = {
-  level: 'const levelEP = (state) => (hasVariant(state, "tripleLevelEP") ? 3 : 1);',
+  level: 'const levelEP = (state) => (hasVariant(state, "heavyLevelEP") ? 3 : 2);',
   land: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };",
   awardBody: `  const top = Math.max(...scores.map((x) => x.s));
   const leaders = scores.filter((x) => x.s === top);
-  const share = leaders.length === 1 ? LAND_AWARD.sole
-    : leaders.length === 2 ? LAND_AWARD.two : LAND_AWARD.many;
+  const A = landAward(state);
+  const share = leaders.length === 1 ? A.sole
+    : leaders.length === 2 ? A.two : A.many;
   for (const { p } of leaders) {
     // stamp the quarter it was actually awarded in - the land awards pay at every year
     // end, and hardcoding 12 made the scoring log claim otherwise
     addEP(p, share, label, state.quarter);
-    if (log) log(\`\${p.name} earns \${label} (+\${share} EP).\`, p.id);
+    if (log) log(logMsg("{0} earns {1} (+{2} EP).", p.name, label, share), p.id);
   }`,
 };
 for (const [k, v] of Object.entries(NEEDLES)) {
@@ -60,21 +68,21 @@ const OLD_AWARD_BODY = `  scores.sort((a, b) => b.s - a.s);
 /* All on the new land award. The question left is what a company level is worth, and
    whether the 5 EP for entering an industry has to come down with it. */
 const CASES = [
-  { name: "3 EP level (now)", level: 3, land: "old", debut: 5 },
+  { name: "3 EP level, old land", level: 3, land: "old", debut: 5 },
   { name: "1 EP + new land", level: 1, land: "new", debut: 5 },
-  { name: "2 EP + new land", level: 2, land: "new", debut: 5 },
+  { name: "2 EP + new land", level: 2, land: "new", debut: 5 },   // the shipped rule, bar the debut
   { name: "1 EP, debut 3", level: 1, land: "new", debut: 3 },
   { name: "2 EP, debut 3", level: 2, land: "new", debut: 3 },
 ];
 
 function engineFor(c) {
   let logic = base;
-  if (c.level !== 1) logic = logic.replace(NEEDLES.level, `const levelEP = (state) => ${c.level};`);
+  if (c.level !== 2) logic = logic.replace(NEEDLES.level, `const levelEP = (state) => ${c.level};`);
   if (c.land === "old") logic = logic.replace(NEEDLES.awardBody, OLD_AWARD_BODY);
-  if (c.debut !== 5) {
-    const n = "  addEP(p, 5, `Entered ${ind}`, state.quarter);";
+  if (c.debut !== INDUSTRY_DEBUT_EP) {
+    const n = `const INDUSTRY_DEBUT_EP = ${INDUSTRY_DEBUT_EP};`;
     if (!logic.includes(n)) { console.error("the industry debut moved - update this probe"); process.exit(2); }
-    logic = logic.replace(n, "  addEP(p, " + c.debut + ", `Entered ${ind}`, state.quarter);");
+    logic = logic.replace(n, `const INDUSTRY_DEBUT_EP = ${c.debut};`);
   }
   const box = {};
   const sandbox = { console, Math, Set, Object, Array, JSON, box };

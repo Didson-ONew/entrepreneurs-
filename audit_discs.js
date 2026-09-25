@@ -3,8 +3,9 @@
    upgraded company needs a second one?
 
    Every disc is committed somewhere: on a plot, on an active company, or in
-   the bank against a loan. Ten is a hard ceiling on how much city one player
-   can hold, and it binds hardest on the three industries that scale sideways.
+   the bank against a loan. The count is a hard ceiling on how much city one
+   player can hold - twelve as it ships - and it binds hardest on the three
+   industries that scale sideways.
 
    The second question is a component question. On a physical table there is
    nothing on an upgraded company that says it is upgraded, so nobody can tell
@@ -35,10 +36,10 @@ const cut = src.indexOf("/* ============================== REACT UI ============
 const base = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
 
 const NEEDLES = {
-  discs: "const DISCS_PER_PLAYER = 10;",
+  discs: "const DISCS_PER_PLAYER = 12;",
   used: "function discsUsed(state, p) {\n  return plotsOwned(state, p) + companySlotsUsed(p) + p.discsInBank;\n}",
   blocked: 'function upgradeBlockedReason(state, p, b) {\n  if (b.isHQ) return logMsg("is a Megacorp HQ");',
-  doUpgrade: "function doUpgrade(state, p, b, rng, log, manualPlot) {\n  if (b.upgraded) return false;",
+  doUpgrade: "function doUpgrade(state, p, b, rng, log, manualPlot, dir) {\n  if (b.upgraded) return false;",
   rd: "    const candidates = starved ? [] : activeBiz(p).filter((b) => !b.upgraded",
 };
 for (const [k, v] of Object.entries(NEEDLES)) {

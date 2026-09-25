@@ -101,15 +101,18 @@ const cut = src.indexOf("/* ============================== REACT UI ============
 const base = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
 
 const NEEDLES = {
-  pool: "  const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers * 2);",
-  dividend: "      const ep = price(state.pm, bizInd(hq));",
-  botBrand: "  const brandEP = price(state.pm, bizInd(hq)) * qLeft;",
-  claimed: "  addEP(p, ep, `Megacorp: ${name}`, state.quarter);",
+  /* TIERS SHIPPED. The pool is drawn tier by tier and the dividend is divided by the
+     headquarters' tier, so these needles anchor on the shipped shape and the "flat"
+     arm patches BACK to one undivided pool paying its industry's price. */
+  pool: "  const megacorpPool = drawMegacorpPool(nPlayers, rng);",
+  dividend: "      const ep = brandEPFor(goods, tier);",
+  botBrand: "  const brandEP = brandEPFor(price(state.pm, bizInd(hq)), tierOfTile(match.tile)) * qLeft;",
+  claimed: "  addEP(p, ep, logMsg(\"Megacorp: {0}\", name), state.quarter);",
   landConst: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };",
-  landShare: "  const share = leaders.length === 1 ? LAND_AWARD.sole\n"
-    + "    : leaders.length === 2 ? LAND_AWARD.two : LAND_AWARD.many;",
+  landShare: "  const share = leaders.length === 1 ? A.sole\n"
+    + "    : leaders.length === 2 ? A.two : A.many;",
   landPayouts: "  return [4, 8, 12].filter((q) => q >= state.quarter).length || 1;",
-  landYearEnd: "    if (!hasVariant(state, \"endgameLandAwards\") && quarter !== 12) {\n"
+  landYearEnd: "    if (!hasVariant(state, \"endgameLandAwards\") && !isFinal) {\n"
     + "      awardRanked(state, (p) => plotCount(state, p), \"The Real-Estate Mogul\", log);\n"
     + "      awardRanked(state, (p) => districtCount(state, p), \"The Omnipresent\", log);\n"
     + "    }",
@@ -121,40 +124,18 @@ for (const [k, v] of Object.entries(NEEDLES)) {
   if (!base.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
 }
 
-/* Tier 4 is the four EASIEST tiles, tier 1 the four hardest. MEGACORP_TILES is
-   already written in order of what a tile costs to assemble, so the split is the
-   order it is already in. */
-const TIER_SRC = `
-const MC_PER_TIER = MEGACORP_TILES.length / 4;
-const mcTierOfIndex = (i) => 4 - Math.floor(i / MC_PER_TIER);
-const MC_TIER_BY_EP = {};
-MEGACORP_TILES.forEach((t, i) => { MC_TIER_BY_EP[t[2]] = mcTierOfIndex(i); });
-const MC_TIER_BY_NAME = {};
-MEGACORP_TILES.forEach((t, i) => { MC_TIER_BY_NAME[t[0]] = mcTierOfIndex(i); });
-/* Which tiers are in the box, by how many are at the table. */
-const MC_MIN_PLAYERS = { 4: 2, 3: 2, 2: 3, 1: 4 };
-function mcTieredPool(nPlayers, rng) {
-  const out = [];
-  for (let tier = 4; tier >= 1; tier--) {
-    if (nPlayers < MC_MIN_PLAYERS[tier]) continue;
-    const from = (4 - tier) * MC_PER_TIER;
-    out.push(...shuffle(MEGACORP_TILES.slice(from, from + MC_PER_TIER), rng).slice(0, 2));
-  }
-  return out;
-}
-`;
 
 /* land: null leaves the award alone. Otherwise { worth, everyQuarter } - worth EP to
    the outright leader, split and rounded down when tied. The last two cases are not
    in the proposal; they are there because a dial needs more than one setting before
    you can tell whether the one you picked is the right one. */
 const CASES = [
-  { name: "as it stands", tiers: false, land: null },
-  { name: "tiered Megacorps", tiers: true, land: null },
-  { name: "land 10/quarter", tiers: false, land: { worth: 10, everyQuarter: true } },
-  { name: "tiers + 10/quarter", tiers: true, land: { worth: 10, everyQuarter: true } },
-  { name: "tiers + 10/year end", tiers: true, land: { worth: 10, everyQuarter: false } },
-  { name: "tiers + 5/quarter", tiers: true, land: { worth: 5, everyQuarter: true } },
+  { name: "flat Megacorps", flat: true, land: null },
+  { name: "as it stands", flat: false, land: null },
+  { name: "flat + 10/quarter", flat: true, land: { worth: 10, everyQuarter: true } },
+  { name: "tiers + 10/quarter", flat: false, land: { worth: 10, everyQuarter: true } },
+  { name: "tiers + 10/year end", flat: false, land: { worth: 10, everyQuarter: false } },
+  { name: "tiers + 5/quarter", flat: false, land: { worth: 5, everyQuarter: true } },
 ];
 
 function engineFor(c, collect) {
@@ -164,24 +145,18 @@ function engineFor(c, collect) {
   logic = logic.replace(NEEDLES.claimed, NEEDLES.claimed
     + "\n  __claimed(state.quarter, p.id, ep, state.players.map((q) => epTotal(q)));");
 
-  if (c.tiers) {
-    logic = logic.replace(NEEDLES.pool, "  const megacorpPool = mcTieredPool(nPlayers, rng);");
-    logic = logic.replace(NEEDLES.dividend,
-      "      const ep = Math.floor(price(state.pm, bizInd(hq)) / (MC_TIER_BY_NAME[hq.megacorpName] || 1));");
+  if (c.flat) {
+    logic = logic.replace(NEEDLES.pool,
+      "  const megacorpPool = shuffle(MEGACORP_TILES, rng).slice(0, nPlayers * 2);");
+    logic = logic.replace(NEEDLES.dividend, "      const ep = goods;");
     logic = logic.replace(NEEDLES.botBrand,
-      "  const brandEP = Math.floor(price(state.pm, bizInd(hq)) / (MC_TIER_BY_EP[match.tile[2]] || 1)) * qLeft;");
+      "  const brandEP = price(state.pm, bizInd(hq)) * qLeft;");
   }
-  /* The tier tables go at the END, where MEGACORP_TILES already exists and they sit
-     at module scope - dropped in beside the pool line they would be local to
-     initGame, invisible to the dividend and to the exports. Nothing reads them
-     until a game is played, which is long after this has run. */
-  logic += TIER_SRC;
-
   if (c.land) {
     logic = logic.replace(NEEDLES.landConst, `const LAND_AWARD = { sole: ${c.land.worth}, two: 0, many: 0 };`);
     /* The whole award to the leader, split and rounded down when tied: at 10 that is
        5 each for two, 3 for three, 2 for four. */
-    logic = logic.replace(NEEDLES.landShare, "  const share = Math.floor(LAND_AWARD.sole / leaders.length);");
+    logic = logic.replace(NEEDLES.landShare, "  const share = Math.floor(A.sole / leaders.length);");
     if (c.land.everyQuarter) {
       /* What a plot is worth to a bot is the payouts still to come. */
       logic = logic.replace(NEEDLES.landPayouts, "  return Math.max(1, 13 - state.quarter);");
@@ -202,10 +177,17 @@ function engineFor(c, collect) {
   vm.runInContext(logic + `
     box.exports = { initGame, mulberry32, advancePlanning, advanceDraft, startPlanning,
       activeBiz, megacorpHQs, epTotal, finalRank, bizInd, MEGACORP_TILES, INDUSTRIES,
-      MC_TIER_BY_EP, MC_TIER_BY_NAME };
+      MEGACORP_TIER, tierOfTile };
   `, sandbox);
   return box.exports;
 }
+
+/* The tier of a tile, keyed by the EP it is worth, read from the engine's own table
+   rather than recomputed here. Two blocks below need it. */
+const TIER_OF_EP = (() => {
+  const E = engineFor({ flat: false, land: null }, () => {});
+  return Object.fromEntries(E.MEGACORP_TILES.map((t) => [t[2], E.MEGACORP_TIER[t[0]] || 1]));
+})();
 
 function bucketOf(label) {
   const l = String(label || "");
@@ -240,7 +222,7 @@ for (const c of CASES) {
     }
   };
   const E = engineFor(c, collect);
-  const tierOfEp = E.MC_TIER_BY_EP;
+  const tierOfEp = TIER_OF_EP;
 
   const T = {
     games: 0, seats: 0, hqs: 0, seatsWithAny: 0,
@@ -366,14 +348,14 @@ console.log("");
    each tier gives. The draw rule only bites at a smaller table, where it takes the
    hard tiles out of the box - so that is where it has to be measured. */
 console.log("\nWhat the tier draw does at a smaller table");
-console.log(pad("", 30) + rp("as it stands", 19) + rp("tiered", 19) + rp("as it stands", 19) + rp("tiered", 19));
+console.log(pad("", 30) + rp("flat", 19) + rp("as it stands", 19) + rp("flat", 19) + rp("as it stands", 19));
 console.log(pad("", 30) + rp("2 players", 19) + rp("2 players", 19) + rp("3 players", 19) + rp("3 players", 19));
 console.log("\u2500".repeat(30 + 19 * 4));
 {
-  const SMALL = [[2, false], [2, true], [3, false], [3, true]];
-  const runs = SMALL.map(([seats, tiers]) => {
+  const SMALL = [[2, true], [2, false], [3, true], [3, false]];
+  const runs = SMALL.map(([seats, flat]) => {
     let claims = [];
-    const E = engineFor({ tiers, land: null }, (q, by, ep) => claims.push({ ep }));
+    const E = engineFor({ flat, land: null }, (q, by, ep) => claims.push({ ep }));
     const T = { games: 0, pool: 0, hqs: 0, spread: 0, winnerEP: 0, hard: 0, tiles: 0,
       byTier: { 1: 0, 2: 0, 3: 0, 4: 0 } };
     for (let seed = 1; seed <= Math.min(SEEDS, 250); seed++) {
@@ -387,7 +369,7 @@ console.log("\u2500".repeat(30 + 19 * 4));
       T.pool += st.megacorpPool.length + claims.length;
       /* How many of the tiles that were IN the box this game were hard ones. */
       const inBox = [...st.megacorpPool.map((t) => t[2]), ...claims.map((c) => c.ep)];
-      for (const ep of inBox) { const t = E.MC_TIER_BY_EP[ep] || 1; T.byTier[t]++; T.tiles++; if (t <= 2) T.hard++; }
+      for (const ep of inBox) { const t = TIER_OF_EP[ep] || 1; T.byTier[t]++; T.tiles++; if (t <= 2) T.hard++; }
       for (const p of st.players) T.hqs += E.megacorpHQs(p).length;
       const eps = [...st.players].sort(E.finalRank).map((p) => E.epTotal(p));
       T.winnerEP += eps[0];
