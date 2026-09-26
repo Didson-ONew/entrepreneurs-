@@ -63,6 +63,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { logText } = require("./logtext.js");
 
 const SEEDS = parseInt(process.argv[2] || "400", 10);
 
@@ -129,7 +130,7 @@ for (const mode of MODES) {
          seat holds two headquarters, and every action logged after that is counted. */
       let q = 1, warned = false;
       E.advancePlanning(st, E.mulberry32(seed + 777), (msg) => {
-        const s = String(msg);
+        const s = logText(msg);
         const m = /^▶ Year \d+, Quarter (\d+)/.exec(s);
         if (m) {
           q = parseInt(m[1], 10);

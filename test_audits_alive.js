@@ -35,7 +35,7 @@
    Run alone: node test_audits_alive.js [name-fragment ...]
    ========================================================================== */
 const { spawn } = require("child_process");
-const { readdirSync } = require("fs");
+const { readdirSync, readFileSync } = require("fs");
 const path = require("path");
 
 /* Long enough for the guards - they are synchronous string scans over a file
@@ -96,6 +96,46 @@ function firstComplaint(err) {
   return line || err.split("\n").map((l) => l.trim()).filter(Boolean)[0] || "";
 }
 
+/* A SECOND FAILURE MODE, AND A QUIETER ONE. An audit's guarded needles are
+   asserted before use, so when one moves the audit exits 2 and the check above
+   reports it. But an audit also calls .replace() on the engine source to splice
+   its instrumentation in, and .replace() on a string that is not there does not
+   throw - it returns the source unchanged. The hook is never installed, the
+   collector is never called, and the audit prints a table of zeros.
+
+   That is not hypothetical either: audit_rent_one.js spliced on a line the
+   engine stopped computing when ground rent was split out of OPEX, so every
+   "where the OPEX dollar lands" figure it printed read 0%, in a table whose
+   whole purpose is that split.
+
+   So: every string literal an audit hands to .replace() must still be somewhere
+   in the engine. Literals with ${...} in them cannot be checked this way and are
+   skipped; needles held in variables are covered by the run check above, which
+   fails when their assertion does. */
+function checkSplices() {
+  const enginePath = path.join(__dirname, "EntrepreneursGame.jsx");
+  const src = require("fs").readFileSync(enginePath, "utf8");
+  const cut = src.indexOf("/* ============================== REACT UI ============================== */");
+  const engine = cut < 0 ? src : src.slice(0, cut);
+  const bad = [];
+  for (const f of audits) {
+    const a = readFileSync(path.join(__dirname, f), "utf8");
+    const re = /\.replace\(\s*("(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\`)*`)\s*,/g;
+    let m;
+    while ((m = re.exec(a))) {
+      const lit = m[1];
+      if (lit.includes("${")) continue;             // interpolated: not checkable here
+      let text;
+      try { text = eval(lit); } catch (e) { continue; }
+      if (typeof text !== "string" || text.length < 8) continue;
+      if (!engine.includes(text)) {
+        bad.push({ file: f, snippet: text.split("\n")[0].trim().slice(0, 70) });
+      }
+    }
+  }
+  return bad;
+}
+
 async function main() {
   const results = [];
   const queue = audits.slice();
@@ -108,8 +148,20 @@ async function main() {
   for (const r of results) {
     console.log(`${r.ok ? "ok  " : "DEAD"}  ${r.file.padEnd(30)} ${(r.ms / 1000).toFixed(1)}s  ${r.why}`);
   }
+  const splices = checkSplices();
+  for (const b of splices) {
+    console.log(`SPLICE  ${b.file.padEnd(30)} replaces text the engine no longer has: ${JSON.stringify(b.snippet)}`);
+  }
+
   const dead = results.filter((r) => !r.ok);
-  console.log(`\n${results.length - dead.length}/${results.length} audits still match the engine`);
+  console.log(`\n${results.length - dead.length}/${results.length} audits still match the engine`
+    + (splices.length ? `, but ${splices.length} splice${splices.length === 1 ? "" : "s"} hit nothing` : ""));
+  if (splices.length) {
+    console.log("\nA .replace() that matches nothing does not throw - it returns the source");
+    console.log("unchanged, the hook is never installed, and the audit prints zeros. Re-anchor");
+    console.log("each of these on the line the engine actually has now.\n");
+    process.exit(1);
+  }
   if (dead.length) {
     console.log("\nThese audits no longer measure the game in this repo. Re-anchor each");
     console.log("probe against the current EntrepreneursGame.jsx - do not delete the audit,");

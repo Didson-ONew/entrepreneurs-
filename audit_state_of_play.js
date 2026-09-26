@@ -68,24 +68,34 @@
    industry imbalance. It works, but it is a different, tighter game than the
    one four to six players are playing.
 
-   THE WINNING SCORE IS TWO THINGS: COMPANIES AND CASH. Share of the winner's
-   points, stable across every table size:
+   THE WINNING SCORE IS BUILDING, THEN LAND. Share of the winner's points,
+   re-measured over 250 games a table size on the rules as they now stand
+   (2p / 3p / 4p / 5p / 6p):
 
-       companies and upgrades   31-33%
-       cash on hand             26-31%
-       entering an industry     12-13%
-       forming a Megacorp        7-13%   (rises with the count)
-       land awards              18% -> 5% (FALLS hard with the count)
-       Megacorp brand           2-5%
-       Megacorp districts       1-4%
+       companies and upgrades   41  42  35  36  36
+       land awards              18  13  24  17  15
+       cash on hand             16  15  13  12  12
+       entering an industry     12  13  11  11  10
+       forming a Megacorp        9  11  10  13  13
+       Megacorp brand            5   8   8  12  13
+       tithe, in and out         1 each way, either sign
 
-   Two findings hide in that table. CASH ON HAND IS ABOUT A THIRD OF EVERY
-   WINNING SCORE, which is a great deal of weight for a rule that reads as a
-   rounding-up of leftovers - a player who simply does not spend is scoring
-   comparably to one who builds. And THE LAND AWARDS COLLAPSE AS THE TABLE
-   GROWS, 18% of the winner's points at two seats to 5% at six, because the
-   two 10 EP awards are a fixed prize split across more claimants while every
-   other source scales with how much you do.
+   THIS TABLE USED TO CARRY TWO WARNINGS AND BOTH HAVE BEEN ANSWERED - which
+   is worth saying plainly, because the warnings outlived the problems in the
+   rulebook for several versions.
+
+   CASH WAS ABOUT A THIRD OF EVERY WINNING SCORE, which was a great deal of
+   weight for a rule that reads as a rounding-up of leftovers: a player who
+   simply did not spend was scoring comparably to one who built. Raising the
+   cash rate to $50 an EP halved it. At 12-16% of a winner's score and 11-14%
+   across every seat it is now a tidy-up, not a strategy, and building is
+   comfortably the biggest thing a winner does.
+
+   THE LAND AWARDS COLLAPSED AS THE TABLE GREW, 18% of the winner's points at
+   two seats down to 5% at six, because a FLAT prize is split across more
+   claimants while every other source scales with how much you do. Doubling
+   the prize from four players up fixed it: the row is now 18/13/24/17/15 and
+   has no trend in the head count at all.
 
    THE INDUSTRIES ARE LEVEL AT A FULL TABLE AND SKEWED AT A SMALL ONE. Share
    of games the winner held that industry, best to worst:
@@ -116,6 +126,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { logText } = require("./logtext.js");
 
 const SEEDS = parseInt(process.argv[2] || "250", 10);
 
@@ -212,7 +223,7 @@ for (const seats of SIZES) {
        there is no vesting, so the bank IS the score at any moment. */
     const snap = {};
     E.advancePlanning(st, E.mulberry32(seed + 777), (msg) => {
-      const m = /^▶ Year \d+, Quarter (\d+)/.exec(String(msg));
+      const m = /^▶ Year \d+, Quarter (\d+)/.exec(logText(msg));
       if (!m) return;
       const q = parseInt(m[1], 10);
       snap[q] = st.players.map((p) => ({ id: p.id, ep: E.epTotal(p) }));

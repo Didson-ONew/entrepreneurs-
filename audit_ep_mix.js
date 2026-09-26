@@ -29,6 +29,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { logText } = require("./logtext.js");
 
 const GAMES = parseInt(process.argv[2] || "250", 10);
 const seedArg = process.argv.find((a) => a.startsWith("--seeds="));
@@ -140,7 +141,7 @@ function run(E, seats) {
        so the runaway numbers are read on the same games rather than assumed. */
     const snap = {};
     E.advancePlanning(st, E.mulberry32(s + 777), (msg) => {
-      const m = /^\u25b6 Year \d+, Quarter (\d+)/.exec(String(msg));
+      const m = /^\u25b6 Year \d+, Quarter (\d+)/.exec(logText(msg));
       if (m) snap[+m[1]] = st.players.map((x) => ({ id: x.id, ep: E.epTotal(x) }));
     });
     if (st.phase !== "gameover") continue;

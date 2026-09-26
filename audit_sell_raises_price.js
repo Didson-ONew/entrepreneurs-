@@ -29,6 +29,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { logText } = require("./logtext.js");
 
 const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
 const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
@@ -159,7 +160,7 @@ function playOne(seed, seats, mode) {
   INDS.forEach((i) => (series[i] = []));
   const record = () => INDS.forEach((i) => series[i].push(E2.price(st.pm, i)));
   E2.advancePlanning(st, E2.mulberry32(seed + 777), (msg) => {
-    if (/^▶ Year \d+, Quarter \d+/.test(String(msg))) record();
+    if (/^▶ Year \d+, Quarter \d+/.test(logText(msg))) record();
   });
   record();
   box.onRetire = null; box.onReturn = null;

@@ -44,6 +44,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { logText } = require("./logtext.js");
 
 const SEEDS = parseInt(process.argv[2] || "400", 10);
 
@@ -97,10 +98,10 @@ for (const seats of SIZES) {
     const sold = [];
     let q = 1;
     E.advancePlanning(st, E.mulberry32(seed + 777), (msg) => {
-      const m = /^▶ Year \d+, Quarter (\d+)/.exec(String(msg));
+      const m = /^▶ Year \d+, Quarter (\d+)/.exec(logText(msg));
       if (m) { q = parseInt(m[1], 10); return; }
-      if (/ sells .* for \$| sells .*: .* has collapsed| cuts loose | sells .* — it sits on land/.test(String(msg))) {
-        sold.push({ q, msg: String(msg) });
+      if (/ sells .* for \$| sells .*: .* has collapsed| cuts loose | sells .* — it sits on land/.test(logText(msg))) {
+        sold.push({ q, msg: logText(msg) });
       }
     });
     if (st.phase !== "gameover") continue;

@@ -35,6 +35,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { logText } = require("./logtext.js");
 
 const GAMES = parseInt(process.argv[2] || "250", 10);
 const seedArg = process.argv.find((a) => a.startsWith("--seeds="));
@@ -190,7 +191,7 @@ function run(E, seats) {
     if (st.phase === "drafting") { E.advanceDraft(st, () => {}); E.startPlanning(st); }
     const marks = [];
     E.advancePlanning(st, E.mulberry32(s + 777), (msg) => {
-      const m = /^▶ Year \d+, Quarter (\d+)/.exec(String(msg));
+      const m = /^▶ Year \d+, Quarter (\d+)/.exec(logText(msg));
       if (m) marks.push({ q: +m[1], eps: st.players.map((x) => ({ id: x.id, ep: E.epTotal(x) })) });
     });
     if (st.phase !== "gameover") continue;

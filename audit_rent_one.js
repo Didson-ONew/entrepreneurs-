@@ -84,6 +84,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { logText } = require("./logtext.js");
 
 const SEEDS = parseInt(process.argv[2] || "150", 10);
 
@@ -102,9 +103,22 @@ const econ = { potIn: 0, rentIn: 0, prod: 0, left: 0, earned: 0 };
 
 function loadEngine(rate) {
   let logic = BASE.replace(RATE_NEEDLE, `const RENT_PER_LEVEL = ${rate};`);
-  /* where the OPEX dollar actually lands: to a landlord, or into a pot */
-  logic = logic.replace("      const toPots = Math.max(0, cost - rentTotal);",
-    "      const toPots = Math.max(0, cost - rentTotal);\n      __econ.split(Math.min(rentTotal, cost), toPots);");
+  /* Where the OPEX dollar actually lands: to a landlord, or into a supplier pot.
+     This used to hook a single `cost` that was split afterwards. The engine bills
+     the two separately now - see "Two bills now, not one payment split afterwards"
+     in runProduction - so the hook goes on the line that pays them, AFTER the
+     solvency branch, so a company that could not pay is not counted as having.
+
+     The replace is asserted. It was not, and when the engine stopped computing
+     `toPots` this quietly matched nothing: the hook was never installed, __econ.split
+     was never called, and every OPEX-split figure in this audit read 0%. An
+     unguarded replace on engine source is a silent probe failure. */
+  const SPLIT_NEEDLE = "      p.cash -= cost;";
+  if (!logic.includes(SPLIT_NEEDLE)) {
+    console.error("the OPEX payment changed shape - update this probe"); process.exit(2);
+  }
+  logic = logic.replace(SPLIT_NEEDLE,
+    SPLIT_NEEDLE + "\n      __econ.split(rentBill, supplierBill);");
   logic = logic.replace(SALE_NEEDLE,
     "  const leftover = Math.max(0, remaining);\n" +
     "  __econ.sale(earned, leftover, bizProd(biz));\n" +
@@ -146,7 +160,7 @@ for (const rate of RATES) {
       st.players[0].isHuman = false;
       if (st.phase === "drafting") { E.advanceDraft(st, () => {}); E.startPlanning(st); }
       E.advancePlanning(st, E.mulberry32(seed + 777), (msg) => {
-        if (/ sells a plot for \$/.test(String(msg))) T.plotSales++;
+        if (/ sells a plot for \$/.test(logText(msg))) T.plotSales++;
       });
       if (st.phase !== "gameover") continue;
       T.games++;

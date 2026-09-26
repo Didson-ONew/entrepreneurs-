@@ -110,6 +110,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { logText } = require("./logtext.js");
 
 const SEEDS = parseInt(process.argv[2] || "100", 10);
 const SIZES = [2, 4, 6];       // the shape is clear from three; five would be 40 min
@@ -174,7 +175,7 @@ function run(E, seats) {
     if (st.phase === "drafting") { E.advanceDraft(st, () => {}); E.startPlanning(st); }
     const snap = {};
     E.advancePlanning(st, E.mulberry32(seed + 777), (msg) => {
-      const m = /^▶ Year \d+, Quarter (\d+)/.exec(String(msg));
+      const m = /^▶ Year \d+, Quarter (\d+)/.exec(logText(msg));
       if (m) snap[+m[1]] = st.players.map((p) => ({ id: p.id, ep: E.epTotal(p) }));
     });
     if (st.phase !== "gameover") continue;

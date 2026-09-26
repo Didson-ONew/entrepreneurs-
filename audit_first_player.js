@@ -42,6 +42,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { logText } = require("./logtext.js");
 
 const GAMES = parseInt(process.argv[2] || "250", 10);
 const seedArg = process.argv.find((a) => a.startsWith("--seeds="));
@@ -166,7 +167,7 @@ function run(E, seats) {
     const held = {}, snap = {};
     let last = null, runLen = 0;
     E.advancePlanning(st, E.mulberry32(s + 777), (msg) => {
-      const m = /^▶ Year \d+, Quarter (\d+)/.exec(String(msg));
+      const m = /^▶ Year \d+, Quarter (\d+)/.exec(logText(msg));
       if (m) {
         snap[+m[1]] = st.players.map((x) => ({ id: x.id, ep: E.epTotal(x) }));
         /* Who holds first as the quarter opens, and for how many quarters in a row.
@@ -178,7 +179,7 @@ function run(E, seats) {
         if (fp === last) runLen++;
         else { if (last !== null) { T.runs++; T.runLen += runLen; } last = fp; runLen = 1; }
       }
-      if (/takes REPOSITION/.test(String(msg))) T.repos++;
+      if (/takes REPOSITION/.test(logText(msg))) T.repos++;
     });
     if (st.phase !== "gameover") continue;
     if (last !== null) { T.runs++; T.runLen += runLen; }
