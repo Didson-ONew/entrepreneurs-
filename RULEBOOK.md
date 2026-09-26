@@ -170,7 +170,7 @@ You may build on plots owned by another player. They collect the rent every quar
 
 A renovation has to fit the shell that is already standing. The card must match the distressed structure's level, and from level 2 upwards its scaling type as well: a level-2 or level-3 horizontal structure spreads across several plots and cannot be rebuilt as a vertical one, nor the other way round. At level 1 both kinds occupy a single plot, so a level-1 shell is open to any level-1 Blueprint.
 
-Renovating moves the price markers exactly as launching does - the industry you build goes DOWN $1 and every supplier the new card names goes UP $1 - because a renovation puts a genuinely new business into the city. Reclaiming a shell as it stands moves nothing. The building never changed, and neither did what the city can supply or needs to buy.
+Renovating moves the price markers exactly as launching does - the industry you build goes DOWN $1 and every supplier the new card names goes UP $1 - because a renovation puts a genuinely new business into the city, and it scores its levels like any new company does. The Blueprint it displaces is not spent: it goes back to the BOTTOM of its own industry deck. Reclaiming a shell as it stands moves nothing and scores nothing. The building never changed, and neither did what the city can supply or needs to buy.
 
 > **Designer's note.** That difference is the whole reason to keep the two as separate moves rather than one "take it over" action. Reclaim is the cheap, quiet way to undo a sale; renovate is the expensive one that changes what the city produces, and it should cost the market something to do it.
 
@@ -372,7 +372,7 @@ The moment a company is built it scores 2 EP per level, straight into your bank.
 
 So a level-2 company built and then upgraded pays 4 EP on the day it opens and 6 more on the day it grows.
 
-There is nothing held back and nothing to keep track of on the cards: every EP you have earned is banked, and the standings are the score. You never lose EP you have already scored - not when a company is sold, not when it goes distressed, not when it is merged into a Megacorp. A distressed shell that is bought back scores its levels again for its new owner, so a company can score twice in its life.
+There is nothing held back and nothing to keep track of on the cards: every EP you have earned is banked, and the standings are the score. You never lose EP you have already scored - not when a company is sold, not when it goes distressed, not when it is merged into a Megacorp. A shell RECLAIMED as it stands does not score again - not for the player who sold it, and not for a rival who buys it off the bank - because its levels were paid for when they were built. RENOVATING one does score, because that is a new business opening in an old building. Either way, your first company in an industry still pays the entry bonus.
 
 > **Designer's note.** Two EP a level, paid on completion, is the change that made building feel like the point of the game rather than a way to fund the land awards. At 1 EP a level, paid a quarter or two later, a company had to survive to be worth anything and still lost to cash; now the act of building is the reward, and the risk of a late solvency event no longer eats it.
 

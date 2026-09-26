@@ -1826,7 +1826,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "892782b0";
+const ENGINE_VERSION = "245938ef";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2587,6 +2587,14 @@ function doRenovate(state, p, distressedBiz, bp, log) {
   p.cash -= cost;
   distressedBiz.distressed = false;
   delete distressedBiz.distressPayout;   // back in service: the old payout is spent
+  /* THE DISPLACED BLUEPRINT GOES BACK INTO ITS OWN DECK, at the bottom. The
+     structure is being refitted for a different business, so the old plan is not
+     consumed - it returns to the market for somebody else to research. It goes to
+     the BOTTOM because the top card of every deck is public and is what RESEARCH
+     draws: put it on top and a renovation could hand a chosen card to the next
+     player to look, which is a side effect nobody asked for. */
+  const displaced = distressedBiz.bp;
+  if (displaced && state.decks[displaced.ind]) state.decks[displaced.ind].push(displaced);
   distressedBiz.bp = bp;
   /* A RENOVATION MOVES THE MARKET; A RECLAIM DOES NOT.
 
@@ -2647,9 +2655,24 @@ function doReclaim(state, p, biz, log) {
   p.cash -= cost;
   biz.distressed = false;
   delete biz.distressPayout;   // back in service: the old payout is spent
-  biz.scored = false;          // it scores again for its new owner
   biz.quarterBuilt = state.quarter;
-  scoreCompanyOnCompletion(state, p, biz);
+  /* A RECLAIM DOES NOT SCORE, FOR ANYBODY - not the seller buying their own shell
+     back, and not somebody else buying it off the bank. It is the same company it
+     always was: same Blueprint, same level, same output, same suppliers. Its levels
+     were scored when it was built and its upgrades when they were paid for, and it
+     is the same reasoning that stops a reclaim moving the price markers - nothing
+     about the city has changed, so nothing is owed for it.
+
+     Scoring it again made a sale and a buy-back into a points pump: the payout is
+     charged back so the cash nets to zero (see reclaimCost), and the EP was pure
+     profit for the price of two actions. `scored` is deliberately left alone rather
+     than set - if the company never scored in the first place, which happens under
+     classicScoring when it was sold before the year end it was waiting on, the year
+     end still picks it up.
+
+     What a new owner DOES get is the industry debut below, if this is their first
+     company in that industry. That is a player's own portfolio broadening, not the
+     company being paid for twice. */
   p.businesses.push(biz);
   const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
   log(logMsg("{0} buys the distressed {1} ({2} L{3}) back from the bank{4} for ${5} (cash: ${6}).", p.name, biz.bp.name, bizInd(biz), biz.level, from, cost, Math.round(p.cash)), p.id);
@@ -3056,7 +3079,7 @@ function botResolveOneAction(state, p, track, rng, log) {
       .filter((db) => canReclaim(state, p, db))
       .map((db) => {
         const px = price(state.pm, bizInd(db));
-        const value = bizProd(db) * px - bizOpex(db) - 3 * db.level;
+        const value = bizProd(db) * px - bizOpex(db) - RENT_PER_LEVEL * db.level;
         const fresh = missingIndustries(p).has(bizInd(db)) ? INDUSTRY_DEBUT_EP : 0;
         return { db, score: value + fresh - reclaimCost(db) * 0.25 };
       })
@@ -4848,6 +4871,9 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
             {t("for what the bank paid for it, keeping its Blueprint and level, or")}{" "}
             <b>{t("renovate it")}</b>{" "}
             {t("with a card from your hand for half that card’s setup. Location matters, since renovating changes industry. A renovation card must match the shell’s level, and from level 2 up its scaling type too; a level-1 shell takes any level-1 card:")}
+          </div>
+          <div className="text-[9px] text-gray-500">
+            {t("Buying as it stands scores no EP and moves no prices — it is the same company, already scored and already in the market. A renovation is a new business: it scores its levels, moves the market, and sends the old Blueprint to the bottom of its own deck. Either way, a first company in an industry still pays the entry bonus.")}
           </div>
           <div className="flex flex-col gap-1.5">
             {renoOptions.length ? renoOptions.map(({ db, bps }) => {

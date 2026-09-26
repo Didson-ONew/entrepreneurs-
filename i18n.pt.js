@@ -110,6 +110,7 @@ export default {
   "Buy a plot ({0}):": "Comprar um lote ({0}):",
   "Buy as-is:": "Retomar:",
   "Buy it as it stands": "Retomar como está",
+  "Buying as it stands scores no EP and moves no prices — it is the same company, already scored and already in the market. A renovation is a new business: it scores its levels, moves the market, and sends the old Blueprint to the bottom of its own deck. Either way, a first company in an industry still pays the entry bonus.": "Retomar como está não pontua EP e não move preços — é a mesma empresa, já pontuada e já no mercado. Uma reforma é uma empresa nova: pontua os níveis dela, move o mercado e manda o Projeto antigo para o fundo do próprio baralho. Em qualquer dos casos, a primeira empresa em um setor ainda paga o bônus de entrada.",
   "Buying back {0}": "Retomar {0}",
   "Buying that plot": "Comprar esse lote",
   "By the winner": "Pelo vencedor",

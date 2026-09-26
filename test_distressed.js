@@ -26,7 +26,8 @@ function loadEngine() {
     box.exports = { initGame, BP_DATA, SCALING, doLaunch, doSellCompany, doReclaim, canReclaim,
       doRenovate, renovationEligible, findDistressedTargets, activeBiz, discsFree, byId,
       companySlotsUsed, COMPANY_SLOTS, bizSetup, mulberry32, maWouldAchieveSomething,
-      scoreCompanyOnCompletion, levelEP, reclaimCost, price, INDUSTRIES };
+      scoreCompanyOnCompletion, levelEP, reclaimCost, price, INDUSTRIES,
+      epTotal, INDUSTRY_DEBUT_EP };
   `, sandbox);
   return box.exports;
 }
@@ -83,8 +84,9 @@ section("You may buy your own back, as it stands");
   check("it cost half its setup", cashBefore - me.cash === Math.floor(E.bizSetup(biz) / 2),
     `paid $${cashBefore - me.cash}`);
   check("it keeps its Blueprint and level", biz.bp.ind === "HC" && biz.level === 1);
-  check("and it scores again for you, as a fresh build",
-    (me.epLog || []).some((e) => String(e.label).startsWith("Company:") && e.amount === biz.level * E.levelEP(st)),
+  /* It used to score again here. It does not any more - see the section below. */
+  check("but it does NOT score again: one build, one payment",
+    (me.epLog || []).filter((e) => String(e.label).startsWith("Company:")).length === 1,
     (me.epLog || []).filter((e) => String(e.label).startsWith("Company:")).map((e) => `+${e.amount}`).join(" "));
 }
 
@@ -256,6 +258,120 @@ section("Renovating moves the price markers, reclaiming does not");
     deps.map((d) => `${d} $${before[d]}->$${E.price(st.pm, d)}`).join(" "));
   check("something actually moved",
     E.INDUSTRIES.some((i) => E.price(st.pm, i) !== before[i]));
+}
+
+/* ONE BUILD, ONE PAYMENT.
+
+   A reclaim buys the same company exactly as it stands - same Blueprint, same
+   level, same output, same suppliers - so it scores nothing, for anybody. Its
+   levels were paid for when they were built. This is the same reasoning that
+   already stopped a reclaim moving the price markers: nothing about the city has
+   changed, so nothing is owed for it. Scoring it again made a sale and a buy-back
+   a points pump - the cash nets to zero, so the EP was pure profit for the price
+   of two actions.
+
+   A RENOVATION is the opposite case and still scores, because a different
+   Blueprint goes into the shell: a genuinely new business opens, in a new
+   industry, buying from new suppliers. It moves the market like a launch and it
+   scores its levels like one. */
+section("A reclaim scores nothing, for anybody");
+{
+  const { st, me, biz } = tableWith("HC", 1);
+  const built = E.epTotal(me);
+  E.doSellCompany(me, biz, quiet);
+  check("selling banks no EP either way", E.epTotal(me) === built, `${built} -> ${E.epTotal(me)}`);
+  E.doReclaim(st, me, biz, quiet);
+  check("and buying your own back banks none", E.epTotal(me) === built,
+    `${built} -> ${E.epTotal(me)}`);
+  check("the company is trading again all the same",
+    biz.distressed === false && E.activeBiz(me).includes(biz));
+}
+
+section("Nor for a rival who simply buys it");
+{
+  const { st, me, rival, biz } = tableWith("HC", 1);
+  E.doSellCompany(me, biz, quiet);
+  /* Give the rival the industry already, so the entry bonus cannot be mistaken
+     for the company scoring. */
+  rival.industriesScored = ["HC"];
+  const before = E.epTotal(rival);
+  rival.hand = [];
+  E.doReclaim(st, rival, biz, quiet);
+  check("it is theirs now", rival.businesses.includes(biz));
+  check("and they banked nothing for it", E.epTotal(rival) === before,
+    `${before} -> ${E.epTotal(rival)}`);
+  check("no Company: line was written for them",
+    (rival.epLog || []).every((e) => !String(e.label).startsWith("Company:")),
+    (rival.epLog || []).map((e) => e.label).join(" | "));
+}
+
+section("But a first company in an industry still pays the entry bonus");
+{
+  const { st, me, rival, biz } = tableWith("HC", 1);
+  E.doSellCompany(me, biz, quiet);
+  rival.industriesScored = [];            // never been in Healthcare
+  const before = E.epTotal(rival);
+  rival.hand = [];
+  E.doReclaim(st, rival, biz, quiet);
+  check("they bank the entry bonus and nothing else",
+    E.epTotal(rival) - before === E.INDUSTRY_DEBUT_EP,
+    `+${E.epTotal(rival) - before}, expected +${E.INDUSTRY_DEBUT_EP}`);
+  check("and it is labelled as entering the industry",
+    (rival.epLog || []).some((e) => String(e.label) === "Entered HC"),
+    (rival.epLog || []).map((e) => e.label).join(" | "));
+}
+
+section("A renovation does score, because it is a new business");
+{
+  const { st, me, biz } = tableWith("HC", 1);
+  E.doSellCompany(me, biz, quiet);
+  const card = E.BP_DATA.find((x) => x.lvl === 1 && x.ind !== "HC" && E.renovationEligible(biz, x));
+  me.hand = [card];
+  me.industriesScored = [card.ind];       // exclude the entry bonus from the sum
+  const before = E.epTotal(me);
+  E.doRenovate(st, me, biz, card, quiet);
+  check("it banks the new company's levels",
+    E.epTotal(me) - before === card.lvl * E.levelEP(st),
+    `+${E.epTotal(me) - before}, expected +${card.lvl * E.levelEP(st)}`);
+}
+
+section("And the Blueprint it displaced goes back to the bottom of its deck");
+{
+  const { st, me, biz } = tableWith("HC", 1);
+  const oldBp = biz.bp;
+  /* tableWith hands the launch card over without drawing it, so the same object is
+     still sitting in its deck. Real play cannot do that - a card reaches a hand
+     only by being shifted off a deck or drafted, both of which remove it - so take
+     it out here, otherwise "it came back exactly once" cannot mean anything. */
+  const hcDeck = st.decks[oldBp.ind];
+  if (hcDeck.includes(oldBp)) hcDeck.splice(hcDeck.indexOf(oldBp), 1);
+  E.doSellCompany(me, biz, quiet);
+  const card = E.BP_DATA.find((x) => x.lvl === 1 && x.ind !== "HC" && E.renovationEligible(biz, x));
+  /* Take the card out of its deck the way a draw would, rather than conjuring a
+     second reference to it. Decks hold the same BP_DATA objects the hand does, so
+     a hand assembled out of thin air leaves a copy still sitting in the deck and
+     nothing below could be told apart. */
+  const drawnFrom = st.decks[card.ind];
+  drawnFrom.splice(drawnFrom.indexOf(card), 1);
+  me.hand = [card];
+
+  const oldDeckBefore = st.decks[oldBp.ind].length;
+  const newDeckBefore = st.decks[card.ind].length;
+  E.doRenovate(st, me, biz, card, quiet);
+
+  check("the displaced Blueprint's own deck grew by one",
+    st.decks[oldBp.ind].length === oldDeckBefore + 1,
+    `${oldDeckBefore} -> ${st.decks[oldBp.ind].length}`);
+  check("and it went to the bottom, not the public top",
+    st.decks[oldBp.ind][st.decks[oldBp.ind].length - 1] === oldBp
+    && st.decks[oldBp.ind][0] !== oldBp,
+    `top is ${st.decks[oldBp.ind][0] && st.decks[oldBp.ind][0].name}`);
+  check("it is in that deck exactly once, not duplicated",
+    st.decks[oldBp.ind].filter((x) => x === oldBp).length === 1);
+  check("the card played from hand is spent",
+    !me.hand.includes(card) && st.decks[card.ind].length === newDeckBefore,
+    `hand ${me.hand.length}, ${card.ind} deck ${newDeckBefore} -> ${st.decks[card.ind].length}`);
+  check("and the structure is running it now", biz.bp === card);
 }
 
 console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed\n");

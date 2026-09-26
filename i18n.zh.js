@@ -112,6 +112,7 @@ export default {
   "Buy a plot ({0}):": "购买一个地块（{0}）：",
   "Buy as-is:": "原样接手：",
   "Buy it as it stands": "原样接手",
+  "Buying as it stands scores no EP and moves no prices — it is the same company, already scored and already in the market. A renovation is a new business: it scores its levels, moves the market, and sends the old Blueprint to the bottom of its own deck. Either way, a first company in an industry still pays the entry bonus.": "原样接手不计 EP，也不动价格 — 它还是同一家公司，早就计过分，也早就在市场里了。翻新则是一家新公司：按等级计分、推动市场，并把原来的项目卡放回本牌堆的最底下。无论哪一种，你在某个产业里的第一家公司仍然拿入行奖励。",
   "Buying back {0}": "买回 {0}",
   "Buying that plot": "购买该地块",
   "By the winner": "由获胜者取得",
