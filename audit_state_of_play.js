@@ -69,14 +69,15 @@
    one four to six players are playing.
 
    THE WINNING SCORE IS BUILDING, THEN LAND. Share of the winner's points,
-   re-measured over 250 games a table size on the rules as they now stand
-   (2p / 3p / 4p / 5p / 6p):
+   re-measured over 250 games a table size on the rules as they now stand -
+   including the reclaim that no longer scores, which took a few points off the
+   companies row and put them nowhere in particular (2p / 3p / 4p / 5p / 6p):
 
-       companies and upgrades   41  42  35  36  36
-       land awards              18  13  24  17  15
-       cash on hand             16  15  13  12  12
-       entering an industry     12  13  11  11  10
-       forming a Megacorp        9  11  10  13  13
+       companies and upgrades   38  39  31  32  32
+       land awards              19  13  27  18  18
+       cash on hand             16  15  13  13  13
+       entering an industry     13  14  11  11  11
+       forming a Megacorp        9  11   9  13  13
        Megacorp brand            5   8   8  12  13
        tithe, in and out         1 each way, either sign
 
@@ -87,14 +88,14 @@
    CASH WAS ABOUT A THIRD OF EVERY WINNING SCORE, which was a great deal of
    weight for a rule that reads as a rounding-up of leftovers: a player who
    simply did not spend was scoring comparably to one who built. Raising the
-   cash rate to $50 an EP halved it. At 12-16% of a winner's score and 11-14%
-   across every seat it is now a tidy-up, not a strategy, and building is
-   comfortably the biggest thing a winner does.
+   cash rate to $50 an EP halved it. At 13-16% of a winner's score and 12-15%
+   across every seat it is now a tidy-up, not a strategy, and building is still
+   the biggest single thing a winner does.
 
    THE LAND AWARDS COLLAPSED AS THE TABLE GREW, 18% of the winner's points at
    two seats down to 5% at six, because a FLAT prize is split across more
    claimants while every other source scales with how much you do. Doubling
-   the prize from four players up fixed it: the row is now 18/13/24/17/15 and
+   the prize from four players up fixed it: the row is now 19/13/27/18/18 and
    has no trend in the head count at all.
 
    THE INDUSTRIES ARE LEVEL AT A FULL TABLE AND SKEWED AT A SMALL ONE. Share
