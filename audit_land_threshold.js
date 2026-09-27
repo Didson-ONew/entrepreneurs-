@@ -112,6 +112,10 @@ const SCHEDULES = [
   { key: "step@4", sole: { 2: 5, 3: 5, 4: 10, 5: 10, 6: 10 }, note: "what ships" },
   { key: "step@5", sole: { 2: 5, 3: 5, 4: 5, 5: 10, 6: 10 }, note: "step moved one seat later" },
   { key: "ramp", sole: { 2: 5, 3: 6, 4: 8, 5: 9, 6: 10 }, note: "smooth, same endpoints" },
+  /* The ramp with one sentence instead of a table: "the award is 4 plus the number
+     of players". It differs from the ramp only at two seats, and a rule a teacher
+     can say out loud is worth measuring separately from one they have to point at. */
+  { key: "n+4", sole: { 2: 6, 3: 7, 4: 8, 5: 9, 6: 10 }, note: "4 plus the player count" },
   { key: "scaled", sole: { 2: 5, 3: 8, 4: 10, 5: 13, 6: 15 }, note: "2.5 EP a seat" },
 ];
 
