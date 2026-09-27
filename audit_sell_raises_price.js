@@ -48,7 +48,10 @@ const NEEDLES = {
     b.distressed = true;
   });`,
   renovate: "  distressedBiz.distressed = false;",
-  reclaim: "  biz.scored = false;          // it scores again for its new owner",
+  /* A reclaim no longer re-scores the company, so the line this used to anchor on
+     is gone. quarterBuilt is the line that still marks the moment the building
+     comes back into service, which is the event being hooked. */
+  reclaim: "  biz.quarterBuilt = state.quarter;",
 };
 for (const [k, v] of Object.entries(NEEDLES)) {
   if (!SRC.includes(v)) { console.error(`the ${k} path has changed shape - update this script`); process.exit(2); }
@@ -72,7 +75,7 @@ const PATCHES = {
   renovate: `  distressedBiz.distressed = false;
   if (box.onReturn) box.onReturn(distressedBiz, bp);`,
   reclaim: `  if (box.onReturn) box.onReturn(biz, biz.bp);
-  biz.scored = false;          // it scores again for its new owner`,
+  biz.quarterBuilt = state.quarter;`,
 };
 
 function buildEngine() {
