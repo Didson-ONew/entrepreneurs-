@@ -41,6 +41,47 @@
      a runaway risk. The Q6-leader win rate and the winner's margin say whether
      it is being bought.
 
+   WHAT IT FOUND, over 100 games per schedule per table size
+   ------------------------------------------------------------------------
+
+   THE RAMP IS FIVE TIMES FLATTER THAN THE STEP. Spread of land's share of a
+   winning score across the five table sizes, max minus min:
+
+       step@4 (ships)   17.3 pts     20% 12% 29% 21% 17%
+       step@5           13.5 pts     20% 12%  8% 21% 17%
+       ramp              3.3 pts     20% 17% 19% 18% 17%
+       scaled           18.6 pts     20% 26% 29% 33% 38%
+
+   MOVING THE STEP TO FIVE PLAYERS IS WORSE THAN LEAVING IT. It does not remove
+   the cliff, it deepens it: land falls to 8% of a winning score at four seats,
+   and the seat holding the most ground wins 16% of the time against a 25%
+   chance line. That is the only cell in the whole measurement that sits BELOW
+   chance, and it is precisely the failure the doubling was introduced to fix -
+   at the small rate, chasing land is a trap. Rule it out.
+
+   SCALING FULLY OVERSHOOTS AND SETTLES THE GAME. Land reaches 38% of a winning
+   score at six seats, the land leader wins 51% against a 17% chance line, the
+   Q6 leader's win rate climbs from 40% to 62%, and the winner's margin goes
+   from 19.0 to 27.4. A prize that big for a position held all game is a
+   runaway. Rule it out too.
+
+   THE RAMP PASSES BOTH GUARDS, AND IMPROVES THEM. The land leader wins at or
+   above chance at every count (53/43/32/35/25 against 50/33/25/20/17). The game
+   settles LESS than it does now, not more - the Q6 leader's win rate falls from
+   64% to 46% at four seats and 42% to 36% at five. The winner's margin narrows
+   slightly at every count. Winning scores barely move.
+
+   SO THE BALANCE CASE IS SETTLED AND THE COST IS ELSEWHERE. The ramp is five
+   numbers - 5/6/8/9/10 - where the step is two. On a printed card that is a
+   small table instead of one sentence, and the playtest feedback on the
+   physical game says rules clarity is already the weakest thing about it. This
+   probe cannot weigh that. It can only say that if the award is allowed five
+   values, the cliff disappears and nothing else gets worse.
+
+   WORTH MEASURING NEXT: "4 plus the number of players" gives 6/7/8/9/10, which
+   is one sentence rather than a table and differs from the measured ramp only
+   at two seats.
+
    Run: node audit_land_threshold.js [gamesPerCell]      (default 100)
    ========================================================================== */
 const fs = require("fs");
