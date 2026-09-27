@@ -78,9 +78,29 @@
    probe cannot weigh that. It can only say that if the award is allowed five
    values, the cliff disappears and nothing else gets worse.
 
-   WORTH MEASURING NEXT: "4 plus the number of players" gives 6/7/8/9/10, which
-   is one sentence rather than a table and differs from the measured ramp only
-   at two seats.
+   AND THE ONE-SENTENCE RAMP MEASURES THE SAME. "4 plus the number of players"
+   gives 6/7/8/9/10 and was added afterwards. It differs from the ramp only at
+   two and three seats, and on every number that matters it is the ramp:
+
+                        spread   land share            land leader   Q6 leader
+       ramp             3.3 pts  20 17 19 18 17        53 43 32 35 25   69 48 46 36 40
+       n+4              4.4 pts  22 21 19 18 17        50 46 32 35 25   69 49 46 36 40
+       chance line                                     50 33 25 20 17
+
+   The 1.1 point gap in spread is not a finding. Two standard errors on a rate
+   measured over 100 games is about +/-10 points, so 22 against 20 and 50
+   against 53 are the same number twice. What IS visible is the SHAPE: n+4
+   declines monotonically, 22/21/19/18/17, while the ramp dips at three seats
+   and comes back up, 20/17/19/18/17. A rule whose weight falls smoothly as the
+   table grows has a story - fewer people chasing the same ground - and the
+   ramp's dip at three seats has none.
+
+   So the recommendation is n+4, and it is a recommendation about TEACHING, not
+   about balance: the balance case between the two is a tie, and one of them is
+   a sentence while the other is a lookup table. The only place to watch is two
+   seats, where n+4 lifts the award from 5 to 6 and the land leader wins exactly
+   at chance rather than a whisker above it. If that matters, measure two-player
+   games on their own at a few hundred games rather than trusting this row.
 
    Run: node audit_land_threshold.js [gamesPerCell]      (default 100)
    ========================================================================== */
