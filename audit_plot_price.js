@@ -74,9 +74,56 @@
    corner rather than any corner - would make the existing $1 bite harder than
    $2 does on a board where you can always build somewhere else.
 
-   If the rate is wanted anyway, arm C is the better buy than arm D: same
-   intent, keeps the looser adjacency the rest of the engine already uses, and
-   moves prices ~12% rather than ~3%.
+   THEN THE GOAL TURNED OUT TO BE A DIFFERENT ONE, and it changes the answer.
+   Orthogonal adjacency is not being chosen to move the economy, it is being
+   chosen because a person has to count it at a table, with the demand block
+   and the district seams in the way of anything diagonal. On that footing it
+   wins on its own, before any number is measured: the rulebook already teaches
+   that adjacent means sharing an edge and that plots meeting at a corner are
+   NOT adjacent (it is the rule for building and for upgrading), and then has
+   to interrupt itself under plot value to say corners count after all. Pricing
+   is the only rule in this game that counts a corner. Going orthogonal deletes
+   a special case rather than adding one.
+
+   So the adjacency is fixed and the rate is the free variable, which is what
+   arms E through H sweep. A quarter of the board (25.9% of plots, over 60
+   boards) has no orthogonal neighbour at all and can never carry a premium, so
+   a higher rate sharpens a two-tier board rather than lifting it evenly.
+
+   THE RATE, 300 games per arm per table. The question is not what a premium
+   costs, it is whether anybody pays it - land is abundant, so a player who
+   dislikes the price buys an empty plot instead. Share of purchases made next
+   to a structure, and what that neighbour cost:
+
+                    2p            4p            6p
+     ships      18.0%  +$1.52   22.4%  +$1.85   27.8%  +$1.90
+     orth x$1   17.1%  +$1.65   21.5%  +$1.86   27.0%  +$1.98
+     orth x$3   14.9%  +$3.83   20.1%  +$4.15   24.4%  +$4.36
+     orth x$4   14.7%  +$4.94   19.1%  +$5.28   23.3%  +$5.44
+     orth x$8   13.8%  +$9.23   17.4%  +$9.81   20.8% +$10.07
+
+   Going from $1 to $4 deters about one adjacent purchase in eight. That is
+   price sensitivity, not avoidance: the premium is paid. At $3 a contested
+   plot costs about double an empty one, at $4 nearly triple, against a flat
+   ~$2.80 for empty ground at every rate.
+
+   NOTHING ELSE MOVES, from $1 through $8, at every table size: winning score,
+   margin, companies built, cash and Q6-leader-wins are all flat. Land spend
+   rises 9% at $3 and 14% at $4, on a game that ends with roughly $500 in hand,
+   which is why the economy does not notice. One cell looked soft - $4 at six
+   seats, winning score 106.2 against 108.6 - and a re-run on seed block 50000
+   did not reproduce it (108.4 against 109.9, with the baseline moving as much
+   as the arm). It was noise.
+
+   $3 IS THE RECOMMENDATION over $4: it roughly doubles the premium, which was
+   the goal, at the smallest cost in deterrence, and it leaves headroom. Going
+   up after table play is easy; discovering an overshoot is not.
+
+   TWO THINGS THE RATE DOES NOT DO. Land's share of the winner's score stays at
+   18-25% whatever the rate, so this makes land a bigger CASH decision and not
+   a bigger scoring one. And because plotValue is also the sale price, every
+   rate rise buffs land as collateral as much as it taxes buying it - revenue
+   per sale went $7 to $10 at four seats.
 
    ONE REAL EFFECT, worth not missing. plotValue is also the SALE price, and
    half of it is a solvency raise, so any rate rise is a buff to land as
