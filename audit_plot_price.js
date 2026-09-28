@@ -130,7 +130,16 @@ const ARMS = {
   A: { adj: "graph", rate: 1, label: "ships      graph x$1" },
   B: { adj: "orth", rate: 1, label: "orth only  orth  x$1" },
   C: { adj: "graph", rate: 2, label: "rate only  graph x$2" },
-  D: { adj: "orth", rate: 2, label: "PROPOSAL   orth  x$2" },
+  D: { adj: "orth", rate: 2, label: "orth       orth  x$2" },
+  /* THE RATE SWEEP. Orthogonal adjacency is now the fixed choice - it is what
+     a person can actually count at a table, with the demand block and the
+     district seams in the way of anything diagonal - so the only free variable
+     left is the rate, and these ask how far it has to go before location is
+     worth anything. */
+  E: { adj: "orth", rate: 3, label: "sweep      orth  x$3" },
+  F: { adj: "orth", rate: 4, label: "sweep      orth  x$4" },
+  G: { adj: "orth", rate: 6, label: "sweep      orth  x$6" },
+  H: { adj: "orth", rate: 8, label: "sweep      orth  x$8" },
 };
 
 function engineFor(arm) {
@@ -199,6 +208,13 @@ function run(arm, seats, n) {
     buysPerGame: [], priceEach: [], priceMax: [], spendPerGame: [],
     earlyPrice: [], latePrice: [],
     tagPaid: [], gnb: [], onb: [], adjShare: [],
+    /* THE AVOIDANCE QUESTION, and the one that decides this. Land is abundant,
+       so a player who does not like the premium does not pay it - they buy an
+       empty plot somewhere else. If raising the rate does not raise the share
+       of purchases that have a neighbour at all, then the rule is not being
+       paid, it is being dodged, and a higher number on the card changes
+       nothing except how often people walk away from a corner. */
+    boughtAdjacent: 0, boughtTotal: 0, priceWhenAdjacent: [], priceWhenEmpty: [],
     sellsPerGame: [], sellRevenue: [], solvencySells: [],
     plotsWinner: [], plotsMean: [], plotSpread: [],
     landEPWinner: [], landShare: [],
@@ -230,6 +246,9 @@ function run(arm, seats, n) {
       o.gnb.push(b.gnb);
       o.onb.push(b.onb);
       o.adjShare.push(b.cost > 0 ? pct(b.cost - b.tag, b.cost) : 0);
+      o.boughtTotal++;
+      if (b.onb > 0) { o.boughtAdjacent++; o.priceWhenAdjacent.push(b.cost); }
+      else o.priceWhenEmpty.push(b.cost);
     });
     const early = box.buys.filter((b) => b.q <= 6).map((b) => b.cost);
     const late = box.buys.filter((b) => b.q > 6).map((b) => b.cost);
@@ -326,6 +345,17 @@ for (const seats of TABLES) {
     console.log(`    ${arm}    ${mean(o.tagPaid).toFixed(2)}      `
       + `${mean(o.gnb).toFixed(2).padStart(4)}       ${mean(o.onb).toFixed(2).padStart(4)}          `
       + `${mean(o.adjShare).toFixed(0).padStart(3)}%`);
+  }
+
+  console.log("\n  paid or dodged?  a plot only costs more if you buy one that HAS"
+    + " a neighbour:");
+  console.log("    arm    bought next to a structure    $ paid there   $ paid empty   premium");
+  for (const arm of Object.keys(ARMS)) {
+    const o = rows[arm];
+    const adj = mean(o.priceWhenAdjacent), emp = mean(o.priceWhenEmpty);
+    console.log(`    ${arm}           ${pct(o.boughtAdjacent, o.boughtTotal).toFixed(1).padStart(5)}%              `
+      + `${adj.toFixed(2).padStart(5)}          ${emp.toFixed(2).padStart(5)}        `
+      + `${(adj - emp >= 0 ? "+" : "")}${(adj - emp).toFixed(2)}`);
   }
 
   console.log("\n  cheapest plot still unsold at the end, and the share of the table"
