@@ -123,6 +123,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { logText } = require("./logtext.js");
 
 const SEEDS = parseInt(process.argv[2] || "200", 10);
 
@@ -235,7 +236,7 @@ for (const seats of SIZES) {
     };
 
     E.advancePlanning(st, E.mulberry32(seed + 777), (msg) => {
-      if (/^▶ Year \d+, Quarter \d+/.test(String(msg))) sample();
+      if (/^▶ Year \d+, Quarter \d+/.test(logText(msg))) sample();
     });
     if (st.phase !== "gameover") continue;
     sample();

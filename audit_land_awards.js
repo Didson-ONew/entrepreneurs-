@@ -73,9 +73,15 @@ const NEEDLES = {
   /* The engine now picks between two rate tables by head count, so an arm that rewrites
      LAND_AWARD alone would be ignored from four seats up and quietly measure the
      shipped rule instead. Any arm that sets a rate also flattens this function. */
-  landFn: `const landAward = (state) => (state && state.players && state.players.length >= LAND_AWARD_LARGE_FROM
-  ? LAND_AWARD_LARGE : LAND_AWARD);`,
-  landConst: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };           // 2-3 players",
+  /* The land award scales with the head count now, and landAwardFor is the single
+     place it is computed - the scoring and the bots' plot valuation both come
+     through it. An arm that wants one flat rate rewrites this one function, where
+     it used to have to flatten landAward AND rewrite the constant behind it. */
+  landFn: `const landAwardFor = (n) => {
+  const sole = landAwardSole(n);
+  return { sole, two: Math.max(1, Math.round(sole * 0.4)), many: Math.max(1, Math.round(sole * 0.2)) };
+};`,
+  landConst: "const LAND_AWARD_BASE = 4;",
   /* The whole body is replaced, not a prefix of it, so no dead half of the old loop
      is left behind to unbalance the braces. */
   awardBody: `  const top = Math.max(...scores.map((x) => x.s));
@@ -87,7 +93,7 @@ const NEEDLES = {
     // stamp the quarter it was actually awarded in - the land awards pay at every year
     // end, and hardcoding 12 made the scoring log claim otherwise
     addEP(p, share, label, state.quarter);
-    if (log) log(\`\${p.name} earns \${label} (+\${share} EP).\`, p.id);
+    if (log) log(logMsg("{0} earns {1} (+{2} EP).", p.name, label, share), p.id);
   }`,
   quarterEnd: "function finishQuarterAfterLH(state, log, rng) {\n  runClosingRest(state, log);",
   mogulCall: '(p) => plotCount(state, p), "The Real-Estate Mogul"',
@@ -189,9 +195,15 @@ const ARMS = [
 
 function engineFor(arm) {
   let logic = base;
-  /* First, before any other splice: arm C rewrites the LAND_AWARD line this is
-     anchored to, and a splice that runs after it would quietly do nothing. */
-  logic = logic.replace(NEEDLES.landFn, "const landAward = () => LAND_AWARD;   // this arm sets one rate for every table size");
+  /* ONE splice, with the rate decided up front. It used to flatten the award here
+     and then some arms re-replaced the flattened line further down - a chain where
+     the second link targets text that exists only because the first one ran, which
+     is invisible to the check that a splice matched anything. */
+  const FLAT = arm.botsAware && !arm.control && !arm.granular
+    ? "{ sole: 10, two: 5, many: 3 }"
+    : "{ sole: 5, two: 2, many: 1 }";
+  logic = logic.replace(NEEDLES.landFn,
+    `const landAwardFor = () => (${FLAT});   // this arm sets one rate for every table size`);
   logic = logic.replace(NEEDLES.landConst, NEEDLES.landConst + CONTROL_HELPER);
   if (arm.ranked) logic = logic.replace(NEEDLES.awardBody, RANKED_BODY);
   if (arm.granular) logic = logic.replace(NEEDLES.awardBody, GRANULAR_BODY);
@@ -212,9 +224,8 @@ function engineFor(arm) {
       const at = logic.indexOf(NEEDLES.weightFn);
       const end = logic.indexOf("\n}", at);
       logic = logic.slice(0, at) + GRANULAR_WEIGHT + logic.slice(end + 2);
-    } else {
-      logic = logic.replace(NEEDLES.landConst, "const LAND_AWARD = { sole: 10, two: 5, many: 3 };");
     }
+    /* the plain botsAware arm needs no further splice: FLAT above already set its rate */
   }
   /* Snapshot the standings at every year end so the runaway question can be asked
      of the same games rather than a second run. */

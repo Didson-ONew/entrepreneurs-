@@ -5,9 +5,10 @@
    pot, in cash, like any other company standing in that industry; and a brand
    dividend in EP. This sweeps what the dividend should be.
 
-   As it stands the dividend is the industry's CURRENT PRICE in EP, every
-   quarter, and the pot share is cash on top. That is now the biggest single
-   bucket in a winner's score, which is what prompted the question.
+   As it stands the dividend is the industry's CURRENT PRICE divided by the
+   headquarters' TIER, in EP, every quarter, and the pot share is cash on top.
+   It was the price undivided when this sweep was first run, and was then the
+   biggest single bucket in a winner's score, which is what prompted it.
 
    The alternative: the headquarters does not take the pot money at all - it
    goes back to the bank - and scores what it would have drawn as EP instead.
@@ -57,7 +58,7 @@ const base = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
 
 const NEEDLES = {
   /* the brand dividend, paid before the pots are shared out */
-  brand: "      const ep = price(state.pm, bizInd(hq));",
+  brand: "      const ep = brandEPFor(goods, tier);",
   /* the pot split itself - one line pays every recipient */
   payout: "    recipients.forEach((r) => { r.p.cash += share; });",
   /* where the dividend is run in the quarter, so it can be moved to year ends */

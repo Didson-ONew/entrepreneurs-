@@ -25,6 +25,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { logText } = require("./logtext.js");
 
 const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
 const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
@@ -62,7 +63,8 @@ const box = {};
 const sandbox = { console, Math, Set, Map, Object, Array, JSON, box, String, Number };
 vm.createContext(sandbox);
 vm.runInContext(SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "").replace(NEEDLE, PATCHED) + `
-  box.E = { INDUSTRIES, IND_NAME, BASE_PRICE, BP_DATA, PRICE_MIN, PRICE_MAX, SCALING };
+  box.E = { INDUSTRIES, IND_NAME, BASE_PRICE, BP_DATA, PRICE_MIN, PRICE_MAX, SCALING,
+            SUPPLIER_CELLS, BUILT_CELLS };
   box.E2 = { initGame, mulberry32, advanceDraft, startPlanning, advancePlanning, bizInd, price };
 `, sandbox);
 const E = box.E, E2 = box.E2;
@@ -103,7 +105,7 @@ function playOne(seed, seats) {
   INDS.forEach((i) => { box.tally.up[i] = 0; box.tally.down[i] = 0; box.tally.lost[i] = 0; });
 
   E2.advancePlanning(st, E2.mulberry32(seed + 777), (msg) => {
-    if (/^▶ Year \d+, Quarter \d+/.test(String(msg))) record();
+    if (/^▶ Year \d+, Quarter \d+/.test(logText(msg))) record();
   });
   record();
 
@@ -117,9 +119,14 @@ console.log(`Entrepreneurs - price behaviour by industry`);
 console.log(`${GAMES} games at each of ${SIZES.length} table sizes `
   + `(${GAMES * SIZES.length} games total)\n`);
 console.log(`base prices:  ` + INDS.map((i) => `${i} $${E.BASE_PRICE[i]}`).join("   "));
+/* Printed from the engine's own constants rather than described in prose, which
+   is how this line came to still say "two builds" long after one build moved a
+   price a whole dollar. */
 console.log(`track:        $${E.PRICE_MIN} to $${E.PRICE_MAX}, `
-  + `one blank cell between numbers - two builds move a price a dollar down, `
-  + `two supplier appearances move it a dollar up\n`);
+  + `one blank cell between numbers - a build moves its own industry `
+  + `${Math.abs(E.BUILT_CELLS) / 2 === 1 ? "a dollar" : `${Math.abs(E.BUILT_CELLS)} cells`} down, `
+  + `a supplier appearance moves that industry `
+  + `${E.SUPPLIER_CELLS / 2 === 1 ? "a dollar" : `${E.SUPPLIER_CELLS} cells`} up\n`);
 
 const all = {};   // seats -> ind -> tallies
 for (const seats of SIZES) {

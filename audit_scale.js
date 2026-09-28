@@ -116,7 +116,11 @@ const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
    draw are whatever the shipped rules say. What is still patched is the fourth year,
    which the game does not play. */
 const N = {
-  over: "  if (state.quarter >= 12 || rushers.length) {",
+  /* The second Megacorp CALLS the final quarter now rather than being it, so the
+     game-over test reads the deadline as well as Q12, and the deadline itself caps
+     at 12. A longer game has to move both or the extra year is unreachable. */
+  over: "  if (state.quarter >= 12 || (state.finalQuarter && state.quarter >= state.finalQuarter)) {",
+  deadlineCap: "    state.finalQuarter = Math.min(12, state.quarter + 1);",
   yearEndsClosing: "  if ([4, 8, 12].includes(quarter)) {",
   yearEndsRepay: "  if ([4, 8, 12].includes(state.quarter)) {",
   landPayouts: "  return [4, 8, 12].filter((q) => q >= state.quarter).length || 1;",
@@ -140,7 +144,9 @@ function engineFor({ quarters = 12 } = {}) {
     for (let q = 4; q <= last; q += 4) ends.push(q);
     const endsSrc = `[${ends.join(", ")}]`;
     /* keep the second-Megacorp deadline; only the year count moves */
-    logic = logic.replace(N.over, `  if (state.quarter >= ${last} || rushers.length) {`);
+    logic = logic.replace(N.over,
+      `  if (state.quarter >= ${last} || (state.finalQuarter && state.quarter >= state.finalQuarter)) {`);
+    logic = logic.replace(N.deadlineCap, `    state.finalQuarter = Math.min(${last}, state.quarter + 1);`);
     logic = logic.replace(N.yearEndsClosing, `  if (${endsSrc}.includes(quarter)) {`);
     logic = logic.replace(N.yearEndsRepay, `  if (${endsSrc}.includes(state.quarter)) {`);
     logic = logic.replace(N.landPayouts, `  return ${endsSrc}.filter((q) => q >= state.quarter).length || 1;`);

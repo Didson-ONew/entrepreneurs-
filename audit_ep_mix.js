@@ -29,6 +29,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { logText } = require("./logtext.js");
 
 const GAMES = parseInt(process.argv[2] || "250", 10);
 const seedArg = process.argv.find((a) => a.startsWith("--seeds="));
@@ -44,9 +45,15 @@ const NEEDLES = {
   /* The engine now picks between two rate tables by head count, so an arm that rewrites
      LAND_AWARD alone would be ignored from four seats up and quietly measure the
      shipped rule instead. Any arm that sets a rate also flattens this function. */
-  landFn: `const landAward = (state) => (state && state.players && state.players.length >= LAND_AWARD_LARGE_FROM
-  ? LAND_AWARD_LARGE : LAND_AWARD);`,
-  landConst: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };           // 2-3 players",
+  /* The land award scales with the head count now, and landAwardFor is the single
+     place it is computed - the scoring and the bots' plot valuation both come
+     through it. An arm that wants one flat rate rewrites this one function, where
+     it used to have to flatten landAward AND rewrite the constant behind it. */
+  landFn: `const landAwardFor = (n) => {
+  const sole = landAwardSole(n);
+  return { sole, two: Math.max(1, Math.round(sole * 0.4)), many: Math.max(1, Math.round(sole * 0.2)) };
+};`,
+  landConst: "const LAND_AWARD_BASE = 4;",
   awardBody: `  const top = Math.max(...scores.map((x) => x.s));
   const leaders = scores.filter((x) => x.s === top);
   const A = landAward(state);
@@ -56,9 +63,9 @@ const NEEDLES = {
     // stamp the quarter it was actually awarded in - the land awards pay at every year
     // end, and hardcoding 12 made the scoring log claim otherwise
     addEP(p, share, label, state.quarter);
-    if (log) log(\`\${p.name} earns \${label} (+\${share} EP).\`, p.id);
+    if (log) log(logMsg("{0} earns {1} (+{2} EP).", p.name, label, share), p.id);
   }`,
-  epLabel: "p.epLog.push({ label, amount, quarter });",
+  epLabel: "{ label, amount, quarter });",
   /* What a company level is worth. The bots read this too - it prices launching,
      upgrading and what a merger gives up - so moving it moves the whole game, not
      just the scoresheet. */
@@ -99,9 +106,9 @@ function engineFor(arm) {
     /* The bots price a plot through LAND_AWARD.sole (see worthChasingLand), so the
        constant moves with the payout or the arm measures bots playing the old rule. */
     const [f, sec] = arm.values;
-    logic = logic.replace(NEEDLES.landFn, "const landAward = () => LAND_AWARD;   // this arm sets one rate for every table size");
-    logic = logic.replace(NEEDLES.landConst,
-      `const LAND_AWARD = { sole: ${f}, two: ${Math.max(1, Math.round((f + sec) / 2))}, many: ${Math.max(1, Math.round(f / 3))} };`);
+    logic = logic.replace(NEEDLES.landFn,
+      `const landAwardFor = () => ({ sole: ${f}, two: ${Math.max(1, Math.round((f + sec) / 2))}, `
+      + `many: ${Math.max(1, Math.round(f / 3))} });   // this arm sets one rate for every table size`);
   }
   const box = {};
   const sandbox = { console, Math, Set, Object, Array, JSON, box };
@@ -140,7 +147,7 @@ function run(E, seats) {
        so the runaway numbers are read on the same games rather than assumed. */
     const snap = {};
     E.advancePlanning(st, E.mulberry32(s + 777), (msg) => {
-      const m = /^\u25b6 Year \d+, Quarter (\d+)/.exec(String(msg));
+      const m = /^\u25b6 Year \d+, Quarter (\d+)/.exec(logText(msg));
       if (m) snap[+m[1]] = st.players.map((x) => ({ id: x.id, ep: E.epTotal(x) }));
     });
     if (st.phase !== "gameover") continue;

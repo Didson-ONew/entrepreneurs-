@@ -94,9 +94,14 @@ const CUT = SRC.indexOf("/* ============================== REACT UI ============
 if (CUT < 0) { console.error("the engine marker moved - update this probe"); process.exit(2); }
 const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
 
+/* The "mul" arm below SHIPPED - deliverToSlot and placeableFor now read the way this
+   probe used to patch them - so the needles anchor on the shipped shape and the arms
+   patch BACKWARDS to the one-unit rule this replaced. The comparison is the same one;
+   only which side of it the repo sits on has changed. */
 const DELIVER_NEEDLE = `  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
-  return cross ? 1 : exchangeRate(state, biz);`;
-const PLACEABLE_NEEDLE = `  const direct = slots.filter((s) => !s.cross).length * exchangeRate(state, biz);`;
+  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);`;
+const PLACEABLE_NEEDLE = `  const direct = slots.filter((s) => !s.cross)
+    .reduce((n, s) => n + (s.levelIdx + 1), 0) * exchangeRate(state, biz);`;
 const SALE_NEEDLE = "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;";
 for (const [n, w] of [[DELIVER_NEEDLE, "deliverToSlot"], [PLACEABLE_NEEDLE, "placeableFor"], [SALE_NEEDLE, "autoDeliver"]]) {
   if (!BASE.includes(n)) { console.error(`the engine changed shape around ${w} - update this probe`); process.exit(2); }
@@ -104,18 +109,18 @@ for (const [n, w] of [[DELIVER_NEEDLE, "deliverToSlot"], [PLACEABLE_NEEDLE, "pla
 
 const econ = { prod: 0, left: 0, earned: 0, byInd: {}, byLevel: {} };
 
-/* mode: "off" | "mul" | "add" */
+/* mode: "mul" (what ships) | "off" (one unit an icon) | "add" (level + doubler) */
 function loadEngine(mode) {
   let logic = BASE;
-  if (mode !== "off") {
-    const absorb = mode === "mul"
-      ? "(levelIdx + 1) * exchangeRate(state, biz)"
+  if (mode !== "mul") {
+    const absorb = mode === "off"
+      ? "exchangeRate(state, biz)"
       : "((levelIdx + 1) + (exchangeRate(state, biz) - 1))";
     logic = logic.replace(DELIVER_NEEDLE,
       `  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
   return cross ? 1 : ${absorb};`);
-    const est = mode === "mul"
-      ? "slots.filter((s) => !s.cross).reduce((n, s) => n + (s.levelIdx + 1), 0) * exchangeRate(state, biz)"
+    const est = mode === "off"
+      ? "slots.filter((s) => !s.cross).length * exchangeRate(state, biz)"
       : "slots.filter((s) => !s.cross).reduce((n, s) => n + (s.levelIdx + 1) + (exchangeRate(state, biz) - 1), 0)";
     logic = logic.replace(PLACEABLE_NEEDLE, `  const direct = ${est};`);
   }
@@ -146,7 +151,7 @@ const pad = (s, n) => String(s).padEnd(n);
 const rp = (s, n) => String(s).padStart(n);
 const noise = (p, n) => 100 * 2 * Math.sqrt((p * (1 - p)) / Math.max(1, n));
 
-const MODES = [["off", "as it stands"], ["mul", "level x doubler"], ["add", "level + doubler"]];
+const MODES = [["off", "one unit an icon"], ["mul", "as it stands"], ["add", "level + doubler"]];
 const SEATS = [2, 4, 6];
 const results = {};
 

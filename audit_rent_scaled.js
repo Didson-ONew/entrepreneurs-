@@ -110,19 +110,13 @@ const CUT = SRC.indexOf("/* ============================== REACT UI ============
 if (CUT < 0) { console.error("the engine marker moved - update this probe"); process.exit(2); }
 const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
 
-/* Every place the $3 rent rate is written, counted so a silent miss is loud. */
-const RENT_SITES = [
-  [/3 \* levelsOn\(/g, 4],
-  [/3 \* b\.level/g, 5],   // four ROI/valuation sites plus rentTotal in runProduction
-  [/3 \* bp\.lvl/g, 2],
-];
-for (const [re, want] of RENT_SITES) {
-  const got = (BASE.match(re) || []).length;
-  if (got !== want) {
-    console.error(`expected ${want} rent sites for ${re}, found ${got} - update this probe`);
-    process.exit(2);
-  }
-}
+/* The rent rate used to be the bare number 3 written out in eleven places, and this
+   probe had to find and count every one of them. It is a named constant now, so there
+   is exactly one site and an arm simply rewrites it. */
+const RENT_CONST = /const RENT_PER_LEVEL = (\d+);/;
+const RENT_M = RENT_CONST.exec(BASE);
+if (!RENT_M) { console.error("the rent rate is no longer a named constant - update this probe"); process.exit(2); }
+const SHIPPED_RENT = parseInt(RENT_M[1], 10);
 
 const DELIVER_NEEDLE = `  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);`;
 const PLACEABLE_NEEDLE = `  const direct = slots.filter((s) => !s.cross)
@@ -137,11 +131,9 @@ const econ = { prod: 0, left: 0, earned: 0, byLevel: {}, rentMoved: 0 };
 function loadEngine(opt) {
   let logic = BASE;
 
-  /* rent rate, in all eleven places at once */
-  const rent = opt.rent || 3;
-  logic = logic.replace(/3 \* levelsOn\(/g, "__RENT * levelsOn(")
-               .replace(/3 \* b\.level/g, "__RENT * b.level")
-               .replace(/3 \* bp\.lvl/g, "__RENT * bp.lvl");
+  /* rent rate: one constant, read by every site that charges it */
+  const rent = opt.rent || SHIPPED_RENT;
+  logic = logic.replace(RENT_M[0], `const RENT_PER_LEVEL = ${rent};`);
   logic = `const __RENT = ${rent};\n` + logic;
 
   if (opt.floor2) {
@@ -192,9 +184,12 @@ const pad = (s, n) => String(s).padEnd(n);
 const rp = (s, n) => String(s).padStart(n);
 const noise = (p, n) => 100 * 2 * Math.sqrt((p * (1 - p)) / Math.max(1, n));
 
+/* The $2 rent SHIPPED, so "rent $2 only" would now be a second copy of the shipped
+   column. The arm that earns its place is the OLD $3 rate, which is what the shipped
+   rule has to be read against. */
 const MODES = [
   ["ship", "shipped", {}],
-  ["rent2", "rent $2 only", { rent: 2 }],
+  ["rent3", "rent $3 (the old rate)", { rent: 3 }],
   ["full", "rebase + opex + rent2", { rent: 2, prodMinus1: true, opexScaled: true }],
   ["fullf", "+ floor 2", { rent: 2, prodMinus1: true, opexScaled: true, floor2: true }],
 ];

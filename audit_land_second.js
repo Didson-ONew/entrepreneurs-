@@ -88,14 +88,15 @@ const AWARD_NEEDLE = `function awardRanked(state, scoreFn, label, log) {
   if (!scores.length) return;
   const top = Math.max(...scores.map((x) => x.s));
   const leaders = scores.filter((x) => x.s === top);
-  const share = leaders.length === 1 ? LAND_AWARD.sole
-    : leaders.length === 2 ? LAND_AWARD.two : LAND_AWARD.many;
+  const A = landAward(state);
+  const share = leaders.length === 1 ? A.sole
+    : leaders.length === 2 ? A.two : A.many;
   for (const { p } of leaders) {`;
 
 const WEIGHT_NEEDLE = `  const mine = plotCount(state, p);
   const best = Math.max(...state.players.map((q) => plotCount(state, q)));
-  if (mine >= best) return payouts * LAND_AWARD.sole * 0.6;   // leading, or level with the leader
-  if (best - mine <= 2) return payouts * LAND_AWARD.sole * 0.35;  // close enough to take it
+  if (mine >= best) return payouts * landAward(state).sole * 0.6;   // leading, or level with the leader
+  if (best - mine <= 2) return payouts * landAward(state).sole * 0.35;  // close enough to take it
   return 0;                                                   // not a race this player is in`;
 
 for (const [name, n] of [["awardRanked", AWARD_NEEDLE], ["landEPWeight", WEIGHT_NEEDLE]]) {
@@ -113,15 +114,16 @@ const AWARD_PATCHED = `function awardRanked(state, scoreFn, label, log) {
       const share = at.length === 1 ? pot : Math.max(1, Math.floor(pot / at.length));
       for (const { p } of at) {
         addEP(p, share, label, state.quarter);
-        if (log) log(\`\${p.name} earns \${label} (+\${share} EP).\`, p.id);
+        if (log) log(logMsg("{0} earns {1} (+{2} EP).", p.name, label, share), p.id);
       }
     });
     return;
   }
   const top = Math.max(...scores.map((x) => x.s));
   const leaders = scores.filter((x) => x.s === top);
-  const share = leaders.length === 1 ? LAND_AWARD.sole
-    : leaders.length === 2 ? LAND_AWARD.two : LAND_AWARD.many;
+  const A = landAward(state);
+  const share = leaders.length === 1 ? A.sole
+    : leaders.length === 2 ? A.two : A.many;
   for (const { p } of leaders) {`;
 
 /* The bot's valuation has to learn the same rule, or nothing it does changes. */
@@ -135,8 +137,8 @@ const WEIGHT_PATCHED = `  const mine = plotCount(state, p);
     if (mine >= second || second - mine <= 2) return payouts * (__SECOND_PAYS * 0.4);
     return 0;
   }
-  if (mine >= best) return payouts * LAND_AWARD.sole * 0.6;   // leading, or level with the leader
-  if (best - mine <= 2) return payouts * LAND_AWARD.sole * 0.35;  // close enough to take it
+  if (mine >= best) return payouts * landAward(state).sole * 0.6;   // leading, or level with the leader
+  if (best - mine <= 2) return payouts * landAward(state).sole * 0.35;  // close enough to take it
   return 0;                                                   // not a race this player is in`;
 
 function loadEngine(secondPays, endOnly) {

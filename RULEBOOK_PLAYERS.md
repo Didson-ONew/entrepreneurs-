@@ -158,7 +158,7 @@ You may build on plots owned by another player. They collect the rent every quar
 
 A renovation has to fit the shell that is already standing. The card must match the distressed structure's level, and from level 2 upwards its scaling type as well: a level-2 or level-3 horizontal structure spreads across several plots and cannot be rebuilt as a vertical one, nor the other way round. At level 1 both kinds occupy a single plot, so a level-1 shell is open to any level-1 Blueprint.
 
-Renovating moves the price markers exactly as launching does - the industry you build goes DOWN $1 and every supplier the new card names goes UP $1 - because a renovation puts a genuinely new business into the city. Reclaiming a shell as it stands moves nothing. The building never changed, and neither did what the city can supply or needs to buy.
+Renovating moves the price markers exactly as launching does - the industry you build goes DOWN $1 and every supplier the new card names goes UP $1 - because a renovation puts a genuinely new business into the city, and it scores its levels like any new company does. The Blueprint it displaces is not spent: it goes back to the BOTTOM of its own industry deck. Reclaiming a shell as it stands moves nothing and scores nothing. The building never changed, and neither did what the city can supply or needs to buy.
 
 ### R&D
 
@@ -340,7 +340,7 @@ The moment a company is built it scores 2 EP per level, straight into your bank.
 
 So a level-2 company built and then upgraded pays 4 EP on the day it opens and 6 more on the day it grows.
 
-There is nothing held back and nothing to keep track of on the cards: every EP you have earned is banked, and the standings are the score. You never lose EP you have already scored - not when a company is sold, not when it goes distressed, not when it is merged into a Megacorp. A distressed shell that is bought back scores its levels again for its new owner, so a company can score twice in its life.
+There is nothing held back and nothing to keep track of on the cards: every EP you have earned is banked, and the standings are the score. You never lose EP you have already scored - not when a company is sold, not when it goes distressed, not when it is merged into a Megacorp. A shell RECLAIMED as it stands does not score again - not for the player who sold it, and not for a rival who buys it off the bank - because its levels were paid for when they were built. RENOVATING one does score, because that is a new business opening in an old building. Either way, your first company in an industry still pays the entry bonus.
 
 ---
 
@@ -426,7 +426,7 @@ For The Omnipresent, a district counts if you own a plot in it or one of your ac
 
 Ground rent is simply money. It is collected as it is earned and scores inside your cash at the end like every other dollar - there is nothing separate to track. What is worth knowing is how much of your income it quietly becomes: a plot with somebody else’s building on it pays you every quarter, and by six players half the plots a player owns carry a rival’s building.
 
-Only the outright leader scores a land award, and a shared lead pays badly. At two and three players: 5 EP alone, 2 EP each if two tie, 1 EP each if three or more do. At four players and up every figure doubles - 10 EP alone, 4 each for a two-way tie, 2 each beyond that. Second place gets nothing at any count.
+Only the outright leader scores a land award, and a shared lead pays badly. The award is 4 EP PLUS THE NUMBER OF PLAYERS: 6 EP at two seats, 7 at three, 8 at four, 9 at five, 10 at six. A two-way tie pays 40% of that and three or more pay 20%, so at four players the ladder is 8 alone, 3 each for a pair, 2 each beyond that. Second place gets nothing at any count.
 
 ### When the game ends
 

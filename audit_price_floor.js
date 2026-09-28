@@ -36,18 +36,22 @@ const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8
 const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
 if (CUT < 0) { console.error("the engine marker moved - update this script"); process.exit(2); }
 
+/* All three of the changes this audit weighed have since SHIPPED: the full-dollar
+   step, the $2 floor, and the bases lifted (by $2 in the end, not $1 - see
+   audit_base_plus_two.js). So N anchors on the shipped economy and P holds the one
+   it replaced; every arm patches BACKWARDS. The comparison is the same one. */
 const N = {
-  step: "const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;",
-  floor: "const PRICE_MIN = 1, PRICE_MAX = 10;",
-  base: "const BASE_PRICE = { UT: 2, RE: 2, HO: 3, MA: 3, HC: 4, TE: 4 };",
+  step: "const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;",
+  floor: "const PRICE_MIN = 2, PRICE_MAX = 12;",
+  base: "const BASE_PRICE = { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 };",
 };
 for (const [k, v] of Object.entries(N)) {
   if (!SRC.includes(v)) { console.error(`the ${k} constants have changed - update this script`); process.exit(2); }
 }
 const P = {
-  step: "const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;",
-  floor: "const PRICE_MIN = 2, PRICE_MAX = 10;",
-  base: "const BASE_PRICE = { UT: 3, RE: 3, HO: 4, MA: 4, HC: 5, TE: 5 };",
+  step: "const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;",
+  floor: "const PRICE_MIN = 1, PRICE_MAX = 12;",
+  base: "const BASE_PRICE = { UT: 2, RE: 2, HO: 3, MA: 3, HC: 4, TE: 4 };",
 };
 
 /* The recycling rate is a hardcoded $1 in the payout and in the bot's
@@ -56,9 +60,9 @@ const P = {
    stops coming down to meet it. */
 function engine(step, econ) {
   let body = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
-  if (step === "full") body = body.replace(N.step, P.step);
-  if (econ === "floor2" || econ === "both") body = body.replace(N.floor, P.floor);
-  if (econ === "base+1" || econ === "both") body = body.replace(N.base, P.base);
+  if (step === "half") body = body.replace(N.step, P.step);
+  if (econ === "floor$1" || econ === "old") body = body.replace(N.floor, P.floor);
+  if (econ === "lowbase" || econ === "old") body = body.replace(N.base, P.base);
   const box = {};
   const sandbox = { console, Math, Set, Map, Object, Array, JSON, box, String, Number };
   vm.createContext(sandbox);
@@ -69,12 +73,12 @@ function engine(step, econ) {
   return box;
 }
 
-const STEPS = ["half", "full"];
-const ECONS = ["today", "floor2", "base+1", "both"];
+const STEPS = ["full", "half"];
+const ECONS = ["shipped", "floor$1", "lowbase", "old"];
 const ENG = {};
 for (const s of STEPS) for (const e of ECONS) ENG[`${s}|${e}`] = engine(s, e);
 
-const E0 = ENG["half|today"].E;
+const E0 = ENG["full|shipped"].E;
 const INDS = E0.INDUSTRIES;
 const GAMES = Number(process.argv[2] || 150);
 const SIZES = [3, 4, 5, 6];
@@ -130,13 +134,14 @@ console.log("Entrepreneurs - where the bottom of the price track should sit");
 console.log(`${GAMES} games at each of ${SIZES.length} table sizes, `
   + `${STEPS.length} step sizes x ${ECONS.length} economies `
   + `= ${GAMES * SIZES.length * STEPS.length * ECONS.length} games\n`);
-console.log("  today   $1..$10, bases UT/RE $2, HO/MA $3, HC/TE $4");
-console.log("  floor2  $2..$10, same bases - UT and RE therefore OPEN on the floor");
-console.log("  base+1  $1..$10, bases UT/RE $3, HO/MA $4, HC/TE $5");
-console.log("  both    $2..$10, bases raised - nothing opens on the floor\n");
+console.log("  shipped $2..$12, bases UT/RE $4, HO/MA $5, HC/TE $6");
+console.log("  floor$1 the floor back at $1, shipped bases");
+console.log("  lowbase the old bases UT/RE $2, HO/MA $3, HC/TE $4, shipped floor");
+console.log("  old     both put back - the economy before any of this");
+console.log("");
 
 for (const step of STEPS) {
-  const label = step === "full" ? "FULL-DOLLAR STEP (one build = $1)" : "HALF-DOLLAR STEP (as it ships today)";
+  const label = step === "full" ? "FULL-DOLLAR STEP (one build = $1, as it ships)" : "HALF-DOLLAR STEP (two builds = $1)";
   console.log("=".repeat(78));
   console.log(label);
   console.log("=".repeat(78));

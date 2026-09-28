@@ -1,10 +1,10 @@
 /* ============================================================================
    AUDIT - what if a build moved a price a FULL DOLLAR instead of half?
 
-   Today the track runs $1 to $10 with a blank cell between every number, and a
-   launch slides its own good one cell down and each supplier one cell up. Two
-   builds are needed to move a price a dollar. The proposal is to make every
-   event worth a whole dollar - which is the same as deleting the blank cells.
+   The track runs $2 to $12 with a blank cell between every number. A launch
+   now slides its own good a full dollar down and each supplier a full dollar
+   up; it used to be half that, one cell an event. This measures what the
+   change bought and what it cost, by putting the half-dollar step back.
 
    This is the single most consequential knob in the economy, so it is measured
    rather than reasoned about. The half-dollar step was introduced precisely to
@@ -14,7 +14,7 @@
    Reported per industry, at every table size:
      - where prices finish, against where they start
      - how often a good ever trades below its own base
-     - how often it hits $1, and how often it hits $10 (which nothing does today)
+     - how often it hits the floor, and how often it hits the ceiling
      - dollars of price movement per game - the thing a player actually feels
 
    Run: node audit_full_dollar_step.js [gamesPerSize]
@@ -27,19 +27,21 @@ const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8
 const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
 if (CUT < 0) { console.error("the engine marker moved - update this script"); process.exit(2); }
 
-const NEEDLE = "const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;";
+/* The full-dollar step SHIPPED, so the needle anchors on it and the "half" arm
+   patches back to the half-dollar step it replaced. The comparison is unchanged;
+   the repo has simply moved to the other side of it. */
+const NEEDLE = "const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;";
 if (!SRC.includes(NEEDLE)) {
   console.error("the price step constants have changed - update this script");
   process.exit(2);
 }
-/* Two cells is one dollar on this track, so this is exactly "a full dollar per
-   event" without touching anything else - the same clamps, the same rounding,
-   the same $1..$10 range. */
-const FULL = "const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;";
+/* Two cells is one dollar on this track, so the half-dollar step is exactly one
+   cell an event - the same clamps, the same rounding, the same range. */
+const HALF = "const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;";
 
 function engine(step) {
   const body = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "")
-    .replace(NEEDLE, step === "full" ? FULL : NEEDLE);
+    .replace(NEEDLE, step === "half" ? HALF : NEEDLE);
   const box = {};
   const sandbox = { console, Math, Set, Map, Object, Array, JSON, box, String, Number };
   vm.createContext(sandbox);
@@ -96,8 +98,8 @@ function measure(seats, step) {
 
 console.log("Entrepreneurs - a full dollar per build, instead of half");
 console.log(`${GAMES} games at each of ${SIZES.length} table sizes, played both ways\n`);
-console.log("today   two builds move a good $1 down; two supplier appearances move it $1 up");
-console.log("tested  ONE build moves it $1 down; ONE supplier appearance moves it $1 up\n");
+console.log("today   ONE build moves a good $1 down; ONE supplier appearance moves it $1 up");
+console.log("tested  two builds are needed to move it $1 down, and two appearances to lift it\n");
 
 const R = {};
 for (const seats of SIZES) R[seats] = { half: measure(seats, "half"), full: measure(seats, "full") };
