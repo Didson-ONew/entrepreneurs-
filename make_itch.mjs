@@ -124,32 +124,47 @@ Entrepreneurs
 
 ## Short description (the one-liner under the title)
 
-A medium-heavy economic euro: build companies in a 4x4 city, pay your rivals'
-supply chains, and move the market every time you build.
+A heavy economic euro where your customers are your competitors: every company
+you build buys from the table and sells to it at the same time.
 
 ## Description
 
-**Entrepreneurs** is a medium-heavy economic game for 2-6 players. This is the
-solo version: you against up to five bots, the full twelve-quarter game, no
-account, no download, nothing to install.
+**Your customers are your competitors.**
 
-Every company you build pays its operating costs to companies in *other*
-industries - your rivals' companies. That is the heart of it. Building pushes
-your own industry's price down and every supplier you now buy from up, so the
-market is the sum of what everyone at the table has built, and it moves under
-you while you plan.
+That is the whole game. Every company you build pays a supplier bill each
+quarter, and that money does not vanish into the bank - it goes into the pots of
+the industries its Blueprint buys from, and each pot is split among whoever owns
+companies there. Usually the people you are trying to beat. Their companies buy
+from yours in the same breath. The supply chain closes a loop, so no industry is
+ever a dead end, and the table is your market and your rivals at once.
 
-Six industries, and they are genuinely different. Retail and Hospitality open
-cheaply, but Hospitality's running costs are punishing where Retail's are
-moderate. Utilities and Retail both run on high volume and low prices - and they
-grow in opposite directions: Utilities spreads horizontally across the ground as
-it scales, while Retail stacks vertically and reaches a number of districts equal
-to its level. What you can profitably build depends on what is already standing.
+There are two economies running on top of each other. Your production sells to
+the demand icons around you - that is the city, and it is a race, because the
+icons are contested and first come first served. Your operating costs sell to
+the table - that is the pots, and it rewards being somewhere nobody else is. The
+industry nobody builds quietly collects everyone's money while its price climbs.
+
+Building moves the market too: your own industry's price goes DOWN a dollar and
+every supplier you now buy from goes UP one. So the market is the sum of what
+everyone has built, and it shifts under you while you plan.
+
+Six industries, and they are genuinely different. Retail and Hospitality are the
+two cheapest ways in at $10 for a level-1 card, but they are opposite businesses:
+Retail makes four units to sell at $4, Hospitality makes three at $5 and pays a
+dollar more to run. Utilities and Retail are the high-volume, low-price pair -
+and they grow in opposite directions, Utilities spreading horizontally across the
+ground as it scales while Retail stacks vertically and reaches one more district
+per level. Technology and Healthcare invert the whole thing: two units at $6,
+with the heaviest running costs on the board. What is worth building depends
+entirely on what is already standing.
 
 - 2-6 players, 12 quarters over 3 fiscal years
 - 120-180 minutes at a physical table
-- Full rulebook built in, searchable, in English, Portuguese and Simplified Chinese
+- Full rulebook built in and searchable, in English, Portuguese and Simplified Chinese
 - A ten-step tutorial that points at the thing it is describing
+
+**Hit fullscreen.** This one wants the room - the board, your ledger and the
+industry pots all want to be on screen at once.
 
 **Want to play against people?** The online version with real opponents is at
 [entrepreneurs.boardgame](https://entrepreneurs.boardgame) - same game, same
@@ -177,9 +192,10 @@ it puts the game next to maths drills rather than next to other euros.)
 ## What to say in the devlog / first post
 
 Be specific about the one mechanism that is unusual, not about the theme. The
-hook is: *your operating costs are paid to other players' companies, so the
-market moves every time anybody builds.* That is the sentence that makes someone
-try it.
+hook is: *your customers are your competitors - every company buys from the table
+and sells to it at once.* That is the sentence that makes someone try it, and it
+is the counterintuitive direction that does the work: people expect the players
+they are beating to be separate from the people paying them.
 `;
 
 const pagePath = path.join(DIST, "itch-page.md");
