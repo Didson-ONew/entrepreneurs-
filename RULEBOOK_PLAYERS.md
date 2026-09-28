@@ -426,7 +426,7 @@ For The Omnipresent, a district counts if you own a plot in it or one of your ac
 
 Ground rent is simply money. It is collected as it is earned and scores inside your cash at the end like every other dollar - there is nothing separate to track. What is worth knowing is how much of your income it quietly becomes: a plot with somebody else’s building on it pays you every quarter, and by six players half the plots a player owns carry a rival’s building.
 
-Only the outright leader scores a land award, and a shared lead pays badly. At two and three players: 5 EP alone, 2 EP each if two tie, 1 EP each if three or more do. At four players and up every figure doubles - 10 EP alone, 4 each for a two-way tie, 2 each beyond that. Second place gets nothing at any count.
+Only the outright leader scores a land award, and a shared lead pays badly. The award is 4 EP PLUS THE NUMBER OF PLAYERS: 6 EP at two seats, 7 at three, 8 at four, 9 at five, 10 at six. A two-way tie pays 40% of that and three or more pay 20%, so at four players the ladder is 8 alone, 3 each for a pair, 2 each beyond that. Second place gets nothing at any count.
 
 ### When the game ends
 

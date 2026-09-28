@@ -1826,7 +1826,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "245938ef";
+const ENGINE_VERSION = "a60f3586";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2312,11 +2312,42 @@ function runClosingRest(state, log) {
    most of a quarter earlier. Paying a runner-up was tested too and is strictly worse -
    10/5 costs half again as much EP as 10/0 and makes the land leader win LESS often,
    because a consolation prize dilutes the race it is meant to sharpen. */
-const LAND_AWARD = { sole: 5, two: 2, many: 1 };           // 2-3 players
-const LAND_AWARD_LARGE = { sole: 10, two: 4, many: 2 };    // 4 players and up
-const LAND_AWARD_LARGE_FROM = 4;
-const landAward = (state) => (state && state.players && state.players.length >= LAND_AWARD_LARGE_FROM
-  ? LAND_AWARD_LARGE : LAND_AWARD);
+/* THE LAND AWARD SCALES WITH THE TABLE INSTEAD OF STEPPING AT FOUR PLAYERS.
+
+   The two awards pay a fixed number of times a game - about seven payouts over
+   the three year ends whatever the head count - so their weight in a winning
+   score is that pot divided by a score that grows with the table. A flat rate
+   collapsed as seats were added, and doubling it from four players up traded
+   that for a cliff: land was 13% of a winning score at three players and 27% at
+   four. Four seats became the most land-heavy game there is, being the first
+   count on the doubled pot with the fewest rivals to split it.
+
+   The outright award is now FOUR PLUS THE NUMBER OF PLAYERS - 6/7/8/9/10 - and
+   the cliff is gone: 22/21/19/18/17, declining smoothly as the table grows,
+   which is the shape it should have had all along. Fewer people chasing the
+   same ground is worth slightly more each.
+
+   Measured against four other schedules on the same seeds in
+   audit_land_threshold.js, including the step this replaces. It beats the step
+   on spread (4.4 points against 17.3) and on both guards that matter: the seat
+   holding the most ground still wins at or above the 1/n chance line at every
+   count, and the game SETTLES LESS than it did - the Q6 leader's win rate falls
+   from 64% to 46% at four seats and 42% to 36% at five.
+
+   A tie pays 40% of the outright award and three or more 20%, rounded, which
+   reproduces the old 5/2/1 and 10/4/2 shape at the counts they applied to. */
+const LAND_AWARD_BASE = 4;
+const landAwardSole = (n) => LAND_AWARD_BASE + n;
+const landAwardFor = (n) => {
+  const sole = landAwardSole(n);
+  return { sole, two: Math.max(1, Math.round(sole * 0.4)), many: Math.max(1, Math.round(sole * 0.2)) };
+};
+/* Kept so the card art and the rulebook can print the ends of the range without
+   knowing the formula. Two and six are the smallest and largest legal tables. */
+const LAND_AWARD = landAwardFor(2);
+const LAND_AWARD_LARGE = landAwardFor(6);
+const landAward = (state) =>
+  landAwardFor((state && state.players && state.players.length) || 4);
 function awardRanked(state, scoreFn, label, log) {
   const scores = state.players.map((p) => ({ p, s: scoreFn(p) })).filter((x) => x.s > 0);
   if (!scores.length) return;
@@ -5419,7 +5450,7 @@ const TUTORIAL = [
     body: "Score steadily rather than chasing one big move. Breadth pays early, size pays late.",
     points: [`${INDUSTRY_DEBUT_EP} EP the first time you build in each industry \u2014 paid immediately`,
              `${TUT_LEVEL_EP} EP per company level, banked the moment you build or upgrade it`,
-             `${LAND_AWARD.sole} EP for most plots and ${LAND_AWARD.sole} for most districts at every year end \u2014 ${LAND_AWARD_LARGE.sole} each from ${LAND_AWARD_LARGE_FROM} players up; a tie pays ${LAND_AWARD.two} (${LAND_AWARD_LARGE.two}) each`,
+             `${LAND_AWARD_BASE} + the player count in EP for most plots, and the same for most districts, at every year end \u2014 ${LAND_AWARD.sole} at two players up to ${LAND_AWARD_LARGE.sole} at six; a tie pays 40% of that and three or more 20%`,
              `A Megacorp is worth ${MEGACORP_EP.lo}\u2013${MEGACORP_EP.hi} EP, but eats companies and locks a slot`] },
 ];
 

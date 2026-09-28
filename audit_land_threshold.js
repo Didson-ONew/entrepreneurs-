@@ -120,30 +120,31 @@ const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
 /* The one function every land payout goes through, and the one the bots price a
    plot with. Replacing it moves the scoring AND the bots together, which is the
    only way to measure a rate rather than measure bots playing the wrong one. */
-const NEEDLE = `const landAward = (state) => (state && state.players && state.players.length >= LAND_AWARD_LARGE_FROM
-  ? LAND_AWARD_LARGE : LAND_AWARD);`;
+const NEEDLE = `const landAwardFor = (n) => {
+  const sole = landAwardSole(n);
+  return { sole, two: Math.max(1, Math.round(sole * 0.4)), many: Math.max(1, Math.round(sole * 0.2)) };
+};`;
 if (!BASE.includes(NEEDLE)) {
-  console.error("landAward changed shape - update this probe"); process.exit(2);
+  console.error("landAwardFor changed shape - update this probe"); process.exit(2);
 }
 
 /* sole EP by head count. A tie pays 40% of it, three or more 20% - the ratios the
    shipped 5/2/1 and 10/4/2 already use, so `step@4` below IS the shipped rule. */
 const SCHEDULES = [
-  { key: "step@4", sole: { 2: 5, 3: 5, 4: 10, 5: 10, 6: 10 }, note: "what ships" },
+  { key: "step@4", sole: { 2: 5, 3: 5, 4: 10, 5: 10, 6: 10 }, note: "the step this replaced" },
   { key: "step@5", sole: { 2: 5, 3: 5, 4: 5, 5: 10, 6: 10 }, note: "step moved one seat later" },
   { key: "ramp", sole: { 2: 5, 3: 6, 4: 8, 5: 9, 6: 10 }, note: "smooth, same endpoints" },
   /* The ramp with one sentence instead of a table: "the award is 4 plus the number
      of players". It differs from the ramp only at two seats, and a rule a teacher
      can say out loud is worth measuring separately from one they have to point at. */
-  { key: "n+4", sole: { 2: 6, 3: 7, 4: 8, 5: 9, 6: 10 }, note: "4 plus the player count" },
+  { key: "n+4", sole: { 2: 6, 3: 7, 4: 8, 5: 9, 6: 10 }, note: "4 plus the player count - WHAT SHIPS" },
   { key: "scaled", sole: { 2: 5, 3: 8, 4: 10, 5: 13, 6: 15 }, note: "2.5 EP a seat" },
 ];
 
 function engineFor(sched) {
   const table = JSON.stringify(sched.sole);
   const repl = `const __SOLE_BY_SEATS = ${table};
-const landAward = (state) => {
-  const n = (state && state.players && state.players.length) || 4;
+const landAwardFor = (n) => {
   const s = __SOLE_BY_SEATS[n] !== undefined ? __SOLE_BY_SEATS[n] : 10;
   return { sole: s, two: Math.max(1, Math.round(s * 0.4)), many: Math.max(1, Math.round(s * 0.2)) };
 };`;

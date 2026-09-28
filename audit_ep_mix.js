@@ -45,9 +45,15 @@ const NEEDLES = {
   /* The engine now picks between two rate tables by head count, so an arm that rewrites
      LAND_AWARD alone would be ignored from four seats up and quietly measure the
      shipped rule instead. Any arm that sets a rate also flattens this function. */
-  landFn: `const landAward = (state) => (state && state.players && state.players.length >= LAND_AWARD_LARGE_FROM
-  ? LAND_AWARD_LARGE : LAND_AWARD);`,
-  landConst: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };           // 2-3 players",
+  /* The land award scales with the head count now, and landAwardFor is the single
+     place it is computed - the scoring and the bots' plot valuation both come
+     through it. An arm that wants one flat rate rewrites this one function, where
+     it used to have to flatten landAward AND rewrite the constant behind it. */
+  landFn: `const landAwardFor = (n) => {
+  const sole = landAwardSole(n);
+  return { sole, two: Math.max(1, Math.round(sole * 0.4)), many: Math.max(1, Math.round(sole * 0.2)) };
+};`,
+  landConst: "const LAND_AWARD_BASE = 4;",
   awardBody: `  const top = Math.max(...scores.map((x) => x.s));
   const leaders = scores.filter((x) => x.s === top);
   const A = landAward(state);
@@ -100,9 +106,9 @@ function engineFor(arm) {
     /* The bots price a plot through LAND_AWARD.sole (see worthChasingLand), so the
        constant moves with the payout or the arm measures bots playing the old rule. */
     const [f, sec] = arm.values;
-    logic = logic.replace(NEEDLES.landFn, "const landAward = () => LAND_AWARD;   // this arm sets one rate for every table size");
-    logic = logic.replace(NEEDLES.landConst,
-      `const LAND_AWARD = { sole: ${f}, two: ${Math.max(1, Math.round((f + sec) / 2))}, many: ${Math.max(1, Math.round(f / 3))} };`);
+    logic = logic.replace(NEEDLES.landFn,
+      `const landAwardFor = () => ({ sole: ${f}, two: ${Math.max(1, Math.round((f + sec) / 2))}, `
+      + `many: ${Math.max(1, Math.round(f / 3))} });   // this arm sets one rate for every table size`);
   }
   const box = {};
   const sandbox = { console, Math, Set, Object, Array, JSON, box };

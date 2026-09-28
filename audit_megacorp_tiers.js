@@ -108,7 +108,12 @@ const NEEDLES = {
   dividend: "      const ep = brandEPFor(goods, tier);",
   botBrand: "  const brandEP = brandEPFor(price(state.pm, bizInd(hq)), tierOfTile(match.tile)) * qLeft;",
   claimed: "  addEP(p, ep, logMsg(\"Megacorp: {0}\", name), state.quarter);",
-  landConst: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };",
+  /* One function computes the award now, scaled by head count. An arm that wants a
+     flat rate rewrites it rather than the constant that used to hold one. */
+  landConst: `const landAwardFor = (n) => {
+  const sole = landAwardSole(n);
+  return { sole, two: Math.max(1, Math.round(sole * 0.4)), many: Math.max(1, Math.round(sole * 0.2)) };
+};`,
   landShare: "  const share = leaders.length === 1 ? A.sole\n"
     + "    : leaders.length === 2 ? A.two : A.many;",
   landPayouts: "  return [4, 8, 12].filter((q) => q >= state.quarter).length || 1;",
@@ -153,7 +158,7 @@ function engineFor(c, collect) {
       "  const brandEP = price(state.pm, bizInd(hq)) * qLeft;");
   }
   if (c.land) {
-    logic = logic.replace(NEEDLES.landConst, `const LAND_AWARD = { sole: ${c.land.worth}, two: 0, many: 0 };`);
+    logic = logic.replace(NEEDLES.landConst, `const landAwardFor = () => ({ sole: ${c.land.worth}, two: 0, many: 0 });`);
     /* The whole award to the leader, split and rounded down when tied: at 10 that is
        5 each for two, 3 for three, 2 for four. */
     logic = logic.replace(NEEDLES.landShare, "  const share = Math.floor(A.sole / leaders.length);");

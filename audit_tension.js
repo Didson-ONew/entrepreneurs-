@@ -52,9 +52,15 @@ const N = {
   /* The engine now picks between two rate tables by head count, so an arm that rewrites
      LAND_AWARD alone would be ignored from four seats up and quietly measure the
      shipped rule instead. Any arm that sets a rate also flattens this function. */
-  landFn: `const landAward = (state) => (state && state.players && state.players.length >= LAND_AWARD_LARGE_FROM
-  ? LAND_AWARD_LARGE : LAND_AWARD);`,
-  landConst: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };           // 2-3 players",
+  /* The land award scales with the head count now, and landAwardFor is the single
+     place it is computed - the scoring and the bots' plot valuation both come
+     through it. An arm that wants one flat rate rewrites this one function, where
+     it used to have to flatten landAward AND rewrite the constant behind it. */
+  landFn: `const landAwardFor = (n) => {
+  const sole = landAwardSole(n);
+  return { sole, two: Math.max(1, Math.round(sole * 0.4)), many: Math.max(1, Math.round(sole * 0.2)) };
+};`,
+  landConst: "const LAND_AWARD_BASE = 4;",
   awardBody: `  const top = Math.max(...scores.map((x) => x.s));
   const leaders = scores.filter((x) => x.s === top);
   const A = landAward(state);
@@ -159,8 +165,9 @@ function engineFor(arm) {
   let logic = base;
   if (arm.land) {
     logic = splice(logic, N.awardBody, SOLE10, "ranked land award");
-    logic = splice(logic, N.landFn, "const landAward = () => LAND_AWARD;   // this arm sets one rate for every table size", "flatten the rate tables");
-    logic = splice(logic, N.landConst, "const LAND_AWARD = { sole: 10, two: 5, many: 3 };", "land constant");
+    logic = splice(logic, N.landFn,
+      "const landAwardFor = () => ({ sole: 10, two: 5, many: 3 });   // one rate at every table size",
+      "flatten the rate table");
   }
   if (arm.level !== undefined) logic = splice(logic, N.levelEP, `const levelEP = (state) => ${arm.level};`, "level EP");
   if (arm.noTithe) {

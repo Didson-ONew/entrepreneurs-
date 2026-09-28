@@ -26,7 +26,8 @@ function loadEngine() {
       byId, BP_DATA, MEGACORP_TILES, STARTING, INDUSTRIES, BASE_PRICE, SCALING,
       LOAN_REPAY_RATE, BP_SELL_PRICE, DISCS_PER_PLAYER, COMPANY_SLOTS, PERSONAS,
       levelEP, landPayouts, VARIANT_KEYS, scoreCompanyOnCompletion, runClosingRest,
-      INDUSTRY_DEBUT_EP, LAND_AWARD, LAND_AWARD_LARGE, landAward, landEPWeight, awardRanked, claimIndustryBonus, finalizeGame };
+      INDUSTRY_DEBUT_EP, LAND_AWARD, LAND_AWARD_LARGE, landAward, landAwardFor, LAND_AWARD_BASE,
+      landEPWeight, awardRanked, claimIndustryBonus, finalizeGame };
   `, sandbox);
   return box.exports;
 }
@@ -259,12 +260,20 @@ section("What the scoreboard pays");
   check("once per industry, ever", a.epBank - before === 3, `+${a.epBank - before} EP`);
 }
 
-section("A land award goes to the leader alone, pays a draw badly, and doubles at a big table");
+section("A land award goes to the leader alone, pays a draw badly, and scales with the table");
 {
   const st = E.initGame(0, 53, ["A", "B", "C"], undefined, false);
   const [a, b, c] = st.players;
-  check("5 EP outright, 2 each for two, 1 each for three or more",
-    E.LAND_AWARD.sole === 5 && E.LAND_AWARD.two === 2 && E.LAND_AWARD.many === 1);
+  check("the outright award is 4 plus the player count",
+    [2, 3, 4, 5, 6].every((n) => E.landAwardFor(n).sole === 4 + n),
+    [2, 3, 4, 5, 6].map((n) => `${n}p:${E.landAwardFor(n).sole}`).join(" "));
+  check("a tie pays 40% of it and three or more 20%, rounded",
+    JSON.stringify([2, 3, 4, 5, 6].map((n) => E.landAwardFor(n).two)) === JSON.stringify([2, 3, 3, 4, 4])
+    && JSON.stringify([2, 3, 4, 5, 6].map((n) => E.landAwardFor(n).many)) === JSON.stringify([1, 1, 2, 2, 2]),
+    [2, 3, 4, 5, 6].map((n) => { const A = E.landAwardFor(n); return `${A.sole}/${A.two}/${A.many}`; }).join(" "));
+  check("three players read 7 outright, 3 for a pair, 1 beyond",
+    E.landAward(st).sole === 7 && E.landAward(st).two === 3 && E.landAward(st).many === 1,
+    JSON.stringify(E.landAward(st)));
 
   const holdings = new Map();
   const run = (label) => {
@@ -274,13 +283,13 @@ section("A land award goes to the leader alone, pays a draw badly, and doubles a
   };
 
   holdings.set(a.id, 5); holdings.set(b.id, 3); holdings.set(c.id, 1);
-  check("an outright leader takes 5, and second takes nothing",
-    JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([5, 0, 0]),
+  check("an outright leader at three players takes 7, and second takes nothing",
+    JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([7, 0, 0]),
     run("The Real-Estate Mogul").join(","));
 
   holdings.set(b.id, 5);
-  check("two tied for the lead take 2 each",
-    JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([2, 2, 0]),
+  check("two tied for the lead take 3 each",
+    JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([3, 3, 0]),
     run("The Real-Estate Mogul").join(","));
 
   holdings.set(c.id, 5);
@@ -292,29 +301,36 @@ section("A land award goes to the leader alone, pays a draw badly, and doubles a
   check("nobody holding anything is awarded nothing",
     JSON.stringify(run("The Real-Estate Mogul")) === JSON.stringify([0, 0, 0]));
 
-  /* The rate doubles from four seats up, because the pot does not grow with the table:
-     both awards pay the same ~29 EP over a game however many people are chasing them,
-     so 5 EP is 17% of a winning score at two players and 3.5% at six. */
+  /* The award scales with the head count because the pot does NOT: both awards pay
+     about seven times a game however many people are chasing them, so a flat rate is
+     17% of a winning score at two players and 3.5% at six. It used to step at four
+     seats, which swapped that decline for a cliff - 13% at three players and 27% at
+     four. See audit_land_threshold.js. */
   const big = E.initGame(0, 53, ["A", "B", "C", "D"], undefined, false);
-  check("four players and up read the doubled table",
-    E.landAward(big).sole === 10 && E.landAward(big).two === 4 && E.landAward(big).many === 2,
+  check("four players read 8 outright, 3 for a pair, 2 beyond",
+    E.landAward(big).sole === 8 && E.landAward(big).two === 3 && E.landAward(big).many === 2,
     JSON.stringify(E.landAward(big)));
-  check("three players and under keep the original",
-    E.landAward(st).sole === 5 && E.landAward(st).two === 2 && E.landAward(st).many === 1);
+  check("and there is no cliff: one more seat is one more EP, never double",
+    [2, 3, 4, 5].every((n) => E.landAwardFor(n + 1).sole - E.landAwardFor(n).sole === 1));
 
   const bigHold = new Map();
   big.players.forEach((p, i) => bigHold.set(p.id, [5, 3, 1, 1][i]));
   big.players.forEach((p) => { p.epBank = 0; p.epLog = []; });
   E.awardRanked(big, (p) => bigHold.get(p.id) || 0, "The Real-Estate Mogul", null);
-  check("so an outright leader at four players takes 10",
-    JSON.stringify(big.players.map((p) => p.epBank)) === JSON.stringify([10, 0, 0, 0]),
+  check("so an outright leader at four players takes 8",
+    JSON.stringify(big.players.map((p) => p.epBank)) === JSON.stringify([8, 0, 0, 0]),
     big.players.map((p) => p.epBank).join(","));
 
-  /* And the bots have to price a plot off the same number, or they play the old rule
-     at a table where it no longer applies. */
-  check("and a bot prices a plot off the doubled award too",
-    E.landEPWeight(big, null) === 2 * E.landEPWeight(st, null),
-    `${E.landEPWeight(big, null)} vs ${E.landEPWeight(st, null)}`);
+  /* And the bots have to price a plot off the same number, or they play a rate nobody
+     pays. This asserts the INVARIANT rather than a ratio: whatever the award is worth
+     at a given head count, the bot's valuation is the same multiple of it. Pinning the
+     ratio instead is how this check came to encode "the rate doubles at four seats",
+     which stopped being true the moment the award started scaling. */
+  const perSole = (state, n) => E.landEPWeight(state, null) / E.landAwardFor(n).sole;
+  check("and a bot prices a plot off whatever the award pays at that table",
+    perSole(big, 4) === perSole(st, 3),
+    `4p ${E.landEPWeight(big, null)}/${E.landAwardFor(4).sole}, `
+    + `3p ${E.landEPWeight(st, null)}/${E.landAwardFor(3).sole}`);
 }
 
 section("A headquarters is public infrastructure");

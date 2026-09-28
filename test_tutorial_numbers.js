@@ -53,7 +53,7 @@ const box = {}, sb = { console, Math, Set, Object, Array, JSON, String, box };
 vm.createContext(sb);
 vm.runInContext(engine + "\n" + artStubs + "\n" + block + `
   box.e = { TUTORIAL, SUPPLY, MEGACORP_EP, TUT_LEVEL_EP,
-    INDUSTRY_DEBUT_EP, LAND_AWARD, levelEP, BP_DATA, INDUSTRIES, MEGACORP_TILES,
+    INDUSTRY_DEBUT_EP, LAND_AWARD, LAND_AWARD_LARGE, LAND_AWARD_BASE, levelEP, BP_DATA, INDUSTRIES, MEGACORP_TILES,
     MEGACORP_TITHE_EP, MEGACORPS_TO_END,
     SCALING, RENT_PER_LEVEL };`, sb);
 const E = box.e;
@@ -75,10 +75,17 @@ check("and they are banked immediately, not at the next year end",
   all.includes("banked the moment you build or upgrade it")
   && !/at the first year end after you build/.test(all));
 
-check("both land awards quote LAND_AWARD.sole",
-  all.includes(`${E.LAND_AWARD.sole} EP for most plots and ${E.LAND_AWARD.sole} for most districts`),
-  `LAND_AWARD.sole = ${E.LAND_AWARD.sole}`);
-check("it no longer promises 10 EP for land",
+/* The award scales with the head count now, so the tutorial cannot quote one figure.
+   It states the FORMULA and the ends of the range, and all three come off the engine. */
+check("the land step states the formula, not a fixed figure",
+  all.includes(`${E.LAND_AWARD_BASE} + the player count in EP for most plots`),
+  `LAND_AWARD_BASE = ${E.LAND_AWARD_BASE}`);
+check("and the ends of the range are the engine's own",
+  all.includes(`${E.LAND_AWARD.sole} at two players up to ${E.LAND_AWARD_LARGE.sole} at six`),
+  `${E.LAND_AWARD.sole}..${E.LAND_AWARD_LARGE.sole}`);
+check("the two land awards are still worth the same as each other",
+  all.includes("and the same for most districts"));
+check("it no longer promises a flat 10 EP for land",
   !/10 EP for most plots/.test(all));
 
 /* --- the Megacorp step: every figure off the engine, and its anchor exists --- */

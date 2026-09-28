@@ -33,7 +33,12 @@ const INDUSTRY_DEBUT_EP = parseInt(DEBUT_M[1], 10);
 
 const NEEDLES = {
   level: 'const levelEP = (state) => (hasVariant(state, "heavyLevelEP") ? 3 : 2);',
-  land: "const LAND_AWARD = { sole: 5, two: 2, many: 1 };",
+  /* The shipped award scales with the head count; this probe only needs to know the
+     function is still there, since its "old" arm replaces the award BODY instead. */
+  land: `const landAwardFor = (n) => {
+  const sole = landAwardSole(n);
+  return { sole, two: Math.max(1, Math.round(sole * 0.4)), many: Math.max(1, Math.round(sole * 0.2)) };
+};`,
   awardBody: `  const top = Math.max(...scores.map((x) => x.s));
   const leaders = scores.filter((x) => x.s === top);
   const A = landAward(state);
