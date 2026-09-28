@@ -45,6 +45,44 @@
    player raises in a solvency sale. Making land dearer makes it a better
    emergency asset in the same stroke, so this measures both ends.
 
+   WHAT IT FOUND - 300 games per arm per table, seeds from 1, all five counts.
+
+   The proposal (D) against what ships (A), on price paid per plot: +0% at two
+   seats, +3% at three and four, +4% at five and six. Plots bought moved 0-1%,
+   plots held 1%, winning score 0-2%, and Q6-leader-wins not at all. Land spend
+   tracked price exactly, which is the tell that nobody changed their mind about
+   anything - the same plots were bought at a slightly higher price.
+
+   The arms say why it is small: dropping diagonals takes about 5% off and
+   doubling the rate puts about 12% on, so most of the proposal is one half
+   cancelling the other.
+
+   AND THE REASON UNDERNEATH, which is the useful part. At the moment of
+   purchase a plot has 0.33 occupied neighbours at two seats rising to 0.48 at
+   six, and 0.17 to 0.32 counting orthogonally. So the adjacency term is worth
+   about 35 cents on a $3.30 plot: 84% of what anybody pays is the position tag.
+   Doubling a rate applied to a term that is near zero cannot move an economy.
+
+   That is a fact about WHEN land is bought, not about the formula. The board
+   has 64 plots and a four-player game ends with 45% owned and 36% built on.
+   Land is not scarce, so it is bought empty and nobody pays a premium for
+   position: every game at every count ends with a plot going begging at $1.1
+   to $1.8 that 100% of the table can afford.
+
+   So the coefficient is not the lever. Anything that makes a SPECIFIC plot
+   necessary - a smaller board, more players per plot, a reason to want that
+   corner rather than any corner - would make the existing $1 bite harder than
+   $2 does on a board where you can always build somewhere else.
+
+   If the rate is wanted anyway, arm C is the better buy than arm D: same
+   intent, keeps the looser adjacency the rest of the engine already uses, and
+   moves prices ~12% rather than ~3%.
+
+   ONE REAL EFFECT, worth not missing. plotValue is also the SALE price, and
+   half of it is a solvency raise, so any rate rise is a buff to land as
+   collateral as much as a tax on buying it. Revenue per sale rose in both
+   doubled arms at every table size.
+
    Run: node audit_plot_price.js [games] [seats...]
         node audit_plot_price.js 200 4
         node audit_plot_price.js 150 2 3 4 5 6
