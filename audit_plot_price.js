@@ -125,6 +125,48 @@
    rate rise buffs land as collateral as much as it taxes buying it - revenue
    per sale went $7 to $10 at four seats.
 
+   COUNTING THE PLOT ITSELF (arms I and J), 300 games per arm per table.
+
+   It fixes a price that was frankly odd. The premium for buying ground UNDER a
+   standing company, against bare ground, was -$0.49 at two seats, -$0.27 at
+   four and +$0.02 at six: developed ground cost the same as empty ground or
+   very slightly less, while a plot merely NEXT to that company cost a dollar
+   more. At $3 counting self the premium becomes +$2.43 / +$2.75 / +$2.99.
+
+   The feared cash pump did not appear; the opposite did. Selling the ground
+   from under your own company is an existing move and 52-63% of every plot
+   sale in the game is of occupied ground, so the worry was that paying more
+   for it would turn buildings into money. Forced sales went DOWN at every
+   table size - 2.73 to 2.54 at two seats, 5.39 to 5.16 at four, 10.27 to 9.73
+   at six - because the move also makes the plot dearer to buy back, so it is a
+   bigger commitment rather than a free raise. Winning scores, margins,
+   companies built and cash all hold.
+
+   IT ALSO MAKES THE RULE SHORTER TO SAY, which was the point of all this:
+   "the road tag, plus $3 for every structure on the plot or orthogonally
+   touching it" - five squares, count buildings, multiply. No separate clause
+   for the plot itself and no corner exception.
+
+   THE COST: land changes hands under buildings about a fifth less often. Buying
+   out a standing company falls from 8.3% to 6.9% of purchases at four seats,
+   and selling out from under your own from 58.6% to 52.2% of sales. That is a
+   signature mechanic used less, though more deliberately when it is used.
+
+   AND A CORRECTION WORTH KEEPING. An earlier run of this probe reported that
+   counting self lifted "Q6 leader won" by eight points at five seats and six
+   at six, and flagged a possible runaway effect. That was a measurement fault,
+   twice over: the statistic cannot tell a runaway from a brawl, and the
+   checkpoint picker was not reliably landing on Q6 either. Measured properly,
+   on the same seeds, lead changes per game across ALL TEN ARMS fall in a band
+   of 3.81-4.06 at five seats and 3.97-4.28 at six, with arms I and J at the
+   bottom of both. Games never headed from start to finish: under 2% every-
+   where. Counting self does not touch tension.
+
+   Note for whoever reads the Q6 columns: about 43% of games have the Q6 leader
+   winning while only about 24% were never headed after Q6, so half of the
+   first figure is games where the lead really did change hands again. The two
+   columns are printed side by side so that gap stays visible.
+
    ONE REAL EFFECT, worth not missing. plotValue is also the SALE price, and
    half of it is a solvency raise, so any rate rise is a buff to land as
    collateral as much as a tax on buying it. Revenue per sale rose in both
