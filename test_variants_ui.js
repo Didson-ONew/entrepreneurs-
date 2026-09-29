@@ -21,7 +21,8 @@ const section = (t) => console.log(`\n${t}`);
 (async () => {
   section("The catalogue the lobby renders from");
   const cat = await get("/api/variants");
-  check("the server publishes the variant list", Array.isArray(cat.variants) && cat.variants.length === 5,
+  /* Was five. roadHubs and heavyLevelEP have been removed. */
+  check("the server publishes the variant list", Array.isArray(cat.variants) && cat.variants.length === 3,
     (cat.variants || []).map((v) => v.key).join(", "));
   check("every entry has a name and an explanation",
     cat.variants.every((v) => v.key && v.name && v.blurb));
