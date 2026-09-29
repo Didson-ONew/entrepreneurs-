@@ -152,7 +152,7 @@ section("Score at the year end - the same one score, only later");
 
 section("Levels score heavy - the other switch");
 {
-  const st = game({ heavyLevelEP: true });
+  const st = game(undefined);   // was the heavyLevelEP variant, now removed
   const p = st.players[0];
   giveLand(st, p);
   plant(st, p, "HC", freePlot(st, p), 2);

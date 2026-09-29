@@ -41,7 +41,7 @@
    higher, the track running $2..$12, a whole dollar per event and cash converting
    at $50 per EP - and before a distressed building's buy-back price changed from a
    flat half setup to exactly what the bank paid for it. */
-export const EDITION = "Rulebook v20";
+export const EDITION = "Rulebook v21";
 
 /* Filter the book down to one edition. `edition` is "digital" (the app, which has a
    host, bots and a waiting room) or "table" (a physical game, which has none of them).
@@ -491,7 +491,6 @@ export const RULEBOOK = [
       head: ["Variant", "What changes"],
       rows: [
         ["Score at the year end", "A company waits for the next year end to take its EP, instead of scoring the moment it is built or upgraded. It still scores once per build or upgrade."],
-        ["Levels score heavy", "A company level is worth 3 EP instead of 2. Building tall becomes the biggest single thing on the scoreboard, at the cost of pushing land, cash and the entry bonuses into the background."],
         ["Ordered decks", "Each industry deck runs level 1 on top down to level 3 at the bottom, instead of being shuffled whole. No level 3 can be drafted, and the early game holds no surprises."],
         ["Land awards at the end only", "The Real-Estate Mogul and The Omnipresent are paid once, after Quarter 12, instead of at every year end. Land becomes a late-game race rather than something to hold all game."],
       ],

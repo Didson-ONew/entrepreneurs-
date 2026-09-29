@@ -77,7 +77,7 @@ const NEEDLES = {
      road-hub variant - and an earlier version of this probe patched the road one,
      so the arm silently measured the shipped game instead of its own proposal.
      The variant has since been removed and there is only one branch to hit. */
-  lhRandom: "    const plot = pool[Math.floor(rng() * pool.length)];",
+  lhRandom: "  const plot = pool[Math.floor(rng() * pool.length)];",
   startPlanning: "function startPlanning(state) {",
 };
 for (const [k, v] of Object.entries(NEEDLES)) {

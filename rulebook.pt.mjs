@@ -1101,10 +1101,6 @@ export const RULEBOOK_PT = [
               "Uma empresa espera o próximo fim de ano para receber seus EP, em vez de pontuar no momento em que é construída ou expandida. Ela continua pontuando uma vez por construção ou expansão."
             ],
             [
-              "Níveis pontuam pesado",
-              "Um nível de empresa vale 3 EP em vez de 2. Construir alto vira a maior coisa isolada do placar, ao custo de empurrar terras, dinheiro e os bônus de entrada para segundo plano."
-            ],
-            [
               "Baralhos ordenados",
               "Cada baralho de setor vai do nível 1 no topo até o nível 3 no fundo, em vez de ser embaralhado por inteiro. Nenhum nível 3 pode ser draftado, e o início de partida não guarda surpresas."
             ],

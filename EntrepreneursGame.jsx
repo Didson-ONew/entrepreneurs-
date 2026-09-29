@@ -1125,8 +1125,6 @@ const PERSONAS = {
 const VARIANTS = [
   { key: "classicScoring", name: "Score at the year end",
     blurb: "A company waits for the next year end to take its EP, instead of scoring the moment it is built or upgraded." },
-  { key: "heavyLevelEP", name: "Levels score heavy",
-    blurb: "A company level is worth 3 EP instead of 2, which puts far more of the game's weight on how tall you build and pushes land, cash and the entry bonuses into the background." },
   { key: "orderedDecks", name: "Ordered decks",
     blurb: "Each industry deck runs level 1 down to level 3, instead of being shuffled whole. The early game holds no surprises and no level 3 can be drafted." },
   { key: "endgameLandAwards", name: "Land awards at the end only",
@@ -1152,7 +1150,13 @@ const hasVariant = (state, key) => !!(state && state.variants && state.variants[
    Entering an industry you have never built in pays 3 EP, so breadth is worth about a
    level-2 company. At 5 it was the largest bucket on the board once levels came down:
    27% of a seat's score for a decision that is barely a decision - build one of each. */
-const levelEP = (state) => (hasVariant(state, "heavyLevelEP") ? 3 : 2);
+/* A company level is worth 2 EP, at build and at upgrade. There used to be a
+   "Levels score heavy" variant putting it at 3, and its own blurb admitted what
+   it did: it pushed land, cash and the entry bonuses into the background. That
+   is a narrower game rather than a different one, and nobody had switched it on
+   in twenty-six recorded matches. The signature still takes `state` so the
+   balance probes can splice this one line and sweep the value. */
+const levelEP = (state) => 2;
 const INDUSTRY_DEBUT_EP = 3;
 
 const PERSONA_KEYS = Object.keys(PERSONAS);
@@ -1823,7 +1827,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "26d805a1";
+const ENGINE_VERSION = "1f203966";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -5325,10 +5329,10 @@ const MEGACORP_EP = (() => {
   return { lo: Math.min(...eps), hi: Math.max(...eps) };
 })();
 
-/* levelEP reads the heavyLevelEP variant off a live game, and the tutorial also opens
-   from the setup screen where there is no game yet. This is the standard rate, which
-   is what an onboarding overlay should teach; a table that turned the variant on has
-   knowingly left the printed rules behind. */
+/* The tutorial opens from the setup screen, where there is no game yet, so it
+   asks levelEP with an empty state rather than a live one. It used to matter -
+   levelEP read a variant that could double the rate - and it is kept because
+   the balance probes splice that function to sweep the value. */
 const TUT_LEVEL_EP = levelEP({ variants: {} });
 
 const TUTORIAL = [

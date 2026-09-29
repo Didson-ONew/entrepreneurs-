@@ -33,12 +33,12 @@ const section = (t) => console.log(`\n${t}`);
   check("a fresh room has every variant off",
     lob.variants && Object.values(lob.variants).every((v) => v === false), JSON.stringify(lob.variants));
 
-  const wanted = { endgameLandAwards: true, heavyLevelEP: true, orderedDecks: true };
+  const wanted = { endgameLandAwards: true, classicScoring: true, orderedDecks: true };
   const r = await post("/api/options", { code: host.code, token: host.token, variants: wanted });
   check("the host may set them", !r.error, r.error || "");
   lob = await lobbyOf(host.code, host.token);
   check("the lobby reports exactly what was set",
-    lob.variants.endgameLandAwards && lob.variants.heavyLevelEP && lob.variants.orderedDecks
+    lob.variants.endgameLandAwards && lob.variants.classicScoring && lob.variants.orderedDecks
     && !lob.variants.classicScoring && !lob.variants.endgameLandAwards,
     JSON.stringify(lob.variants));
   const guestView = await lobbyOf(host.code, guest.token);
@@ -50,7 +50,7 @@ const section = (t) => console.log(`\n${t}`);
   lob = await lobbyOf(host.code, host.token);
   check("an unknown variant is ignored, not stored", !("nonsense" in lob.variants));
   check("and naming one variant does not switch the others off",
-    lob.variants.endgameLandAwards && lob.variants.heavyLevelEP && lob.variants.orderedDecks,
+    lob.variants.endgameLandAwards && lob.variants.classicScoring && lob.variants.orderedDecks,
     JSON.stringify(lob.variants));
   await post("/api/options", { code: host.code, token: host.token, variants: { orderedDecks: false } });
   lob = await lobbyOf(host.code, host.token);
@@ -61,7 +61,7 @@ const section = (t) => console.log(`\n${t}`);
   section("The game starts under them");
   await post("/api/start", { code: host.code, token: host.token });
   const st = (await lobbyOf(host.code, host.token)).state;
-  check("the state carries the variants", st.variants.endgameLandAwards === true && st.variants.heavyLevelEP === true);
+  check("the state carries the variants", st.variants.endgameLandAwards === true && st.variants.classicScoring === true);
   check("the board carries the variants those switches asked for",
     st.variants.endgameLandAwards === true && st.variants.orderedDecks === true);
   check("and the decks are ordered, as Ordered decks asked",

@@ -162,8 +162,10 @@ section("2. Levels score heavy");
     return fromCompanies(me);
   };
   check("a level 2 company scores 4 as standard", mk(undefined) === 4, `${mk(undefined)} EP`);
-  check("and 6 under the variant", mk({ heavyLevelEP: true }) === 6, `${mk({ heavyLevelEP: true })} EP`);
-  check("levelEP says the same", E.levelEP(game(undefined)) === 2 && E.levelEP(game({ heavyLevelEP: true })) === 3);
+  check("and the removed 'levels score heavy' switch cannot bring it back",
+    mk({ heavyLevelEP: true }) === 4, `${mk({ heavyLevelEP: true })} EP`);
+  check("levelEP is 2 whatever a stale client asks for",
+    E.levelEP(game(undefined)) === 2 && E.levelEP(game({ heavyLevelEP: true })) === 2);
 }
 
 section("3. Ordered decks");
@@ -261,7 +263,7 @@ section("The bots read the variants too");
     return E.launchScore(st, me, bp, "balanced");
   };
   check("a building is worth less to a bot when levels score single",
-    scoreOf({ heavyLevelEP: true }) > scoreOf(undefined),
+    scoreOf({ heavyLevelEP: true }) === scoreOf(undefined),
     `${scoreOf(undefined).toFixed(3)} -> ${scoreOf({ heavyLevelEP: true }).toFixed(3)}`);
 }
 
