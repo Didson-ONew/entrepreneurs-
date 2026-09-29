@@ -187,16 +187,36 @@ const ARMS = {
   F: { adj: "orth", rate: 4, label: "sweep      orth  x$4" },
   G: { adj: "orth", rate: 6, label: "sweep      orth  x$6" },
   H: { adj: "orth", rate: 8, label: "sweep      orth  x$8" },
+  /* COUNTING THE PLOT ITSELF. Today a plot never counts a structure standing
+     on it - plotValue reads only the neighbour set, and neither graph holds a
+     self-loop - so the ground under a producing factory costs exactly what
+     bare ground costs, while an empty plot BESIDE that factory costs a dollar
+     more. Buying the building you are about to collect rent from is free;
+     being near it is not.
+
+     That matters because such a plot is buyable: plotBuyable returns true for
+     occupied ground, which is the whole "land trades under standing buildings"
+     mechanic. These arms count the plot's own structure at the same rate as a
+     neighbour's, which is what a person reading "per adjacent structure" would
+     probably assume it already did.
+
+     It cuts both ways, and the sell side is the sharper one. plotValue is what
+     a plot SELLS for, and selling the ground under your own company for cash
+     is an existing move, so counting self pays you more for doing it - and
+     half of it is what a distressed player raises under solvency. */
+  I: { adj: "orth", rate: 3, self: true, label: "self+      orth  x$3 +self" },
+  J: { adj: "orth", rate: 4, self: true, label: "self+      orth  x$4 +self" },
 };
 
 function engineFor(arm) {
-  const { adj, rate } = ARMS[arm];
+  const { adj, rate, self } = ARMS[arm];
   let logic = base;
 
   logic = logic.replace(NEEDLES.priceBody,
     `  const occupiedNeighbors = [...(board.${adj}[plotKeyStr] || [])].filter((n) => n in board.occupiedBy).length;
+  const selfOccupied = ${self ? 1 : 0} && (plotKeyStr in board.occupiedBy) ? 1 : 0;
   const lhBonus = plotHasLH(board, plotKeyStr) ? 1 : 0;
-  return base + ${rate} * occupiedNeighbors + lhBonus;`);
+  return base + ${rate} * (occupiedNeighbors + selfOccupied) + lhBonus;`);
 
   /* Record what the price was MADE OF, not just what it came to. If the
      adjacency term is small at the moment people actually buy, then no rate
@@ -211,11 +231,12 @@ function engineFor(arm) {
       && state.board.priceLattice[latticeKeyForCell(cell)] !== undefined)
       ? state.board.priceLattice[latticeKeyForCell(cell)] : 1;
     const occ = (list) => [...(list || [])].filter((n) => n in state.board.occupiedBy).length;
-    return { tag, gnb: occ(state.board.graph[plotKeyStr]), onb: occ(state.board.orth[plotKeyStr]) };
+    return { tag, gnb: occ(state.board.graph[plotKeyStr]), onb: occ(state.board.orth[plotKeyStr]),
+      selfOcc: plotKeyStr in state.board.occupiedBy };
   })());`);
 
   logic = logic.replace(NEEDLES.sell,
-    NEEDLES.sell + "\n  box.sell(val, solvency);");
+    NEEDLES.sell + "\n  box.sell(val, solvency, plotKeyStr in state.board.occupiedBy);");
 
   logic = logic.replace(NEEDLES.quarterEnd,
     NEEDLES.quarterEnd + "\n  box.snap(state);");
@@ -223,7 +244,7 @@ function engineFor(arm) {
   const box = {
     buys: [], sells: [], snaps: [],
     buy(cost, q, parts) { box.buys.push({ cost, q, ...parts }); },
-    sell(val, solvency) { box.sells.push({ val, solvency: !!solvency }); },
+    sell(val, solvency, selfOcc) { box.sells.push({ val, solvency: !!solvency, selfOcc: !!selfOcc }); },
     snap(state) { box.snaps.push({ q: state.quarter, ep: state.players.map((p) => box.ep(p)) }); },
   };
   const sandbox = { console, Math, Set, Map, Object, Array, JSON, box, String, Number };
@@ -262,6 +283,11 @@ function run(arm, seats, n) {
        paid, it is being dodged, and a higher number on the card changes
        nothing except how often people walk away from a corner. */
     boughtAdjacent: 0, boughtTotal: 0, priceWhenAdjacent: [], priceWhenEmpty: [],
+    /* Buying the ground out from under a standing company, and selling the
+       ground out from under your own - the two moves counting self actually
+       prices. Both already exist; the question is what they cost now. */
+    boughtOccupied: 0, priceWhenOccupied: [], priceWhenBare: [],
+    soldOccupied: 0, soldTotal: 0, sellWhenOccupied: [], sellWhenBare: [],
     sellsPerGame: [], sellRevenue: [], solvencySells: [],
     plotsWinner: [], plotsMean: [], plotSpread: [],
     landEPWinner: [], landShare: [],
@@ -296,6 +322,8 @@ function run(arm, seats, n) {
       o.boughtTotal++;
       if (b.onb > 0) { o.boughtAdjacent++; o.priceWhenAdjacent.push(b.cost); }
       else o.priceWhenEmpty.push(b.cost);
+      if (b.selfOcc) { o.boughtOccupied++; o.priceWhenOccupied.push(b.cost); }
+      else o.priceWhenBare.push(b.cost);
     });
     const early = box.buys.filter((b) => b.q <= 6).map((b) => b.cost);
     const late = box.buys.filter((b) => b.q > 6).map((b) => b.cost);
@@ -305,6 +333,11 @@ function run(arm, seats, n) {
     o.sellsPerGame.push(box.sells.length);
     o.sellRevenue.push(box.sells.reduce((a, b) => a + b.val, 0));
     o.solvencySells.push(box.sells.filter((s) => s.solvency).length);
+    box.sells.forEach((x) => {
+      o.soldTotal++;
+      if (x.selfOcc) { o.soldOccupied++; o.sellWhenOccupied.push(x.val); }
+      else o.sellWhenBare.push(x.val);
+    });
 
     /* --- who ended up holding ground ------------------------------------ */
     const eps = st.players.map((p) => E.epTotal(p));
@@ -403,6 +436,20 @@ for (const seats of TABLES) {
     console.log(`    ${arm}           ${pct(o.boughtAdjacent, o.boughtTotal).toFixed(1).padStart(5)}%              `
       + `${adj.toFixed(2).padStart(5)}          ${emp.toFixed(2).padStart(5)}        `
       + `${(adj - emp >= 0 ? "+" : "")}${(adj - emp).toFixed(2)}`);
+  }
+
+  console.log("\n  the two moves that counting the plot itself prices:");
+  console.log("    arm    BUY ground under a standing company     SELL ground under one");
+  console.log("           share   $ there   $ bare   premium      share   $ there   $ bare");
+  for (const arm of Object.keys(ARMS)) {
+    const o = rows[arm];
+    const bo = mean(o.priceWhenOccupied), bb = mean(o.priceWhenBare);
+    const so = mean(o.sellWhenOccupied), sb = mean(o.sellWhenBare);
+    console.log(`    ${arm}     ${pct(o.boughtOccupied, o.boughtTotal).toFixed(1).padStart(5)}%  `
+      + `${bo.toFixed(2).padStart(6)}  ${bb.toFixed(2).padStart(6)}  `
+      + `${(bo - bb >= 0 ? "+" : "")}${(bo - bb).toFixed(2).padStart(6)}      `
+      + `${pct(o.soldOccupied, o.soldTotal).toFixed(1).padStart(5)}%  `
+      + `${so.toFixed(2).padStart(6)}  ${sb.toFixed(2).padStart(6)}`);
   }
 
   console.log("\n  cheapest plot still unsold at the end, and the share of the table"
