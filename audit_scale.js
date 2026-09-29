@@ -48,8 +48,10 @@
 
    WHAT STOPS A FOURTH YEAR
 
-     The end of the game is `quarter >= 12`. Around it: year ends are the literal
-     list [4, 8, 12] in three places, "quarters left" is `13 - quarter` in four,
+     The end of the game now goes through finalQuarterOf(state) and the year
+     ends through yearEndsOf(state), because the beginner mode plays eight
+     quarters - so this probe splices those two helpers rather than the literals
+     that used to be here. "quarters left" is still `13 - quarter` in four,
      loan buy-back prices are a table of three, and the demand board is refreshed
      once, at Q8. A fourth year with no fourth refresh plays its last four
      quarters on a board that is already full.
@@ -119,14 +121,14 @@ const N = {
   /* The second Megacorp CALLS the final quarter now rather than being it, so the
      game-over test reads the deadline as well as Q12, and the deadline itself caps
      at 12. A longer game has to move both or the extra year is unreachable. */
-  over: "  if (state.quarter >= 12 || (state.finalQuarter && state.quarter >= state.finalQuarter)) {",
+  over: "  if (state.quarter >= finalQuarterOf(state) || (state.finalQuarter && state.quarter >= state.finalQuarter)) {",
   deadlineCap: "    state.finalQuarter = Math.min(12, state.quarter + 1);",
-  yearEndsClosing: "  if ([4, 8, 12].includes(quarter)) {",
-  yearEndsRepay: "  if ([4, 8, 12].includes(state.quarter)) {",
-  landPayouts: "  return [4, 8, 12].filter((q) => q >= state.quarter).length || 1;",
+  yearEndsClosing: "  if (yearEndsOf(state).includes(quarter)) {",
+  yearEndsRepay: "  if (yearEndsOf(state).includes(state.quarter)) {",
+  landPayouts: "  return yearEndsOf(state).filter((q) => q >= state.quarter).length || 1;",
   repayRates: "const LOAN_REPAY_RATE = { 4: 30, 8: 35, 12: 40 };",
   refresh: "  if (quarter === 8) refreshY3(demand);",
-  botLast: "  if (quarter === 12) {",
+  botLast: "  if (quarter === finalQuarterOf(state)) {",
   /* counters */
   meeple: "function placeMeeple(state, playerId, track) {",
   deliver: "  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;",

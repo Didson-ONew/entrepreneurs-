@@ -61,7 +61,7 @@ section("Defaults - a table that touches nothing plays Rulebook v13");
      twenty-nine sites of dual-shape hub machinery, the second made the game
      narrower by its own description, and neither had been switched on in
      twenty-six recorded matches. */
-  check("three variants are on offer", E.VARIANTS.length === 3, E.VARIANTS.map((v) => v.key).join(", "));
+  check("four variants are on offer", E.VARIANTS.length === 4, E.VARIANTS.map((v) => v.key).join(", "));
   check("every one is off", E.VARIANT_KEYS.every((k) => st.variants[k] === false));
   check("hubs stand on plots", st.board.lhPlots !== undefined && st.board.lhEdges === undefined);
   const lv = st.decks.UT.map((c) => c.lvl);
