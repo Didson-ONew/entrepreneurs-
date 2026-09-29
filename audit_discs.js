@@ -37,9 +37,9 @@ const base = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
 
 const NEEDLES = {
   discs: "const DISCS_PER_PLAYER = 12;",
-  used: "function discsUsed(state, p) {\n  return plotsOwned(state, p) + companySlotsUsed(p) + p.discsInBank;\n}",
+  used: "function discsUsed(state, p) {\n  return discsForGround(state, p) + companySlotsUsed(p) + p.discsInBank;\n}",
   blocked: 'function upgradeBlockedReason(state, p, b) {\n  if (b.isHQ) return logMsg("is a Megacorp HQ");',
-  doUpgrade: "function doUpgrade(state, p, b, rng, log, manualPlot, dir) {\n  if (b.upgraded) return false;",
+  doUpgrade: "function doUpgrade(state, p, b, rng, log, manualPlot, dir) {\n  if (isBeginner(state)) return false;      // no UPGRADE in the teaching game\n  if (b.upgraded) return false;",
   rd: "    const candidates = starved ? [] : activeBiz(p).filter((b) => !b.upgraded",
 };
 for (const [k, v] of Object.entries(NEEDLES)) {

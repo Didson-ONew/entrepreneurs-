@@ -1087,7 +1087,7 @@ export const RULEBOOK_PT = [
         "p": "Todas elas vêm desligadas por padrão, e uma mesa que não mexer em nenhuma joga exatamente as regras deste livro. Podem ser combinadas livremente."
       },
       {
-        "p": "Todas soam como jogar do jeito antigo, porque é isso que elas são. Cinco regras que eram opcionais na v12 viraram padrão na v13, e o que continua alternável é o jogo como ele era antes."
+        "p": "As três primeiras soam como jogar do jeito antigo, porque é isso que elas são: regras que eram opcionais na v12 e viraram padrão na v13. O jogo para iniciantes é o oposto - não é uma versão antiga deste jogo, e sim um caminho mais curto para entrar nele, e tem uma seção própria mais abaixo."
       },
       {
         "table": {
@@ -1120,10 +1120,101 @@ export const RULEBOOK_PT = [
         "only": "digital"
       },
       {
-        "note": "Elas continuam alternáveis para que as duas versões possam ser jogadas lado a lado, não porque as antigas estejam equilibradas em relação às novas. Ligar as cinco joga a v12 quase exatamente."
+        "note": "As três regras antigas continuam alternáveis para que as duas versões possam ser jogadas lado a lado, não porque estejam equilibradas em relação às novas. Outras duas foram removidas na v20 depois de vinte e seis partidas registradas em que ninguém ligou nenhuma das duas: centros logísticos na estrada, que obrigava toda regra de centro do jogo a responder por dois formatos, e níveis pontuam pesado, que pela própria descrição empurrava terras, dinheiro e os bônus de entrada para segundo plano."
       },
       {
         "note": "Centros logísticos em lotes são uma restrição de verdade: um quarto dos lotes do tabuleiro não tem nenhum vizinho ortogonal, então um centro mal colocado não conecta ninguém. É a regra funcionando como planejado - é por isso que o seletor de centros diz quantos lotes um ponto conectaria antes de você se comprometer com ele - mas é também a regra com maior chance de precisar de uma nova olhada depois de algumas mesas."
+      }
+    ]
+  },
+  {
+    "id": "beginner",
+    "title": "O jogo para iniciantes",
+    "blocks": [
+      {
+        "p": "Um caminho mais curto para entrar, para uma mesa em que alguém nunca jogou. São dois anos em vez de três, e cada trilha fica com uma ação em vez de duas, então há quatro coisas a fazer em vez de oito. Tudo o que foi cortado é um subsistema que exige uma segunda explicação; nada do que foi cortado é o motor do jogo."
+      },
+      {
+        "p": "O que fica é a parte que vale a pena aprender. Sua produção continua vendendo para os ícones de demanda, seus custos operacionais continuam caindo nos potes dos setores de que seu Projeto compra e sendo divididos entre quem tiver empresas lá, e toda construção continua empurrando o preço do próprio setor um dólar para baixo e o de cada fornecedor um para cima. Seu cliente continua sendo seu concorrente."
+      },
+      {
+        "table": {
+          "head": [
+            "",
+            "O jogo completo",
+            "O jogo para iniciantes"
+          ],
+          "rows": [
+            [
+              "Duração",
+              "12 trimestres, 3 anos",
+              "8 trimestres, 2 anos"
+            ],
+            [
+              "Captar Recursos",
+              "EMPRÉSTIMO ou VENDER",
+              "EMPRÉSTIMO"
+            ],
+            [
+              "F&A",
+              "COMPRAR ou LANÇAR",
+              "LANÇAR"
+            ],
+            [
+              "P&D",
+              "PESQUISA ou MELHORAR",
+              "PESQUISA"
+            ],
+            [
+              "Reunião de Diretoria",
+              "ABRIR CAPITAL ou REPOSICIONAR",
+              "REPOSICIONAR"
+            ],
+            [
+              "Megacorporações",
+              "sim",
+              "não"
+            ],
+            [
+              "Fichas",
+              "12",
+              "6"
+            ],
+            [
+              "Terras",
+              "compradas e vendidas",
+              "tomadas de graça ao construir"
+            ],
+            [
+              "Prêmios de terras",
+              "mais lotes e mais distritos",
+              "mais distritos"
+            ],
+            [
+              "Alcance de demanda",
+              "colunas até o seu nível",
+              "uma coluna acima do seu nível"
+            ]
+          ]
+        }
+      },
+      {
+        "p": "CONSTRUIR TOMA O TERRENO. Não existe COMPRAR aqui, então a empresa fica com os lotes em que está, de graça, no momento em que é construída. A ficha dela cobre toda a área, quantos lotes forem - e é isso que faz valer a pena draftar um setor horizontal, já que uma única ficha pode te colocar em vários distritos ao mesmo tempo, e distrito é a única terra que pontua."
+      },
+      {
+        "p": "SEIS FICHAS, e cinco vagas de empresa. Cinco fichas são um quadro cheio de empresas, então a sexta é toda a sua folga: pegue um empréstimo e você está no limite, pegue dois e abriu mão de uma empresa. Essa é a economia inteira do modo."
+      },
+      {
+        "p": "UMA EMPRESA ALCANÇA UMA COLUNA ACIMA DO SEU NÍVEL. Uma empresa de nível 1 alcança as colunas 1 e 2, uma de nível 2 alcança de 1 a 3, uma de nível 3 alcança todas as quatro. Sem isso, uma empresa de nível 1 só conseguiria vender para o ícone de nível 1 e, como aqui nada é melhorado, jogaria fora quase tudo o que produz."
+      },
+      {
+        "p": "OS NÍVEIS CONTINUAM EXISTINDO mesmo sem melhorias. PESQUISA compra a carta do topo de um baralho, e os baralhos são embaralhados por inteiro, então uma carta de nível 2 ou nível 3 pode ser comprada e construída direto. É assim que se consegue uma empresa maior, e é o único jeito de alcançar a quarta coluna de demanda."
+      },
+      {
+        "p": "UMA EMPRESA PERDIDA NÃO VOLTA. A insolvência funciona exatamente como no jogo completo, e é o único jeito de uma empresa sair do seu quadro. O terreno vai junto com ela e ninguém pode comprá-la de volta."
+      },
+      {
+        "note": "Medido em 150 partidas em todos os tamanhos de mesa, os dois últimos trimestres ainda carregam entre um terço e dois quintos da pontuação vencedora, então o jogo curto não acaba antes de algo acumular. Ele também é bem mais gentil que o jogo completo: nenhum assento terminou sem nada de pé, contra um em vinte e cinco a um em doze, e quem estava em último na metade chegou à metade de cima cerca de um terço das vezes. O único número que foi para o lado errado é o dinheiro, que aqui é cerca de um quarto de uma pontuação vencedora contra um oitavo no jogo completo - os pontos que as Megacorporações carregavam foram para o dinheiro e para as estreias de setor. Quem aprende aqui aprende a sentar em cima do dinheiro num jogo que premia isso mais do que o de verdade."
       }
     ]
   },

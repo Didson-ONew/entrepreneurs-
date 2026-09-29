@@ -98,8 +98,10 @@ section("Standings count Megacorps and label discs honestly");
   check("the old activeBiz-only line is gone",
     !/\{activeBiz\(p\)\.length\}biz &middot; \{p\.hand\.length\}BP &middot; \{p\.discsInBank\}disc/.test(SRC));
   check("Megacorp HQs are shown", /t\("\+\{0\}MC", megacorpHQs\(p\)\.length\)/.test(SRC));
-  check("the disc figure is the same used-of-twelve the player board shows",
-    /t\("\{0\}\/\{1\} discs", discsUsed\(state, p\), DISCS_PER_PLAYER\)/.test(SRC));
+  /* Was "used-of-twelve". The beginner mode plays with six, so the total is
+     read from the state rather than from the constant. */
+  check("the disc figure is the same used-of-total the player board shows",
+    /t\("\{0\}\/\{1\} discs", discsUsed\(state, p\), discsPerPlayer\(state\)\)/.test(SRC));
   check("loan discs are still called out separately",
     /t\("\(\{0\} loan\)", p\.discsInBank\)/.test(SRC));
 }

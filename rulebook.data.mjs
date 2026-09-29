@@ -41,7 +41,7 @@
    higher, the track running $2..$12, a whole dollar per event and cash converting
    at $50 per EP - and before a distressed building's buy-back price changed from a
    flat half setup to exactly what the bank paid for it. */
-export const EDITION = "Rulebook v21";
+export const EDITION = "Rulebook v20";
 
 /* Filter the book down to one edition. `edition` is "digital" (the app, which has a
    host, bots and a waiting room) or "table" (a physical game, which has none of them).
@@ -486,7 +486,7 @@ export const RULEBOOK = [
   title: "Rule variants (optional)",
   blocks: [
     { p: "Every one of these is off by default, and a table that leaves them alone plays exactly the rules in this book. They can be combined freely." },
-    { p: "They all read as playing it the older way, because that is what they are. Five rules that were optional in v12 became standard in v13, and what remains switchable is the game as it was before." },
+    { p: "The first three read as playing it the older way, because that is what they are: rules that were optional in v12 and became standard in v13. The beginner game is the opposite - not an older version of this game but a shorter way into it, and it has a section of its own below." },
     { table: {
       head: ["Variant", "What changes"],
       rows: [
@@ -497,8 +497,39 @@ export const RULEBOOK = [
     } },
     { p: "Agree which of them are on before the draft. Several change what a Blueprint is worth, so choosing halfway through is not a neutral act.", only: "table" },
     { p: "Whichever are on is shown in the waiting room before the game starts, and recorded with the finished game, so a variant table is never mistaken for a standard one in the records.", only: "digital" },
-    { note: "These are kept switchable so the two versions can be played side by side, not because the older ones are balanced against the new. Turning all five on plays v12 almost exactly." },
+    { note: "The three older rules are kept switchable so the two versions can be played side by side, not because they are balanced against the new. Two more were dropped in v20 after twenty-six recorded games in which nobody had switched either on: hubs on the road, which forced every hub rule in the game to answer for two shapes, and levels score heavy, which by its own description pushed land, cash and the entry bonuses into the background." },
     { note: "Hubs on plots is a genuine constriction: a quarter of the plots on the board have no orthogonal neighbour at all, so a badly placed hub connects nobody. That is the rule working as intended - it is why the hub picker tells you how many plots a spot would connect before you commit to it - but it is also the rule most likely to need another look after a few tables." },
+  ],
+},
+
+/* ------------------------------------------------------------------ */
+{
+  id: "beginner",
+  title: "The beginner game",
+  blocks: [
+    { p: "A shorter way in, for a table where somebody has never played. It is two years instead of three, and each track keeps one action instead of two, so there are four things you can do rather than eight. Everything cut is a subsystem that needs a second explanation; nothing cut is the engine of the game." },
+    { p: "What stays is the part worth learning. Your production still sells into the demand icons, your operating costs still flow into the pots of the industries your Blueprint buys from and are split among whoever owns companies there, and every build still pushes its own industry's price down a dollar and each of its suppliers' up one. Your customer is still your competitor." },
+    { table: {
+      head: ["", "The full game", "The beginner game"],
+      rows: [
+        ["Length", "12 quarters, 3 years", "8 quarters, 2 years"],
+        ["Raise Capital", "LOAN or SELL", "LOAN"],
+        ["M&A", "BUY or LAUNCH", "LAUNCH"],
+        ["R&D", "RESEARCH or UPGRADE", "RESEARCH"],
+        ["Board Meeting", "GO PUBLIC or REPOSITION", "REPOSITION"],
+        ["Megacorps", "yes", "no"],
+        ["Discs", "12", "6"],
+        ["Land", "bought and sold", "claimed free by building"],
+        ["Land awards", "most plots and most districts", "most districts"],
+        ["Demand reach", "columns up to your level", "one column above your level"],
+      ],
+    } },
+    { p: "BUILDING CLAIMS ITS GROUND. There is no BUY here, so a company takes the plots it stands on, free, the moment it is built. Its disc covers the whole footprint however many plots that is - which is what makes a horizontal industry worth drafting, since one disc can put you in several districts at once, and districts are the only land that scores." },
+    { p: "SIX DISCS, and five company bays. Five discs is a full board of companies, so the sixth is your only slack: borrow once and you are at your limit, borrow twice and you have given up a company. That is the whole economy of the mode." },
+    { p: "A COMPANY REACHES ONE COLUMN ABOVE ITS LEVEL. A level 1 company reaches columns 1 and 2, a level 2 reaches 1 to 3, a level 3 reaches all four. Without this a level 1 company could only ever sell into the level 1 icon, and since nothing is upgraded here it would throw most of what it makes away." },
+    { p: "LEVELS STILL EXIST even though nothing is upgraded. RESEARCH draws the top card of a deck and the decks are shuffled whole, so a level 2 or level 3 card can be drawn and built outright. That is how you get a bigger company, and the only way to reach the fourth demand column." },
+    { p: "A COMPANY YOU LOSE IS GONE. Solvency works exactly as it does in the full game, and it is the only way a company leaves your board. Its ground goes with it and nobody can buy it back." },
+    { note: "Measured over 150 games at every table size, the last two quarters still carry between a third and two fifths of the winning score, so the short game does not end before anything compounds. It is also markedly gentler than the full game: no seat ever ended with nothing standing, against one in twenty-five to one in twelve, and a player last at halfway reached the top half about a third of the time. The one figure that moved the wrong way is cash, which is about a quarter of a winning score here against an eighth in the full game - the points Megacorps used to carry went to cash and to industry debuts. Somebody taught here learns to sit on money in a game that rewards it more than the real one does." },
   ],
 },
 

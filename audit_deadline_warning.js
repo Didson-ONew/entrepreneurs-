@@ -78,14 +78,14 @@ const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
    log line between them - which carries translated text - out of the probe. */
 const HEAD = `  const rushers = endgameRushers(state);
   if (rushers.length && !state.finalQuarter) {`;
-const TAIL = `  if (state.quarter >= 12 || (state.finalQuarter && state.quarter >= state.finalQuarter)) {`;
+const TAIL = `  if (state.quarter >= finalQuarterOf(state) || (state.finalQuarter && state.quarter >= state.finalQuarter)) {`;
 for (const [what, needle] of [["the deadline call", HEAD], ["the game-over check", TAIL]]) {
   if (!BASE.includes(needle)) { console.error(`${what} changed shape - update this probe`); process.exit(2); }
 }
 
 /* The old rule: the deadline fires and the game ends in the same breath. */
 const PLAIN = `  const rushers = endgameRushers(state);
-  if (state.quarter >= 12 || rushers.length) {`;
+  if (state.quarter >= finalQuarterOf(state) || rushers.length) {`;
 function withoutWarning(src) {
   const a = src.indexOf(HEAD);
   const b = src.indexOf(TAIL, a);

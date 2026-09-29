@@ -22,7 +22,7 @@ const section = (t) => console.log(`\n${t}`);
   section("The catalogue the lobby renders from");
   const cat = await get("/api/variants");
   /* Was five. roadHubs and heavyLevelEP have been removed. */
-  check("the server publishes the variant list", Array.isArray(cat.variants) && cat.variants.length === 3,
+  check("the server publishes the variant list", Array.isArray(cat.variants) && cat.variants.length === 4,
     (cat.variants || []).map((v) => v.key).join(", "));
   check("every entry has a name and an explanation",
     cat.variants.every((v) => v.key && v.name && v.blurb));
@@ -96,12 +96,12 @@ const section = (t) => console.log(`\n${t}`);
   await sleep(300);
   let t = await txt(A);
   /* Was five. "Hubs on the road" and "Levels score heavy" have been removed. */
-  check("opening the fold lists all three",
-    ["Score at the year end", "Ordered decks", "Land awards at the end only"]
+  check("opening the fold lists all four",
+    ["Score at the year end", "Ordered decks", "Land awards at the end only", "Beginner game"]
       .every((n) => t.includes(n)));
   check("and the removed two are not offered",
     !/Hubs on the road/.test(t) && !/Levels score heavy/.test(t));
-  check("they start OFF", (t.match(/OFF/g) || []).length >= 3);
+  check("they start OFF", (t.match(/OFF/g) || []).length >= 4);
 
   await A.getByText("Ordered decks").click();
   await sleep(500);

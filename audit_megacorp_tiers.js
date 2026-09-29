@@ -116,13 +116,13 @@ const NEEDLES = {
 };`,
   landShare: "  const share = leaders.length === 1 ? A.sole\n"
     + "    : leaders.length === 2 ? A.two : A.many;",
-  landPayouts: "  return [4, 8, 12].filter((q) => q >= state.quarter).length || 1;",
-  landYearEnd: "    if (!hasVariant(state, \"endgameLandAwards\") && !isFinal) {\n"
-    + "      awardRanked(state, (p) => plotCount(state, p), \"The Real-Estate Mogul\", log);\n"
-    + "      awardRanked(state, (p) => districtCount(state, p), \"The Omnipresent\", log);\n"
-    + "    }",
+  landPayouts: "  return yearEndsOf(state).filter((q) => q >= state.quarter).length || 1;",
+  /* The Mogul is now skipped in the beginner mode, so the block carries a
+     guard that was not here before. */
+  landYearEnd: "      if (!isBeginner(state)) awardRanked(state, (p) => plotCount(state, p), \"The Real-Estate Mogul\", log);\n"
+    + "      awardRanked(state, (p) => districtCount(state, p), \"The Omnipresent\", log);",
   closingHead: "function runClosingRest(state, log) {\n  const { players, quarter } = state;",
-  finalLand: "  awardRanked(state, (p) => plotCount(state, p), \"The Real-Estate Mogul\", null);\n"
+  finalLand: "  if (!isBeginner(state)) awardRanked(state, (p) => plotCount(state, p), \"The Real-Estate Mogul\", null);\n"
     + "  awardRanked(state, (p) => districtCount(state, p), \"The Omnipresent\", null);",
 };
 for (const [k, v] of Object.entries(NEEDLES)) {
