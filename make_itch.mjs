@@ -124,12 +124,12 @@ Entrepreneurs
 
 ## Short description (the one-liner under the title)
 
-A heavy economic euro where your customers are your competitors: every company
+A heavy economic euro where your customer is also your competitor: every company
 you build buys from the table and sells to it at the same time.
 
 ## Description
 
-**Your customers are your competitors.**
+**Your customer is also your competitor.**
 
 That is the whole game. Every company you build pays a supplier bill each
 quarter, and that money does not vanish into the bank - it goes into the pots of
@@ -192,10 +192,16 @@ it puts the game next to maths drills rather than next to other euros.)
 ## What to say in the devlog / first post
 
 Be specific about the one mechanism that is unusual, not about the theme. The
-hook is: *your customers are your competitors - every company buys from the table
-and sells to it at once.* That is the sentence that makes someone try it, and it
-is the counterintuitive direction that does the work: people expect the players
-they are beating to be separate from the people paying them.
+hook is: *your customer is also your competitor - every company buys from the
+table and sells to it at once.* That is the sentence that makes someone try it,
+and it is the counterintuitive direction that does the work: people expect the
+players they are beating to be separate from the people paying them.
+
+Keep the word "also" wherever this sentence is used, here and on the cover
+image. Without it the line reads as a swap - one group replaced by another -
+and the game does not do that. The same person is buying from you and racing
+you at the same time, and "also" is the only word in the sentence carrying
+that.
 `;
 
 const pagePath = path.join(DIST, "itch-page.md");

@@ -18,11 +18,15 @@
 
    ========================================================================== */
 import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
   Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType, PageOrientation,
 } from "docx";
 import { EDITION } from "./rulebook.data.mjs";
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 const VERSION = EDITION.replace(/[^0-9v]/gi, "").toLowerCase();
 
@@ -137,6 +141,48 @@ const FACTS = [
   ["CATEGORY", "Economic Euro"],
 ];
 
+/* THE TESTING LINE USED TO BE TYPED BY HAND, AND IT DRIFTED - exactly the thing
+   this file's header says it does not do. It advertised 43 audits and 72 tests
+   while the repository held 44 and 79, because both grew and nobody edited the
+   sentence. Count the files instead: understating your own evidence to a
+   publisher is a silly way to lose a point. */
+const countFiles = (re) => fs.readdirSync(HERE).filter((f) => re.test(f)).length;
+const AUDITS = countFiles(/^audit_.*\.(js|mjs)$/);
+const TESTS = countFiles(/^test_.*\.js$/);
+
+/* ---------------------------------------------------------------- testimony
+
+   The sheet proved balance with 250 simulated games and carried no human voice
+   at all, which is an odd gap in a document about a game people sit down and
+   play. A publisher discounts a designer's own enthusiasm and does not discount
+   a stranger's.
+
+   Both lines are from one playtester's handwritten form after a physical
+   session, and BOTH ARE QUOTED VERBATIM, swearing included. A tidied quote is
+   not testimony any more, and "f***ing" would keep the word while looking
+   embarrassed about it. If a particular publisher is the wrong audience for it,
+   change WHICH line is quoted - never the words inside one.
+
+   They earn their space by saying two different things. The first is the
+   intensity a heavy euro lives on. The second is a learning curve admitted out
+   loud, which for this genre is not a warning but the product: a publisher of
+   heavy games is buying the game people come back to, and a designer who is
+   candid about the teach is a cheaper one to work with. */
+const QUOTES = [
+  "“Some people will fucking love this game.”",
+  "“…a game that may require a few plays to ‘get’, and that’s okay.”",
+];
+const QUOTE_SOURCE = "Michael Boggs  ·  playtester, physical session";
+
+const quote = (text, o = {}) => new Paragraph({
+  spacing: { after: o.after ?? 60, line: 252 },
+  indent: { left: 150 },
+  border: { left: { style: BorderStyle.SINGLE, size: 12, color: VIOLET, space: 10 } },
+  children: [new TextRun({
+    text, font: FONT, size: o.size ?? 19, italics: true, color: INK,
+  })],
+});
+
 const doc = new Document({
   creator: "Entrepreneurs",
   title: `Entrepreneurs - sell sheet ${VERSION}`,
@@ -193,12 +239,23 @@ const doc = new Document({
       P("Tuned on a simulation harness, not by feel. Across 250 complete games at every table size: at four players the lead changes hands 3.3 times, four players in five hold it at some point, under 3% of games are led wire to wire, and the winner takes the lead for the last time around Q9 of 12. Two players is the tightest count, and the likeliest to run wire to wire.",
         { size: 18 }),
 
+      /* The simulation says it is balanced. It cannot say anyone enjoyed it. */
+      ...QUOTES.map((q) => quote(q)),
+      new Paragraph({
+        spacing: { after: 90, line: 252 },
+        indent: { left: 150 },
+        border: { left: { style: BorderStyle.SINGLE, size: 12, color: VIOLET, space: 10 } },
+        children: [new TextRun({
+          text: QUOTE_SOURCE, font: FONT, size: 15, color: MUTED, characterSpacing: 16,
+        })],
+      }),
+
       H("Where it stands today"),
       grid(null, [
         [{ t: "Rules", bold: true }, "Complete. Rulebook v19 is generated from the data the game runs on, so it cannot drift."],
         [{ t: "Prototype", bold: true }, "Built and played at the table."],
         [{ t: "Digital build", bold: true }, "Playable now: solo against AI, or online with up to six."],
-        [{ t: "Testing", bold: true }, "43 balance audits and 72 automated tests, all in the repository."],
+        [{ t: "Testing", bold: true }, `${AUDITS} balance audits and ${TESTS} automated tests, all in the repository.`],
         [{ t: "Art", bold: true }, "Functional placeholder. Open to your direction."],
       ], [1700, TEXT_WIDTH - 1700], { size: 18 }),
       gap(90),
