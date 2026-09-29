@@ -25,6 +25,7 @@ changes.
 |---|---|---|
 | length | 12 quarters, 3 years | **8 quarters, 2 years** |
 | Megacorps | go public, HQ, brand EP | **none** |
+| Personas | one each | **none** |
 | Raise Capital | LOAN, SELL | **LOAN only** |
 | M&A | BUY, LAUNCH | **LAUNCH only** |
 | R&D | RESEARCH, UPGRADE | **RESEARCH only** |
@@ -63,6 +64,23 @@ single company can span several districts for one disc.
 
 **Companies reach one column higher than their level.** Level 1 reaches columns
 1-2, level 2 reaches 1-3, level 3 reaches all four.
+
+**Nobody has a persona.** All six industries stay and play exactly as they do in
+the full game, but no player is dealt a specialism. Two of the six personas -
+the Systems Architect and the Resort Developer - change how you UPGRADE, and
+nothing is upgraded here, so they would do nothing at all. Dealing the other
+four and not those two would be worse than dealing none: a persona is an
+asymmetric power that has to be read, understood and weighed against the draft
+before the first card is taken, which is the second explanation this mode exists
+without.
+
+Cutting the two industries instead was considered and does not work. Each
+industry draws on exactly three of the other five and a level-3 card needs all
+three, so an industry keeps its top card only if BOTH cut industries are among
+its two non-suppliers - one specific pair per industry, different for each. At
+most one industry can keep its level 3 whatever you cut. Filtering HO and TE
+leaves 17 of 60 cards with Utilities and Retail on one card each; the best pair
+of the fifteen, UT+TE, still leaves three industries with no level 3.
 
 ## Why the demand rule is not optional
 
