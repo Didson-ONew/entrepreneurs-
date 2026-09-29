@@ -1898,7 +1898,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "3a0cec73";
+const ENGINE_VERSION = "67849b0a";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2881,6 +2881,23 @@ const TRACK_ACTIONS = { raise_capital: ["LOAN", "SELL"], ma: ["BUY", "LAUNCH"], 
 const TRACK_LABEL = { raise_capital: "Raise Capital", ma: "M&A", rd: "R&D", board_meeting: "Board Meeting" };
 /* Plain-language description of every action, used on the track board and again on the
    placement buttons, so a new player never has to guess what a track does. */
+/* The teaching game keeps one action per track, so the help that describes two
+   would be describing a game the player is not in. A separate short text per
+   track, rather than a trimmed version of the long one: with half the actions
+   gone there is nothing left to compare against, and the sentence reads better
+   written for the mode than edited down to it. */
+const TRACK_HELP_BEGINNER = {
+  raise_capital: "LOAN takes $20 from the bank for one of your discs. You have six discs, five of them needed for a full board of companies, so borrowing twice costs you a company bay.",
+  ma: "LAUNCH builds a Blueprint from your hand onto any free plots nobody has taken \u2014 the ground comes with the company, free \u2014 and pays you 3 EP the first time you enter each industry.",
+  rd: "RESEARCH draws the face-up top card of any industry deck. Decks are shuffled whole, so a level 2 or level 3 card can be drawn and built straight away: it is how you reach a bigger footprint here.",
+  board_meeting: "REPOSITION moves you to first in turn order. First sells into a contested demand icon before anybody else and places this quarter's Logistic Hub.",
+};
+const trackHelp = (state, key) => (isBeginner(state) ? TRACK_HELP_BEGINNER[key] : TRACK_HELP[key]);
+/* Board Meeting asks for its help by name, and `t(boardMeetingHelp(state))`
+   reads to check_i18n's scanner as a call to translate the literal
+   "board_meeting" - it takes the first string inside t(). A helper with no
+   string in it keeps the scanner honest. */
+const boardMeetingHelp = (state) => trackHelp(state, "board_meeting");
 const TRACK_HELP = {
   raise_capital: "Turn assets into cash. LOAN takes $20 from the bank for one of your discs (buy it back later or lose 5 EP). SELL turns a plot, an unbuilt Blueprint, or a whole company into money at market value.",
   ma: "Grow your footprint. BUY takes an unowned plot, or takes over a distressed company \u2014 as it stands for what the bank paid, or renovated with a card from your hand for half that card's setup. LAUNCH builds a Blueprint from your hand onto plots you own \u2014 and pays you 3 EP the first time you enter each industry.",
@@ -4806,7 +4823,7 @@ function TrackBoard({ state, human }) {
       {tracks.map(([key, label, actions]) => (
         <div key={key} className="flex items-center gap-2">
           <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0 flex items-center gap-1">
-            {t(label)} <Help text={t(TRACK_HELP[key])} />
+            {t(label)} <Help text={t(trackHelp(state, key))} />
           </div>
           <div className="flex gap-1">
             {state.tracks[key].map((pid, i) => (
@@ -4821,7 +4838,7 @@ function TrackBoard({ state, human }) {
       ))}
       <div className="flex items-center gap-2">
         <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0 flex items-center gap-1">
-          {t("Board Mtg")} <Help text={t(TRACK_HELP.board_meeting)} />
+          {t("Board Mtg")} <Help text={t(boardMeetingHelp(state))} />
         </div>
         <div className="flex gap-1">
           {state.tracks.board_meeting.map((pid, i) => {
@@ -4934,7 +4951,11 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
         <div className="flex gap-2">
           <button onClick={() => { if (NET) return NET.send("act", { type: "loan" }); doLoan(state, human, log); finish(); }} disabled={discsFree(state, human) <= 0}
             className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Take Loan (+$20, +1 disc)")}</button>
-          <button onClick={() => setMode("sell")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Sell for cash")}</button>
+          {/* The teaching game keeps one action per track. A button the engine
+              would refuse is worse than no button: it reads as a bug. */}
+          {!isBeginner(state) && (
+            <button onClick={() => setMode("sell")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Sell for cash")}</button>
+          )}
         </div>
       )}
       {entry.track === "raise_capital" && mode === "sell" && (
@@ -4970,7 +4991,9 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
       {entry.track === "ma" && mode === null && (
         <div className="flex gap-2">
           <button onClick={() => setMode("launch")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Launch")}</button>
-          <button onClick={() => setMode("buy")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Buy")}</button>
+          {!isBeginner(state) && (
+            <button onClick={() => setMode("buy")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Buy")}</button>
+          )}
         </div>
       )}
       {entry.track === "ma" && mode === "launch" && (
@@ -5062,7 +5085,9 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
       {entry.track === "rd" && mode === null && (
         <div className="flex gap-2">
           <button onClick={() => setMode("research")} disabled={human.hand.length >= 5} className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Research (choose a deck)")}</button>
-          <button onClick={() => setMode("upgrade")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Upgrade")}</button>
+          {!isBeginner(state) && (
+            <button onClick={() => setMode("upgrade")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Upgrade")}</button>
+          )}
         </div>
       )}
       {entry.track === "rd" && mode === "research" && (
@@ -5129,6 +5154,11 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
         return (
         <div>
           <div className="flex gap-2 flex-wrap">
+            {/* No Megacorps in the teaching game, so Board Meeting is
+                REPOSITION alone - which is why the track survives at all: first
+                in turn order sells into a contested demand icon first and
+                places the hub. */}
+            {!isBeginner(state) && (
             <button disabled={!!blocked}
               /* Always ask which company keeps the building. This used to be
                  gated on `state.ipoTileClaimed`, so the FIRST player to go
@@ -5142,6 +5172,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                 ? t("Go Public — form \"{0}\" (+{1} EP{2})", t(megacorpMatch.tile[0]), megacorpMatch.tile[2], !state.ipoTileClaimed ? " + " + t("IPO tile") : "")
                 : t("Go Public")}
             </button>
+            )}
             <button onClick={() => { if (NET) return NET.send("act", { type: "reposition" }); doReposition(state, human, log); finish(); }} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Reposition (become 1st)")}</button>
           </div>
           {blocked && <div className="text-[10px] mt-1" style={{ color: "#fca5a5" }}>{t("Can’t go public: {0}. Reposition is your only option this turn.", msgText(blocked))}</div>}
@@ -6142,7 +6173,7 @@ function GameScreens({ online }) {
                         className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
                         {t(TRACK_LABEL[trk])}
                       </button>
-                      <Help text={t(TRACK_HELP[trk])} />
+                      <Help text={t(trackHelp(state, trk))} />
                     </span>
                   ))}
                   <span className="inline-flex items-center gap-1">
@@ -6151,7 +6182,7 @@ function GameScreens({ online }) {
                       className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
                       {t("Board Meeting (both meeples)")}
                     </button>
-                    <Help text={t(TRACK_HELP.board_meeting)} />
+                    <Help text={t(boardMeetingHelp(state))} />
                   </span>
                 </div>
                 {!state.ipoTileClaimed && (

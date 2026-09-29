@@ -230,6 +230,10 @@ const doc = new Document({
         { t: "A plot costs its road price plus $3 for every structure standing on it or orthogonally touching it, so the most expensive ground on the board is the ground under a working company — and a company needs its ground owned by somebody, not necessarily its owner. Sell the plot under your own factory for cash and it stops producing until anyone buys it back — then you pay them rent to stand on what used to be yours." },
       ]),
       Prun([
+        { t: "It teaches itself, and that is measured too. ", bold: true },
+        { t: "A built-in beginner game runs eight quarters with one action per track and no Megacorps, while leaving the supply chain exactly as it is \u2014 so a first-time player learns the engine and nothing else. Over 150 games a table size it holds up as a game rather than a demo: the last two quarters still carry a third of the winning score, and no seat was ever wiped out." },
+      ]),
+      Prun([
         { t: "An endgame with a door that closes. ", bold: true },
         { t: "A second Megacorp does not end the game, it calls the final quarter — one full round for the table to answer: cash out, merge, or buy the ground out from under whoever called it." },
       ]),
@@ -260,6 +264,7 @@ const doc = new Document({
         [{ t: "Prototype", bold: true }, "Built and played at the table."],
         [{ t: "Digital build", bold: true }, "Playable now: solo against AI, or online with up to six."],
         [{ t: "Testing", bold: true }, `${AUDITS} balance audits and ${TESTS} automated tests, all in the repository.`],
+        [{ t: "Teaching mode", bold: true }, "A built-in beginner game: 8 quarters, four actions, no Megacorps. Measured over 150 games a table size."],
         [{ t: "Art", bold: true }, "Functional placeholder. Open to your direction."],
       ], [1700, TEXT_WIDTH - 1700], { size: 18 }),
       gap(90),

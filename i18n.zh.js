@@ -953,4 +953,8 @@ export default {
   "{0} has a full hand and nothing to research.": "{0} 手牌已满，没什么可研发的。",
   "{0} has enough cash and lets the quarter pass.": "{0} 现金充足，这个季度就这么过了。",
   "{0} has nothing worth building this quarter.": "{0} 这个季度没有值得建的东西。",
+  "LOAN takes $20 from the bank for one of your discs. You have six discs, five of them needed for a full board of companies, so borrowing twice costs you a company bay.": "贷款用你的一个圆牌从银行换 $20。你一共有六个圆牌，其中五个用来摆满公司，所以借两次就等于付出一个公司位。",
+  "LAUNCH builds a Blueprint from your hand onto any free plots nobody has taken \u2014 the ground comes with the company, free \u2014 and pays you 3 EP the first time you enter each industry.": "创建把手牌里的项目卡建到任何无人占用的空地块上 \u2014 土地随公司一起免费到手 \u2014 并在你首次进入每个产业时付给你 3 EP。",
+  "RESEARCH draws the face-up top card of any industry deck. Decks are shuffled whole, so a level 2 or level 3 card can be drawn and built straight away: it is how you reach a bigger footprint here.": "研发抽取任意产业牛牌堆最上面那张明牌。牛牌堆是整堆洗混的，所以等级 2 或等级 3 的卡可以抽到就直接建：在这里这就是你获得更大占地的方式。",
+  "REPOSITION moves you to first in turn order. First sells into a contested demand icon before anybody else and places this quarter's Logistic Hub.": "调整顺序把你提到行动顺序的第一位。第一位能在所有人之前卖进被争抢的需求图标，并放置本季度的物流枢纽。",
 };
