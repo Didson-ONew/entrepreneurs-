@@ -159,7 +159,7 @@ function buildBoard(rng) {
 
   const centerPlots = Object.keys(cellOf).filter((k) => CENTER_CELLS.some(([cr, cc]) => cr === cellOf[k].r && cc === cellOf[k].c));
   const distFromCenter = bfsDistances(graph, centerPlots);
-  const board = { tiles, graph, orth, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhEdges: [], lhPlots: [], hqFootprints: [], lhOnPlots: false };
+  const board = { tiles, graph, orth, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhPlots: [], hqFootprints: [] };
   board.priceLattice = computePriceLattice(board);
   return board;
 }
@@ -173,18 +173,21 @@ function bfsDistances(graph, startNodes) {
   }
   return dist;
 }
-function edgeKey(a, b) { return a < b ? `${a}|${b}` : `${b}|${a}`; }
 /* ---------- Logistic Hubs ----------
-   Two shapes, chosen at setup. Normally a hub sits on the road between two plots in
-   different districts, and both of those districts join the network. Under the
-   "hubs on plots" variant it stands on a plot instead: you join the network by
-   being orthogonally beside one, and the network reaches the district each hub
-   stands in. Everything downstream asks these three questions rather than reading
-   lhEdges directly, so neither shape has to know about the other. */
+   A hub stands on a plot. You join the network by being orthogonally beside one,
+   and the network reaches the district each hub stands in.
+
+   THERE USED TO BE TWO SHAPES. A "hubs on the road" variant put the hub on the
+   border between two districts instead, joining both, and every question below
+   had to answer for either shape - which meant a second adjacency, a second
+   placement path, a second picker asking for two plots instead of one, and a
+   parallel edge list on the board. Twenty-nine sites of branching for a mode
+   that, across twenty-six recorded matches, nobody ever switched on. It also
+   stood in the way of the one-sentence price rule, because a hub on a road is
+   not standing on any of the five squares that rule counts. */
 const orthOf = (board, plot) => (board.orth && board.orth[plot]) || [];
-/* Is this plot itself a hub? Only ever true under the variant - on the road, a hub
-   occupies no plot at all. */
-const plotIsLH = (board, plot) => !!board.lhOnPlots && (board.lhPlots || []).includes(plot);
+/* Is this plot itself a hub? */
+const plotIsLH = (board, plot) => (board.lhPlots || []).includes(plot);
 /* A Megacorp headquarters is public infrastructure. It stops trading, but its loading
    bays, roads and warehouses are still there, and anything built beside one joins the
    Logistic Hub network through it.
@@ -206,25 +209,20 @@ function hqNetworkPlots(board) {
 }
 /* Does a company standing on this plot touch the network? */
 function plotHasLH(board, plot) {
-  if (board.lhOnPlots) {
-    const nbrs = orthOf(board, plot);
-    if (nbrs.some((n) => (board.lhPlots || []).includes(n))) return true;
-    const hq = hqNetworkPlots(board);
-    return nbrs.some((n) => hq.includes(n));
-  }
-  return board.lhEdges.some((e) => e[0] === plot || e[1] === plot);
+  const nbrs = orthOf(board, plot);
+  if (nbrs.some((n) => (board.lhPlots || []).includes(n))) return true;
+  const hq = hqNetworkPlots(board);
+  return nbrs.some((n) => hq.includes(n));
 }
 /* Every district the network reaches. */
 function lhDistricts(board) {
   const out = new Set();
   const add = (plot) => { const c = board.cellOf[plot]; if (c) out.add(`${c.r},${c.c}`); };
-  if (board.lhOnPlots) {
-    (board.lhPlots || []).forEach(add);
-    hqNetworkPlots(board).forEach(add);
-  } else board.lhEdges.forEach(([a, b]) => { add(a); add(b); });
+  (board.lhPlots || []).forEach(add);
+  hqNetworkPlots(board).forEach(add);
   return out;
 }
-const lhCount = (board) => (board.lhOnPlots ? (board.lhPlots || []).length : board.lhEdges.length);
+const lhCount = (board) => (board.lhPlots || []).length;
 /* What a plot will and will not take. Three questions, asked in one place, because
    they used to be asked in several and had quietly drifted apart - the board's picker
    kept its own idea of an empty plot and was offering ground the engine would refuse.
@@ -287,10 +285,18 @@ function latticeKeyForCell(cell) {
   return `${2 * (cell.r - 1) + lr / 2},${2 * (cell.c - 1) + lc / 2}`;
 }
 /* WHAT A PLOT COSTS: its road tag, plus PLOT_PER_STRUCTURE for every structure
-   standing on the plot or orthogonally touching it, plus a dollar for a hub.
+   standing on the plot or orthogonally touching it.
 
    Five squares - this one and its four neighbours - count the buildings,
    multiply. That is the whole rule, and it is deliberately one sentence.
+
+   THERE USED TO BE A SECOND ONE: a dollar if the plot touched a Logistic Hub.
+   It was redundant, because a hub occupies a plot permanently and so already
+   is a structure, and it was wrong in both directions. A plain hub moved a
+   neighbour's price by $1 where a company moved it by $3, despite being the
+   more permanent of the two. And a Megacorp HQ is a real company that ALSO
+   counts as a hub, so a plot beside one paid $3 for the structure and $1 for
+   the clause - the same building billed twice, +$4 measured.
 
    IT USED TO BE TWO SENTENCES AND A FOOTNOTE. Pricing counted `graph`, the
    loose adjacency that includes diagonals inside a district, which made it the
@@ -334,34 +340,21 @@ function plotValue(state, plotKeyStr) {
     const v = board.priceLattice[latticeKeyForCell(cell)];
     if (v !== undefined) base = v;
   }
-  const near = [...(board.orth[plotKeyStr] || [])].filter((n) => n in board.occupiedBy).length;
-  const onIt = plotKeyStr in board.occupiedBy ? 1 : 0;
-  const lhBonus = plotHasLH(board, plotKeyStr) ? 1 : 0;
-  return base + PLOT_PER_STRUCTURE * (near + onIt) + lhBonus;
-}
-function isCrossDistrictEdge(board, a, b) {
-  const ca = board.cellOf[a], cb = board.cellOf[b];
-  return ca.r !== cb.r || ca.c !== cb.c;
+  /* A hub is a structure. It stands on a plot and occupies it forever - nothing
+     can ever be built there - so it is counted like any other building rather
+     than through a clause of its own. A Megacorp HQ is caught by both tests,
+     and the OR between them is what stops it being counted twice: it used to
+     be, at $3 for the company plus $1 for the hub clause. */
+  const isStruct = (pk) => (pk in board.occupiedBy) || plotIsLH(board, pk);
+  const near = [...(board.orth[plotKeyStr] || [])].filter(isStruct).length;
+  const onIt = isStruct(plotKeyStr) ? 1 : 0;
+  return base + PLOT_PER_STRUCTURE * (near + onIt);
 }
 /* Where a hub may go, in whichever shape this game is using. Under the variant
    that is any plot with nothing standing on it; otherwise it is any road between
    two districts that has no hub yet. */
 function lhPlotOptions(state) {
   return Object.keys(state.board.graph).filter((p) => lhPlaceable(state.board, p));
-}
-function lhEdgeOptions(state) {
-  const out = [], seen = new Set();
-  for (const a of Object.keys(state.board.graph)) {
-    for (const b of state.board.graph[a]) {
-      const ek = edgeKey(a, b);
-      if (seen.has(ek)) continue;
-      seen.add(ek);
-      if (!isCrossDistrictEdge(state.board, a, b)) continue;   // a road hub straddles two districts
-      if (state.board.lhEdges.some((e) => edgeKey(e[0], e[1]) === ek)) continue;
-      out.push([a, b]);
-    }
-  }
-  return out;
 }
 /* ---------------------------- the game log ----------------------------
    A log line is written once, on the server, into a room that players of
@@ -393,36 +386,17 @@ function logNewLH(state, districts, log) {
 const districtOf = (board, plot) => { const c = board.cellOf[plot]; return c ? `${c.r},${c.c}` : null; };
 
 function placeNewLH(state, rng, log) {
-  if (state.board.lhOnPlots) {
-    const spots = lhPlotOptions(state);
-    if (!spots.length) return;
-    /* A quarter of plots have no orthogonal neighbour at all - the district centre
-       is not a plot, and each tile carries only four of the eight ring positions -
-       so a hub dropped there would connect nobody. Prefer somewhere it can do some
-       good, and fall back to anywhere if the board is that full. */
-    const useful = spots.filter((p) => orthOf(state.board, p).length > 0);
-    const pool = useful.length ? useful : spots;
-    const plot = pool[Math.floor(rng() * pool.length)];
-    state.board.lhPlots.push(plot);
-    logNewLH(state, [districtOf(state.board, plot)], log);
-    return;
-  }
-  const allEdges = [];
-  const seen = new Set();
-  for (const a of Object.keys(state.board.graph)) {
-    for (const b of state.board.graph[a]) {
-      const ek = edgeKey(a, b);
-      if (seen.has(ek)) continue;
-      seen.add(ek);
-      if (!isCrossDistrictEdge(state.board, a, b)) continue; // LH only sits between two districts
-      const alreadyLH = state.board.lhEdges.some((e) => edgeKey(e[0], e[1]) === ek);
-      if (!alreadyLH) allEdges.push([a, b]);
-    }
-  }
-  if (!allEdges.length) return;
-  const [a, b] = allEdges[Math.floor(rng() * allEdges.length)];
-  state.board.lhEdges.push([a, b]);
-  logNewLH(state, [districtOf(state.board, a), districtOf(state.board, b)], log);
+  const spots = lhPlotOptions(state);
+  if (!spots.length) return;
+  /* A quarter of plots have no orthogonal neighbour at all - the district centre
+     is not a plot, and each tile carries only four of the eight ring positions -
+     so a hub dropped there would connect nobody. Prefer somewhere it can do some
+     good, and fall back to anywhere if the board is that full. */
+  const useful = spots.filter((p) => orthOf(state.board, p).length > 0);
+  const pool = useful.length ? useful : spots;
+  const plot = pool[Math.floor(rng() * pool.length)];
+  state.board.lhPlots.push(plot);
+  logNewLH(state, [districtOf(state.board, plot)], log);
 }
 /* ---- where a company footprint may grow ----
    Strictly orthogonal: plots that share an edge, within a district or across the
@@ -631,15 +605,6 @@ function tileGridDist(a, b) {
 function footprintDistricts(board, footprint) {
   return new Set(footprint.map((plot) => { const c = board.cellOf[plot]; return `${c.r},${c.c}`; }));
 }
-function lhAdjacentDistricts(board, fromDistricts) {
-  const out = new Set();
-  board.lhEdges.forEach(([a, b]) => {
-    const da = `${board.cellOf[a].r},${board.cellOf[a].c}`, db = `${board.cellOf[b].r},${board.cellOf[b].c}`;
-    if (fromDistricts.has(da)) out.add(db);
-    if (fromDistricts.has(db)) out.add(da);
-  });
-  return out;
-}
 function allDistrictKeys(board) { return [...new Set(Object.keys(board.cellOf).map((p) => { const c = board.cellOf[p]; return `${c.r},${c.c}`; }))]; }
 function bestExtraDistrictsForRE(state, biz, count, home) {
   const others = allDistrictKeys(state.board).filter((d) => !home.has(d));
@@ -818,14 +783,7 @@ function hoBonusUnits(state, biz, owner) {
     const id = board.occupiedBy[k];
     if (id !== undefined && id !== biz.id) businesses.add(id);
   }
-  let hubs;
-  if (board.lhOnPlots) {
-    hubs = inReach.filter((k) => plotIsLH(board, k)).length;
-  } else {
-    /* Hubs on roads: one hub is one edge, however many of its two plots are in reach. */
-    const touch = new Set(inReach);
-    hubs = (board.lhEdges || []).filter((e) => touch.has(e[0]) || touch.has(e[1])).length;
-  }
+  const hubs = inReach.filter((k) => plotIsLH(board, k)).length;
   return businesses.size + hubs;
 }
 function ownerOf(state, biz) {
@@ -1171,8 +1129,6 @@ const VARIANTS = [
     blurb: "A company level is worth 3 EP instead of 2, which puts far more of the game's weight on how tall you build and pushes land, cash and the entry bonuses into the background." },
   { key: "orderedDecks", name: "Ordered decks",
     blurb: "Each industry deck runs level 1 down to level 3, instead of being shuffled whole. The early game holds no surprises and no level 3 can be drafted." },
-  { key: "roadHubs", name: "Hubs on the road",
-    blurb: "A Logistic Hub straddles a border and joins the two districts either side, instead of standing on a plot and reaching only its own." },
   { key: "endgameLandAwards", name: "Land awards at the end only",
     blurb: "The Real-Estate Mogul and The Omnipresent are paid once, after Quarter 12, instead of at every year end." },
 ];
@@ -1867,7 +1823,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "49664112";
+const ENGINE_VERSION = "26d805a1";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2240,21 +2196,13 @@ function runBotRevenue(state) {
 function humanDeliveryQueue(state, human) {
   return activeBiz(human).filter((b) => businessCanProduce(state, b) && (bizProd(b) > 0 || (bizInd(b) === "MA" && b.level > 0)));
 }
-/* `b` is the second plot of the road the hub straddles, and is unused when hubs
-   stand on plots - there the whole placement is the single plot `a`. */
+/* `b` is ignored. It was the second plot of the road a hub used to straddle
+   under the road-hub variant; the signature is kept so callers and saved rooms
+   from before that variant was removed still work. */
 function doPlaceLH(state, a, b, log) {
-  if (state.board.lhOnPlots) {
-    if (!state.board.graph[a] || !lhPlaceable(state.board, a)) return false;
-    state.board.lhPlots.push(a);
-    logNewLH(state, [districtOf(state.board, a)], log);
-    return true;
-  }
-  const ek = edgeKey(a, b);
-  if (state.board.lhEdges.some((e) => edgeKey(e[0], e[1]) === ek)) return false;
-  if (!state.board.graph[a] || !state.board.graph[a].has(b)) return false;
-  if (!isCrossDistrictEdge(state.board, a, b)) return false;
-  state.board.lhEdges.push([a, b]);
-  logNewLH(state, [districtOf(state.board, a), districtOf(state.board, b)], log);
+  if (!state.board.graph[a] || !lhPlaceable(state.board, a)) return false;
+  state.board.lhPlots.push(a);
+  logNewLH(state, [districtOf(state.board, a)], log);
   return true;
 }
 function runClosing(state, log, rng) {
@@ -3686,7 +3634,6 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
   const board = buildBoard(rng);
   // Hubs stand on plots unless the table asked for the older road hubs. The board
   // itself has to know, because the hub helpers take a board rather than a state.
-  board.lhOnPlots = !V.roadHubs;
   const demand = makeDemandPool(board, rng);
   const pm = makePriceMatrix();
 
@@ -3862,20 +3809,9 @@ function computeEligiblePlots(board, selectMode, ctx) {
     return new Set(Object.keys(board.graph).filter((k) => plotBuyable(board, k) && canPay(k)));
   }
   if (selectMode.kind === "lh") {
-    // hubs on plots: pick one empty plot and that is the whole placement
-    if (board.lhOnPlots) {
-      if (selectMode.selected.length >= 1) return new Set();
-      return new Set(Object.keys(board.graph).filter((k) => lhPlaceable(board, k)));
-    }
-    if (selectMode.selected.length >= 2) return new Set();
-    const hasLH = (x, y) => board.lhEdges.some((e) => edgeKey(e[0], e[1]) === edgeKey(x, y));
-    if (!selectMode.selected.length) {
-      return new Set(Object.keys(board.graph).filter((k) =>
-        [...board.graph[k]].some((n) => isCrossDistrictEdge(board, k, n) && !hasLH(k, n))
-      ));
-    }
-    const [a] = selectMode.selected;
-    return new Set([...board.graph[a]].filter((n) => isCrossDistrictEdge(board, a, n) && !hasLH(a, n)));
+    // pick one empty plot and that is the whole placement
+    if (selectMode.selected.length >= 1) return new Set();
+    return new Set(Object.keys(board.graph).filter((k) => lhPlaceable(board, k)));
   }
   if (selectMode.kind === "grow") {
     // the candidates were worked out when the picker opened; one pick and it is done
@@ -4228,12 +4164,6 @@ function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot
 
   // 3. price tags on the roads
   const lat = board.priceLattice || {};
-  const lhTagKeys = new Set();
-  board.lhEdges.forEach(([a, b]) => {
-    const ca = board.cellOf[a], cb = board.cellOf[b];
-    if (ca) lhTagKeys.add(latticeKeyForCell(ca));
-    if (cb) lhTagKeys.add(latticeKeyForCell(cb));
-  });
   for (let r = 0; r <= 8; r++) {
     for (let c = 0; c <= 8; c++) {
       const v = lat[`${r},${c}`];
@@ -4253,23 +4183,6 @@ function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot
       );
     }
   }
-
-  // 4. Logistic Hub discs, on the road between the two plots they join
-  board.lhEdges.forEach(([a, b], i) => {
-    const ra = plotRectOf(board, a), rb = plotRectOf(board, b);
-    if (!ra || !rb) return;
-    const cx = (ra.x + ra.w / 2 + rb.x + rb.w / 2) / 2;
-    const cy = (ra.y + ra.h / 2 + rb.y + rb.h / 2) / 2;
-    const d = 15;
-    layers.push(
-      <div key={`lh-${i}`} title={t("Logistic Hub")} style={{
-        position: "absolute", left: cx - d / 2, top: cy - d / 2, width: d, height: d,
-        borderRadius: "50%", backgroundColor: "#111827",
-        border: "2.5px solid #22D3EE", boxShadow: "0 0 6px rgba(34,211,238,0.9)",
-        pointerEvents: "none", zIndex: 4,
-      }} />
-    );
-  });
 
   // 5. footprint connectors (under plots), then plots, then outlines
   connectors.forEach(({ key, r, color }) => layers.push(
@@ -5980,8 +5893,7 @@ function GameScreens({ online }) {
   }
 
   function handleConfirmLH() {
-    const need = state && state.board.lhOnPlots ? 1 : 2;
-    if (!state || !pickMode || pickMode.kind !== "lh" || pickMode.selected.length < need) return;
+    if (!state || !pickMode || pickMode.kind !== "lh" || !pickMode.selected.length) return;
     if (NET) { NET.send("placeLH", { a: pickMode.selected[0], b: pickMode.selected[1] || null }); setPickMode(null); return; }
     doPlaceLH(state, pickMode.selected[0], pickMode.selected[1] || null, log);
     setPickMode(null);
@@ -6317,24 +6229,17 @@ function GameScreens({ online }) {
               <div className="rounded-lg p-3" style={{ backgroundColor: "#0f2530", border: "1px solid #22D3EE" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#67e8f9" }}>
                   {t("You’re 1st in turn order — place this quarter’s Logistic Hub ({0} picked)",
-                     t(state.board.lhOnPlots ? "{0}/1 plot" : "{0}/2 plots", pickMode.selected.length))}
+                     t("{0}/1 plot", pickMode.selected.length))}
                 </div>
-                {state.board.lhOnPlots ? (
-                  <div className="text-[10px] text-gray-400 mb-2">
-                    {t("Click one empty plot. Companies orthogonally beside it join the hub network, and the network reaches this district for everyone already on it.")}
-                    {pickMode.selected.length === 1 && (() => {
-                      const n = orthOf(state.board, pickMode.selected[0]).length;
-                      return <span style={{ color: n ? "#8fd3b6" : "#fca5a5" }}> {t(n === 1 ? "That plot connects {0} neighbouring plot." : "That plot connects {0} neighbouring plots.", n)}</span>;
-                    })()}
-                  </div>
-                ) : (
-                  <div className="text-[10px] text-gray-400 mb-2">{t("Click two adjacent plots on the board to place the hub between them.")}</div>
-                )}
-                {!state.board.lhOnPlots && pickMode.selected.length === 1 && computeEligiblePlots(state.board, pickMode).size === 0 && (
-                  <div className="text-[10px] text-red-400 mb-2">{t("That plot’s neighbours all already have a hub — reset and pick a different starting plot.")}</div>
-                )}
+                <div className="text-[10px] text-gray-400 mb-2">
+                  {t("Click one empty plot. Companies orthogonally beside it join the hub network, and the network reaches this district for everyone already on it.")}
+                  {pickMode.selected.length === 1 && (() => {
+                    const n = orthOf(state.board, pickMode.selected[0]).length;
+                    return <span style={{ color: n ? "#8fd3b6" : "#fca5a5" }}> {t(n === 1 ? "That plot connects {0} neighbouring plot." : "That plot connects {0} neighbouring plots.", n)}</span>;
+                  })()}
+                </div>
                 <div className="flex gap-2">
-                  <button onClick={handleConfirmLH} disabled={pickMode.selected.length < (state.board.lhOnPlots ? 1 : 2)}
+                  <button onClick={handleConfirmLH} disabled={!pickMode.selected.length}
                     className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#0e5f6f", color: "#d3fcec" }}>{t("Confirm placement")}</button>
                   {pickMode.selected.length > 0 && (
                     <button onClick={() => setPickMode({ kind: "lh", selected: [] })} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Reset selection")}</button>

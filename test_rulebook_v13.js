@@ -337,7 +337,6 @@ section("A headquarters is public infrastructure");
 {
   const st = E.initGame(0, 41, ["A", "B"], undefined, false);
   const [a, b] = st.players;
-  st.board.lhOnPlots = true;                     // hubs stand on plots under v13
   const plots = Object.keys(st.board.graph);
   const hub = plots.find((k) => E.orthOf(st.board, k).length >= 1);
   const beside = E.orthOf(st.board, hub)[0];
@@ -654,7 +653,8 @@ section("v13: the rules that used to be variants");
   check("the decks are shuffled whole, so a big card can be on top from the first pick", sawHigh);
 
   // "a new Logistic Hub being built on an empty plot"
-  check("hubs stand on plots", st.board.lhOnPlots === true);
+  check("hubs stand on plots, and that is the only shape there is",
+    E.VARIANT_KEYS.indexOf("roadHubs") === -1 && st.board.lhEdges === undefined);
 
   // "Personas are dealt to everyone by default"
   check("personas are dealt when the table asks for them",

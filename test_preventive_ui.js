@@ -98,15 +98,10 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
     } else if (st.phase === "repayingLoans" && st.awaitingPlayerId === 0) {
       await act("repayDone", {});
     } else if (st.phase === "placingLH" && st.turnOrder[0] === 0) {
+      /* One plot is the whole placement - hubs on roads are gone. */
       let placed = false;
       for (const a of Object.keys(st.board.graph)) {
-        for (const b of st.board.graph[a]) {
-          const ca = st.board.cellOf[a], cb = st.board.cellOf[b];
-          if (ca.r === cb.r && ca.c === cb.c) continue;
-          if (st.board.lhEdges.some(([x, y]) => (x === a && y === b) || (x === b && y === a))) continue;
-          if ((await act("placeLH", { a, b })).status === 200) { placed = true; break; }
-        }
-        if (placed) break;
+        if ((await act("placeLH", { a, b: null })).status === 200) { placed = true; break; }
       }
       if (!placed) return { st, reached: false, why: "no legal hub placement" };
     } else {

@@ -111,16 +111,13 @@ async function playAGame(name, bots, personas, opts = {}) {
     } else if (st.phase === "repayingLoans" && st.awaitingPlayerId === 0) {
       await act("repayDone", {});
     } else if (st.phase === "placingLH" && st.turnOrder[0] === 0) {
+      /* One plot is the whole placement. This used to walk district borders
+         looking for a free road, because hubs could straddle one; that variant
+         is gone. */
       let placed = false;
       for (const a of Object.keys(st.board.graph)) {
-        for (const b of st.board.graph[a]) {
-          const ca = st.board.cellOf[a], cb = st.board.cellOf[b];
-          if (ca.r === cb.r && ca.c === cb.c) continue;
-          if (st.board.lhEdges.some(([x, y]) => (x === a && y === b) || (x === b && y === a))) continue;
-          const res = await act("placeLH", { a, b });
-          if (!res.error) { placed = true; break; }
-        }
-        if (placed) break;
+        const res = await act("placeLH", { a, b: null });
+        if (!res.error) { placed = true; break; }
       }
       if (!placed) return null;
     } else {

@@ -169,7 +169,6 @@ async function waitFor(fn, ms = 4000) {
         for (const b of g[a]) {
           const ca = st.board.cellOf[a], cb = st.board.cellOf[b];
           if (ca.r === cb.r && ca.c === cb.c) continue;
-          if (st.board.lhEdges.some(([x, y]) => (x === a && y === b) || (x === b && y === a))) continue;
           r = await act(c, "placeLH", { a, b });
           if (r.status === 200) { placed = true; break; }
         }

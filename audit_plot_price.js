@@ -201,10 +201,10 @@ const base = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
    unchanged, the arm silently becomes a copy of A, and the table reads as "no
    effect". That is the failure this file must not have. */
 const NEEDLES = {
-  priceBody: `  const near = [...(board.orth[plotKeyStr] || [])].filter((n) => n in board.occupiedBy).length;
-  const onIt = plotKeyStr in board.occupiedBy ? 1 : 0;
-  const lhBonus = plotHasLH(board, plotKeyStr) ? 1 : 0;
-  return base + PLOT_PER_STRUCTURE * (near + onIt) + lhBonus;`,
+  priceBody: `  const isStruct = (pk) => (pk in board.occupiedBy) || plotIsLH(board, pk);
+  const near = [...(board.orth[plotKeyStr] || [])].filter(isStruct).length;
+  const onIt = isStruct(plotKeyStr) ? 1 : 0;
+  return base + PLOT_PER_STRUCTURE * (near + onIt);`,
   buy: `  const cost = plotValue(state, plotKeyStr);
   if (p.cash < cost) return false;
   p.cash -= cost;`,
@@ -253,7 +253,7 @@ const ARMS = {
      a plot SELLS for, and selling the ground under your own company for cash
      is an existing move, so counting self pays you more for doing it - and
      half of it is what a distressed player raises under solvency. */
-  I: { adj: "orth", rate: 3, self: true, label: "SHIPS v20  orth  x$3 +self" },
+  I: { adj: "orth", rate: 3, self: true, label: "v20        orth  x$3 +self" },
   J: { adj: "orth", rate: 4, self: true, label: "alt        orth  x$4 +self" },
   /* A HUB IS A STRUCTURE. v20 kept a separate clause - a dollar if the plot
      touches a Logistic Hub - beside the $3 it charges per structure, and that
@@ -265,12 +265,12 @@ const ARMS = {
      one pays $3 for the structure and $1 for the hub clause: the same building
      billed twice, +$4 measured.
 
-     This arm deletes the clause and counts a hub as what it is. Under the
-     road-hub variant the hub sits on a road rather than a plot, so it is
-     counted for the two plots it sits between - same "it is right there"
-     logic, and the variant keeps meaning something. */
+     This arm deletes the clause and counts a hub as what it is. It carried a
+     term for the road-hub variant, where the hub sat on a road and so on none
+     of the five squares; that variant has since been removed and the term with
+     it. */
   K: { adj: "orth", rate: 3, self: true, hubIsStructure: true,
-       label: "hub=struct orth  x$3 +self" },
+       label: "SHIPS v21  orth  x$3 +self" },
 };
 
 function engineFor(arm) {
@@ -281,8 +281,10 @@ function engineFor(arm) {
     ? `  const isStruct = (pk) => (pk in board.occupiedBy) || plotIsLH(board, pk);
   const near = [...(board.${adj}[plotKeyStr] || [])].filter(isStruct).length;
   const onIt = isStruct(plotKeyStr) ? 1 : 0;
-  const roadHub = !board.lhOnPlots && plotHasLH(board, plotKeyStr) ? 1 : 0;
-  return base + ${rate} * (near + onIt + roadHub);`
+  return base + ${rate} * (near + onIt);`
+    /* Arms A-J are reproductions of rules that shipped BEFORE a hub counted as
+       a structure, so they keep the separate hub dollar. Dropping it here would
+       quietly restate what they measured. */
     : `  const near = [...(board.${adj}[plotKeyStr] || [])].filter((n) => n in board.occupiedBy).length;
   const onIt = ${self ? 1 : 0} && (plotKeyStr in board.occupiedBy) ? 1 : 0;
   const lhBonus = plotHasLH(board, plotKeyStr) ? 1 : 0;

@@ -73,10 +73,10 @@ const NEEDLES = {
   state.tracks.board_meeting.forEach((pid, i) => { if (pid !== null) bmFilled.push(i); });
   bmFilled.sort((a, b) => b - a).forEach((i) => queue.push({ track: "board_meeting", playerId: state.tracks.board_meeting[i], actionsRemaining: 1 }));
   return queue;`,
-  /* The PLOTS branch, which is the live one: board.lhOnPlots is !roadHubs, and
-     roadHubs is off by default, so hubs stand on plots. An earlier version of this
-     probe patched the road-edge branch instead and the arm silently measured the
-     shipped game. */
+  /* Hub placement. There used to be two branches here - hubs on plots and the
+     road-hub variant - and an earlier version of this probe patched the road one,
+     so the arm silently measured the shipped game instead of its own proposal.
+     The variant has since been removed and there is only one branch to hit. */
   lhRandom: "    const plot = pool[Math.floor(rng() * pool.length)];",
   startPlanning: "function startPlanning(state) {",
 };

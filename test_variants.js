@@ -59,14 +59,14 @@ section("Defaults - a table that touches nothing plays Rulebook v13");
   const st = game(undefined);
   check("five variants are on offer", E.VARIANTS.length === 5, E.VARIANTS.map((v) => v.key).join(", "));
   check("every one is off", E.VARIANT_KEYS.every((k) => st.variants[k] === false));
-  check("hubs stand on plots", st.board.lhOnPlots === true);
+  check("hubs stand on plots", st.board.lhPlots !== undefined && st.board.lhEdges === undefined);
   const lv = st.decks.UT.map((c) => c.lvl);
   check("the decks are shuffled whole", JSON.stringify(lv) !== JSON.stringify([...lv].sort()), lv.join(""));
   check("a company is worth 2 EP per level", E.levelEP(st) === 2);
   check("and the land awards pay at every year end", E.landPayouts(st) === 3, `${E.landPayouts(st)} payouts`);
   check("junk off the wire cannot invent a variant",
-    E.normaliseVariants({ nonsense: true, roadHubs: "yes" }).nonsense === undefined
-    && E.normaliseVariants({ roadHubs: "yes" }).roadHubs === true);
+    E.normaliseVariants({ nonsense: true, orderedDecks: "yes" }).nonsense === undefined
+    && E.normaliseVariants({ orderedDecks: "yes" }).orderedDecks === true);
   check("the dropped 'hubs open to all' switch is gone",
     E.VARIANT_KEYS.indexOf("lhOpenToAll") === -1 && E.normaliseVariants({ lhOpenToAll: true }).lhOpenToAll === undefined);
 }
@@ -187,20 +187,25 @@ section("3. Ordered decks");
   check("whereas as standard a bigger card can be there from the first draft", sawHigh);
 }
 
-section("4. Hubs on the road");
+/* This section used to exercise "Hubs on the road", which put a hub on the
+   border between two districts instead of on a plot. The variant is gone: it
+   forced every hub question in the engine to answer for two shapes, and across
+   twenty-six recorded matches nobody ever switched it on. What is left to check
+   is that it cannot come back by accident - a stale lobby or an old saved room
+   sending roadHubs:true must not resurrect a second kind of hub. */
+section("4. Hubs stand on plots, and only on plots");
 {
-  const st = game({ roadHubs: true });
-  check("the board knows", st.board.lhOnPlots === false);
-  const edge = (() => {
-    for (const a of Object.keys(st.board.graph)) for (const b of st.board.graph[a]) {
-      if (st.board.cellOf[a].r !== st.board.cellOf[b].r || st.board.cellOf[a].c !== st.board.cellOf[b].c) return [a, b];
-    }
-    return null;
-  })();
-  check("a hub needs two plots across a border", E.doPlaceLH(st, edge[0], edge[1], () => {}) === true);
-  check("and consumes neither of them", E.plotFree(st.board, edge[0]) && E.plotFree(st.board, edge[1]));
-  check("it joins the two districts either side", E.lhDistricts(st.board).size === 2, `${E.lhDistricts(st.board).size}`);
-  check("which is one more than a plot hub reaches", E.lhDistricts(game(undefined).board).size === 0);
+  check("the variant is gone from the list", E.VARIANT_KEYS.indexOf("roadHubs") === -1);
+  check("and a stale client cannot switch it back on",
+    E.normaliseVariants({ roadHubs: true }).roadHubs === undefined);
+
+  const st = game({ roadHubs: true });                    // asking for it changes nothing
+  const plot = Object.keys(st.board.graph).find((k) => E.plotFree(st.board, k));
+  check("a hub is placed with one plot", E.doPlaceLH(st, plot, null, () => {}) === true);
+  check("and that plot is filled forever", !E.plotFree(st.board, plot));
+  check("it reaches the district it stands in", E.lhDistricts(st.board).size === 1,
+    `${E.lhDistricts(st.board).size}`);
+  check("the board carries no edge list any more", st.board.lhEdges === undefined);
 }
 
 section("5. Land awards at the end only");
@@ -289,7 +294,7 @@ section("All five on at once - which is very nearly v12");
   const all = Object.fromEntries(E.VARIANT_KEYS.map((k) => [k, true]));
   const st = game(all);
   check("a game starts with every variant on", !!st.board && st.quarter === 1);
-  check("hubs go back on the road", st.board.lhOnPlots === false);
+  check("and asking for road hubs does nothing", st.board.lhEdges === undefined);
   check("a level is worth 3 EP with the heavy variant on", E.levelEP(st) === 3);
   check("the land awards pay once again", E.landPayouts(st) === 1);
   const lv = st.decks.UT.map((c) => c.lvl);
