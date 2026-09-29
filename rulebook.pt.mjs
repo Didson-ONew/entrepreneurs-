@@ -355,7 +355,7 @@ export const RULEBOOK_PT = [
         "h": "Quanto custa um lote"
       },
       {
-        "p": "O valor de um lote é o preço de via impresso nele mais $1 por lote ocupado que o toque - cantos inclusive, dentro de um distrito - mais $1 se ele tocar um Centro Logístico. Os preços de via vão de 1 na borda externa a 6 bem no centro da cidade. Você paga esse valor para comprar e o recebe ao vender - então terreno perto da ação de fato se valoriza conforme a cidade se preenche."
+        "p": "O valor de um lote é o preço de via impresso nele mais $3 por estrutura que esteja sobre ele ou o toque ortogonalmente - cinco casas ao todo, o lote e seus quatro vizinhos, cantos nunca contando - mais $1 se ele tocar um Centro Logístico. Os preços de via vão de 1 na borda externa a 6 bem no centro da cidade. Você paga esse valor para comprar e o recebe ao vender - então terreno perto da ação de fato se valoriza conforme a cidade se preenche, e o chão debaixo de uma empresa em funcionamento é o mais caro de todos."
       },
       {
         "h": "Área ocupada"
@@ -1206,7 +1206,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Valor do lote",
-              "preço da via (1-6) + $1 por vizinho ocupado + $1 se encostar em um Centro Logístico"
+              "preço da via (1-6) + $3 por estrutura sobre o lote ou ortogonalmente adjacente + $1 se encostar em um Centro Logístico"
             ],
             [
               "Expansão",
