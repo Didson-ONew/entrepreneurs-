@@ -126,7 +126,10 @@ const SCENARIOS = [
   ["v13 standard", undefined],
   ["...levels score single", { singleLevelEP: true }],
   ["...land awards at the end", { endgameLandAwards: true }],
-  ["everything off (~v12)", { classicScoring: true, singleLevelEP: true, orderedDecks: true, roadHubs: true, endgameLandAwards: true }],
+  /* singleLevelEP and roadHubs used to be listed here. roadHubs is a removed
+     variant, and singleLevelEP never existed in the engine at all - normaliseVariants
+     drops unknown keys, so this arm has been silently not testing it. */
+  ["everything off (~v12)", { classicScoring: true, orderedDecks: true, endgameLandAwards: true }],
 ];
 
 console.log(`Bot strategy audit - ${SEEDS} seeds per scenario, 4 bots per table\n`);

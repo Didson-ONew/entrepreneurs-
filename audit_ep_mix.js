@@ -69,7 +69,7 @@ const NEEDLES = {
   /* What a company level is worth. The bots read this too - it prices launching,
      upgrading and what a merger gives up - so moving it moves the whole game, not
      just the scoresheet. */
-  levelEP: 'const levelEP = (state) => (hasVariant(state, "heavyLevelEP") ? 3 : 2);',
+  levelEP: 'const levelEP = (state) => 2;',
   mogul: 'awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", log);',
 };
 for (const [k, v] of Object.entries(NEEDLES)) {

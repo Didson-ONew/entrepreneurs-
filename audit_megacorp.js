@@ -34,7 +34,7 @@ const NEEDLES = {
      out in total. MEGACORP_PER_TIER_DRAWN is that dial and it is one line. */
   pool: "const MEGACORP_PER_TIER_DRAWN = (nPlayers) => (nPlayers >= 6 ? 4 : nPlayers >= 5 ? 3 : 2);",
   ipoBay: "    p.ipoTile = true;",
-  hub: "    const hq = hqNetworkPlots(board);\n    return nbrs.some((n) => hq.includes(n));",
+  hub: "  const hq = hqNetworkPlots(board);\n  return nbrs.some((n) => hq.includes(n));",
   denial: "    s += denied * 0.5;",
 };
 for (const [k, v] of Object.entries(NEEDLES)) {

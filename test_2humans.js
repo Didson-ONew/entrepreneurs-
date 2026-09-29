@@ -7,7 +7,7 @@ vm.runInContext(src.slice(0,cut).replace(/^\s*(import|export)\s.*$/gm,'')+`box.e
   initGame,mulberry32,startPlanning,advancePlanning,placeMeeple,consumePlanningTurn,
   humanCompleteResolutionAction,advanceResolution,humanLiquidationDone,finishDelivery,
   doBuyPlot,doLaunch,doLoan,plotValue,discsFree,canLaunchMore,SCALING,findFootprint,
-  finishQuarterAfterLH,finishQuarterAfterRepay,doPlaceLH,skipDelivery,isCrossDistrictEdge,
+  finishQuarterAfterLH,finishQuarterAfterRepay,doPlaceLH,skipDelivery,
   activeBiz,INDUSTRIES,byId,eligibleSlotsFor,humanDeliver,doRepayLoan,LOAN_REPAY_RATE,
   bizInd,epTotal};`,sb);
 const E=sb.box.exports;
@@ -94,7 +94,7 @@ while(st.phase!=='gameover'&&iter++<4000){
     const edges=[];
     for(const a of Object.keys(st.board.graph))
       for(const b of st.board.graph[a])
-        if(a<b&&E.isCrossDistrictEdge(st.board,a,b)&&!st.board.lhEdges.some(([x,y])=>(x===a&&y===b)||(x===b&&y===a)))edges.push([a,b]);
+        if(a<b)edges.push([a,b]);
     if(edges.length){const[a,b]=edges[Math.floor(rng()*edges.length)];E.doPlaceLH(st,a,b,log);}
     E.finishQuarterAfterLH(st,log,rng);
   }

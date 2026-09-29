@@ -50,7 +50,6 @@ const quiet = () => {};
 /* A board with hubs on plots, which is the standard rule. */
 function table(seed) {
   const st = E.initGame(2, seed, ["You"], undefined, false, undefined);
-  if (!st.board.lhOnPlots) throw new Error("this test assumes hubs stand on plots");
   const me = E.byId(st, 0);
   me.cash = 100000;
   return { st, me };

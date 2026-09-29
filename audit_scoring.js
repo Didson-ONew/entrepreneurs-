@@ -32,7 +32,7 @@ if (!DEBUT_M) { console.error("the industry debut constant moved - update this p
 const INDUSTRY_DEBUT_EP = parseInt(DEBUT_M[1], 10);
 
 const NEEDLES = {
-  level: 'const levelEP = (state) => (hasVariant(state, "heavyLevelEP") ? 3 : 2);',
+  level: 'const levelEP = (state) => 2;',
   /* The shipped award scales with the head count; this probe only needs to know the
      function is still there, since its "old" arm replaces the award BODY instead. */
   land: `const landAwardFor = (n) => {

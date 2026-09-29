@@ -39,7 +39,7 @@ function loadEngine() {
       humanDeliver, doRepayLoan, doLoan, doBuyPlot, doSellPlot, doSellBP, doSellCompany,
       doLaunch, doRenovate, doDraw, doUpgrade, claimMegacorp, doReposition, byId, activeBiz, repairBizIds,
       eligibleSlotsFor, findDistressedTargets, renovationEligible, plotValue, discsFree,
-      canLaunchMore, isCrossDistrictEdge, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal, canGoPublic, doReclaim, canReclaim,
+      canLaunchMore, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal, canGoPublic, doReclaim, canReclaim,
       botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, advanceDelivery, ENGINE_VERSION,
       bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER,
       PERSONAS, MEGACORP_TILES, VARIANTS, VARIANT_KEYS, normaliseVariants,
@@ -299,14 +299,10 @@ function convertToBot(room, seat) {
       // the seat is a bot now: take the cheapest outside industry, as bots do
       E.chooseSupplyChain(st, p, null, lg, room.rng);
     } else if (st.phase === "placingLH") {
-      const g = st.board.graph;
-      let done = false;
-      for (const a of Object.keys(g)) {
-        for (const b of g[a]) {
-          if (!E.isCrossDistrictEdge(st.board, a, b)) continue;
-          if (E.doPlaceLH(st, a, b, lg)) { done = true; break; }
-        }
-        if (done) break;
+      /* One plot is the whole placement. This used to hunt for a free district
+         border, because a hub could straddle one under the road-hub variant. */
+      for (const a of Object.keys(st.board.graph)) {
+        if (E.doPlaceLH(st, a, null, lg)) break;
       }
       E.finishQuarterAfterLH(st, lg, room.rng);
     } else if (st.phase === "repayingLoans") {

@@ -21,7 +21,8 @@ const section = (t) => console.log(`\n${t}`);
 (async () => {
   section("The catalogue the lobby renders from");
   const cat = await get("/api/variants");
-  check("the server publishes the variant list", Array.isArray(cat.variants) && cat.variants.length === 5,
+  /* Was five. roadHubs and heavyLevelEP have been removed. */
+  check("the server publishes the variant list", Array.isArray(cat.variants) && cat.variants.length === 3,
     (cat.variants || []).map((v) => v.key).join(", "));
   check("every entry has a name and an explanation",
     cat.variants.every((v) => v.key && v.name && v.blurb));
@@ -33,13 +34,15 @@ const section = (t) => console.log(`\n${t}`);
   check("a fresh room has every variant off",
     lob.variants && Object.values(lob.variants).every((v) => v === false), JSON.stringify(lob.variants));
 
-  const wanted = { roadHubs: true, heavyLevelEP: true, orderedDecks: true };
+  /* Two of the three, so that "the others stay off" is still something this
+     test can check. It used to set three of five. */
+  const wanted = { classicScoring: true, orderedDecks: true };
   const r = await post("/api/options", { code: host.code, token: host.token, variants: wanted });
   check("the host may set them", !r.error, r.error || "");
   lob = await lobbyOf(host.code, host.token);
   check("the lobby reports exactly what was set",
-    lob.variants.roadHubs && lob.variants.heavyLevelEP && lob.variants.orderedDecks
-    && !lob.variants.classicScoring && !lob.variants.endgameLandAwards,
+    lob.variants.classicScoring && lob.variants.orderedDecks
+    && !lob.variants.endgameLandAwards,
     JSON.stringify(lob.variants));
   const guestView = await lobbyOf(host.code, guest.token);
   check("the guest sees the same rules", JSON.stringify(guestView.variants) === JSON.stringify(lob.variants));
@@ -50,19 +53,20 @@ const section = (t) => console.log(`\n${t}`);
   lob = await lobbyOf(host.code, host.token);
   check("an unknown variant is ignored, not stored", !("nonsense" in lob.variants));
   check("and naming one variant does not switch the others off",
-    lob.variants.roadHubs && lob.variants.heavyLevelEP && lob.variants.orderedDecks,
+    lob.variants.classicScoring && lob.variants.orderedDecks,
     JSON.stringify(lob.variants));
   await post("/api/options", { code: host.code, token: host.token, variants: { orderedDecks: false } });
   lob = await lobbyOf(host.code, host.token);
   check("a partial update changes only what it names",
-    lob.variants.orderedDecks === false && lob.variants.roadHubs === true);
+    lob.variants.orderedDecks === false && lob.variants.classicScoring === true);
   await post("/api/options", { code: host.code, token: host.token, variants: { orderedDecks: true } });
 
   section("The game starts under them");
   await post("/api/start", { code: host.code, token: host.token });
   const st = (await lobbyOf(host.code, host.token)).state;
-  check("the state carries the variants", st.variants.roadHubs === true && st.variants.heavyLevelEP === true);
-  check("the board is in road-hub mode, as those variants asked", st.board.lhOnPlots === false);
+  check("the state carries the variants",
+    st.variants.classicScoring === true && st.variants.orderedDecks === true);
+  check("and the one left alone is still off", st.variants.endgameLandAwards === false);
   check("and the decks are ordered, as Ordered decks asked",
     Object.values(st.decks).every((d) => !d[0] || d[0].lvl === 1),
     Object.entries(st.decks).map(([k, d]) => `${k}:${d[0] ? d[0].lvl : "-"}`).join(" "));
@@ -87,19 +91,22 @@ const section = (t) => console.log(`\n${t}`);
   const code = ((await txt(A)).match(/([0-9A-F]{6})/) || [])[1];
   check("a room was created", !!code, code);
 
-  check("the variants are folded away by default", /Rule variants/.test(await txt(A)) && !/Hubs on the road/.test(await txt(A)));
+  check("the variants are folded away by default", /Rule variants/.test(await txt(A)) && !/Ordered decks/.test(await txt(A)));
   await A.getByText(/Rule variants/).click();
   await sleep(300);
   let t = await txt(A);
-  check("opening the fold lists all five",
-    ["Score at the year end", "Levels score heavy", "Ordered decks", "Hubs on the road",
-     "Land awards at the end only"].every((n) => t.includes(n)));
-  check("they start OFF", (t.match(/OFF/g) || []).length >= 5);
+  /* Was five. "Hubs on the road" and "Levels score heavy" have been removed. */
+  check("opening the fold lists all three",
+    ["Score at the year end", "Ordered decks", "Land awards at the end only"]
+      .every((n) => t.includes(n)));
+  check("and the removed two are not offered",
+    !/Hubs on the road/.test(t) && !/Levels score heavy/.test(t));
+  check("they start OFF", (t.match(/OFF/g) || []).length >= 3);
 
-  await A.getByText("Levels score heavy").click();
+  await A.getByText("Ordered decks").click();
   await sleep(500);
   t = await txt(A);
-  check("clicking one turns it on", /Levels score heavy[\s\S]{0,20}ON/.test(t));
+  check("clicking one turns it on", /Ordered decks[\s\S]{0,20}ON/.test(t));
   check("the fold header counts what is on", /Rule variants\s*—\s*1 on/.test(t) || /1 on/.test(t));
   await A.screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/variants-host.png` : "/tmp/variants-host.png" });
 
@@ -110,7 +117,7 @@ const section = (t) => console.log(`\n${t}`);
   await B.getByRole("button", { name: "Join room" }).click();
   await sleep(1200);
   const tb = await txt(B);
-  check("the guest is told what the host changed", /The host changed the rules/.test(tb) && /Levels score heavy/.test(tb));
+  check("the guest is told what the host changed", /The host changed the rules/.test(tb) && /Ordered decks/.test(tb));
   check("the guest gets no toggles of their own", !/Rule variants/.test(tb));
   await B.screenshot({ path: process.env.SHOTS ? `${process.env.SHOTS}/variants-guest.png` : "/tmp/variants-guest.png" });
 

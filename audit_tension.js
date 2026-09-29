@@ -72,7 +72,7 @@ const N = {
     addEP(p, share, label, state.quarter);
     if (log) log(logMsg("{0} earns {1} (+{2} EP).", p.name, label, share), p.id);
   }`,
-  levelEP: 'const levelEP = (state) => (hasVariant(state, "heavyLevelEP") ? 3 : 2);',
+  levelEP: 'const levelEP = (state) => 2;',
   hqHelper: "function hqNeighbours(state, hq) {",
 
   /* The tithe and the table-scaled land award SHIPPED, so "current" is now those rules

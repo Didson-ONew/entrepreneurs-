@@ -1,6 +1,6 @@
 # Entrepreneurs - Rulebook
 
-*Rulebook v20. The complete rules, with the designer's notes on why each one exists.*
+*Rulebook v21. The complete rules, with the designer's notes on why each one exists.*
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
@@ -198,7 +198,7 @@ The IPO tile is not an action you can take. It is the prize for being first: who
 
 ### What a plot costs
 
-A plot's value is its printed road price plus $3 for every structure standing on it or orthogonally touching it - five squares in all, the plot and its four neighbours, corners never counting - plus $1 if it touches a Logistic Hub. Road prices run from 1 at the outer edge to 6 in the dead centre of the city. You pay that to buy, and you receive it when you sell - so land near the action genuinely appreciates as the city fills in, and the ground under a working company is the dearest of all.
+A plot's value is its printed road price plus $3 for every structure standing on it or orthogonally touching it - five squares in all, the plot and its four neighbours, corners never counting. A Logistic Hub is a structure like any other: it stands on a plot and fills it forever. Road prices run from 1 at the outer edge to 6 in the dead centre of the city. You pay that to buy, and you receive it when you sell - so land near the action genuinely appreciates as the city fills in, and the ground under a working company is the dearest of all.
 
 ### Footprints
 
@@ -522,9 +522,7 @@ They all read as playing it the older way, because that is what they are. Five r
 | Variant | What changes |
 | --- | --- |
 | Score at the year end | A company waits for the next year end to take its EP, instead of scoring the moment it is built or upgraded. It still scores once per build or upgrade. |
-| Levels score heavy | A company level is worth 3 EP instead of 2. Building tall becomes the biggest single thing on the scoreboard, at the cost of pushing land, cash and the entry bonuses into the background. |
 | Ordered decks | Each industry deck runs level 1 on top down to level 3 at the bottom, instead of being shuffled whole. No level 3 can be drafted, and the early game holds no surprises. |
-| Hubs on the road | A Logistic Hub straddles a border and joins the two districts either side, instead of standing on a plot and reaching only its own. No plot is consumed, and every hub is worth two districts rather than one. |
 | Land awards at the end only | The Real-Estate Mogul and The Omnipresent are paid once, after Quarter 12, instead of at every year end. Land becomes a late-game race rather than something to hold all game. |
 
 Whichever are on is shown in the waiting room before the game starts, and recorded with the finished game, so a variant table is never mistaken for a standard one in the records.
@@ -566,7 +564,7 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Loan | +$20 and one disc; buy back for $30 / $35 / $40 at year ends; -5 EP if unpaid |
 | Sell a Blueprint | $4 / $8 / $12 by level; $2 / $4 / $6 in a forced sale |
 | Sell a company | half its setup, or the full setup if upgraded; halved again in a forced sale |
-| Plot value | road price (1-6) + $3 per structure on it or orthogonally touching + $1 if it touches a hub |
+| Plot value | road price (1-6) + $3 per structure on it or orthogonally touching (a hub is a structure) |
 | Upgrade | pay the setup cost again; production and OPEX double; level +1 |
 | Rent | $2 per company level, to the owners of the plots it stands on |
 | Unsold production | $1 per unit |

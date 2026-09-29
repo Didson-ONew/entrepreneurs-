@@ -150,14 +150,18 @@ section("Score at the year end - the same one score, only later");
   check("the company has paid 4 + 6", fromCompanies(p) === 10, `${fromCompanies(p)}`);
 }
 
-section("Levels score heavy - the other switch");
+/* This section used to exercise "Levels score heavy", which paid 3 EP a level.
+   The variant is gone - its own blurb admitted it pushed land, cash and the
+   entry bonuses into the background - so what is worth checking now is that the
+   rate is 2 and that a stale client asking for the old switch cannot move it. */
+section("A level is worth 2 EP, and nothing can ask for more");
 {
   const st = game({ heavyLevelEP: true });
   const p = st.players[0];
   giveLand(st, p);
   plant(st, p, "HC", freePlot(st, p), 2);
-  check("a level is worth 3 EP", E.levelEP(st) === 3);
-  check("so a level 2 company scores 6, not 4", fromCompanies(p) === 6, `${fromCompanies(p)} EP`);
+  check("a level is worth 2 EP", E.levelEP(st) === 2);
+  check("so a level 2 company scores 4", fromCompanies(p) === 4, `${fromCompanies(p)} EP`);
 }
 
 section("Both modes pay a company the same, whatever the timing");
