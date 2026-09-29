@@ -38,6 +38,48 @@
    fairness comparison - the two are different lengths and different games - it
    is there so "is that number small?" has something to be small against.
 
+   WHAT IT FOUND - 150 games per arm per table, all five counts, the full game
+   on the same seeds as a reference.
+
+   1. THINGS COMPOUND. The last two quarters carry 31.6% of the winning score
+      at two seats, 38.5% at four and 36.0% at six - against the full game's
+      31.2 / 35.4 / 36.9. The endgame is worth the same share of a short game as
+      of a long one, so eight quarters does not end before anything happens.
+      More of the score is banked by halfway (43-52% against 31-40%), which is
+      what a shorter game should look like.
+
+   2. A BAD START IS NOT FATAL. It is gentler than the full game, by a lot. No
+      seat ended with nothing standing at any table size, against 3.7% to 8.2%
+      in the full game, and almost none was ever emptied at all (0-0.5% against
+      32-53%). A seat last at halfway reached the top half 34.5% / 35.7% / 19.0%
+      of the time against 28.6 / 24.1 / 20.9.
+
+      The cost of that is worth stating: SOLVENCY IS CLOSE TO DEAD CODE here.
+      It was kept as the only way out of a company, and it almost never fires.
+
+   3. THERE IS NO ONE LINE. Level 3 is 26-33% of what gets built against the
+      full game's 29-37%, and the winner's average company level is 2.11-2.18
+      against a table average of 1.93-1.96. Winners build slightly taller;
+      RESEARCH-into-a-level-3 is not the only game.
+
+   WHAT DID MOVE, AND IT IS THE ONE THING WORTH A SECOND LOOK: cash is 20.6% of
+   the winning score at two seats, 25.4% at four and 24.2% at six, against the
+   full game's 15.4 / 14.1 / 13.1. Industry debuts also roughly double, to
+   19.6-23.5% from 11.1-12.2%. Megacorps were 24-29% of the scoreboard and
+   their share went to CASH and DEBUTS rather than to companies or land. A
+   teaching game in which a quarter of the answer is holding money teaches
+   something the full game does not.
+
+   Land holds up: 16.1-20.5% on the districts award alone against 18.4-27.4%
+   from two awards, and at six seats it is HIGHER than the full game.
+
+   TENSION IS FINE PER QUARTER and lower per game, which is arithmetic rather
+   than a fault: 2.53 lead changes at six seats against 4.11, over eight
+   quarters against nearly twelve - 0.32 a quarter against 0.35. Games never
+   headed at all run 4.7% at four and six seats against 2.7% and 1.3%; two
+   seats is 18% in BOTH games, which is the two-player count being what it
+   already is rather than anything this mode did.
+
    Run: node audit_beginner.js [games] [seats...]
         node audit_beginner.js 200 4
         node audit_beginner.js 150 2 3 4 5 6

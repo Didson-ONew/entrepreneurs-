@@ -5,8 +5,11 @@ bottleneck, not balance, so this exists to get somebody through a whole arc —
 build, produce, sell, pay suppliers, watch prices move — in one sitting,
 without the subsystems that need a second explanation.
 
-**Nothing here is implemented.** This is the agreed design, written down so the
-decisions survive the conversation that produced them.
+**Built and measured.** The engine mode is complete behind the `beginner`
+variant and `audit_beginner.js` measures it. What is NOT done is the UI: the
+engine refuses BUY, UPGRADE, RENOVATE, RECLAIM and GO PUBLIC, but their buttons
+still render, so a human would click them and nothing would happen. That pass
+has to land before anyone plays it.
 
 ## What it keeps
 
@@ -116,13 +119,60 @@ Real-Estate Mogul removes roughly half of land's share.
 Land's RELATIVE share will likely go up rather than down, because the
 denominator shrinks so much. Worth checking against the intent.
 
+## What the measurements said
+
+150 games per arm per table, the full game on the same seeds as a reference.
+
+**Things compound.** The last two quarters carry 31.6% of the winning score at
+two seats, 38.5% at four, 36.0% at six - against the full game's 31.2 / 35.4 /
+36.9. The endgame is worth the same share of a short game as of a long one.
+
+**A bad start is not fatal**, and the mode is markedly gentler than the full
+game. No seat ended with nothing standing at any table size (3.7-8.2% in the
+full game), and almost none was ever emptied at all (0-0.5% against 32-53%). A
+seat last at halfway reached the top half 34.5% / 35.7% / 19.0% of the time
+against 28.6 / 24.1 / 20.9.
+
+That has a consequence worth owning: **solvency is close to dead code here**. It
+was kept as the only way out of a company, and it almost never fires.
+
+**There is no single line.** Level 3 is 26-33% of what gets built against the
+full game's 29-37%, and the winner's average company level is 2.11-2.18 against
+a table average of 1.93-1.96. RESEARCH-into-a-level-3 is a good line, not the
+only one.
+
+**Tension is fine per quarter** and lower per game, which is arithmetic: 2.53
+lead changes at six seats against 4.11, over eight quarters against nearly
+twelve - 0.32 a quarter against 0.35.
+
+### The one thing worth changing
+
+| winner's points from | beginner | full |
+|---|---|---|
+| companies | 35.7-41.1% | 30.8-35.3% |
+| **cash** | **20.6-25.4%** | **13.1-15.4%** |
+| industry debuts | 19.6-23.5% | 11.1-12.2% |
+| land awards | 16.1-20.5% | 18.4-27.4% |
+
+Megacorps were 24-29% of the scoreboard, and their share went to **cash and
+industry debuts**, not to companies or land. A quarter of the answer in the
+teaching game is holding money, which the full game does not teach - somebody
+who learns here learns to sit on cash and then meets a game where that is worth
+half as much.
+
+Land holds up on the districts award alone, and at six seats is worth MORE than
+in the full game, so the districts-only call is sound.
+
 ## Open questions, for measurement or for a table
 
-- Does 8 quarters give anything time to compound, or does the game end before
-  the second-order effects a euro player came for ever appear?
-- A player who loses their only companies early has no way back: no BUY, no
-  reclaim, no renovate. At 8 quarters that may be survivable. It may also be
-  four quarters of nothing to do.
-- With no upgrades, is RESEARCH-into-a-level-3-card the dominant line? It is
-  the only way to a big footprint, and the only way to reach column 4.
-- Do personas stay? Several of them modify actions this mode removes.
+The first three are answered above: yes it compounds, no a bad start is not
+fatal, and no there is not one line. What is left:
+
+- **Cash at a quarter of the score.** The obvious levers are what cash converts
+  at, or paying the districts award more so building outward competes with
+  sitting on the bank. Neither is measured yet.
+- **Solvency almost never fires.** It is the only exit and it is close to
+  unreachable, so a teaching game may never show a player what failure looks
+  like. That may be right for a first game.
+- **Do personas stay?** Several modify actions this mode removes.
+- **The UI pass**, which is the only thing between this and a table.
