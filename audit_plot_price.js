@@ -255,14 +255,35 @@ const ARMS = {
      half of it is what a distressed player raises under solvency. */
   I: { adj: "orth", rate: 3, self: true, label: "SHIPS v20  orth  x$3 +self" },
   J: { adj: "orth", rate: 4, self: true, label: "alt        orth  x$4 +self" },
+  /* A HUB IS A STRUCTURE. v20 kept a separate clause - a dollar if the plot
+     touches a Logistic Hub - beside the $3 it charges per structure, and that
+     clause is both an extra sentence to teach and wrong twice over.
+
+     A hub occupies a plot permanently; nothing can ever be built there. Yet it
+     moves a neighbour's price by $1 where a company moves it by $3. And the
+     Megacorp HQ is a real company that ALSO counts as a hub, so a plot beside
+     one pays $3 for the structure and $1 for the hub clause: the same building
+     billed twice, +$4 measured.
+
+     This arm deletes the clause and counts a hub as what it is. Under the
+     road-hub variant the hub sits on a road rather than a plot, so it is
+     counted for the two plots it sits between - same "it is right there"
+     logic, and the variant keeps meaning something. */
+  K: { adj: "orth", rate: 3, self: true, hubIsStructure: true,
+       label: "hub=struct orth  x$3 +self" },
 };
 
 function engineFor(arm) {
-  const { adj, rate, self } = ARMS[arm];
+  const { adj, rate, self, hubIsStructure } = ARMS[arm];
   let logic = base;
 
-  logic = logic.replace(NEEDLES.priceBody,
-    `  const near = [...(board.${adj}[plotKeyStr] || [])].filter((n) => n in board.occupiedBy).length;
+  logic = logic.replace(NEEDLES.priceBody, hubIsStructure
+    ? `  const isStruct = (pk) => (pk in board.occupiedBy) || plotIsLH(board, pk);
+  const near = [...(board.${adj}[plotKeyStr] || [])].filter(isStruct).length;
+  const onIt = isStruct(plotKeyStr) ? 1 : 0;
+  const roadHub = !board.lhOnPlots && plotHasLH(board, plotKeyStr) ? 1 : 0;
+  return base + ${rate} * (near + onIt + roadHub);`
+    : `  const near = [...(board.${adj}[plotKeyStr] || [])].filter((n) => n in board.occupiedBy).length;
   const onIt = ${self ? 1 : 0} && (plotKeyStr in board.occupiedBy) ? 1 : 0;
   const lhBonus = plotHasLH(board, plotKeyStr) ? 1 : 0;
   return base + ${rate} * (near + onIt) + lhBonus;`);
