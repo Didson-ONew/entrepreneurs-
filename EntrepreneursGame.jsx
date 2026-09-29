@@ -471,7 +471,13 @@ function bestSellableFor(state, p, bp) {
   return best;
 }
 function findFootprint(board, nPlots, rng, state, ind, bp, owner) {
-  let pool = Object.keys(board.graph).filter((p) => plotFree(board, p) && p in board.owner);
+  /* Normally you may only build on ground you already own. In the beginner mode
+     there is no BUY, so building claims the ground instead and the search looks
+     at every free plot nobody holds. Without this the pool is empty on turn one
+     and nothing is ever built. */
+  const beginner = isBeginner(state);
+  const buildable = (pk) => (beginner ? !(pk in board.owner) : pk in board.owner);
+  let pool = Object.keys(board.graph).filter((p) => plotFree(board, p) && buildable(p));
   if (state && bp && owner) {
     // rank by what this exact company could sell from there, falling back to the
     // cheaper home-district count only to break ties
@@ -487,7 +493,7 @@ function findFootprint(board, nPlots, rng, state, ind, bp, owner) {
   const candidates = state && (ind || bp) ? pool : shuffle(pool, rng);
   const grow = (start) => {
     const cluster = new Set([start]);
-    let frontier = ownedFreeNeighbors(board, start);
+    let frontier = freeNeighbors(board, start).filter(buildable);
     while (cluster.size < nPlots && frontier.length) {
       const idx = Math.floor(rng() * frontier.length);
       const nxt = frontier.splice(idx, 1)[0];
@@ -800,7 +806,15 @@ function ownerOf(state, biz) {
 function deliveryColumnCap(state, biz, owner) {
   const p = owner || ownerOf(state, biz);
   if (bizInd(biz) === "HC" && hasPersona(p, "preventive")) return 4;
-  return Math.min(biz.level, 4);
+  /* One column higher in the beginner mode. The demand-depth note below says a
+     level-1 company is unchanged by the depth rule "because a level-1 company
+     still only reaches the level-1 icon" - and with no UPGRADE that is nearly
+     every company, while a level-1 Retail makes four units and column 1 takes
+     one. A clean row absorbs 3 instead of 1 at level 1, 6 instead of 3 at
+     level 2, 10 instead of 6 at level 3. It is deliberately NOT in the full
+     game: it compresses top-to-bottom capacity from 6x to 3.3x, which is right
+     where you cannot upgrade and wrong where you can. */
+  return Math.min(biz.level + (isBeginner(state) ? 1 : 0), 4);
 }
 /* `owner` is normally found from the state, but a bot weighing a company it has not
    built yet has no owner to find - it passes one in. Everything else is identical, so
@@ -1129,6 +1143,8 @@ const VARIANTS = [
     blurb: "Each industry deck runs level 1 down to level 3, instead of being shuffled whole. The early game holds no surprises and no level 3 can be drafted." },
   { key: "endgameLandAwards", name: "Land awards at the end only",
     blurb: "The Real-Estate Mogul and The Omnipresent are paid once, after Quarter 12, instead of at every year end." },
+  { key: "beginner", name: "Beginner game",
+    blurb: "Two years instead of three, no Megacorps, and one action per track: LOAN, LAUNCH, RESEARCH and REPOSITION. Building claims its ground free, six discs instead of twelve, land scores districts only, and a company reaches one demand column above its level." },
 ];
 const VARIANT_KEYS = VARIANTS.map((v) => v.key);
 /* Anything off the wire is untrusted, so read only the keys we know and coerce
@@ -1139,6 +1155,52 @@ function normaliseVariants(v) {
   return out;
 }
 const hasVariant = (state, key) => !!(state && state.variants && state.variants[key]);
+
+/* ---------------------------- BEGINNER MODE ----------------------------
+   A shorter game that teaches the loop. Playtesters say teaching is the
+   bottleneck, not balance, so this exists to get somebody through a whole arc -
+   build, produce, sell, pay suppliers, watch prices move - in one sitting,
+   without the subsystems that need a second explanation.
+
+   The supply chain is untouched. Production sells into the demand icons,
+   operating costs go into the industry pots and are split among whoever owns
+   companies there, and a build pushes its own industry's price down a dollar
+   and each supplier's up one. That is the thing worth teaching.
+
+   What goes: Megacorps, and one action from each track - SELL, BUY, UPGRADE and
+   GO PUBLIC - leaving LOAN, LAUNCH, RESEARCH and REPOSITION. Board Meeting
+   keeps its one seat, because first in turn order decides who sells into a
+   contested demand icon first and who places the hub, and without REPOSITION
+   the starting order would be frozen for the whole game.
+
+   Three rules make the rest work, and each is load-bearing:
+
+   LAUNCHING CLAIMS ITS GROUND, free. Not a convenience - doLaunch and
+   businessCanProduce both require every plot to be owned already, so with no
+   BUY nobody could build or produce anything and the mode would not start.
+
+   A COMPANY'S DISC COVERS ITS WHOLE FOOTPRINT. discsUsed counts owned plots
+   separately in the full game, so five vertical companies would cost ten discs
+   and six would never reach a full tableau.
+
+   COMPANIES REACH ONE COLUMN HIGHER than their level. The demand-depth note
+   below says a level-1 company "is unchanged, because a level-1 company still
+   only reaches the level-1 icon" - and with no UPGRADE that is nearly every
+   company, while a level-1 Retail company makes four units and column 1 takes
+   one. Most production would be dumped at the recycling price.
+
+   Land scores districts only: The Omnipresent survives, The Real-Estate Mogul
+   does not, which is what makes horizontal industries matter - one disc can
+   span several districts. Levels still exist without UPGRADE, because doLaunch
+   takes a horizontal footprint from the CARD's level and RESEARCH draws from a
+   deck shuffled whole, so a level-3 card can be drawn and launched outright. */
+const isBeginner = (state) => hasVariant(state, "beginner");
+const BEGINNER_QUARTERS = 8;
+const BEGINNER_DISCS = 6;
+/* The last quarter of the game, before any Megacorp calls it early. */
+const finalQuarterOf = (state) => (isBeginner(state) ? BEGINNER_QUARTERS : 12);
+/* The quarters that close a year, and so pay the land award. */
+const yearEndsOf = (state) => (isBeginner(state) ? [4, 8] : [4, 8, 12]);
 /* The two dials the whole scoreboard hangs off, kept together because they are only
    meaningful against each other.
 
@@ -1443,7 +1505,7 @@ function worstRoiBusiness(p, pm, quarter, minAge = 1) {
    than assuming, or they would misprice every plot on the board. */
 const landPayouts = (state) => {
   if (hasVariant(state, "endgameLandAwards")) return 1;
-  return [4, 8, 12].filter((q) => q >= state.quarter).length || 1;
+  return yearEndsOf(state).filter((q) => q >= state.quarter).length || 1;
 };
 /* What is one more plot worth in points?
 
@@ -1725,12 +1787,20 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   const nPlots = SCALING[bp.ind] === "H" ? bp.lvl : 1;
   const footprint = manualFootprint || findFootprint(state.board, nPlots, rng, state, bp.ind, bp, p);
   if (!footprint || footprint.length !== nPlots) return false;
-  if (!footprint.every((plot) => plot in state.board.owner && plotFree(state.board, plot))) return false;
+  /* Building claims the ground under it, free, in the beginner mode - there is
+     no BUY action there, and both this check and businessCanProduce require the
+     ground to be owned, so without this nobody could build anything at all. */
+  if (isBeginner(state)) {
+    if (!footprint.every((plot) => plotFree(state.board, plot) && !(plot in state.board.owner))) return false;
+  } else if (!footprint.every((plot) => plot in state.board.owner && plotFree(state.board, plot))) return false;
   if (!footprintIsContiguous(state.board, footprint)) return false;
   if (p.cash < bp.setup) return false;
   if (discsFree(state, p) <= 0) return false;   // no disc left to mark the new company
   p.cash -= bp.setup;
   const biz = newBusiness(bp, footprint, state.quarter, state);
+  /* The ground comes with the company here, free. businessCanProduce checks
+     ownership, so claiming it is what lets the thing produce at all. */
+  if (isBeginner(state)) footprint.forEach((plot) => (state.board.owner[plot] = p.id));
   footprint.forEach((plot) => (state.board.occupiedBy[plot] = biz.id));
   p.businesses.push(biz);
   p.hand = p.hand.filter((x) => x !== bp);
@@ -1783,6 +1853,7 @@ function adjacentOwnedFreePlots(board, footprint) {
   return [...out];
 }
 function doUpgrade(state, p, b, rng, log, manualPlot, dir) {
+  if (isBeginner(state)) return false;      // no UPGRADE in the teaching game
   if (b.upgraded) return false;
   if (p.cash < bizSetup(b)) return false;   // affordability only - safeToSpend is a bot heuristic
   /* A direction the persona allows may be asked for; anything else, or nothing, takes
@@ -1827,7 +1898,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "1f203966";
+const ENGINE_VERSION = "3a0cec73";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -1872,16 +1943,28 @@ const DISCS_PER_PLAYER = 12;
 function plotsOwned(state, p) {
   return Object.values(state.board.owner).filter((v) => v === p.id).length;
 }
-function discsUsed(state, p) {
-  return plotsOwned(state, p) + companySlotsUsed(p) + p.discsInBank;
+/* In the beginner mode a company's disc covers its whole footprint: land is not
+   bought separately, it is claimed by building, so charging a disc for the
+   ground AND a disc for the company would mean five vertical companies cost ten
+   discs and six could never reach a full tableau. Plots under your own
+   companies are therefore free; any other plot you hold still costs one. */
+function discsForGround(state, p) {
+  const mine = Object.entries(state.board.owner).filter(([, v]) => v === p.id).map(([k]) => k);
+  if (!isBeginner(state)) return mine.length;
+  const covered = new Set(activeBiz(p).flatMap((b) => b.footprint));
+  return mine.filter((k) => !covered.has(k)).length;
 }
-function discsFree(state, p) { return DISCS_PER_PLAYER - discsUsed(state, p); }
+function discsUsed(state, p) {
+  return discsForGround(state, p) + companySlotsUsed(p) + p.discsInBank;
+}
+const discsPerPlayer = (state) => (isBeginner(state) ? BEGINNER_DISCS : DISCS_PER_PLAYER);
+function discsFree(state, p) { return discsPerPlayer(state) - discsUsed(state, p); }
 
 function doLoan(state, p, log) {
-  if (p.discsInBank >= DISCS_PER_PLAYER) { log(logMsg("{0} has no discs left to pledge for a loan.", p.name), p.id); return false; }
-  if (discsFree(state, p) <= 0) { log(logMsg("{0} has all {1} discs committed \u2014 cannot take a loan.", p.name, DISCS_PER_PLAYER), p.id); return false; }
+  if (p.discsInBank >= discsPerPlayer(state)) { log(logMsg("{0} has no discs left to pledge for a loan.", p.name), p.id); return false; }
+  if (discsFree(state, p) <= 0) { log(logMsg("{0} has all {1} discs committed \u2014 cannot take a loan.", p.name, discsPerPlayer(state)), p.id); return false; }
   p.cash += 20; p.discsInBank += 1;
-  log(logMsg("{0} takes a loan (+$20, +1 disc) (cash: ${1}, discs used: {2}/{3}).", p.name, Math.round(p.cash), discsUsed(state, p), DISCS_PER_PLAYER), p.id);
+  log(logMsg("{0} takes a loan (+$20, +1 disc) (cash: ${1}, discs used: {2}/{3}).", p.name, Math.round(p.cash), discsUsed(state, p), discsPerPlayer(state)), p.id);
   return true;
 }
 function doSellCompany(p, b, log, solvency = false) {
@@ -2048,7 +2131,7 @@ function humansNeedingSupplyChain(state) {
    quarter, when there is nothing left to protect. */
 function botWantsConcession(state, p) {
   if (!concessionAvailable(state, p)) return false;
-  if (state.quarter >= 12) return true;
+  if (state.quarter >= finalQuarterOf(state)) return true;
   return price(state.pm, "UT") > PRICE_MIN + 1;
 }
 function setConcession(state, p, on, log) {
@@ -2237,7 +2320,7 @@ function doRepayLoan(p, quarter, log) {
 function botRepayLoans(state, p, quarter, log) {
   const rate = LOAN_REPAY_RATE[quarter];
   if (!rate) return;
-  if (quarter === 12) {
+  if (quarter === finalQuarterOf(state)) {
     // Final scoring: there is no next quarter to fund. An unpaid disc is -5 EP, while
     // the $40 it costs is under 1 EP as cash, so clearing debt is strictly better.
     while (p.discsInBank > 0 && p.cash >= rate) {
@@ -2252,7 +2335,7 @@ function botRepayLoans(state, p, quarter, log) {
 }
 function runClosingRest(state, log) {
   const { players, quarter } = state;
-  if ([4, 8, 12].includes(quarter)) {
+  if (yearEndsOf(state).includes(quarter)) {
     for (const p of players) {
       for (const b of activeBiz(p)) if (!b.scored) { addEP(p, b.level * levelEP(state), logMsg("Company: {0} L{1}", b.bp.name, b.level), quarter); b.scored = true; }
       // Each industry pays its entry bonus once per game, the first year a company of that
@@ -2270,9 +2353,15 @@ function runClosingRest(state, log) {
     /* A game called early can end ON a year end. finalizeGame pays the awards once
        as part of final scoring, so a Q8 that is also the final quarter must not pay
        them here as well - it did, and the land leader scored twice. */
-    const isFinal = quarter === 12 || (state.finalQuarter && quarter >= state.finalQuarter);
+    const isFinal = quarter === finalQuarterOf(state) || (state.finalQuarter && quarter >= state.finalQuarter);
     if (!hasVariant(state, "endgameLandAwards") && !isFinal) {
-      awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", log);
+      /* Districts only in the beginner mode. There is no BUY there, so ground
+         comes with the company that stands on it - and paying for raw plot
+         count would just pay for having built, which the company already
+         scores. Counting districts instead is the thing you can be denied, and
+         it is what makes a horizontal industry worth drafting: one disc can
+         span several districts. */
+      if (!isBeginner(state)) awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", log);
       awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", log);
     }
     log(logMsg("\u2014\u2014\u2014 Year-end scoring complete (Q{0}) \u2014\u2014\u2014", quarter), null);
@@ -2451,7 +2540,7 @@ function hqNeighbours(state, hq) {
   return seen.size;
 }
 function finalizeGame(state) {
-  awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", null);
+  if (!isBeginner(state)) awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", null);
   awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", null);
   for (const p of state.players) {
     if (p.discsInBank) addEP(p, -5 * p.discsInBank, logMsg(p.discsInBank === 1 ? "Unpaid loans ({0} disc)" : "Unpaid loans ({0} discs)", p.discsInBank), state.quarter);
@@ -2598,6 +2687,7 @@ function findDistressedTargets(state) {
   return out;
 }
 function doRenovate(state, p, distressedBiz, bp, log) {
+  if (isBeginner(state)) return false;      // nothing is bought back in the teaching game
   const cost = Math.floor(bp.setup / 2);
   if (p.cash < cost) return false;
   // renovating brings a structure back online, so it counts against the active-company cap
@@ -2672,6 +2762,7 @@ function canReclaim(state, p, biz) {
   return true;
 }
 function doReclaim(state, p, biz, log) {
+  if (isBeginner(state)) return false;      // a failed company is gone for good here
   if (!canReclaim(state, p, biz)) return false;
   const cost = reclaimCost(biz);
   const prev = state.players.find((pl) => pl.businesses.includes(biz));
@@ -2704,6 +2795,9 @@ function doReclaim(state, p, biz, log) {
   return true;
 }
 function doSellPlot(state, p, plotKeyStr, log, solvency = false) {
+  /* No SELL in the teaching game, but solvency still works by the same rules -
+     it is the only way out, and it takes the ground with the company. */
+  if (isBeginner(state) && !solvency) return false;
   if (state.board.owner[plotKeyStr] !== p.id) return false;
   const fullVal = plotValue(state, plotKeyStr);
   const val = solvency ? Math.floor(fullVal / 2) : fullVal;
@@ -2721,6 +2815,7 @@ function cheapestOwnedPlot(state, p) {
   return pool.map((k) => [k, plotValue(state, k)]).sort((a, b) => a[1] - b[1])[0][0];
 }
 function doBuyPlot(state, p, plotKeyStr, log) {
+  if (isBeginner(state)) return false;                       // no BUY in the teaching game
   if (!plotBuyable(state.board, plotKeyStr)) return false;   // a hub's plot is the hub now
   if (discsFree(state, p) <= 0) return false;   // no disc left to mark ownership
   const cost = plotValue(state, plotKeyStr);
@@ -2881,6 +2976,7 @@ function pickHQ(state, p, have, tier = 1) {
    tile the first time, or afterwards merge a real set of companies into a Megacorp.
    Otherwise the player is restricted to Reposition. */
 function canGoPublic(state, p) {
+  if (isBeginner(state)) return false;          // no Megacorps in the teaching game
   return !!bestMegacorpMatch(activeBiz(p), state.megacorpPool);
 }
 function goPublicBlockedReason(state, p) {
@@ -2933,7 +3029,7 @@ function boardMeetingDesire(state, p) {
      last delivery and cannot change anybody's score. Both meeples for nothing.
      Once a second Megacorp has named the final quarter, that quarter is the last
      one too, and the bot can see it coming. */
-  if (state.quarter >= 12) return 0;
+  if (state.quarter >= finalQuarterOf(state)) return 0;
   if (state.finalQuarter && state.quarter >= state.finalQuarter) return 0;
   const idx = state.turnOrder.indexOf(p.id);
   if (idx >= 2 && activeBiz(p).length >= 1) return 8 + idx * 9;     // 3rd 26, 4th 35
@@ -3018,7 +3114,49 @@ function buildResolutionQueue(state) {
 }
 
 /* ---------------- Bot action resolution ---------------- */
+/* THE TEACHING GAME HAS FOUR ACTIONS, so the bot needs four branches rather
+   than the full resolver's dozen. Letting the normal path run and relying on
+   doBuyPlot, doUpgrade and the rest to refuse would not be honest measurement:
+   several of its branches call sellCompany unconditionally and then log and
+   return, so a bot would burn an action doing nothing and the log would claim
+   otherwise. This is a separate, small resolver instead.
+
+   LOAN when the bills are close to the cash. LAUNCH whatever the launch scorer
+   likes, which is the same valuation the full game uses. RESEARCH the deck
+   whose top card scores best, which is how a bot reaches a level-2 or level-3
+   card - the only route to a big footprint here. REPOSITION to go first, which
+   decides who sells into a contested demand icon and who places the hub. */
+function botResolveBeginner(state, p, rng, log, track) {
+  if (track === "ma") {
+    const pick = bestLaunch(state, p, p.archetype, 0);
+    if (pick && canLaunchMore(p) && discsFree(state, p) > 0
+        && p.cash >= pick.bp.setup && doLaunch(state, p, pick.bp, rng, log)) return;
+    log(logMsg("{0} has nothing worth building this quarter.", p.name), p.id);
+    return;
+  }
+  if (track === "rd") {
+    const open = INDUSTRIES.filter((i) => state.decks[i] && state.decks[i].length);
+    if (open.length && p.hand.length < 5) {
+      let best = open[0], bestScore = -Infinity;
+      for (const ind of open) {
+        const sc = launchScore(state, p, state.decks[ind][0], p.archetype);
+        if (sc > bestScore) { bestScore = sc; best = ind; }
+      }
+      if (doDraw(state, p, best, log)) return;
+    }
+    log(logMsg("{0} has a full hand and nothing to research.", p.name), p.id);
+    return;
+  }
+  if (track === "board_meeting") { doReposition(state, p, log); return; }
+  /* raise_capital: LOAN is the only thing left on it. */
+  const tight = committedOpex(p) > p.cash * 0.8 || p.cash < 15;
+  const buildingSoon = p.hand.length > 0 && canLaunchMore(p) && discsFree(state, p) > 0
+    && p.cash < Math.min(...p.hand.map((bp) => bp.setup));
+  if ((tight || buildingSoon) && doLoan(state, p, log)) return;
+  log(logMsg("{0} has enough cash and lets the quarter pass.", p.name), p.id);
+}
 function botResolveOneAction(state, p, track, rng, log) {
+  if (isBeginner(state)) return botResolveBeginner(state, p, rng, log, track);
   if (track === "raise_capital") {
     const LOAN_CEILING = 60; // once cash comfortably covers most BPs, more loans are pure EP cost with no upside
     // Each disc is a guaranteed -5 EP unless bought back for $30-40, and bots rarely
@@ -3454,7 +3592,7 @@ function finishQuarter(state, log, rng) {
 function finishQuarterAfterLH(state, log, rng) {
   runClosingRest(state, log);
   state.awaitingPlayerId = null;
-  if ([4, 8, 12].includes(state.quarter)) {
+  if (yearEndsOf(state).includes(state.quarter)) {
     state.repayQueue = humansNeedingRepay(state);
     if (state.repayQueue.length) {
       state.phase = "repayingLoans";
@@ -3486,7 +3624,7 @@ function finishQuarterAfterRepay(state, log, rng) {
     const who = rushers.map((p) => p.name).join(" and ");
     log(logMsg("\u23f9 {0} {1} launched {2} Megacorps \u2014 Q{3} is the FINAL QUARTER.", who, rushers.length === 1 ? "has" : "have", MEGACORPS_TO_END, state.finalQuarter), null);
   }
-  if (state.quarter >= 12 || (state.finalQuarter && state.quarter >= state.finalQuarter)) {
+  if (state.quarter >= finalQuarterOf(state) || (state.finalQuarter && state.quarter >= state.finalQuarter)) {
     finalizeGame(state);
     state.phase = "gameover";
     log(logMsg("=== GAME OVER \u2014 final scoring complete ==="), null);
@@ -4845,7 +4983,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
           </div>
           {(() => {
             const why = !canLaunchMore(human) ? t("all {0} of your company slots are taken (a Megacorp HQ holds one)", companySlotsFor(human))
-              : discsFree(state, human) <= 0 ? t("all {0} of your discs are committed", DISCS_PER_PLAYER) : null;
+              : discsFree(state, human) <= 0 ? t("all {0} of your discs are committed", discsPerPlayer(state)) : null;
             return why ? <div className="text-[9px]" style={{ color: "#fca5a5" }}>{t("Can't launch: {0}.", why)}</div> : null;
           })()}
           <div className="text-[9px] text-gray-500">{t("Pick a BP, then click its plot(s) on the board — owned, unoccupied plots only. Horizontal industries at level 2+ need a connected cluster.")}</div>
@@ -4904,7 +5042,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
             const cheapest = unownedPlots.length ? Math.min(...unownedPlots.map((pk) => plotValue(state, pk))) : 0;
             const tooPoor = unownedPlots.length > 0 && human.cash < cheapest;
             const blocked = !unownedPlots.length ? t("no unowned plots left")
-              : noDiscs ? t("all {0} of your discs are committed", DISCS_PER_PLAYER)
+              : noDiscs ? t("all {0} of your discs are committed", discsPerPlayer(state))
               : tooPoor ? t("cheapest plot costs ${0}, you have ${1}", cheapest, Math.round(human.cash))
               : null;
             return (
@@ -6356,7 +6494,7 @@ function GameScreens({ online }) {
                   { label: t("GROUND RENT"), value: `$${Math.round(rent)}`, color: rent > 0 ? "#e0b060" : "#6b7280" },
                   { label: t("AFTER BILLS"), value: `${after < 0 ? "\u2212" : ""}$${Math.abs(Math.round(after))}`, color: after < 0 ? "#fca5a5" : "#e5e7eb" },
                   { label: t("LOAN DISCS"), value: `${discs}`, sub: discs ? `\u2212${discs * 5} EP` : "none", color: discs ? "#fca5a5" : "#6b7280" },
-                  { label: t("DISCS USED"), value: `${discsUsed(state, human)}/${DISCS_PER_PLAYER}`,
+                  { label: t("DISCS USED"), value: `${discsUsed(state, human)}/${discsPerPlayer(state)}`,
                     sub: `${plotsOwned(state, human)} land \u00b7 ${activeBiz(human).length} biz \u00b7 ${discs} loan`,
                     color: discsFree(state, human) <= 0 ? "#fca5a5" : discsFree(state, human) <= 2 ? "#f5a623" : "#e5e7eb" },
                 ];
@@ -6519,7 +6657,7 @@ function GameScreens({ online }) {
                               style={{ color: "#f5d76e" }}> {t("+{0}MC", megacorpHQs(p).length)}</span>
                           )} &middot; {t("{0}BP", p.hand.length)} &middot;{" "}
                           <span title={t("Discs committed: {0} on land, {1} on companies, {2} pledged for loans", plotsOwned(state, p), companySlotsUsed(p), p.discsInBank)}>
-                            {t("{0}/{1} discs", discsUsed(state, p), DISCS_PER_PLAYER)}
+                            {t("{0}/{1} discs", discsUsed(state, p), discsPerPlayer(state))}
                           </span>
                           {p.discsInBank > 0 && (
                             <span title={t("Loan discs - 5 EP each at game end")} style={{ color: "#fca5a5" }}> {t("({0} loan)", p.discsInBank)}</span>
