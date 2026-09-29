@@ -57,7 +57,11 @@ const fromCompanies = (p) =>
 section("Defaults - a table that touches nothing plays Rulebook v13");
 {
   const st = game(undefined);
-  check("five variants are on offer", E.VARIANTS.length === 5, E.VARIANTS.map((v) => v.key).join(", "));
+  /* Was five. roadHubs and heavyLevelEP have been removed - the first cost
+     twenty-nine sites of dual-shape hub machinery, the second made the game
+     narrower by its own description, and neither had been switched on in
+     twenty-six recorded matches. */
+  check("three variants are on offer", E.VARIANTS.length === 3, E.VARIANTS.map((v) => v.key).join(", "));
   check("every one is off", E.VARIANT_KEYS.every((k) => st.variants[k] === false));
   check("hubs stand on plots", st.board.lhPlots !== undefined && st.board.lhEdges === undefined);
   const lv = st.decks.UT.map((c) => c.lvl);
@@ -297,7 +301,7 @@ section("All five on at once - which is very nearly v12");
   const st = game(all);
   check("a game starts with every variant on", !!st.board && st.quarter === 1);
   check("and asking for road hubs does nothing", st.board.lhEdges === undefined);
-  check("a level is worth 3 EP with the heavy variant on", E.levelEP(st) === 3);
+  check("a level is still worth 2 EP, every switch on", E.levelEP(st) === 2);
   check("the land awards pay once again", E.landPayouts(st) === 1);
   const lv = st.decks.UT.map((c) => c.lvl);
   check("and the decks are ordered again", JSON.stringify(lv) === JSON.stringify([...lv].sort()), lv.join(""));
