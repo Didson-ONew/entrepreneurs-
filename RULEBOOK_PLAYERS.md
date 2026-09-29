@@ -488,6 +488,7 @@ What stays is the part worth learning. Your production still sells into the dema
 | R&D | RESEARCH or UPGRADE | RESEARCH |
 | Board Meeting | GO PUBLIC or REPOSITION | REPOSITION |
 | Megacorps | yes | no |
+| Personas | one each | none |
 | Discs | 12 | 6 |
 | Land | bought and sold | claimed free by building |
 | Land awards | most plots and most districts | most districts |
@@ -500,6 +501,8 @@ SIX DISCS, and five company bays. Five discs is a full board of companies, so th
 A COMPANY REACHES ONE COLUMN ABOVE ITS LEVEL. A level 1 company reaches columns 1 and 2, a level 2 reaches 1 to 3, a level 3 reaches all four. Without this a level 1 company could only ever sell into the level 1 icon, and since nothing is upgraded here it would throw most of what it makes away.
 
 LEVELS STILL EXIST even though nothing is upgraded. RESEARCH draws the top card of a deck and the decks are shuffled whole, so a level 2 or level 3 card can be drawn and built outright. That is how you get a bigger company, and the only way to reach the fourth demand column.
+
+NOBODY HAS A PERSONA. All six industries are here and all six play exactly as they do in the full game, but no player is dealt a specialism. Two of the six personas change how you upgrade, and nothing is upgraded here, so they would do nothing at all - but dealing the other four and not those two would be worse than dealing none. A persona is an asymmetric power that has to be read, understood and weighed against the draft before the first card is taken, which is the kind of second explanation this mode exists without. Everybody plays the same game on their first evening.
 
 A COMPANY YOU LOSE IS GONE. Solvency works exactly as it does in the full game, and it is the only way a company leaves your board. Its ground goes with it and nobody can buy it back.
 

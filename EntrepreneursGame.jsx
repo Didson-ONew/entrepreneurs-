@@ -1898,7 +1898,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "67849b0a";
+const ENGINE_VERSION = "535539e9";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -3834,8 +3834,17 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
   const draftCounts = {};
   players.forEach((p) => { draftCounts[p.id] = starting[seatOf[p.id]][1]; });
   const humanDraftCount = draftCounts[0] || 0;   // kept for the single-player UI
-  // personas are optional; six exist and only nPlayers are dealt, so two or more sit out
-  if (usePersonas) {
+  /* Personas are optional; six exist and only nPlayers are dealt, so two or more
+     sit out. The beginner game deals none at all.
+
+     Two of the six would have been dead there anyway - the Systems Architect
+     and the Resort Developer both change HOW YOU UPGRADE, and there is no
+     UPGRADE in that mode - but dealing the other four and not those two would
+     be a worse answer than dealing none. A persona is an asymmetric power that
+     has to be read, understood and weighed against the draft before the first
+     card is taken, which is exactly the second explanation this mode exists to
+     avoid. Everybody plays the same game on their first evening. */
+  if (usePersonas && !V.beginner) {
     const deal = shuffle(PERSONA_KEYS, rng);
     players.forEach((pl, i) => { pl.persona = deal[i % deal.length]; });
   }

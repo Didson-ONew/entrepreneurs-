@@ -1176,6 +1176,11 @@ export const RULEBOOK_PT = [
               "não"
             ],
             [
+              "Personas",
+              "uma para cada",
+              "nenhuma"
+            ],
+            [
               "Fichas",
               "12",
               "6"
@@ -1209,6 +1214,9 @@ export const RULEBOOK_PT = [
       },
       {
         "p": "OS NÍVEIS CONTINUAM EXISTINDO mesmo sem melhorias. PESQUISA compra a carta do topo de um baralho, e os baralhos são embaralhados por inteiro, então uma carta de nível 2 ou nível 3 pode ser comprada e construída direto. É assim que se consegue uma empresa maior, e é o único jeito de alcançar a quarta coluna de demanda."
+      },
+      {
+        "p": "NINGUÉM TEM PERSONA. Os seis setores estão todos aqui e todos jogam exatamente como no jogo completo, mas nenhum jogador recebe uma especialidade. Duas das seis personas mudam como você melhora empresas, e aqui nada é melhorado, então elas não fariam nada - mas distribuir as outras quatro e não essas duas seria pior do que não distribuir nenhuma. Uma persona é um poder assimétrico que precisa ser lido, entendido e pesado contra o draft antes da primeira carta, e esse é exatamente o tipo de segunda explicação que este modo existe para evitar. Todo mundo joga o mesmo jogo na primeira noite."
       },
       {
         "p": "UMA EMPRESA PERDIDA NÃO VOLTA. A insolvência funciona exatamente como no jogo completo, e é o único jeito de uma empresa sair do seu quadro. O terreno vai junto com ela e ninguém pode comprá-la de volta."

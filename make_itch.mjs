@@ -160,8 +160,16 @@ entirely on what is already standing.
 
 - 2-6 players, 12 quarters over 3 fiscal years
 - 120-180 minutes at a physical table
+- A shorter beginner game built in, for a first sitting
 - Full rulebook built in and searchable, in English, Portuguese and Simplified Chinese
 - A ten-step tutorial that points at the thing it is describing
+
+**Never played something this heavy? There is a beginner game.** Same economy -
+the same supply chain, the same contested demand, the same prices moving under
+you while you plan - over two years instead of three, with one action per track
+instead of two and no Megacorps. Four things you can do rather than eight.
+Nothing is simplified: the parts that need a second explanation are just not in
+it yet. Turn it on under Rule variants before you start.
 
 **Hit fullscreen.** This one wants the room - the board, your ledger and the
 industry pots all want to be on screen at once.
@@ -196,6 +204,11 @@ hook is: *your customer is also your competitor - every company buys from the
 table and sells to it at once.* That is the sentence that makes someone try it,
 and it is the counterintuitive direction that does the work: people expect the
 players they are beating to be separate from the people paying them.
+
+Second post, if there is one: the beginner game. Not as a tutorial or an easy
+mode, but as the same economy with fewer moving parts - which is a more
+interesting claim and a true one. The audience that bounces off "120-180
+minutes" is the audience it is for.
 
 Keep the word "also" wherever this sentence is used, here and on the cover
 image. Without it the line reads as a swap - one group replaced by another -
