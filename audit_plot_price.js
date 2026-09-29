@@ -293,7 +293,16 @@ function run(arm, seats, n) {
     landEPWinner: [], landShare: [],
     winEP: [], margin: [], cashEnd: [], bizEnd: [],
     cheapestLeft: [], affordCheapest: [],
-    q6LeaderWon: 0, snapped: 0,
+    /* TENSION, MEASURED THE WAY audit_tension ARGUES FOR rather than the way
+       that is easy. "The Q6 leader won" cannot tell a runaway from a brawl: a
+       player who leads at Q6, is passed twice, and takes it back at the buzzer
+       scores identically to one who was never headed. Only the second is a
+       problem. So count the changes, and ask separately whether the Q6 leader
+       was ever actually headed after Q6 - that, and not the win, is what makes
+       a game a runaway. Incumbency follows the engine's own convention: being
+       LEVELLED WITH is not being passed. */
+    changes: [], wireToWire: 0, everLed: [], heldFromQ6: 0, q6Had: 0,
+    q6LeaderWon: 0, snapped: 0, decidedAt: [],
   };
   for (let seed = SEED0; o.games < n && seed < SEED0 + n * 5; seed++) {
     let st;
@@ -366,13 +375,38 @@ function run(arm, seats, n) {
       o.affordCheapest.push(pct(st.players.filter((p) => p.cash >= cheapest).length, st.players.length));
     }
 
-    /* --- one tension reading, on the same games ------------------------- */
-    const q6 = box.snaps.filter((s) => s.q <= 7).pop();
-    if (q6) {
+    /* --- tension, on the same games ------------------------------------- */
+    /* One last reading AFTER end-of-game scoring, so the land awards and the
+       Megacorp districts get their say; that swing is itself a tension
+       measure, and stopping at the final quarter would hide it. */
+    const wIdx = order[0][0];
+    const marks = box.snaps.map((sn) => ({ q: sn.q, ep: sn.ep })).concat([{ q: 13, ep: eps }]);
+    let leader = null, changes = 0, lastTook = null;
+    const led = new Set();
+    /* Who was leading at the Q6 checkpoint, and was that player ever headed
+       between there and the end? */
+    let q6Leader = null, q6Seen = false, heldSinceQ6 = true;
+    for (const mk of marks) {
+      const top = Math.max(...mk.ep);
+      if (top <= 0) continue;                        // nobody has scored yet
+      const tied = mk.ep.map((e, i) => [e, i]).filter(([e]) => e === top).map(([, i]) => i);
+      tied.forEach((i) => led.add(i));
+      if (leader === null || !tied.includes(leader)) {
+        if (leader !== null) changes++;
+        leader = tied[0];
+        if (leader === wIdx) lastTook = mk.q;
+      }
+      if (!q6Seen && mk.q >= 6) { q6Seen = true; q6Leader = leader; }
+      else if (q6Seen && leader !== q6Leader) heldSinceQ6 = false;
+    }
+    o.changes.push(changes);
+    o.everLed.push(pct(led.size, st.players.length));
+    if (changes === 0) o.wireToWire++;
+    if (lastTook !== null) o.decidedAt.push(Math.min(12, lastTook));
+    if (q6Seen) {
       o.snapped++;
-      const top = Math.max(...q6.ep);
-      const leaders = q6.ep.map((e, i) => [e, i]).filter(([e]) => e === top);
-      if (leaders.length === 1 && st.players[leaders[0][1]] === winner) o.q6LeaderWon++;
+      if (q6Leader === wIdx) o.q6LeaderWon++;
+      if (heldSinceQ6) o.heldFromQ6++;               // never headed after Q6: a real runaway
     }
   }
   return o;
@@ -436,6 +470,18 @@ for (const seats of TABLES) {
     console.log(`    ${arm}           ${pct(o.boughtAdjacent, o.boughtTotal).toFixed(1).padStart(5)}%              `
       + `${adj.toFixed(2).padStart(5)}          ${emp.toFixed(2).padStart(5)}        `
       + `${(adj - emp >= 0 ? "+" : "")}${(adj - emp).toFixed(2)}`);
+  }
+
+  console.log("\n  tension - a runaway is a leader never headed, not a leader who wins:");
+  console.log("    arm    lead changes   never headed   Q6 leader     Q6 leader     decided");
+  console.log("           per game       all game       won           never headed  at Q");
+  for (const arm of Object.keys(ARMS)) {
+    const o = rows[arm];
+    console.log(`    ${arm}       ${mean(o.changes).toFixed(2).padStart(5)}         `
+      + `${pct(o.wireToWire, o.games).toFixed(1).padStart(5)}%        `
+      + `${pct(o.q6LeaderWon, o.snapped).toFixed(0).padStart(3)}%          `
+      + `${pct(o.heldFromQ6, o.snapped).toFixed(0).padStart(3)}%         `
+      + `${mean(o.decidedAt).toFixed(1)}`);
   }
 
   console.log("\n  the two moves that counting the plot itself prices:");
