@@ -286,6 +286,46 @@ function latticeKeyForCell(cell) {
   const [lr, lc] = LOCAL5[cell.pos];
   return `${2 * (cell.r - 1) + lr / 2},${2 * (cell.c - 1) + lc / 2}`;
 }
+/* WHAT A PLOT COSTS: its road tag, plus PLOT_PER_STRUCTURE for every structure
+   standing on the plot or orthogonally touching it, plus a dollar for a hub.
+
+   Five squares - this one and its four neighbours - count the buildings,
+   multiply. That is the whole rule, and it is deliberately one sentence.
+
+   IT USED TO BE TWO SENTENCES AND A FOOTNOTE. Pricing counted `graph`, the
+   loose adjacency that includes diagonals inside a district, which made it the
+   only rule in the game where a corner counted: building and upgrading have
+   always used edges only, and the rulebook had to interrupt itself under plot
+   value to say corners were the exception. Counting `orth` deletes that
+   special case rather than adding one, and at a table it is the difference
+   between tracing diagonals around the demand block and across district seams
+   and looking at four squares.
+
+   AND IT NOW COUNTS THE PLOT ITSELF, which it never did. The ground under a
+   producing factory used to cost $0.27 LESS than bare ground at four seats
+   while a plot merely BESIDE that factory cost a dollar more - the building
+   you were about to collect rent from was free, and being near it was not.
+   That matters because such a plot is buyable: plotBuyable allows it, which is
+   the whole "land trades under standing buildings" mechanic.
+
+   THE RATE IS $3 because $1 could not reach. Measured at the moment of
+   purchase, a plot carries 0.33 to 0.48 occupied neighbours - land is abundant,
+   so it is bought empty - which left the adjacency term worth about 35 cents
+   against a tag averaging $2.65. audit_plot_price.js swept $1 to $8 over some
+   40,000 games: the premium is paid rather than dodged (the share of purchases
+   made next to a structure holds near a fifth throughout), $3 roughly doubles
+   what a contested plot costs against an empty one, and nothing else moves -
+   winning scores, margins, companies built, cash, and lead changes per game
+   all sit inside their noise bands. $4 measured equally safe; $3 leaves
+   headroom, and raising a rate after table play is easier than walking one
+   back.
+
+   Forced sales went DOWN, not up, which was the worry: this is also the SELL
+   price, and half of it is a solvency raise, so paying more for occupied
+   ground could have turned buildings into money. It does the opposite, because
+   the plot is dearer to buy back too - the move becomes a commitment rather
+   than a free raise. */
+const PLOT_PER_STRUCTURE = 3;
 function plotValue(state, plotKeyStr) {
   const board = state.board;
   const cell = board.cellOf[plotKeyStr];
@@ -294,9 +334,10 @@ function plotValue(state, plotKeyStr) {
     const v = board.priceLattice[latticeKeyForCell(cell)];
     if (v !== undefined) base = v;
   }
-  const occupiedNeighbors = [...board.graph[plotKeyStr]].filter((n) => n in board.occupiedBy).length;
+  const near = [...(board.orth[plotKeyStr] || [])].filter((n) => n in board.occupiedBy).length;
+  const onIt = plotKeyStr in board.occupiedBy ? 1 : 0;
   const lhBonus = plotHasLH(board, plotKeyStr) ? 1 : 0;
-  return base + occupiedNeighbors + lhBonus;
+  return base + PLOT_PER_STRUCTURE * (near + onIt) + lhBonus;
 }
 function isCrossDistrictEdge(board, a, b) {
   const ca = board.cellOf[a], cb = board.cellOf[b];
@@ -1826,7 +1867,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "a60f3586";
+const ENGINE_VERSION = "49664112";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the

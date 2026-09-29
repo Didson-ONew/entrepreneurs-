@@ -25,6 +25,10 @@ import {
   Table, TableRow, TableCell, WidthType, BorderStyle, ShadingType, PageOrientation,
 } from "docx";
 import { EDITION } from "./rulebook.data.mjs";
+/* The edition is imported, never typed. The "Rules" row used to name it in a
+   string literal - in a sentence whose whole claim is that the book cannot
+   drift from the game, which is the one line least able to afford going
+   stale the moment the edition moves. */
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -222,8 +226,8 @@ const doc = new Document({
         { t: "Six industries, eighteen relationships: each draws on exactly three others and feeds three back, in one unbroken ring. A build pushes its own industry's price down a dollar and each supplier's up one, on a visible $2–$12 track — so overbuilding your sector is self-defeating and feeding another is how you get paid." },
       ]),
       Prun([
-        { t: "Land trades under standing buildings. ", bold: true },
-        { t: "A company needs its ground owned by somebody, not necessarily its owner. Sell the plot under your own factory for cash and it stops producing until anyone buys it back — then you pay them rent to stand on what used to be yours." },
+        { t: "Land trades under standing buildings, and developed ground is the dearest there is. ", bold: true },
+        { t: "A plot costs its road price plus $3 for every structure standing on it or orthogonally touching it, so the most expensive ground on the board is the ground under a working company — and a company needs its ground owned by somebody, not necessarily its owner. Sell the plot under your own factory for cash and it stops producing until anyone buys it back — then you pay them rent to stand on what used to be yours." },
       ]),
       Prun([
         { t: "An endgame with a door that closes. ", bold: true },
@@ -252,7 +256,7 @@ const doc = new Document({
 
       H("Where it stands today"),
       grid(null, [
-        [{ t: "Rules", bold: true }, "Complete. Rulebook v19 is generated from the data the game runs on, so it cannot drift."],
+        [{ t: "Rules", bold: true }, `Complete. ${EDITION} is generated from the data the game runs on, so it cannot drift.`],
         [{ t: "Prototype", bold: true }, "Built and played at the table."],
         [{ t: "Digital build", bold: true }, "Playable now: solo against AI, or online with up to six."],
         [{ t: "Testing", bold: true }, `${AUDITS} balance audits and ${TESTS} automated tests, all in the repository.`],

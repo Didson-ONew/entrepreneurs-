@@ -28,10 +28,16 @@
    read D: if D looks like A, that is two changes cancelling, not a rule with no
    effect, and the arms show which half did what.
 
-     A  as it ships       graph, $1 per neighbour
+     A  the pre-v20 rule  graph, $1 per neighbour
      B  diagonals cut     orth,  $1 per neighbour
      C  rate doubled      graph, $2 per neighbour
      D  the proposal      orth,  $2 per neighbour
+
+   READ THE ARM LABELS, NOT THE LETTERS. The game shipped this probe's own
+   conclusion in v20, so arm A is now history rather than the status quo, and
+   arm I is what the engine actually does: orth, $3, counting the plot itself.
+   Arm A is kept because every finding below was measured against it, and a
+   baseline you delete is a finding nobody can check again.
 
    THE BOTS COME ALONG FOR FREE. Every bot valuation of a plot goes through
    plotValue - the acquisition scorer, the footprint costing, the buy loop and
@@ -195,9 +201,10 @@ const base = src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "");
    unchanged, the arm silently becomes a copy of A, and the table reads as "no
    effect". That is the failure this file must not have. */
 const NEEDLES = {
-  priceBody: `  const occupiedNeighbors = [...board.graph[plotKeyStr]].filter((n) => n in board.occupiedBy).length;
+  priceBody: `  const near = [...(board.orth[plotKeyStr] || [])].filter((n) => n in board.occupiedBy).length;
+  const onIt = plotKeyStr in board.occupiedBy ? 1 : 0;
   const lhBonus = plotHasLH(board, plotKeyStr) ? 1 : 0;
-  return base + occupiedNeighbors + lhBonus;`,
+  return base + PLOT_PER_STRUCTURE * (near + onIt) + lhBonus;`,
   buy: `  const cost = plotValue(state, plotKeyStr);
   if (p.cash < cost) return false;
   p.cash -= cost;`,
@@ -216,7 +223,7 @@ for (const [k, v] of Object.entries(NEEDLES)) {
 /* board.orth is an array and board.graph is a Set; [...x] takes either, so the
    arms differ by a property name and a multiplier and nothing else. */
 const ARMS = {
-  A: { adj: "graph", rate: 1, label: "ships      graph x$1" },
+  A: { adj: "graph", rate: 1, label: "pre-v20    graph x$1" },
   B: { adj: "orth", rate: 1, label: "orth only  orth  x$1" },
   C: { adj: "graph", rate: 2, label: "rate only  graph x$2" },
   D: { adj: "orth", rate: 2, label: "orth       orth  x$2" },
@@ -246,8 +253,8 @@ const ARMS = {
      a plot SELLS for, and selling the ground under your own company for cash
      is an existing move, so counting self pays you more for doing it - and
      half of it is what a distressed player raises under solvency. */
-  I: { adj: "orth", rate: 3, self: true, label: "self+      orth  x$3 +self" },
-  J: { adj: "orth", rate: 4, self: true, label: "self+      orth  x$4 +self" },
+  I: { adj: "orth", rate: 3, self: true, label: "SHIPS v20  orth  x$3 +self" },
+  J: { adj: "orth", rate: 4, self: true, label: "alt        orth  x$4 +self" },
 };
 
 function engineFor(arm) {
@@ -255,10 +262,10 @@ function engineFor(arm) {
   let logic = base;
 
   logic = logic.replace(NEEDLES.priceBody,
-    `  const occupiedNeighbors = [...(board.${adj}[plotKeyStr] || [])].filter((n) => n in board.occupiedBy).length;
-  const selfOccupied = ${self ? 1 : 0} && (plotKeyStr in board.occupiedBy) ? 1 : 0;
+    `  const near = [...(board.${adj}[plotKeyStr] || [])].filter((n) => n in board.occupiedBy).length;
+  const onIt = ${self ? 1 : 0} && (plotKeyStr in board.occupiedBy) ? 1 : 0;
   const lhBonus = plotHasLH(board, plotKeyStr) ? 1 : 0;
-  return base + ${rate} * (occupiedNeighbors + selfOccupied) + lhBonus;`);
+  return base + ${rate} * (near + onIt) + lhBonus;`);
 
   /* Record what the price was MADE OF, not just what it came to. If the
      adjacency term is small at the moment people actually buy, then no rate
