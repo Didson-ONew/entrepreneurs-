@@ -957,4 +957,5 @@ export default {
   "LAUNCH builds a Blueprint from your hand onto any free plots nobody has taken \u2014 the ground comes with the company, free \u2014 and pays you 3 EP the first time you enter each industry.": "创建把手牌里的项目卡建到任何无人占用的空地块上 \u2014 土地随公司一起免费到手 \u2014 并在你首次进入每个产业时付给你 3 EP。",
   "RESEARCH draws the face-up top card of any industry deck. Decks are shuffled whole, so a level 2 or level 3 card can be drawn and built straight away: it is how you reach a bigger footprint here.": "研发抽取任意产业牛牌堆最上面那张明牌。牛牌堆是整堆洗混的，所以等级 2 或等级 3 的卡可以抽到就直接建：在这里这就是你获得更大占地的方式。",
   "REPOSITION moves you to first in turn order. First sells into a contested demand icon before anybody else and places this quarter's Logistic Hub.": "调整顺序把你提到行动顺序的第一位。第一位能在所有人之前卖进被争抢的需求图标，并放置本季度的物流枢纽。",
+  "The beginner game seats four. It deals four personas from a pool of four, so every player has one and none is left over.": "新手局最多四人。它从四张角色中发四张，因此每位玩家都有一张，也不会剩下。",
 };
