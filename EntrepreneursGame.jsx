@@ -6886,7 +6886,14 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
               : <span style={{ color: "#4b5563" }}> {t("— standard rules")}</span>}
           </button>
           {showVariants && VARIANTS.map((v) => (
-            <button key={v.key} onClick={() => setVariants({ ...variants, [v.key]: !variants[v.key] })}
+            <button key={v.key} onClick={() => {
+                const next = { ...variants, [v.key]: !variants[v.key] };
+                /* Turning the beginner game on with five bots already chosen
+                   would leave a count the table cannot seat and no button lit.
+                   The server re-clamps for the same reason. */
+                if (next.beginner) setNumBots((b) => Math.min(b, 3));
+                setVariants(next);
+              }}
               className="w-full rounded-md px-3 py-2 text-left mt-1.5"
               style={{ backgroundColor: "#1c1f26", border: `1px solid ${variants[v.key] ? "#2c5f4f" : "#262a33"}` }}>
               <div className="flex items-center justify-between gap-2">
@@ -6901,8 +6908,12 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
         </div>
         <div className="mb-6">
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Opponents")}</div>
+          {/* The beginner game seats four, and the engine clamps a bigger table
+              back down to it. Offering five bots there and then handing over
+              three reads as a bug rather than a rule, so the buttons that
+              cannot be honoured are not shown. */}
           <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((n) => (
+            {(variants.beginner ? [1, 2, 3] : [1, 2, 3, 4, 5]).map((n) => (
               <button key={n} onClick={() => setNumBots(n)}
                 className="flex-1 py-2 rounded-md text-[11px] font-semibold transition whitespace-nowrap"
                 style={{ backgroundColor: numBots === n ? "#2c5f4f" : "#1c1f26", color: numBots === n ? "#d3fcec" : "#9ca3af", border: "1px solid #262a33" }}>
@@ -6911,7 +6922,9 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
             ))}
           </div>
           <div className="text-[10px] text-gray-500 mt-1.5" style={{ lineHeight: 1.4 }}>
-            {t("A table seats six. All four Megacorp tiers are in from four players. The fifth and sixth seats open a fifth and sixth slot on each of the three working tracks, and draw three, then four, tiles from each tier instead of two.")}
+            {variants.beginner
+              ? t("The beginner game seats four. It deals four personas from a pool of four, so every player has one and none is left over.")
+              : t("A table seats six. All four Megacorp tiers are in from four players. The fifth and sixth seats open a fifth and sixth slot on each of the three working tracks, and draw three, then four, tiles from each tier instead of two.")}
           </div>
         </div>
         <div className="mb-6 flex flex-wrap gap-1.5">
