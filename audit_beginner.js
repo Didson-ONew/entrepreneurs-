@@ -93,7 +93,10 @@ const GAMES = parseInt(process.argv[2] || "120", 10);
 const seedArg = process.argv.find((a) => a.startsWith("--seeds="));
 const SEED0 = seedArg ? parseInt(seedArg.slice(8), 10) : 1;
 const SEATS = process.argv.slice(3).filter((a) => !a.startsWith("--")).map(Number).filter(Boolean);
-const TABLES = SEATS.length ? SEATS : [2, 3, 4, 5, 6];
+/* The beginner game seats four, so sweeping five and six would compare a table
+   it allows against one it does not - the engine clamps them back to four and
+   the rows would be duplicates wearing the wrong label. */
+const TABLES = SEATS.length ? SEATS : [2, 3, 4];
 
 const src = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
 const cut = src.indexOf("/* ============================== REACT UI ============================== */");

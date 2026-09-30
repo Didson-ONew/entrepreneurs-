@@ -544,13 +544,14 @@ What stays is the part worth learning. Your production still sells into the dema
 
 |  | The full game | The beginner game |
 | --- | --- | --- |
+| Players | 2-6 | 2-4 |
 | Length | 12 quarters, 3 years | 8 quarters, 2 years |
 | Raise Capital | LOAN or SELL | LOAN |
 | M&A | BUY or LAUNCH | LAUNCH |
 | R&D | RESEARCH or UPGRADE | RESEARCH |
 | Board Meeting | GO PUBLIC or REPOSITION | REPOSITION |
 | Megacorps | yes | no |
-| Personas | one each | none |
+| Personas | one each, six exist | one each, four exist |
 | Discs | 12 | 6 |
 | Land | bought and sold | claimed free by building |
 | Land awards | most plots and most districts | most districts |
@@ -564,7 +565,9 @@ A COMPANY REACHES ONE COLUMN ABOVE ITS LEVEL. A level 1 company reaches columns 
 
 LEVELS STILL EXIST even though nothing is upgraded. RESEARCH draws the top card of a deck and the decks are shuffled whole, so a level 2 or level 3 card can be drawn and built outright. That is how you get a bigger company, and the only way to reach the fourth demand column.
 
-NOBODY HAS A PERSONA. All six industries are here and all six play exactly as they do in the full game, but no player is dealt a specialism. Two of the six personas change how you upgrade, and nothing is upgraded here, so they would do nothing at all - but dealing the other four and not those two would be worse than dealing none. A persona is an asymmetric power that has to be read, understood and weighed against the draft before the first card is taken, which is the kind of second explanation this mode exists without. Everybody plays the same game on their first evening.
+FOUR PERSONAS, AND FOUR SEATS. All six industries are here and play exactly as they do in the full game, but only four of the six personas are dealt. The Systems Architect and the Resort Developer both change how you UPGRADE, and nothing is upgraded here, so a player holding either would have a specialism that never comes up. The four that remain - the Public Health Director, the White-Label Supplier, the Supply Chain Expert and the Concession Holder - all act somewhere this mode still goes.
+
+That is also why the table seats four rather than six. Four personas dealt to four players means everybody has one and none is left over, so nobody is playing against a power that is not on the table.
 
 A COMPANY YOU LOSE IS GONE. Solvency works exactly as it does in the full game, and it is the only way a company leaves your board. Its ground goes with it and nobody can buy it back.
 
