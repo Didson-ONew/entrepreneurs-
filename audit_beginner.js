@@ -38,51 +38,53 @@
    fairness comparison - the two are different lengths and different games - it
    is there so "is that number small?" has something to be small against.
 
-   WHAT IT FOUND - 150 games per arm per table, all five counts, the full game
-   on the same seeds as a reference.
+   WHAT IT FOUND - 200 games per arm at each of the mode's three table sizes,
+   the full game on the same seeds as a reference. The mode seats four, so
+   there is no 5p or 6p arm to run.
 
-   1. THINGS COMPOUND. The last two quarters carry 31.6% of the winning score
-      at two seats, 38.5% at four and 36.0% at six - against the full game's
-      31.2 / 35.4 / 36.9. The endgame is worth the same share of a short game as
+   1. THINGS COMPOUND. The last two quarters carry 32.8% of the winning score
+      at two seats, 37.2% at three and 38.5% at four - against the full game's
+      30.4 / 35.8 / 36.1. The endgame is worth the same share of a short game as
       of a long one, so eight quarters does not end before anything happens.
-      More of the score is banked by halfway (43-52% against 31-40%), which is
+      More of the score is banked by halfway (44-49% against 31-40%), which is
       what a shorter game should look like.
 
    2. A BAD START IS NOT FATAL. It is gentler than the full game, by a lot. No
-      seat ended with nothing standing at any table size, against 3.7% to 8.2%
-      in the full game, and almost none was ever emptied at all (0-0.5% against
-      32-53%). A seat last at halfway reached the top half 34.5% / 35.7% / 19.0%
-      of the time against 28.6 / 24.1 / 20.9.
+      seat ended with nothing standing at any table size, against 3.5% to 7.5%
+      in the full game, and almost none was ever emptied at all (0-2.8% against
+      32-42%). A seat last at halfway reached the top half 34.9% / 44.6% / 32.9%
+      of the time against 29.7 / 43.8 / 24.9.
 
       The cost of that is worth stating: SOLVENCY IS CLOSE TO DEAD CODE here.
       It was kept as the only way out of a company, and it almost never fires.
 
-   3. THERE IS NO ONE LINE. Level 3 is 26-33% of what gets built against the
-      full game's 29-37%, and the winner's average company level is 2.11-2.18
-      against a table average of 1.93-1.96. Winners build slightly taller;
-      RESEARCH-into-a-level-3 is not the only game.
+   3. THERE IS NO ONE LINE. Level 3 is 27.6-34.7% of what gets built against the
+      full game's 30.9-36.7%, and the winner's average company level is
+      2.07-2.19 against a table average of 1.91-2.07. Winners build slightly
+      taller; RESEARCH-into-a-level-3 is not the only game.
 
-   WHAT DID MOVE, AND IT IS THE ONE THING WORTH A SECOND LOOK: cash is 20.6% of
-   the winning score at two seats, 25.4% at four and 24.2% at six, against the
-   full game's 15.4 / 14.1 / 13.1. Industry debuts also roughly double, to
-   19.6-23.5% from 11.1-12.2%. Megacorps were 24-29% of the scoreboard and
-   their share went to CASH and DEBUTS rather than to companies or land. A
-   teaching game in which a quarter of the answer is holding money teaches
-   something the full game does not.
+   WHAT DID MOVE, AND IT IS THE ONE THING WORTH A SECOND LOOK: cash is 21.8% of
+   the winning score at two and three seats and 26.0% at four, against the full
+   game's 14.9 / 13.3 / 14.1. Industry debuts also roughly double, to 20.8-22.4%
+   from 12.1-12.5%. Megacorps were about a quarter of the scoreboard and their
+   share went to CASH and DEBUTS rather than to companies or land. A teaching
+   game in which a quarter of the answer is holding money teaches something the
+   full game does not.
 
-   Land holds up: 16.1-20.5% on the districts award alone against 18.4-27.4%
-   from two awards, and at six seats it is HIGHER than the full game.
+   Land is the other side of that: 14.9-16.1% on the districts award alone
+   against 19.4-27.3% from two awards. It is still a seventh to a sixth of the
+   answer, but it is worth less here than in the full game at every table size.
 
-   TENSION IS FINE PER QUARTER and lower per game, which is arithmetic rather
-   than a fault: 2.53 lead changes at six seats against 4.11, over eight
-   quarters against nearly twelve - 0.32 a quarter against 0.35. Games never
-   headed at all run 4.7% at four and six seats against 2.7% and 1.3%; two
-   seats is 18% in BOTH games, which is the two-player count being what it
-   already is rather than anything this mode did.
+   TENSION IS FINE. Fewer lead changes per game than the full game - 1.70 / 2.40
+   / 2.68 against 1.83 / 2.88 / 3.31 - but MORE per quarter at every table size,
+   0.21 / 0.30 / 0.34 against 0.15 / 0.24 / 0.28, because the game is a third
+   shorter. Games never headed at all run 13.5% at two seats against 17.0%, and
+   9.0% / 6.5% at three and four against 6.0% / 2.0%: the short game leaves a
+   little more room for a wire-to-wire winner at the bigger tables, not less.
 
    Run: node audit_beginner.js [games] [seats...]
         node audit_beginner.js 200 4
-        node audit_beginner.js 150 2 3 4 5 6
+        node audit_beginner.js 200 2 3 4
    ========================================================================== */
 const fs = require("fs");
 const path = require("path");

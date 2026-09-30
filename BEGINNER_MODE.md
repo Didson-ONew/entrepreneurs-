@@ -1,15 +1,15 @@
-# Beginner mode — the spec, before any of it is built
+# Beginner mode — the design, and what it measured
 
 A shorter game that teaches the loop. Playtesters say teaching is the
 bottleneck, not balance, so this exists to get somebody through a whole arc —
 build, produce, sell, pay suppliers, watch prices move — in one sitting,
 without the subsystems that need a second explanation.
 
-**Built and measured.** The engine mode is complete behind the `beginner`
-variant and `audit_beginner.js` measures it. What is NOT done is the UI: the
-engine refuses BUY, UPGRADE, RENOVATE, RECLAIM and GO PUBLIC, but their buttons
-still render, so a human would click them and nothing would happen. That pass
-has to land before anyone plays it.
+**Built, measured and playable.** The mode is complete behind the `beginner`
+variant, `audit_beginner.js` measures it, and the UI pass has landed: the
+actions the engine refuses - BUY, SELL, UPGRADE, RENOVATE, RECLAIM, GO PUBLIC -
+no longer render, the lobby and the solo setup screen clamp the table to four,
+and the rulebooks document it in all three languages.
 
 ## What it keeps
 
@@ -125,66 +125,73 @@ districts-only land scoring a real race.
 
 Share of the winner's score in the full game, from `audit_ep_mix.js`:
 
-| source | 2p | 4p | 6p |
-|---|---|---|---|
-| Companies & upgrades | 35.1% | 33.9% | 32.3% |
-| Land awards (both) | 24.9% | 16.8% | 12.9% |
-| Cash on hand | 15.2% | 14.3% | 14.7% |
-| Industry debuts | 12.0% | 11.7% | 11.1% |
-| Forming a Megacorp | 8.2% | 12.3% | 14.4% |
-| Megacorp brand | 4.1% | 11.4% | 14.3% |
+| source | 2p | 4p |
+|---|---|---|
+| Companies & upgrades | 35.1% | 33.9% |
+| Land awards (both) | 24.9% | 16.8% |
+| Cash on hand | 15.2% | 14.3% |
+| Industry debuts | 12.0% | 11.7% |
+| Forming a Megacorp | 8.2% | 12.3% |
+| Megacorp brand | 4.1% | 11.4% |
 
-Dropping Megacorps removes about **24% of the scoreboard at four players and
-29% at six** — and it grows with table size, so the teaching mode differs most
-from the real game at exactly the big tables people are taught at. Dropping The
-Real-Estate Mogul removes roughly half of land's share.
+Dropping Megacorps removes about **12% of the scoreboard at two players and 24%
+at four** — and it grows with table size, so the teaching mode differs most from
+the real game at the biggest table it seats. Dropping The Real-Estate Mogul
+removes roughly half of land's share.
 
-Land's RELATIVE share will likely go up rather than down, because the
-denominator shrinks so much. Worth checking against the intent.
+Land's relative share was expected to go UP, because the denominator shrinks so
+much. It did not - see below. Dropping the second award cost more than the
+smaller scoreboard gave back.
 
 ## What the measurements said
 
-150 games per arm per table, the full game on the same seeds as a reference.
+200 games per arm at each of the mode's three table sizes, the full game on the
+same seeds as a reference. The mode seats four, so 2p, 3p and 4p is the whole
+sweep.
 
-**Things compound.** The last two quarters carry 31.6% of the winning score at
-two seats, 38.5% at four, 36.0% at six - against the full game's 31.2 / 35.4 /
-36.9. The endgame is worth the same share of a short game as of a long one.
+**Things compound.** The last two quarters carry 32.8% of the winning score at
+two seats, 37.2% at three and 38.5% at four - against the full game's 30.4 /
+35.8 / 36.1. The endgame is worth the same share of a short game as of a long
+one. More is banked by halfway, 44-49% against 31-40%, which is what a shorter
+game should look like.
 
 **A bad start is not fatal**, and the mode is markedly gentler than the full
-game. No seat ended with nothing standing at any table size (3.7-8.2% in the
-full game), and almost none was ever emptied at all (0-0.5% against 32-53%). A
-seat last at halfway reached the top half 34.5% / 35.7% / 19.0% of the time
-against 28.6 / 24.1 / 20.9.
+game. No seat ended with nothing standing at any table size (3.5-7.5% in the
+full game), and almost none was ever emptied at all (0-2.8% against 32-42%). A
+seat last at halfway reached the top half 34.9% / 44.6% / 32.9% of the time
+against 29.7 / 43.8 / 24.9.
 
 That has a consequence worth owning: **solvency is close to dead code here**. It
 was kept as the only way out of a company, and it almost never fires.
 
-**There is no single line.** Level 3 is 26-33% of what gets built against the
-full game's 29-37%, and the winner's average company level is 2.11-2.18 against
-a table average of 1.93-1.96. RESEARCH-into-a-level-3 is a good line, not the
-only one.
+**There is no single line.** Level 3 is 27.6-34.7% of what gets built against
+the full game's 30.9-36.7%, and the winner's average company level is 2.07-2.19
+against a table average of 1.91-2.07. RESEARCH-into-a-level-3 is a good line,
+not the only one.
 
-**Tension is fine per quarter** and lower per game, which is arithmetic: 2.53
-lead changes at six seats against 4.11, over eight quarters against nearly
-twelve - 0.32 a quarter against 0.35.
+**Tension is fine.** Fewer lead changes per game than the full game - 1.70 /
+2.40 / 2.68 against 1.83 / 2.88 / 3.31 - but more per QUARTER at every table
+size, 0.21 / 0.30 / 0.34 against 0.15 / 0.24 / 0.28, because the game is a third
+shorter. Games never headed at all run 13.5% at two seats against the full
+game's 17.0%, and 9.0% / 6.5% at three and four against 6.0% / 2.0%.
 
 ### The one thing worth changing
 
 | winner's points from | beginner | full |
 |---|---|---|
-| companies | 35.7-41.1% | 30.8-35.3% |
-| **cash** | **20.6-25.4%** | **13.1-15.4%** |
-| industry debuts | 19.6-23.5% | 11.1-12.2% |
-| land awards | 16.1-20.5% | 18.4-27.4% |
+| companies | 38.3-41.0% | 33.6-35.6% |
+| **cash** | **21.8-26.0%** | **13.3-14.9%** |
+| industry debuts | 20.8-22.4% | 12.1-12.5% |
+| land awards | 14.9-16.1% | 19.4-27.3% |
 
-Megacorps were 24-29% of the scoreboard, and their share went to **cash and
-industry debuts**, not to companies or land. A quarter of the answer in the
+Megacorps were about a quarter of the scoreboard, and their share went to **cash
+and industry debuts**, not to companies or land. A quarter of the answer in the
 teaching game is holding money, which the full game does not teach - somebody
 who learns here learns to sit on cash and then meets a game where that is worth
 half as much.
 
-Land holds up on the districts award alone, and at six seats is worth MORE than
-in the full game, so the districts-only call is sound.
+Land on the districts award alone is worth less than the full game's two awards
+at every table size, though not by much at four seats: 14.9% against 19.4%.
 
 ## Open questions, for measurement or for a table
 
@@ -197,5 +204,7 @@ fatal, and no there is not one line. What is left:
 - **Solvency almost never fires.** It is the only exit and it is close to
   unreachable, so a teaching game may never show a player what failure looks
   like. That may be right for a first game.
-- **Do personas stay?** Several modify actions this mode removes.
-- **The UI pass**, which is the only thing between this and a table.
+- **Four personas, or none?** The two that only touch UPGRADE are out and the
+  table seats four so the remaining four deal exactly. Whether a first-time
+  player wants a personal power at all is a table question, not a measurable
+  one.
