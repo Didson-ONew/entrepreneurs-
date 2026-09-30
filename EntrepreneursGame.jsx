@@ -1222,6 +1222,19 @@ const levelEP = (state) => 2;
 const INDUSTRY_DEBUT_EP = 3;
 
 const PERSONA_KEYS = Object.keys(PERSONAS);
+/* THE BEGINNER GAME DEALS FROM FOUR OF THE SIX. The Systems Architect and the
+   Resort Developer both change HOW YOU UPGRADE, and there is no UPGRADE in that
+   mode, so a player dealt either would hold a specialism that never comes up.
+   The other four all act somewhere the beginner game still goes - a Healthcare
+   column, a Manufacturing cross-sell, a price you do not build in, a Utilities
+   concession.
+
+   Four personas is also exactly why the mode seats four. Every player gets one
+   and none is left over, so nobody is playing against a power that is not on
+   the table. */
+const BEGINNER_PERSONA_KEYS = ["preventive", "product_mgr", "supply_chain", "gov_rel"];
+const BEGINNER_MAX_SEATS = 4;
+const maxSeatsFor = (beginner) => (beginner ? BEGINNER_MAX_SEATS : 6);
 const hasPersona = (p, key) => !!p && p.persona === key;
 
 const ARCHETYPES = ["balanced", "rush_cheap", "upgrade_focus", "tech_heavy", "vest_rebuild"];
@@ -1898,7 +1911,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "535539e9";
+const ENGINE_VERSION = "b5d6636b";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -3789,10 +3802,15 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
   const rng = mulberry32(seedNum);
   const V = normaliseVariants(variants);
   const nHumans = humanNames && humanNames.length ? humanNames.length : 1;
-  const nPlayers = nHumans + numBots;
+  /* The beginner game seats four. Four personas are dealt from a pool of four,
+     so a fifth seat would mean somebody playing against a power that is not on
+     the table - and the mode exists to have less to explain, not more. The
+     lobby stops a fifth player from joining; this clamps the bots so a state
+     built any other way is still a legal one rather than a broken table. */
+  const seatCap = V.beginner ? BEGINNER_MAX_SEATS : 6;
+  const nPlayers = Math.min(nHumans + numBots, seatCap);
+  numBots = Math.max(0, nPlayers - nHumans);
   const board = buildBoard(rng);
-  // Hubs stand on plots unless the table asked for the older road hubs. The board
-  // itself has to know, because the hub helpers take a board rather than a state.
   const demand = makeDemandPool(board, rng);
   const pm = makePriceMatrix();
 
@@ -3834,18 +3852,13 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
   const draftCounts = {};
   players.forEach((p) => { draftCounts[p.id] = starting[seatOf[p.id]][1]; });
   const humanDraftCount = draftCounts[0] || 0;   // kept for the single-player UI
-  /* Personas are optional; six exist and only nPlayers are dealt, so two or more
-     sit out. The beginner game deals none at all.
-
-     Two of the six would have been dead there anyway - the Systems Architect
-     and the Resort Developer both change HOW YOU UPGRADE, and there is no
-     UPGRADE in that mode - but dealing the other four and not those two would
-     be a worse answer than dealing none. A persona is an asymmetric power that
-     has to be read, understood and weighed against the draft before the first
-     card is taken, which is exactly the second explanation this mode exists to
-     avoid. Everybody plays the same game on their first evening. */
-  if (usePersonas && !V.beginner) {
-    const deal = shuffle(PERSONA_KEYS, rng);
+  /* Personas are optional. In the full game six exist and only nPlayers are
+     dealt, so at a small table two or more sit out. The beginner game deals
+     from four - see BEGINNER_PERSONA_KEYS - and seats four, so there everybody
+     gets one and none is left over. */
+  if (usePersonas) {
+    const pool = V.beginner ? BEGINNER_PERSONA_KEYS : PERSONA_KEYS;
+    const deal = shuffle(pool, rng);
     players.forEach((pl, i) => { pl.persona = deal[i % deal.length]; });
   }
   /* Two tiles from each tier that is in play - which still comes to twice the number

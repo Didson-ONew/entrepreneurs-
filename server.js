@@ -71,7 +71,14 @@ const token = () => crypto.randomBytes(16).toString("hex");
    counts - they open a fifth and sixth slot on the three working tracks - so the room
    never seats more than the engine deals for. */
 const MAX_SEATS = 6;
-const clampBots = (n, seated) => Math.max(0, Math.min(MAX_SEATS - Math.max(1, seated), n | 0));
+/* The beginner game seats four, because it deals four personas from a pool of
+   four and a fifth player would be up against a power nobody holds. The engine
+   clamps too, so a table built any other way is still legal - this is what
+   stops a fifth person taking a seat and then finding it gone. */
+const BEGINNER_SEATS = 4;
+const seatsFor = (room) => (room && room.variants && room.variants.beginner ? BEGINNER_SEATS : MAX_SEATS);
+const clampBots = (n, seated, room) =>
+  Math.max(0, Math.min(seatsFor(room) - Math.max(1, seated), n | 0));
 function newRoom(hostName, bots, hostPid) {
   let c; do { c = code(); } while (rooms.has(c));
   const room = {
@@ -1268,7 +1275,7 @@ const server = http.createServer(async (req, res) => {
     if (!room) return json(res, { error: "No such room." }, 404);
     const allowedJoin = nameAllowed(req, b.name);
     if (!allowedJoin.ok) return json(res, { error: allowedJoin.error }, 403);
-    const full = room.members.length + room.bots >= MAX_SEATS;
+    const full = room.members.length + room.bots >= seatsFor(room);
     if (room.state || full) {
       // the seat is gone, but they can still pull up a chair and watch
       const sp = {
@@ -1513,7 +1520,12 @@ const server = http.createServer(async (req, res) => {
     if (b.variants && typeof b.variants === "object") {
       room.variants = E.normaliseVariants({ ...room.variants, ...b.variants });
     }
-    if (typeof b.bots === "number") room.bots = clampBots(b.bots, room.members.length);
+    if (typeof b.bots === "number") room.bots = clampBots(b.bots, room.members.length, room);
+    /* Turning the beginner game ON after the bots are set has to take the table
+       back down to four, or the host sees five seats and the start is refused
+       with no obvious reason why. Re-clamped against whatever the variants now
+       say, whichever order the two arrived in. */
+    room.bots = clampBots(room.bots, room.members.length, room);
     broadcast(room);
     return json(res, { ok: true });
   }
@@ -1526,7 +1538,8 @@ const server = http.createServer(async (req, res) => {
     if (!me || !me.host) return json(res, { error: "Only the host can start." }, 403);
     if (room.state) return json(res, { error: "Already started." }, 409);
     if (room.members.length + room.bots < 2) return json(res, { error: "Need at least 2 players (add a bot or another human)." }, 400);
-    if (room.members.length + room.bots > MAX_SEATS) return json(res, { error: `A table seats ${MAX_SEATS}. Remove a bot or a player.` }, 400);
+    const cap = seatsFor(room);
+    if (room.members.length + room.bots > cap) return json(res, { error: `A table seats ${cap}. Remove a bot or a player.` }, 400);
     const seed = Math.floor(Math.random() * 1e9);
     room.state = E.initGame(room.bots, seed, room.members.map((m) => m.name), undefined, room.personas, room.variants);
     room.rng = seededRng(seed + 777);
