@@ -86,7 +86,7 @@ section("And so do plots and companies");
 
   const voluntary = Math.floor(E.bizSetup(biz) / 2);      // not upgraded
   me.cash = 0;
-  E.doSellCompany(me, biz, quiet, true);
+  E.doSellCompany(st, me, biz, quiet, true);
   check("a company fetches half a voluntary sale when forced",
     me.cash === Math.floor(voluntary / 2), `voluntary $${voluntary}, forced $${me.cash}`);
 }

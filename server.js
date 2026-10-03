@@ -372,7 +372,7 @@ function applyAction(room, seat, action, data) {
       else if (t === "buyPlot") ok = E.doBuyPlot(st, p, d.plot, lg);
       else if (t === "sellPlot") ok = E.doSellPlot(st, p, d.plot, lg);
       else if (t === "sellBP") { const bp = p.hand[d.index]; ok = !!bp && (E.doSellBP(st, p, bp, lg), true); }
-      else if (t === "sellCompany") { const b = p.businesses.find((x) => x.id === d.bizId); ok = !!b && (E.doSellCompany(p, b, lg), true); }
+      else if (t === "sellCompany") { const b = p.businesses.find((x) => x.id === d.bizId); ok = !!b && (E.doSellCompany(st, p, b, lg), true); }
       else if (t === "launch") { const bp = p.hand[d.index]; ok = !!bp && E.doLaunch(st, p, bp, rng, lg, d.footprint); }
       else if (t === "reclaim") {
         const target = E.findDistressedTargets(st).find((x) => x.id === d.bizId);
@@ -433,7 +433,7 @@ function applyAction(room, seat, action, data) {
       if (st.phase !== "liquidating") return { error: "Not liquidating." };
       // this window exists because a bill cannot be paid: everything goes at half price
       if (d.type === "bp") { const bp = p.hand[d.index]; if (bp) E.doSellBP(st, p, bp, lg, true); }
-      else if (d.type === "biz") { const b = p.businesses.find((x) => x.id === d.bizId); if (b) E.doSellCompany(p, b, lg, true); }
+      else if (d.type === "biz") { const b = p.businesses.find((x) => x.id === d.bizId); if (b) E.doSellCompany(st, p, b, lg, true); }
       else if (d.type === "plot") E.doSellPlot(st, p, d.plot, lg, true);
       break;
     }

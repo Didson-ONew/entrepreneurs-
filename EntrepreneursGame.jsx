@@ -1485,11 +1485,19 @@ function scoreCompanyOnCompletion(state, p, biz) {
    structure fetches its full setup because the upgrades were paid for on top of
    it; anything else fetches half. */
 const voluntarySalePrice = (b) => (b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2));
-function sellCompany(p, b, solvency = false) {
+function sellCompany(state, p, b, solvency = false) {
   let recv;
   if (solvency) recv = b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4);
   else recv = voluntarySalePrice(b);
   p.cash += recv; b.distressed = true;
+  /* THE GROUND GOES WITH THE COMPANY in the beginner game. Everywhere else the
+     land stays yours, because you can sell it or build on it again - that is the
+     whole of audit_liquidation's finding. Here there is no BUY, no SELL and no
+     RECLAIM, so ground left on your sheet can never be used by anyone, and
+     discsForGround counts exactly the plots an active company is NOT covering:
+     a three-plot company cost one disc standing and THREE once it fell, for
+     nothing. The shell stays on the board; the plots stop being yours. */
+  if (isBeginner(state)) b.footprint.forEach((plot) => delete state.board.owner[plot]);
   /* Remember the payout: buying the shell back as it stands costs exactly what
      the bank handed over for it. See reclaimCost. */
   b.distressPayout = recv;
@@ -1911,7 +1919,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "b5d6636b";
+const ENGINE_VERSION = "755c9cb1";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -1980,8 +1988,8 @@ function doLoan(state, p, log) {
   log(logMsg("{0} takes a loan (+$20, +1 disc) (cash: ${1}, discs used: {2}/{3}).", p.name, Math.round(p.cash), discsUsed(state, p), discsPerPlayer(state)), p.id);
   return true;
 }
-function doSellCompany(p, b, log, solvency = false) {
-  const recv = sellCompany(p, b, solvency);
+function doSellCompany(state, p, b, log, solvency = false) {
+  const recv = sellCompany(state, p, b, solvency);
   log(logMsg("{0} sells {1} for ${2}{3} (cash: ${4}).", p.name, b.bp.name, recv, solvency ? " (SOLVENCY - half price)" : "", Math.round(p.cash)), p.id);
 }
 /* `solvency` is set when the sale is forced by a bill you cannot pay. Everything then
@@ -2050,7 +2058,7 @@ function runProduction(state, log) {
     while (p.cash < bill) {
       const worst = worstRoiBusiness(p, pm, state.quarter, 0);
       if (!worst) break;
-      sellCompany(p, worst, true);
+      sellCompany(state, p, worst, true);
       bill = quarterBill(state, p);
     }
   }
@@ -2075,8 +2083,8 @@ function runProduction(state, log) {
           const before = p.cash; doSellPlot(state, p, cheapPlot, log, true); debt -= p.cash - before;
         }
         const liquidatable = activeBiz(p).filter((x) => x.id !== b.id);
-        for (const x of liquidatable) { if (debt <= 0) break; const before = p.cash; sellCompany(p, x, true); debt -= p.cash - before; }
-        sellCompany(p, b, true);
+        for (const x of liquidatable) { if (debt <= 0) break; const before = p.cash; sellCompany(state, p, x, true); debt -= p.cash - before; }
+        sellCompany(state, p, b, true);
         log(logMsg("{0} enters SOLVENCY on {1}.", p.name, b.bp.name), p.id);
         continue;
       }
@@ -3230,17 +3238,17 @@ function botResolveOneAction(state, p, track, rng, log) {
       && price(state.pm, bp.ind) >= BASE_PRICE[bp.ind]
       && p.cash + bizSetup(collapsed) / 2 >= bp.setup);
     if (collapsed && replacement && state.quarter <= 9) {
-      const got = sellCompany(p, collapsed, false);
+      const got = sellCompany(state, p, collapsed, false);
       log(logMsg("{0} sells {1}: {2} has collapsed to ${3} and it was losing money (+${4}).", p.name, collapsed.bp.name, bizInd(collapsed), PRICE_MIN, got), p.id);
       return;
     }
     const dead = activeBiz(p).find((b) => !businessCanProduce(state, b));
-    if (dead) { sellCompany(p, dead, false); log(logMsg("{0} sells {1} \u2014 it sits on land nobody owns and cannot produce.", p.name, dead.bp.name), p.id); return; }
+    if (dead) { sellCompany(state, p, dead, false); log(logMsg("{0} sells {1} \u2014 it sits on land nobody owns and cannot produce.", p.name, dead.bp.name), p.id); return; }
     if (genuineNeed && p.discsInBank >= 3 && activeBiz(p).length) {
       // already carrying real debt just to keep the lights on - cut the worst offender loose
       // instead of financing it forever with more loans
       const worst = worstRoiBusiness(p, state.pm, state.quarter, 0);
-      if (worst) { sellCompany(p, worst, false); log(logMsg("{0} cuts loose {1} rather than take another loan to cover it (cash: ${2}).", p.name, worst.bp.name, Math.round(p.cash)), p.id); }
+      if (worst) { sellCompany(state, p, worst, false); log(logMsg("{0} cuts loose {1} rather than take another loan to cover it (cash: ${2}).", p.name, worst.bp.name, Math.round(p.cash)), p.id); }
       else doLoan(state, p, log);
     } else if (genuineNeed) doLoan(state, p, log);
     else if (p.hand.length > 3) { sellBpFromHand(state, p, p.hand.reduce((a, b) => (BP_SELL_PRICE[a.lvl] || 4) > (BP_SELL_PRICE[b.lvl] || 4) ? a : b), false); log(logMsg("{0} sells a BP from hand.", p.name), p.id); }
@@ -4910,7 +4918,7 @@ function LiquidationPanel({ state, human, log, onContinue }) {
           <div className="text-[10px] text-gray-400 mb-1">{t("Businesses:")}</div>
           <div className="flex flex-wrap gap-2 mb-2">
             {activeBiz(human).map((b) => (
-              <button key={b.id} onClick={() => { if (NET) return NET.send("liquidate", { type: "biz", bizId: b.id }); doSellCompany(human, b, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
+              <button key={b.id} onClick={() => { if (NET) return NET.send("liquidate", { type: "biz", bizId: b.id }); doSellCompany(state, human, b, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
                 {t(b.bp.name)} <span style={{ color: "#f3a5a5" }}>${b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4)}</span>
               </button>
             ))}
@@ -4993,7 +5001,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
           <div className="text-[10px] text-gray-400">{t("Businesses:")}</div>
           <div className="flex flex-wrap gap-2">
             {activeBiz(human).map((b) => (
-              <button key={b.id} onClick={() => { if (NET) return NET.send("act", { type: "sellCompany", bizId: b.id }); doSellCompany(human, b, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
+              <button key={b.id} onClick={() => { if (NET) return NET.send("act", { type: "sellCompany", bizId: b.id }); doSellCompany(state, human, b, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
                 {t(b.bp.name)} <span style={{ color: "#f3a5a5" }}>${b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2)}</span>
               </button>
             ))}

@@ -27,7 +27,7 @@ function loadEngine() {
       doRenovate, renovationEligible, findDistressedTargets, activeBiz, discsFree, byId,
       companySlotsUsed, COMPANY_SLOTS, bizSetup, mulberry32, maWouldAchieveSomething,
       scoreCompanyOnCompletion, levelEP, reclaimCost, price, INDUSTRIES,
-      epTotal, INDUSTRY_DEBUT_EP };
+      epTotal, INDUSTRY_DEBUT_EP, discsPerPlayer };
   `, sandbox);
   return box.exports;
 }
@@ -61,7 +61,7 @@ section("Selling a company leaves it standing, distressed");
   const slotsBefore = E.companySlotsUsed(me);
   const discsBefore = E.discsFree(st, me);
 
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   check("it is distressed now", biz.distressed === true);
   check("and it is in the bank's list for anyone to take", E.findDistressedTargets(st).includes(biz));
   check("its slot is freed", E.companySlotsUsed(me) === slotsBefore - 1);
@@ -73,7 +73,7 @@ section("Selling a company leaves it standing, distressed");
 section("You may buy your own back, as it stands");
 {
   const { st, me, biz } = tableWith("HC", 1);
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   me.hand = [];                                   // no card in hand at all
   const cashBefore = me.cash;
 
@@ -107,7 +107,7 @@ section("Selling and buying straight back is not a money printer");
   // an UPGRADED company: the bank pays its full setup for it
   biz.upgraded = true;
   const cash0 = me.cash;
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   check("selling an upgraded company pays its full setup",
     me.cash - cash0 === setup, `paid $${me.cash - cash0}, setup $${setup}`);
 
@@ -131,7 +131,7 @@ section("A forced sale is cheaper to undo, because it paid less");
   me.hand = [];
   const setup = E.bizSetup(biz);
   const cash0 = me.cash;
-  E.doSellCompany(me, biz, quiet, true);            // solvency: a quarter of setup
+  E.doSellCompany(st, me, biz, quiet, true);            // solvency: a quarter of setup
   const got = me.cash - cash0;
   check("a forced sale of an un-upgraded company pays a quarter",
     got === Math.floor(setup / 4), `paid $${got}, setup $${setup}`);
@@ -162,7 +162,7 @@ section("A company a Megacorp ate was never paid for");
 section("Or renovate it into something else");
 {
   const { st, me, biz } = tableWith("HC", 1);
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   const card = E.BP_DATA.find((x) => x.lvl === 1 && x.ind !== "HC" && E.renovationEligible(biz, x));
   check("a level-1 shell takes any level-1 card", !!card, card && card.name);
   me.hand = [card];
@@ -177,7 +177,7 @@ section("Or renovate it into something else");
 section("A rival may take it too");
 {
   const { st, me, rival, biz } = tableWith("HC", 1);
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   rival.hand = [];
   check("the rival can buy it as it stands", E.canReclaim(st, rival, biz) === true);
   E.doReclaim(st, rival, biz, quiet);
@@ -188,7 +188,7 @@ section("A rival may take it too");
 section("What still refuses it");
 {
   const { st, me, biz } = tableWith("HC", 1);
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   me.cash = 1;
   check("no money, no takeover", E.canReclaim(st, me, biz) === false);
   me.cash = 500;
@@ -196,7 +196,7 @@ section("What still refuses it");
 
   // fill every company slot and it has nowhere to go
   const { st: st2, me: me2, biz: biz2 } = tableWith("HC", 1, 9);
-  E.doSellCompany(me2, biz2, quiet);
+  E.doSellCompany(st, me2, biz2, quiet);
   const spare = Object.keys(st2.board.owner).filter((k) => st2.board.owner[k] === me2.id
     && !(k in st2.board.occupiedBy));
   let filled = 0;
@@ -219,7 +219,7 @@ section("What still refuses it");
 section("The bots know it is worth an action");
 {
   const { st, me, biz } = tableWith("HC", 1);
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   me.hand = [];                       // nothing to renovate with, nothing to launch
   me.cash = 500;
   check("M&A is still worth taking, because buying it back is possible",
@@ -233,7 +233,7 @@ section("The bots know it is worth an action");
 section("Renovating moves the price markers, reclaiming does not");
 {
   const { st, me, biz } = tableWith("HC", 1);
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   const before = {};
   E.INDUSTRIES.forEach((i) => (before[i] = E.price(st.pm, i)));
   E.doReclaim(st, me, biz, quiet);
@@ -243,7 +243,7 @@ section("Renovating moves the price markers, reclaiming does not");
 }
 {
   const { st, me, biz } = tableWith("HC", 1);
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   const card = E.BP_DATA.find((x) => x.lvl === 1 && x.ind !== "HC" && E.renovationEligible(biz, x));
   me.hand = [card];
   const before = {};
@@ -278,7 +278,7 @@ section("A reclaim scores nothing, for anybody");
 {
   const { st, me, biz } = tableWith("HC", 1);
   const built = E.epTotal(me);
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   check("selling banks no EP either way", E.epTotal(me) === built, `${built} -> ${E.epTotal(me)}`);
   E.doReclaim(st, me, biz, quiet);
   check("and buying your own back banks none", E.epTotal(me) === built,
@@ -290,7 +290,7 @@ section("A reclaim scores nothing, for anybody");
 section("Nor for a rival who simply buys it");
 {
   const { st, me, rival, biz } = tableWith("HC", 1);
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   /* Give the rival the industry already, so the entry bonus cannot be mistaken
      for the company scoring. */
   rival.industriesScored = ["HC"];
@@ -308,7 +308,7 @@ section("Nor for a rival who simply buys it");
 section("But a first company in an industry still pays the entry bonus");
 {
   const { st, me, rival, biz } = tableWith("HC", 1);
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   rival.industriesScored = [];            // never been in Healthcare
   const before = E.epTotal(rival);
   rival.hand = [];
@@ -324,7 +324,7 @@ section("But a first company in an industry still pays the entry bonus");
 section("A renovation does score, because it is a new business");
 {
   const { st, me, biz } = tableWith("HC", 1);
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   const card = E.BP_DATA.find((x) => x.lvl === 1 && x.ind !== "HC" && E.renovationEligible(biz, x));
   me.hand = [card];
   me.industriesScored = [card.ind];       // exclude the entry bonus from the sum
@@ -345,7 +345,7 @@ section("And the Blueprint it displaced goes back to the bottom of its deck");
      it out here, otherwise "it came back exactly once" cannot mean anything. */
   const hcDeck = st.decks[oldBp.ind];
   if (hcDeck.includes(oldBp)) hcDeck.splice(hcDeck.indexOf(oldBp), 1);
-  E.doSellCompany(me, biz, quiet);
+  E.doSellCompany(st, me, biz, quiet);
   const card = E.BP_DATA.find((x) => x.lvl === 1 && x.ind !== "HC" && E.renovationEligible(biz, x));
   /* Take the card out of its deck the way a draw would, rather than conjuring a
      second reference to it. Decks hold the same BP_DATA objects the hand does, so
@@ -372,6 +372,52 @@ section("And the Blueprint it displaced goes back to the bottom of its deck");
     !me.hand.includes(card) && st.decks[card.ind].length === newDeckBefore,
     `hand ${me.hand.length}, ${card.ind} deck ${newDeckBefore} -> ${st.decks[card.ind].length}`);
   check("and the structure is running it now", biz.bp === card);
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE BEGINNER GAME IS THE ONE PLACE THE LAND DOES NOT STAY YOURS.
+
+   Everywhere else keeping it is the point: you can sell it, or build on it
+   again. There you can do neither - no BUY, no SELL, no RECLAIM - so ground
+   left behind is ground nobody will ever use, and discsForGround charges a
+   disc for every plot an ACTIVE company is not covering. A company that fell
+   therefore cost MORE discs than one still standing: one while it stood,
+   three once a three-plot horizontal went under, out of the six a player has.
+   --------------------------------------------------------------------------- */
+section("the beginner game: losing the company loses the ground");
+{
+  const st = E.initGame(1, 11, ["You"], 0, true, { beginner: true });
+  const me = E.byId(st, 0);
+  me.cash = 500;
+  const bp = E.BP_DATA.find((x) => x.code === "UT-09");   // level 3 horizontal: three plots
+  me.hand.push(bp);
+  const built = E.doLaunch(st, me, bp, E.mulberry32(5), quiet);
+  check("a three-plot company was built", built === true);
+
+  const biz = me.businesses[me.businesses.length - 1];
+  const ownedBy = () => Object.values(st.board.owner).filter((v) => v === me.id).length;
+  check("its three plots are the player's", ownedBy() === 3, `${ownedBy()}`);
+  const discsStanding = E.discsPerPlayer(st) - E.discsFree(st, me);
+  check("and the whole footprint costs one disc", discsStanding === 1, `${discsStanding}`);
+
+  E.doSellCompany(st, me, biz, quiet, true);
+  check("losing it takes the ground with it", ownedBy() === 0, `${ownedBy()} plot(s) left`);
+  const discsAfter = E.discsPerPlayer(st) - E.discsFree(st, me);
+  check("so a lost company costs no discs at all, not three",
+    discsAfter === 0, `${discsAfter} disc(s) still held`);
+  check("the shell is still standing in the city", biz.distressed === true);
+}
+
+/* The full game must be unchanged: there the land is yours and that is the rule
+   audit_liquidation measured. */
+section("the full game still keeps the land");
+{
+  const { st, me, biz } = tableWith("HC", 1);
+  const before = Object.values(st.board.owner).filter((v) => v === me.id).length;
+  E.doSellCompany(st, me, biz, quiet, true);
+  const after = Object.values(st.board.owner).filter((v) => v === me.id).length;
+  check("selling a company leaves every plot owned", after === before, `${before} -> ${after}`);
 }
 
 console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed\n");
