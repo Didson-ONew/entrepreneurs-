@@ -33,6 +33,7 @@ changes.
 | Board Meeting | GO PUBLIC, REPOSITION, 2 seats | **REPOSITION only, one seat** |
 | land | bought and sold separately | **claimed free by launching** |
 | discs | 12 | **6** |
+| cash scores | $50 a point, at the end | **bought at a year end, $50 then $100** |
 | land awards | most plots + most districts | **most districts only** |
 | demand reach | columns 1..level | **columns 1..level+1** |
 
@@ -175,32 +176,62 @@ size, 0.21 / 0.30 / 0.34 against 0.15 / 0.24 / 0.28, because the game is a third
 shorter. Games never headed at all run 13.5% at two seats against the full
 game's 17.0%, and 9.0% / 6.5% at three and four against 6.0% / 2.0%.
 
-### The one thing worth changing
+### The one thing worth changing, and what was done about it
 
-| winner's points from | beginner | full |
+Megacorps were about a quarter of the scoreboard, and their share went to **cash
+and industry debuts**, not to companies or land:
+
+| winner's points from | beginner, before | full |
 |---|---|---|
 | companies | 38.3-41.0% | 33.6-35.6% |
 | **cash** | **21.8-26.0%** | **13.3-14.9%** |
 | industry debuts | 20.8-22.4% | 12.1-12.5% |
 | land awards | 14.9-16.1% | 19.4-27.3% |
 
-Megacorps were about a quarter of the scoreboard, and their share went to **cash
-and industry debuts**, not to companies or land. A quarter of the answer in the
-teaching game is holding money, which the full game does not teach - somebody
-who learns here learns to sit on cash and then meets a game where that is worth
-half as much.
+A quarter of the answer in the teaching game was holding money, which the full
+game does not teach. The cause is structural: no land to buy, nothing to upgrade
+and no Megacorp to form leaves money with nowhere to go, and a seat ended this
+mode on about as much cash as a full game three quarters longer.
 
-Land on the districts award alone is worth less than the full game's two awards
-at every table size, though not by much at four seats: 14.9% against 19.4%.
+**Cash now has to be spent to score.** It buys EP at a year end and nowhere
+else, at $50 a point at the end of Year 1 and $100 at the end of Year 2, and
+money still on the table when the game ends is worth nothing. Buying early is
+half price, and early is exactly when you are poorest and need the money to
+build - which is the decision the rule exists to create. 300 games per arm:
+
+| | 2p | 3p | 4p | full game |
+|---|---|---|---|---|
+| **cash** | 21.7 → **12.5%** | 21.8 → **11.7%** | 26.4 → **14.5%** | 15.3 / 14.0 / 14.4% |
+| cash at the end | $491 → $45 | — → $47 | $494 → $48 | $532 / $445 / $500 |
+| companies standing | 4.44 → 4.39 | — → 4.33 | 4.45 → 4.45 | 2.6-2.8 |
+| land awards | 15.3 → 18.1% | — → 18.3% | 14.5 → 17.9% | 26.8 / 21.7 / 17.8% |
+| lead changes | 1.69 → 1.60 | 2.40 → 2.37 | 2.65 → 2.74 | 1.87 / 2.85 / 3.32 |
+| never headed | 15.3 → 14.3% | — → 7.7% | 8.0 → 5.7% | 17.0 / 6.0 / 1.7% |
+
+Nothing paid for it. Companies standing held, tension held, and land recovered
+about three points. The money went to companies (43.5-45.4%) and industry debuts
+(24.1-25.2%).
+
+**A launch-time ground charge was measured first, and rejected.** Charging for
+the plots a company claims looked like the obvious sink and fails twice. A flat
+fee breaks the opening - starting capital is $16-25 and the cheapest company is
+$10, so a flat $15 a plot left 0.20 companies standing and a winning score of
+9.4. And the board's own price, which is gentler early, is REGRESSIVE by
+construction: it rises with what is already built, so whoever builds first makes
+the ground dearer for everyone behind them. At two seats that put **43.3% of
+games wire to wire against 14.7%**, in a mode whose whole point is that a bad
+start is not fatal.
+
+**Kept out of the full game.** It has land, upgrades and Megacorps to spend on,
+and cash is a healthy ~14% there. Applied to it anyway, cash fell to 7.5% and
+games led wire to wire went from 2.3% to 6.5% over 400 games at four seats.
+Nothing asked for that.
 
 ## Open questions, for measurement or for a table
 
 The first three are answered above: yes it compounds, no a bad start is not
 fatal, and no there is not one line. What is left:
 
-- **Cash at a quarter of the score.** The obvious levers are what cash converts
-  at, or paying the districts award more so building outward competes with
-  sitting on the bank. Neither is measured yet.
 - **Solvency almost never fires.** It is the only exit and it is close to
   unreachable, so a teaching game may never show a player what failure looks
   like. That may be right for a first game.

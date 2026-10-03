@@ -1333,10 +1333,14 @@ function humansNeedingDelivery(state) {
     return p.isHuman && humanDeliveryQueue(state, p).length > 0;
   });
 }
+/* Who gets the year-end window. A loan disc to buy back, or - in the beginner
+   game, where cash scores nowhere else - enough money to buy at least one EP. */
 function humansNeedingRepay(state) {
   return state.turnOrder.filter((id) => {
     const p = byId(state, id);
-    return p.isHuman && p.discsInBank > 0;
+    if (!p.isHuman) return false;
+    const price = epPrice(state, state.quarter);
+    return p.discsInBank > 0 || (price > 0 && p.cash >= price);
   });
 }
 function newPlayer(id, name, isHuman, cash, hand, archetype) {
@@ -1485,11 +1489,19 @@ function scoreCompanyOnCompletion(state, p, biz) {
    structure fetches its full setup because the upgrades were paid for on top of
    it; anything else fetches half. */
 const voluntarySalePrice = (b) => (b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2));
-function sellCompany(p, b, solvency = false) {
+function sellCompany(state, p, b, solvency = false) {
   let recv;
   if (solvency) recv = b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4);
   else recv = voluntarySalePrice(b);
   p.cash += recv; b.distressed = true;
+  /* THE GROUND GOES WITH THE COMPANY in the beginner game. Everywhere else the
+     land stays yours, because you can sell it or build on it again - that is the
+     whole of audit_liquidation's finding. Here there is no BUY, no SELL and no
+     RECLAIM, so ground left on your sheet can never be used by anyone, and
+     discsForGround counts exactly the plots an active company is NOT covering:
+     a three-plot company cost one disc standing and THREE once it fell, for
+     nothing. The shell stays on the board; the plots stop being yours. */
+  if (isBeginner(state)) b.footprint.forEach((plot) => delete state.board.owner[plot]);
   /* Remember the payout: buying the shell back as it stands costs exactly what
      the bank handed over for it. See reclaimCost. */
   b.distressPayout = recv;
@@ -1633,13 +1645,13 @@ function launchScore(state, p, bp, archetype) {
   }
 
   // --- add it up, in points ---
-  const cashEP = (perQuarter * qLeft + potNow) / CASH_PER_EP;
+  const cashEP = (perQuarter * qLeft + potNow) / cashToEpRate(state);
   const buildEP = bp.lvl * levelEP(state);
   /* Entering an industry is owed once per game, ever. Reading the live ledger rather
      than "do I have one standing right now" stops a bot rebuilding an industry it has
      already scored and calling it free points. */
   const debutEP = (p.industriesScored || []).includes(bp.ind) ? 0 : INDUSTRY_DEBUT_EP;
-  const costEP = totalOutlay / CASH_PER_EP;
+  const costEP = totalOutlay / cashToEpRate(state);
   let s = cashEP + buildEP + debutEP - costEP;
 
   /* Pushing back on somebody who is ahead.
@@ -1743,9 +1755,9 @@ function upgradeScore(state, p, b, assumePlot) {
   const grownNet = grownUnits * px + Math.max(0, grownProd - grownUnits) * 1
     - bizOpex(grown) - 3 * grown.level;
 
-  const cashEP = (grownNet - nowNet) * qLeft / CASH_PER_EP;
+  const cashEP = (grownNet - nowNet) * qLeft / cashToEpRate(state);
   const buildEP = levelEP(state);                        // one more level on the card
-  const costEP = bizSetup(b) / CASH_PER_EP;
+  const costEP = bizSetup(b) / cashToEpRate(state);
   let s = cashEP + buildEP - costEP;
 
   /* A bigger company also reads more of each demand tile - the column cap is its level -
@@ -1911,7 +1923,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "b5d6636b";
+const ENGINE_VERSION = "66679470";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -1980,8 +1992,8 @@ function doLoan(state, p, log) {
   log(logMsg("{0} takes a loan (+$20, +1 disc) (cash: ${1}, discs used: {2}/{3}).", p.name, Math.round(p.cash), discsUsed(state, p), discsPerPlayer(state)), p.id);
   return true;
 }
-function doSellCompany(p, b, log, solvency = false) {
-  const recv = sellCompany(p, b, solvency);
+function doSellCompany(state, p, b, log, solvency = false) {
+  const recv = sellCompany(state, p, b, solvency);
   log(logMsg("{0} sells {1} for ${2}{3} (cash: ${4}).", p.name, b.bp.name, recv, solvency ? " (SOLVENCY - half price)" : "", Math.round(p.cash)), p.id);
 }
 /* `solvency` is set when the sale is forced by a bill you cannot pay. Everything then
@@ -2050,7 +2062,7 @@ function runProduction(state, log) {
     while (p.cash < bill) {
       const worst = worstRoiBusiness(p, pm, state.quarter, 0);
       if (!worst) break;
-      sellCompany(p, worst, true);
+      sellCompany(state, p, worst, true);
       bill = quarterBill(state, p);
     }
   }
@@ -2075,8 +2087,8 @@ function runProduction(state, log) {
           const before = p.cash; doSellPlot(state, p, cheapPlot, log, true); debt -= p.cash - before;
         }
         const liquidatable = activeBiz(p).filter((x) => x.id !== b.id);
-        for (const x of liquidatable) { if (debt <= 0) break; const before = p.cash; sellCompany(p, x, true); debt -= p.cash - before; }
-        sellCompany(p, b, true);
+        for (const x of liquidatable) { if (debt <= 0) break; const before = p.cash; sellCompany(state, p, x, true); debt -= p.cash - before; }
+        sellCompany(state, p, b, true);
         log(logMsg("{0} enters SOLVENCY on {1}.", p.name, b.bp.name), p.id);
         continue;
       }
@@ -2321,6 +2333,80 @@ function runClosing(state, log, rng) {
   // calls. Calling it here too would score the year twice whenever the human is not
   // the first player (the branch above returns early only for the human).
 }
+/* MONEY HAS TO GO SOMEWHERE, AND THE PRICE OF PUTTING IT THERE RISES.
+
+   Cash used to score on its own line in final scoring, a flat $50 an EP,
+   whatever a player did with it. In the full game that is a modest 13-15% of
+   the winning score, because land, upgrades and a Megacorp all want money. The
+   beginner game has none of those and it showed: a seat ended it on about as
+   much cash as a full game three quarters longer, and cash was a quarter of the
+   winning score.
+
+   So cash scores only when it is SPENT, at a year end, and the rate gets worse
+   every year. The opening is the cheapest conversion in the game and also the
+   one nobody can afford - starting capital is $16-25 - so the discount is real
+   but it has to be earned early. Money still sitting at the end scores nothing
+   at all, which is the whole point: it is a resource, not a position.
+
+   Keyed by HOW MANY WINDOWS ARE LEFT, not by the quarter number, because the
+   rule that has to hold is "the last chance is the dearest" and the beginner
+   game has two year ends where the full game has three. Keyed by quarter,
+   25/50/100 gave the beginner game windows at $25 and $50 against an old flat
+   rate of $50 - strictly a better deal than before, and measured, its cash
+   share went UP, from 26.4% to 27.4% at four seats. Counting backwards from the
+   end instead gives it $50 then $100, which is the shape the full game gets.
+
+   BEGINNER GAME ONLY. The full game already has three places for money to go -
+   land, upgrades, a Megacorp - and measured, cash is a healthy 14% of a winning
+   score there. Applying this to it anyway dropped that to 7.5% and cost real
+   tension: over 400 games at four seats, games led wire to wire went from 2.3%
+   to 6.5% and lead changes from 3.36 to 3.05, because the cheap early window
+   favours whoever is already ahead. Nothing asked for that. */
+const EP_PRICE_BY_WINDOWS_LEFT = [100, 50, 25];   // [0] is the last year end of the game
+function epPrice(state, quarter) {
+  if (!isBeginner(state)) return 0;
+  const ends = yearEndsOf(state);
+  const i = ends.indexOf(quarter);
+  if (i < 0) return 0;
+  const left = ends.length - 1 - i;
+  return EP_PRICE_BY_WINDOWS_LEFT[Math.min(left, EP_PRICE_BY_WINDOWS_LEFT.length - 1)];
+}
+/* What a dollar is worth in points to a bot weighing a build against the bank.
+   It used to be the flat end-of-game rate, because that is what cash did. Now
+   the only place cash becomes points is the next year end a player can still
+   reach, so that is the price to judge it at - and once the last one has gone
+   by, cash buys nothing and should sway no decision at all. */
+function cashToEpRate(state) {
+  if (!isBeginner(state)) return CASH_PER_EP;
+  const next = yearEndsOf(state).find((y) => y >= state.quarter);
+  return next ? epPrice(state, next) : 1e9;
+}
+/* A year end that is also the end of the game is the last window there will be,
+   so nothing is worth holding back for. Matches how the land awards decide it. */
+const isLastYearEnd = (state, quarter) =>
+  quarter === finalQuarterOf(state) || (state.finalQuarter && quarter >= state.finalQuarter);
+function doBuyEP(state, p, quarter, n, log) {
+  const price = epPrice(state, quarter);
+  if (!price || n <= 0 || p.cash < price * n) return false;
+  p.cash -= price * n;
+  addEP(p, n, logMsg("Bought {0} EP at ${1} each", n, price), quarter);
+  log(logMsg("{0} buys {1} EP for ${2} (cash: ${3}).", p.name, n, price * n, Math.round(p.cash)), p.id);
+  return true;
+}
+/* What a bot keeps back. On the last year end, nothing - there is no next
+   quarter to fund and unconverted cash is worth zero. Otherwise enough to run
+   what is standing for two more quarters and still afford the cheapest card in
+   hand, because going broke costs a company and a company is worth more than
+   the two or three EP the surplus would buy. */
+function botBuyEP(state, p, quarter, log) {
+  const price = epPrice(state, quarter);
+  if (!price) return;
+  const reserve = isLastYearEnd(state, quarter)
+    ? 0
+    : committedOpex(p) * 2 + (p.hand.length ? Math.min(...p.hand.map((bp) => bp.setup)) : 0);
+  const n = Math.floor(Math.max(0, p.cash - reserve) / price);
+  if (n > 0) doBuyEP(state, p, quarter, n, log);
+}
 const LOAN_REPAY_RATE = { 4: 30, 8: 35, 12: 40 };
 function doRepayLoan(p, quarter, log) {
   const rate = LOAN_REPAY_RATE[quarter];
@@ -2378,7 +2464,7 @@ function runClosingRest(state, log) {
       awardRanked(state, (p) => districtCount(state, p), "The Omnipresent", log);
     }
     log(logMsg("\u2014\u2014\u2014 Year-end scoring complete (Q{0}) \u2014\u2014\u2014", quarter), null);
-    for (const p of players) if (!p.isHuman) botRepayLoans(state, p, quarter, log);
+    for (const p of players) if (!p.isHuman) { botRepayLoans(state, p, quarter, log); botBuyEP(state, p, quarter, log); }
   }
 }
 /* A land award goes to first place and nobody else, and it shrinks hard when it is
@@ -2565,8 +2651,14 @@ function finalizeGame(state) {
        total into two halves that add back to the same number is bookkeeping for no
        decision. What the split was really for was diagnosis, and a probe can compute it
        from the ledger without the players doing anything. See audit_idle_land.js. */
-    const cashEP = Math.floor(p.cash / CASH_PER_EP);
-    if (cashEP) addEP(p, cashEP, logMsg("Cash on hand (${0})", Math.round(p.cash)), state.quarter);
+    /* In the beginner game cash does NOT score here: it scores at a year end,
+       when it is spent, at the price for that window - see doBuyEP - and money
+       still on the table when the game ends bought nothing and is worth
+       nothing. The full game is unchanged. */
+    if (!isBeginner(state)) {
+      const cashEP = Math.floor(p.cash / CASH_PER_EP);
+      if (cashEP) addEP(p, cashEP, logMsg("Cash on hand (${0})", Math.round(p.cash)), state.quarter);
+    }
   }
 }
 
@@ -2968,8 +3060,8 @@ function megacorpWorthIt(state, p, match) {
      merging early is worth far more than merging late - and it pays ground rent for the
      privilege if the land under it is somebody else's. */
   const brandEP = brandEPFor(price(state.pm, bizInd(hq)), tierOfTile(match.tile)) * qLeft;
-  const rentEP = (hqGroundRent(state, p, hq) * qLeft) / CASH_PER_EP;
-  return ep + districtEP + brandEP - rentEP - forgone - (lostPerQuarter * qLeft) / CASH_PER_EP > 0;
+  const rentEP = (hqGroundRent(state, p, hq) * qLeft) / cashToEpRate(state);
+  return ep + districtEP + brandEP - rentEP - forgone - (lostPerQuarter * qLeft) / cashToEpRate(state) > 0;
 }
 /* What this building would cost in ground rent if it became the headquarters. */
 function hqGroundRent(state, p, b) {
@@ -2998,7 +3090,7 @@ function pickHQ(state, p, have, tier = 1) {
      question about price at all and becomes one about who is standing next door. */
   const worth = (b) => brandEPFor(price(state.pm, bizInd(b)), tier) * qLeft
     - MEGACORP_TITHE_EP * hqRivalNeighbours(state, p, b) * qLeft
-    - (hqGroundRent(state, p, b) * qLeft) / CASH_PER_EP;
+    - (hqGroundRent(state, p, b) * qLeft) / cashToEpRate(state);
   return have.reduce((a, b) => (worth(b) > worth(a) ? b : a));
 }
 
@@ -3230,17 +3322,17 @@ function botResolveOneAction(state, p, track, rng, log) {
       && price(state.pm, bp.ind) >= BASE_PRICE[bp.ind]
       && p.cash + bizSetup(collapsed) / 2 >= bp.setup);
     if (collapsed && replacement && state.quarter <= 9) {
-      const got = sellCompany(p, collapsed, false);
+      const got = sellCompany(state, p, collapsed, false);
       log(logMsg("{0} sells {1}: {2} has collapsed to ${3} and it was losing money (+${4}).", p.name, collapsed.bp.name, bizInd(collapsed), PRICE_MIN, got), p.id);
       return;
     }
     const dead = activeBiz(p).find((b) => !businessCanProduce(state, b));
-    if (dead) { sellCompany(p, dead, false); log(logMsg("{0} sells {1} \u2014 it sits on land nobody owns and cannot produce.", p.name, dead.bp.name), p.id); return; }
+    if (dead) { sellCompany(state, p, dead, false); log(logMsg("{0} sells {1} \u2014 it sits on land nobody owns and cannot produce.", p.name, dead.bp.name), p.id); return; }
     if (genuineNeed && p.discsInBank >= 3 && activeBiz(p).length) {
       // already carrying real debt just to keep the lights on - cut the worst offender loose
       // instead of financing it forever with more loans
       const worst = worstRoiBusiness(p, state.pm, state.quarter, 0);
-      if (worst) { sellCompany(p, worst, false); log(logMsg("{0} cuts loose {1} rather than take another loan to cover it (cash: ${2}).", p.name, worst.bp.name, Math.round(p.cash)), p.id); }
+      if (worst) { sellCompany(state, p, worst, false); log(logMsg("{0} cuts loose {1} rather than take another loan to cover it (cash: ${2}).", p.name, worst.bp.name, Math.round(p.cash)), p.id); }
       else doLoan(state, p, log);
     } else if (genuineNeed) doLoan(state, p, log);
     else if (p.hand.length > 3) { sellBpFromHand(state, p, p.hand.reduce((a, b) => (BP_SELL_PRICE[a.lvl] || 4) > (BP_SELL_PRICE[b.lvl] || 4) ? a : b), false); log(logMsg("{0} sells a BP from hand.", p.name), p.id); }
@@ -3349,7 +3441,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     const landIsPoints = discsFree(state, p) > reserveForCompanies
       && p.cash > committedOpex(p) * 1.5 + 10
       // either the awards pay often enough to chase all game, or it is late and the
-      // money is otherwise going to convert at the flat CASH_PER_EP rate
+      // money is otherwise going to convert at whatever the next year end charges
       && (landEPWeight(state, p) >= 3 || endgameSpendMode(state, p));
     if (unowned.length && ((mayBuyLand && (freeOwnedByMe < maxNeeded || landIsPoints)) || mayBuyGrowth)) {
       const ownedByMe = Object.entries(state.board.owner).filter(([k, v]) => v === p.id).map(([k]) => k);
@@ -3374,7 +3466,7 @@ function botResolveOneAction(state, p, track, rng, log) {
         const newDistrict = myDistricts.has(`${c.r},${c.c}`) ? 0 : 1;
         // the upgrade this plot unlocks is worth points; points are worth $10 each, so
         // that is the number that belongs beside a plot price in dollars
-        const growth = (growthValue.get(k) || 0) * CASH_PER_EP;
+        const growth = (growthValue.get(k) || 0) * cashToEpRate(state);
         return { k, cost, growth, score: demand * 3 + growth + (landIsPoints ? landEPWeight(state, p) * (1 + newDistrict) : 0) - cost };
       }).sort((a, b) => b.score - a.score);
       /* Buying to unblock a build takes the best affordable plot even if the score is
@@ -4910,7 +5002,7 @@ function LiquidationPanel({ state, human, log, onContinue }) {
           <div className="text-[10px] text-gray-400 mb-1">{t("Businesses:")}</div>
           <div className="flex flex-wrap gap-2 mb-2">
             {activeBiz(human).map((b) => (
-              <button key={b.id} onClick={() => { if (NET) return NET.send("liquidate", { type: "biz", bizId: b.id }); doSellCompany(human, b, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
+              <button key={b.id} onClick={() => { if (NET) return NET.send("liquidate", { type: "biz", bizId: b.id }); doSellCompany(state, human, b, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
                 {t(b.bp.name)} <span style={{ color: "#f3a5a5" }}>${b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4)}</span>
               </button>
             ))}
@@ -4993,7 +5085,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
           <div className="text-[10px] text-gray-400">{t("Businesses:")}</div>
           <div className="flex flex-wrap gap-2">
             {activeBiz(human).map((b) => (
-              <button key={b.id} onClick={() => { if (NET) return NET.send("act", { type: "sellCompany", bizId: b.id }); doSellCompany(human, b, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
+              <button key={b.id} onClick={() => { if (NET) return NET.send("act", { type: "sellCompany", bizId: b.id }); doSellCompany(state, human, b, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
                 {t(b.bp.name)} <span style={{ color: "#f3a5a5" }}>${b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2)}</span>
               </button>
             ))}
@@ -6079,6 +6171,12 @@ function GameScreens({ online }) {
     doRepayLoan(human, state.quarter, log);
     setState({ ...state });
   }
+  function handleBuyEP(n) {
+    if (!state) return;
+    if (NET) return NET.send("buyEP", { n });
+    doBuyEP(state, human, state.quarter, n, log);
+    setState({ ...state });
+  }
   function handleDoneRepaying() {
     if (!state) return;
     if (NET) return NET.send("repayDone", {});
@@ -6470,7 +6568,15 @@ function GameScreens({ online }) {
                 )}
               </div>
             )}
-            {isHumanRepaying && (
+            {isHumanRepaying && (() => {
+              /* In the beginner game this window is also the ONLY place cash
+                 becomes points, and the price rises every year, so the panel has
+                 to say what this one costs and what the next one will. */
+              const epCost = epPrice(state, state.quarter);
+              const laterEnds = yearEndsOf(state).filter((q) => q > state.quarter);
+              const nextCost = laterEnds.length ? epPrice(state, laterEnds[0]) : 0;
+              const affordable = epCost > 0 ? Math.floor(human.cash / epCost) : 0;
+              return (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#0f2530", border: "1px solid #22D3EE" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#67e8f9" }}>
                   {t("Year-end: you may repay loan discs at ${0} each — {1} outstanding (−{2} EP if left unpaid)",
@@ -6478,18 +6584,38 @@ function GameScreens({ online }) {
                      t(human.discsInBank === 1 ? "{0} disc" : "{0} discs", human.discsInBank),
                      human.discsInBank * 5)}
                 </div>
+                {epCost > 0 && (
+                  <div className="text-xs font-bold mb-1" style={{ color: "#c4b5fd" }}>
+                    {nextCost
+                      ? t("...and buy EP at ${0} each. Next year end they cost ${1}.", epCost, nextCost)
+                      : t("...and buy EP at ${0} each. This is the last chance — cash left over scores nothing.", epCost)}
+                  </div>
+                )}
                 <div className="text-[10px] text-gray-400 mb-2">{t("You have ${0} cash.", Math.round(human.cash))}</div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <button onClick={handleRepayOne} disabled={human.discsInBank <= 0 || human.cash < LOAN_REPAY_RATE[state.quarter]}
                     className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#0e5f6f", color: "#d3fcec" }}>
                     Repay 1 disc (−${LOAN_REPAY_RATE[state.quarter]})
                   </button>
+                  {epCost > 0 && (
+                    <>
+                      <button onClick={() => handleBuyEP(1)} disabled={affordable < 1}
+                        className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#4c3a73", color: "#ede9fe" }}>
+                        {t("Buy 1 EP (−${0})", epCost)}
+                      </button>
+                      <button onClick={() => handleBuyEP(affordable)} disabled={affordable < 2}
+                        className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#4c3a73", color: "#ede9fe" }}>
+                        {t("Buy {0} (−${1})", t(affordable === 1 ? "{0} EP" : "all {0} EP", affordable), affordable * epCost)}
+                      </button>
+                    </>
+                  )}
                   <button onClick={handleDoneRepaying} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
                     {t("Done")}
                   </button>
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
               <div className="flex items-center justify-between mb-2">
@@ -7302,7 +7428,9 @@ function FinalQuarterNotice({ state, human, onClose }) {
         </div>
         <div style={{ fontSize: 12.5, color: "#c9cfda", lineHeight: 1.55, marginTop: 10 }}>
           {quartersLeft <= 1
-            ? t("This is the last quarter. Cash scores 1 EP per ${0}, and every loan disc still in the bank costs you 5.", CASH_PER_EP)
+            ? (isBeginner(state)
+                ? t("This is the last quarter. Cash scores only what you spent on EP at a year end, and every loan disc still in the bank costs you 5.")
+                : t("This is the last quarter. Cash scores 1 EP per ${0}, and every loan disc still in the bank costs you 5.", CASH_PER_EP))
             : t("That leaves {0} quarters, this one included. Anything you cannot finish by then scores nothing, and loan discs still cost 5 EP each.", quartersLeft)}
         </div>
         <button onClick={onClose} style={{

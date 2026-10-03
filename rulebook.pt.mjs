@@ -1230,6 +1230,12 @@ export const RULEBOOK_PT = [
         "p": "UMA EMPRESA PERDIDA NÃO VOLTA. A insolvência funciona exatamente como no jogo completo, e é o único jeito de uma empresa sair do seu quadro. O terreno vai junto com ela e ninguém pode comprá-la de volta."
       },
       {
+        "p": "DINHEIRO SÓ PONTUA SE VOCÊ GASTAR. Não há terreno para comprar, nada para melhorar e nenhuma Megacorp para formar, então o dinheiro não tem para onde ir e se acumula - medido, um jogador terminou este modo com tanto dinheiro quanto numa partida completa três trimestres mais longa. Aqui ele compra EP diretamente num fim de ano, e em nenhum outro lugar. O dinheiro ainda na sua frente quando a partida acaba não vale nada."
+      },
+      {
+        "p": "E O PREÇO SOBE. Cada EP custa $50 no fim do Ano 1 e $100 no fim do Ano 2. Comprar cedo sai pela metade, e o problema é que cedo é justamente quando você está mais pobre e precisa do dinheiro para construir. É essa a decisão: construir agora, ou guardar os pontos barato. Na partida completa o dinheiro pontua sozinho a $50 por ponto, sem janela e sem prazo."
+      },
+      {
         "note": "Medido em 200 partidas em cada um dos três tamanhos de mesa, os dois últimos trimestres ainda carregam de um terço a dois quintos da pontuação vencedora, então o jogo curto não acaba antes de algo acumular. Ele também é bem mais gentil que o jogo completo: nenhum assento terminou sem nada de pé, contra um em vinte e oito a um em treze, e quem estava em último na metade chegou à metade de cima entre um terço e quase metade das vezes. O único número que foi para o lado errado é o dinheiro, que aqui é de um quinto a um quarto de uma pontuação vencedora contra cerca de um sétimo no jogo completo - os pontos que as Megacorporações carregavam foram para o dinheiro e para as estreias de setor. Quem aprende aqui aprende a sentar em cima do dinheiro num jogo que premia isso mais do que o de verdade."
       }
     ]

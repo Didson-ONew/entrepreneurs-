@@ -100,7 +100,7 @@ section("Nothing is held back - the standings are the score");
   /* Selling a company used to be the moment its EP vested. Now there is nothing to
      vest, and - the point of the rule - nothing is taken back either. */
   const before = E.epTotal(p);
-  E.sellCompany(p, p.businesses[0]);
+  E.sellCompany(st, p, p.businesses[0]);
   check("selling the company keeps every EP it scored", E.epTotal(p) === before,
     `${before} -> ${E.epTotal(p)}`);
   check("and a sold company does not score again at a year end",

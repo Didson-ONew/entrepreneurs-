@@ -571,6 +571,10 @@ That is also why the table seats four rather than six. Four personas dealt to fo
 
 A COMPANY YOU LOSE IS GONE. Solvency works exactly as it does in the full game, and it is the only way a company leaves your board. Its ground goes with it and nobody can buy it back.
 
+CASH ONLY SCORES IF YOU SPEND IT. There is no land to buy, nothing to upgrade and no Megacorp to form, so money has nowhere to go and piles up - measured, a seat ended this mode holding as much cash as a full game three quarters longer. Here it buys EP outright at a year end, and nowhere else. Money still in front of you when the game ends is worth nothing at all.
+
+AND THE PRICE RISES. EP cost $50 each at the end of Year 1 and $100 each at the end of Year 2. Buying early is half price, and the catch is that early is exactly when you are poorest and need the money to build. That is the decision: build now, or bank the points cheaply. In the full game cash scores on its own at $50 a point, with no window and no deadline.
+
 > **Designer's note.** Measured over 200 games at each of the three table sizes, the last two quarters still carry a third to two fifths of the winning score, so the short game does not end before anything compounds. It is also markedly gentler than the full game: no seat ever ended with nothing standing, against one in twenty-eight to one in thirteen, and a player last at halfway reached the top half between a third and nearly a half of the time. The one figure that moved the wrong way is cash, which is a fifth to a quarter of a winning score here against about a seventh in the full game - the points Megacorps used to carry went to cash and to industry debuts. Somebody taught here learns to sit on money in a game that rewards it more than the real one does.
 
 ---

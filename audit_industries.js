@@ -47,8 +47,8 @@ const HOOKS = [
                  "  __probe.upgrade(state, p, b, bizSetup(b));\n  b.upgraded = true; b.level += 1;\n  b.scored = false;"],
   ["the bills",  "      const cost = supplierBill + rentBill;",
                  "      const cost = supplierBill + rentBill;\n      __probe.bill(state, p, b, supplierBill, rentBill);"],
-  ["a company sold", "function sellCompany(p, b, solvency = false) {\n  let recv;",
-                 "function sellCompany(p, b, solvency = false) {\n  __probe.sold(b, solvency);\n  let recv;"],
+  ["a company sold", "function sellCompany(state, p, b, solvency = false) {\n  let recv;",
+                 "function sellCompany(state, p, b, solvency = false) {\n  __probe.sold(b, solvency);\n  let recv;"],
   ["a merger",   "  const hq = hqChoice && match.have.includes(hqChoice) ? hqChoice : pickHQ(state, p, match.have, tierOfTile(match.tile));",
                  "  const hq = hqChoice && match.have.includes(hqChoice) ? hqChoice : pickHQ(state, p, match.have, tierOfTile(match.tile));\n  __probe.merge(state, p, match.have, hq);"],
 ];

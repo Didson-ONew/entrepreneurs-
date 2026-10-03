@@ -40,7 +40,8 @@ function loadEngine() {
       doLaunch, doRenovate, doDraw, doUpgrade, claimMegacorp, doReposition, byId, activeBiz, repairBizIds,
       eligibleSlotsFor, findDistressedTargets, renovationEligible, plotValue, discsFree,
       canLaunchMore, INDUSTRIES, LOAN_REPAY_RATE, SCALING, epTotal, canGoPublic, doReclaim, canReclaim,
-      botResolveOneAction, botRepayLoans, nextDeliveryTarget, humansNeedingDelivery, advanceDelivery, ENGINE_VERSION,
+      botResolveOneAction, botRepayLoans, botBuyEP, doBuyEP, epPrice,
+      nextDeliveryTarget, humansNeedingDelivery, advanceDelivery, ENGINE_VERSION,
       bizInd, bizSetup, bizOpex, bizProd, upgradeBlockedReason, bestMegacorpMatch, DISCS_PER_PLAYER,
       PERSONAS, MEGACORP_TILES, VARIANTS, VARIANT_KEYS, normaliseVariants,
       chooseSupplyChain, supplyChainOptions, reAllowance, TRACK_LABEL, logEntry, fmtEn, logMsg };
@@ -314,6 +315,7 @@ function convertToBot(room, seat) {
       E.finishQuarterAfterLH(st, lg, room.rng);
     } else if (st.phase === "repayingLoans") {
       E.botRepayLoans(st, p, st.quarter, lg);
+      E.botBuyEP(st, p, st.quarter, lg);
       E.finishQuarterAfterRepay(st, lg, room.rng);
     }
   }
@@ -372,7 +374,7 @@ function applyAction(room, seat, action, data) {
       else if (t === "buyPlot") ok = E.doBuyPlot(st, p, d.plot, lg);
       else if (t === "sellPlot") ok = E.doSellPlot(st, p, d.plot, lg);
       else if (t === "sellBP") { const bp = p.hand[d.index]; ok = !!bp && (E.doSellBP(st, p, bp, lg), true); }
-      else if (t === "sellCompany") { const b = p.businesses.find((x) => x.id === d.bizId); ok = !!b && (E.doSellCompany(p, b, lg), true); }
+      else if (t === "sellCompany") { const b = p.businesses.find((x) => x.id === d.bizId); ok = !!b && (E.doSellCompany(st, p, b, lg), true); }
       else if (t === "launch") { const bp = p.hand[d.index]; ok = !!bp && E.doLaunch(st, p, bp, rng, lg, d.footprint); }
       else if (t === "reclaim") {
         const target = E.findDistressedTargets(st).find((x) => x.id === d.bizId);
@@ -433,7 +435,7 @@ function applyAction(room, seat, action, data) {
       if (st.phase !== "liquidating") return { error: "Not liquidating." };
       // this window exists because a bill cannot be paid: everything goes at half price
       if (d.type === "bp") { const bp = p.hand[d.index]; if (bp) E.doSellBP(st, p, bp, lg, true); }
-      else if (d.type === "biz") { const b = p.businesses.find((x) => x.id === d.bizId); if (b) E.doSellCompany(p, b, lg, true); }
+      else if (d.type === "biz") { const b = p.businesses.find((x) => x.id === d.bizId); if (b) E.doSellCompany(st, p, b, lg, true); }
       else if (d.type === "plot") E.doSellPlot(st, p, d.plot, lg, true);
       break;
     }
@@ -451,6 +453,13 @@ function applyAction(room, seat, action, data) {
     case "repay": {
       if (st.phase !== "repayingLoans") return { error: "Not repaying." };
       if (!E.doRepayLoan(p, st.quarter, lg)) return { error: "Cannot repay." };
+      break;
+    }
+    case "buyEP": {
+      if (st.phase !== "repayingLoans") return { error: "Not at a year end." };
+      const n = Math.floor(Number(d.n));
+      if (!Number.isFinite(n) || n < 1) return { error: "Bad amount." };
+      if (!E.doBuyEP(st, p, st.quarter, n, lg)) return { error: "Cannot buy that many." };
       break;
     }
     case "repayDone": {

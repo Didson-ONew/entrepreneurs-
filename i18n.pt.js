@@ -956,4 +956,13 @@ export default {
   "RESEARCH draws the face-up top card of any industry deck. Decks are shuffled whole, so a level 2 or level 3 card can be drawn and built straight away: it is how you reach a bigger footprint here.": "PESQUISA compra a carta virada para cima do topo de qualquer baralho de setor. Os baralhos são embaralhados por inteiro, então uma carta de nível 2 ou nível 3 pode ser comprada e construída na hora: é assim que se chega a uma área maior aqui.",
   "REPOSITION moves you to first in turn order. First sells into a contested demand icon before anybody else and places this quarter's Logistic Hub.": "REPOSICIONAR te move para primeiro na ordem de turno. O primeiro vende num ícone de demanda disputado antes de todo mundo e coloca o Centro Logístico do trimestre.",
   "The beginner game seats four. It deals four personas from a pool of four, so every player has one and none is left over.": "O jogo para iniciantes senta quatro. Ele distribui quatro perfis de um conjunto de quatro, então todo jogador tem um e nenhum sobra.",
+  "...and buy EP at ${0} each. Next year end they cost ${1}.": "...e comprar EP a ${0} cada. No fim do ano que vem eles custam ${1}.",
+  "...and buy EP at ${0} each. This is the last chance \u2014 cash left over scores nothing.": "...e comprar EP a ${0} cada. Esta é a última chance — o dinheiro que sobrar não vale ponto nenhum.",
+  "Bought {0} EP at ${1} each": "Comprou {0} EP a ${1} cada",
+  "Buy 1 EP (\u2212${0})": "Comprar 1 EP (−${0})",
+  "Buy {0} (\u2212${1})": "Comprar {0} (−${1})",
+  "This is the last quarter. Cash scores only what you spent on EP at a year end, and every loan disc still in the bank costs you 5.": "Este é o último trimestre. O dinheiro só pontua pelo que você gastou em EP num fim de ano, e cada disco de empréstimo ainda no banco te custa 5.",
+  "all {0} EP": "todos os {0} EP",
+  "{0} EP": "{0} EP",
+  "{0} buys {1} EP for ${2} (cash: ${3}).": "{0} compra {1} EP por ${2} (dinheiro: ${3}).",
 };

@@ -958,4 +958,13 @@ export default {
   "RESEARCH draws the face-up top card of any industry deck. Decks are shuffled whole, so a level 2 or level 3 card can be drawn and built straight away: it is how you reach a bigger footprint here.": "研发抽取任意产业牛牌堆最上面那张明牌。牛牌堆是整堆洗混的，所以等级 2 或等级 3 的卡可以抽到就直接建：在这里这就是你获得更大占地的方式。",
   "REPOSITION moves you to first in turn order. First sells into a contested demand icon before anybody else and places this quarter's Logistic Hub.": "调整顺序把你提到行动顺序的第一位。第一位能在所有人之前卖进被争抢的需求图标，并放置本季度的物流枢纽。",
   "The beginner game seats four. It deals four personas from a pool of four, so every player has one and none is left over.": "新手局最多四人。它从四张角色中发四张，因此每位玩家都有一张，也不会剩下。",
+  "...and buy EP at ${0} each. Next year end they cost ${1}.": "……并以每点 ${0} 买入 EP。下一个年末每点要 ${1}。",
+  "...and buy EP at ${0} each. This is the last chance \u2014 cash left over scores nothing.": "……并以每点 ${0} 买入 EP。这是最后一次机会——剩下的现金一分不算。",
+  "Bought {0} EP at ${1} each": "以每点 ${1} 买入 {0} EP",
+  "Buy 1 EP (\u2212${0})": "买 1 EP（−${0}）",
+  "Buy {0} (\u2212${1})": "买 {0}（−${1}）",
+  "This is the last quarter. Cash scores only what you spent on EP at a year end, and every loan disc still in the bank costs you 5.": "这是最后一个季度。现金只按你在年末买 EP 所花的部分计分，银行里每个未赎回的贷款圆片扣你 5 分。",
+  "all {0} EP": "全部 {0} EP",
+  "{0} EP": "{0} EP",
+  "{0} buys {1} EP for ${2} (cash: ${3}).": "{0} 花 ${2} 买入 {1} EP（现金：${3}）。",
 };
