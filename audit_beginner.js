@@ -63,23 +63,35 @@
       2.07-2.19 against a table average of 1.91-2.07. Winners build slightly
       taller; RESEARCH-into-a-level-3 is not the only game.
 
-   WHAT DID MOVE, AND IT IS THE ONE THING WORTH A SECOND LOOK: cash is 21.8% of
-   the winning score at two and three seats and 26.0% at four, against the full
-   game's 14.9 / 13.3 / 14.1. Industry debuts also roughly double, to 20.8-22.4%
-   from 12.1-12.5%. Megacorps were about a quarter of the scoreboard and their
-   share went to CASH and DEBUTS rather than to companies or land. A teaching
-   game in which a quarter of the answer is holding money teaches something the
-   full game does not.
+   CASH WAS THE ONE THING WORTH CHANGING, AND IT HAS BEEN CHANGED. It used to be
+   21.8% of the winning score at two and three seats and 26.0% at four, against
+   the full game's 14.9 / 13.3 / 14.1 - a teaching game in which a quarter of the
+   answer was holding money, which is not what the full game teaches. The cause
+   was structural: no land to buy, nothing to upgrade and no Megacorp to form
+   left money with nowhere to go, and a seat ended this mode on about as much
+   cash as a full game three quarters longer.
 
-   Land is the other side of that: 14.9-16.1% on the districts award alone
-   against 19.4-27.3% from two awards. It is still a seventh to a sixth of the
-   answer, but it is worth less here than in the full game at every table size.
+   Cash now scores only when it is SPENT, at a year end, at a price that rises
+   ($50 at the end of Year 1, $100 at the end of Year 2), and money still on the
+   table at the end is worth nothing. Measured over 300 games per arm per table,
+   that puts cash at 12.5 / 11.7 / 14.5% against the full game's 15.3 / 14.0 /
+   14.4, and end-of-game cash at $45-48 against $445-532. Nothing else paid for
+   it: companies standing held at 4.33-4.45, lead changes moved 1.69/2.40/2.65 to
+   1.60/2.37/2.74, and a seat last at halfway still reaches the top half 27.8-45.9%
+   of the time. A LAUNCH-TIME ground charge was measured first and rejected: it
+   is regressive, because the price rises with what is already built, and at two
+   seats it put 43.3% of games wire to wire against 14.7%.
 
-   TENSION IS FINE. Fewer lead changes per game than the full game - 1.70 / 2.40
-   / 2.68 against 1.83 / 2.88 / 3.31 - but MORE per quarter at every table size,
-   0.21 / 0.30 / 0.34 against 0.15 / 0.24 / 0.28, because the game is a third
-   shorter. Games never headed at all run 13.5% at two seats against 17.0%, and
-   9.0% / 6.5% at three and four against 6.0% / 2.0%: the short game leaves a
+   What the money went to is companies and debuts: 43.5-45.4% and 24.1-25.2%
+   against the full game's 34.6-35.0% and 12.1-12.7%. Land holds at 17.9-18.3% on
+   the districts award alone, against 17.8-26.8% from two awards - level with the
+   full game at four seats and behind it at two.
+
+   TENSION IS FINE. Fewer lead changes per game than the full game - 1.60 / 2.37
+   / 2.74 against 1.87 / 2.85 / 3.32 - but MORE per quarter at every table size,
+   0.20 / 0.30 / 0.34 against 0.16 / 0.24 / 0.28, because the game is a third
+   shorter. Games never headed at all run 14.3% at two seats against 17.0%, and
+   7.7% / 5.7% at three and four against 6.0% / 1.7%: the short game leaves a
    little more room for a wire-to-wire winner at the bigger tables, not less.
 
    Run: node audit_beginner.js [games] [seats...]
@@ -231,7 +243,9 @@ function run(beginner, seats, n) {
       o.mixCompany.push(pct(epFrom(winner, (e) => /^Company: /.test(String(e.label && e.label.k || e.label))), finalEP));
       o.mixDebut.push(pct(epFrom(winner, (e) => /^Entered /.test(String(e.label && e.label.k || e.label))), finalEP));
       o.mixLand.push(pct(epFrom(winner, (e) => LAND_LABELS.includes(e.label)), finalEP));
-      o.mixCash.push(pct(epFrom(winner, (e) => /[Cc]ash/.test(String(e.label && e.label.k || e.label))), finalEP));
+      /* EP that came from money, under either rule: the old flat "Cash on hand"
+         line at final scoring, and the year-end purchase that replaced it. */
+      o.mixCash.push(pct(epFrom(winner, (e) => /[Cc]ash|^Bought \d+ EP/.test(String(e.label && e.label.k || e.label))), finalEP));
     }
 
     /* --- tension: lead changes, not "the leader won" ---------------------- */
