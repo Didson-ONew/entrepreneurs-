@@ -362,7 +362,7 @@ Every quarter ends with a new Logistic Hub being built on an empty plot that nob
 
 ### At the end of Quarter 4, 8 and 12
 
-- The Real-Estate Mogul and The Omnipresent are awarded - 5 EP each to the outright leader at 2-3 players, 10 EP each at 4 or more. They are also paid at the final quarter if the game is called before Q12.
+- The Real-Estate Mogul and The Omnipresent are awarded - 4 EP plus the number of players, to the outright leader alone, so 6 EP at two seats rising to 10 at six. They are also paid at the final quarter if the game is called before Q12.
 - You may buy back loan discs: $30 at the end of Year 1, $35 at Year 2, $40 at Year 3.
 
 Companies do not wait for the year end. A company scores the moment it is finished - see below - so by the time a year ends its EP are already banked. What a year end decides is who is holding the city.
@@ -460,8 +460,8 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Megacorp tile | +8 to +22 as printed |
 | Megacorp HQ, each quarter it stands | + its industry's price / its tile's tier, rounded down |
 | Megacorp HQ, every quarter | +its industry's price divided by the tile's tier; and it pays 1 EP to each rival company beside it, which that owner banks |
-| The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone, +10 at 4+ players |
-| The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone, +10 at 4+ players |
+| The Real-Estate Mogul - most plots owned, at every year end | +4 plus the number of players, to the leader alone |
+| The Omnipresent - most districts you are present in, at every year end | +4 plus the number of players, to the leader alone |
 | Cash on hand at the end | +1 per full $50 |
 | Each loan disc still in the bank | -5 |
 

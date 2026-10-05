@@ -708,7 +708,7 @@ export const RULEBOOK_PT = [
       },
       {
         "ul": [
-          "O Magnata Imobiliário e O Onipresente são concedidos - 5 EP cada um ao líder isolado com 2-3 jogadores, 10 EP cada um com 4 ou mais. Eles também são pagos no trimestre final se a partida for encerrada antes do Q12.",
+          "O Magnata Imobiliário e O Onipresente são concedidos - 4 EP mais o número de jogadores, só ao líder isolado, ou seja 6 EP com duas cadeiras subindo até 10 com seis. Eles também são pagos no trimestre final se a partida for encerrada antes do Q12.",
           "Você pode recomprar discos de empréstimo: $30 no fim do Ano 1, $35 no Ano 2, $40 no Ano 3."
         ]
       },
@@ -975,11 +975,11 @@ export const RULEBOOK_PT = [
             ],
             [
               "O Magnata Imobiliário - mais lotes possuídos, a cada fim de ano",
-              "+5 só ao líder isolado, +10 com 4+ jogadores"
+              "+4 mais o número de jogadores, só ao líder isolado"
             ],
             [
               "O Onipresente - mais distritos em que você está presente, a cada fim de ano",
-              "+5 só ao líder isolado, +10 com 4+ jogadores"
+              "+4 mais o número de jogadores, só ao líder isolado"
             ],
             [
               "Dinheiro em caixa no fim",
