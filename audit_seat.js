@@ -33,31 +33,36 @@
      rotate     turn order rotates one seat every quarter, so first player comes
                 round to everybody; capital and cards untouched
 
-   WHAT IT FOUND - 400 games an arm a table size.
+   WHAT IT FOUND - 400 games an arm a table size, measured AFTER placeNewLH was
+   taught to aim. The first run of this probe predates that fix and its numbers
+   are not comparable; this is the one that counts.
 
-   SEAT 1 IS THE WORST SEAT, NOT THE BEST. At three players it wins 27.5% of the
-   time against a 33.3% baseline and finishes 6.5 EP behind seat 3, which wins
-   37.8%. At four seats it is 22.8% against 25%. The compensation for going late
-   is not thin, it is too generous: seat 3 holds three Blueprints to seat 1's
-   one AND drafts first, and cards are worth more than the $6 of capital that
-   buys them.
+   SEAT 1 IS THE WORST SEAT, NOT THE BEST. At three players it wins 27.9% against
+   a 33.3% baseline and finishes 6.6 EP behind seat 3, which wins 40.0%. At four
+   it is 24.1% against 25.0%, which is near enough to chance. The compensation
+   for going late is not thin, it is too generous: seat 3 holds three Blueprints
+   to seat 1's one AND drafts first, and the cards beat the $6 of capital.
 
-   SO RICK'S WAND MAKES IT WORSE. Reversing the capital column - his suggestion -
-   takes seat 3 to 43.1% and widens the spread from 10.2 to 17.0 points. Rotating
-   turn order does the same, 44.9%, because order was not what was carrying seat
-   1. The only arm that closes the gap is flatAll, equal capital AND equal cards:
-   34.0 / 35.4 / 30.6, a spread of 4.7 points.
+   SO REVERSING THE CAPITAL MAKES IT WORSE - seat 3 to 40.5% at three players,
+   and to 34.8% at four where it had been 22.5%. So does rotating turn order,
+   44.1% at three, because order is not what was carrying the seat. The only arm
+   that closes the gap is flatAll, equal capital AND equal cards: 32.5 / 33.8 /
+   33.8, a spread of 1.3 points against the shipped 12.1.
 
-   AND THE REASON TO DISTRUST ALL OF IT, which audit_first_player.js states in
-   its own header: placeNewLH picks uniformly at random from the legal spots and
-   never looks at whose buildings a hub would connect. On an all-bot table - and
-   every table in this repository is one - the first player's hub privilege is
-   worth EXACTLY ZERO, every quarter, for the whole game. Bots also do not fight
-   over demand icons the way a human reading the board does, and delivery order
-   is the other thing seat 1 holds. The privileges a human would feel are
-   precisely the ones these numbers cannot see, so a table that says seat 1 is a
-   godsend is not contradicted by this probe - it is pointing at the part the
-   probe is blind to. Fix the blindness before trusting the verdict.
+   AND THE BLINDNESS THAT USED TO QUALIFY ALL OF THIS IS GONE. placeNewLH picked
+   uniformly at random until recently, so the one first-player privilege that
+   never expires was worth exactly zero in every simulation here. It now scores
+   each candidate plot for the first player. Measured either way, the verdict did
+   not move: in audit_first_player the seat holding first longest wins 34.0% with
+   aiming and 33.9% without at three players, 27.3% against 25.5% at four. Aiming
+   the hub is worth about two points of win rate at four seats and nothing at
+   three, because first player circulates - it is held for 1.8 quarters in a row
+   at four players and REPOSITION is taken five times a game.
+
+   WHAT IS STILL NOT MODELLED, and it is the honest reason a table may disagree:
+   bots do not fight over demand icons the way a human reading the board does,
+   and delivery order is the other thing seat 1 holds. A table that says seat 1
+   is a godsend is pointing at that, not at the hub.
 
    Run: node audit_seat.js [games a table size] [seats...]
    ========================================================================== */

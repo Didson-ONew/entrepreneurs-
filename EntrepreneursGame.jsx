@@ -394,7 +394,23 @@ function placeNewLH(state, rng, log) {
      good, and fall back to anywhere if the board is that full. */
   const useful = spots.filter((p) => orthOf(state.board, p).length > 0);
   const pool = useful.length ? useful : spots;
-  const plot = pool[Math.floor(rng() * pool.length)];
+  /* THE FIRST PLAYER PLACES IT, SO PLACE IT FOR THEM. This used to pick uniformly
+     at random, which meant the one first-player privilege that never expires was
+     worth exactly nothing in every simulation here - audit_first_player.js has
+     carried that warning in its header for some time, and every number anyone has
+     quoted about first-player strength was measured without it. A human first
+     player aims this every quarter; now the bot holding the seat does too.
+
+     Ties keep the random pick, so where nothing distinguishes two plots the
+     distribution is unchanged. */
+  const chooser = byId(state, state.turnOrder[0]);
+  let best = -Infinity, picks = [];
+  for (const sp of pool) {
+    const v = chooser ? lhPlacementScore(state, chooser, sp) : 0;
+    if (v > best) { best = v; picks = [sp]; }
+    else if (v === best) picks.push(sp);
+  }
+  const plot = picks[Math.floor(rng() * picks.length)];
   state.board.lhPlots.push(plot);
   logNewLH(state, [districtOf(state.board, plot)], log);
 }
@@ -411,23 +427,70 @@ function ownedFreeNeighbors(board, plot) { return freeNeighbors(board, plot).fil
 /* Rank candidate plots by how much demand a business of `ind` could actually reach
    from there: open icons in the home district, plus hub access if the industry can
    use it. Building blind was leaving ~80% of bot production unsold. */
-function plotDemandScore(state, ind, plotKeyStr) {
-  const board = state.board;
-  const c = board.cellOf[plotKeyStr];
+function openIconsFor(state, ind, plotKeyStr) {
+  const c = state.board.cellOf[plotKeyStr];
   if (!c) return 0;
-  const tileKey = `${c.r},${c.c}`;
-  const t = state.demand && state.demand.tiles ? state.demand.tiles[tileKey] : null;
-  let score = 0;
-  if (t) {
-    t.rows.forEach((rowInd, rowIdx) => {
-      if (rowInd !== ind) return;
-      const openable = rowIdx >= 2 && state.quarter <= 4 ? 0 : 1;
-      for (let l = 0; l < 4; l++) if (openable && !t.filled[rowIdx][l]) score += 1;
-    });
-  }
+  const t = state.demand && state.demand.tiles ? state.demand.tiles[`${c.r},${c.c}`] : null;
+  if (!t) return 0;
+  let n = 0;
+  t.rows.forEach((rowInd, rowIdx) => {
+    if (rowInd !== ind) return;
+    const openable = rowIdx >= 2 && state.quarter <= 4 ? 0 : 1;
+    for (let l = 0; l < 4; l++) if (openable && !t.filled[rowIdx][l]) n += 1;
+  });
+  return n;
+}
+function plotDemandScore(state, ind, plotKeyStr) {
+  let score = openIconsFor(state, ind, plotKeyStr);
   const canLH = ind !== "UT" && ind !== "RE";      // those two are never on the network
-  if (canLH && plotHasLH(board, plotKeyStr)) score += 6;      // opens the whole hub network
+  if (canLH && plotHasLH(state.board, plotKeyStr)) score += 6;   // opens the whole hub network
   return score;
+}
+/* WHAT A HUB ON THIS PLOT WOULD BE WORTH TO p, who is the first player and the one
+   placing it. A hub pays two ways and they are not worth the same:
+
+     CONNECTING   a company of theirs standing orthogonally beside it joins the
+                  network and reaches EVERY district the network touches. Only
+                  Hospitality, Manufacturing and Technology can gain this -
+                  Utilities and Retail may never use hubs at all, and Healthcare
+                  is on the network already without touching one - and a company
+                  that already touches a hub gains nothing from touching a second.
+     EXTENDING    the hub's own district joins the network, so every company of
+                  theirs that is ALREADY on it can sell there too.
+
+   Connecting turns one district of reach into all of them, so it is weighted to
+   dominate a handful of icons. Rivals who would be connected by the same hub are
+   subtracted: joining two of their companies to the network to join one of yours
+   is a bad hub, and the first player can see that as easily as anyone. */
+function lhPlacementScore(state, p, plot) {
+  const board = state.board;
+  const nbrs = orthOf(board, plot);
+  if (!nbrs.length) return -1;            // connects nobody, now or ever
+  const seen = new Set();
+  let mine = 0, rivals = 0;
+  for (const k of nbrs) {
+    const id = board.occupiedBy[k];
+    if (id === undefined || seen.has(id)) continue;
+    seen.add(id);
+    for (const q of state.players) {
+      const b = q.businesses.find((x) => x.id === id);
+      if (!b) continue;
+      if (b.distressed || b.isHQ) break;
+      const ind = bizInd(b);
+      if (ind === "UT" || ind === "RE" || ind === "HC") break;        // gains nothing by touching
+      if (b.footprint.some((pk) => plotHasLH(board, pk))) break;      // already on the network
+      if (q.id === p.id) mine++; else rivals++;
+      break;
+    }
+  }
+  let extend = 0;
+  for (const b of activeBiz(p)) {
+    const ind = bizInd(b);
+    if (ind === "UT" || ind === "RE") continue;
+    const onNet = ind === "HC" || b.footprint.some((pk) => plotHasLH(board, pk));
+    if (onNet) extend += openIconsFor(state, ind, plot);
+  }
+  return mine * 10 - rivals * 4 + extend;
 }
 /* ---- how much of this company's output could actually be sold from here ----
    Built as a probe company and passed through the real eligibleSlotsFor, so it counts
@@ -1923,7 +1986,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "66679470";
+const ENGINE_VERSION = "33d6a618";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
