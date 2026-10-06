@@ -22,6 +22,41 @@
    across the whole table, which is the shape of demand against supply as the
    game goes on.
 
+   WHAT IT FOUND - 200 games at three seats, 150 at four.
+
+   RETAIL IS NOT IN THE SAME GAME AS THE REST. Net cash per dollar of setup,
+   over a company's whole life:
+
+     RE 6.16   HO 2.87   UT 2.29   MA 1.21   TE 0.97   HC 0.53     (3 players)
+     RE 5.82   HO 3.38   UT 2.73   MA 1.51   TE 0.93   HC 0.62     (4 players)
+
+   More than twice the next best at both counts. It is also built most often
+   (2.46 a game at three seats), built earliest (mean quarter 4.0), upgraded
+   most (82%) and stands longest (7.7 quarters). It earns $307 a company where
+   Technology earns $90. Three playtesters have said the industries feel
+   unbalanced without naming which; this is which.
+
+   Healthcare and Technology are the other end, and they fail differently.
+   Healthcare is an EP play that loses money - 11.7 EP a company, the joint
+   best, on 0.53 cash per dollar - while Technology is neither, at 0.97 cash
+   and 9.5 EP, built last (mean quarter 7.4) and least (0.96 a game).
+
+   AND THE DEMAND BOARD SATURATES. Production outruns the icons badly, and the
+   share of everything made that gets recycled at $1 climbs through the game:
+
+     3 players   55% 49% 47% 53% | 27% 44% 54% 59% | 10% 23% 39% 56%
+     4 players   55% 54% 50% 54% | 27% 46% 56% 63% | 11% 26% 49% 66%
+
+   The two drops are Q5, when rows 3 and 4 open, and Q9, after the grid is
+   wiped at the end of Q8 - both work, and both are swallowed again within
+   three quarters. By the last quarter of a four-player game TWO THIRDS of
+   everything produced is being thrown away at a dollar. That is the economic
+   shape behind "I couldn't sell my products due to market limitations" and
+   behind the late game feeling flat: the third year is played on a board that
+   cannot absorb what the table builds. It also means a shorter game loses
+   less than the clock suggests, because the quarters being cut are the ones
+   where half of production is already worthless.
+
    Run: node audit_industries.js [games a table size] [seats...]
    ========================================================================== */
 const fs = require("fs");
