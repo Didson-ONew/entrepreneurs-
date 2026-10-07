@@ -965,4 +965,5 @@ export default {
   "all {0} EP": "todos os {0} EP",
   "{0} EP": "{0} EP",
   "{0} buys {1} EP for ${2} (cash: ${3}).": "{0} compra {1} EP por ${2} (dinheiro: ${3}).",
+  "{0} opens a {1} branch in {2}.": "{0} abre uma filial de {1} em {2}.",
 };

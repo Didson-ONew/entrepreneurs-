@@ -159,7 +159,7 @@ function buildBoard(rng) {
 
   const centerPlots = Object.keys(cellOf).filter((k) => CENTER_CELLS.some(([cr, cc]) => cr === cellOf[k].r && cc === cellOf[k].c));
   const distFromCenter = bfsDistances(graph, centerPlots);
-  const board = { tiles, graph, orth, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhPlots: [], hqFootprints: [] };
+  const board = { tiles, graph, orth, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhPlots: [], hqFootprints: [], branches: {} };
   board.priceLattice = computePriceLattice(board);
   return board;
 }
@@ -241,6 +241,73 @@ const plotFree = (board, plot) => !(plot in board.occupiedBy) && !plotIsLH(board
 const plotBuildable = (board, plot) => plot in board.owner && plotFree(board, plot);
 const plotBuyable = (board, plot) => !(plot in board.owner) && !plotIsLH(board, plot);
 const lhPlaceable = (board, plot) => !(plot in board.owner) && plotFree(board, plot);
+/* RETAIL OPENS BRANCHES INSTEAD OF REACHING ABSTRACTLY.
+
+   Its old ability was reach with no body: bestExtraDistrictsForRE sorted EVERY
+   district on the board by open demand, took the best few, free, with nothing
+   placed - and re-chose them at every single delivery. That is why Retail sold
+   95% of what it made while Utilities, with the same number of rows on the
+   board, sold 68%, and it is most of why Retail came out Good on five of the six
+   axes an industry is judged on.
+
+   A branch is that reach made physical. One per level, placed once on a free
+   unowned plot in a district of your choosing, and from then on that is where
+   your chain is. It holds the ground like anything else - so it costs a disc,
+   blocks the plot, and counts as a structure for what the land nearby is worth -
+   and it counts towards The Omnipresent, which is about where you are, but NOT
+   towards The Real-Estate Mogul, which is about how much you hold.
+
+   Branches carry NEGATIVE ids in board.occupiedBy. Every lookup that turns an id
+   back into a company already tolerates finding none, and the negative keeps
+   them from ever colliding with a real one. Hospitality counts each as its own
+   building, which is what any structure in range should do. */
+const branchId = (bizId, n) => -(bizId * 100 + n + 1);
+const branchesWanted = (biz) => (bizInd(biz) === "RE" ? biz.level : 0);
+const branchPlotsOf = (board, biz) =>
+  Object.keys(board.branches || {}).filter((k) => board.branches[k].bizId === biz.id);
+const branchDistricts = (board, biz) =>
+  new Set(branchPlotsOf(board, biz).map((k) => { const c = board.cellOf[k]; return `${c.r},${c.c}`; }));
+
+/* Where the next branch goes: the district with the most open Retail demand this
+   company cannot already see, and inside it any plot nobody holds. */
+function branchSpot(state, p, biz) {
+  const board = state.board;
+  const covered = new Set([...footprintDistricts(board, biz.footprint), ...branchDistricts(board, biz)]);
+  const free = Object.keys(board.graph).filter((k) => !(k in board.owner) && plotFree(board, k));
+  if (!free.length) return null;
+  let best = null, bestScore = -1;
+  for (const k of free) {
+    const c = board.cellOf[k];
+    const d = `${c.r},${c.c}`;
+    if (covered.has(d)) continue;
+    const sc = openIconsFor(state, "RE", k);
+    if (sc > bestScore) { bestScore = sc; best = k; }
+  }
+  return best || free[0];
+}
+function placeBranches(state, p, biz, log) {
+  const board = state.board;
+  let have = branchPlotsOf(board, biz).length;
+  const want = branchesWanted(biz);
+  while (have < want) {
+    if (discsFree(state, p) <= 0) break;          // a branch you cannot staff is not opened
+    const spot = branchSpot(state, p, biz);
+    if (!spot) break;
+    board.owner[spot] = p.id;                      // holds the ground, so it costs a disc
+    board.occupiedBy[spot] = branchId(biz.id, have);
+    board.branches[spot] = { playerId: p.id, bizId: biz.id };
+    have++;
+    if (log) log(logMsg("{0} opens a {1} branch in {2}.", p.name, biz.bp.name, plotLabel(board, spot)), p.id);
+  }
+}
+function removeBranches(state, biz) {
+  const board = state.board;
+  for (const k of branchPlotsOf(board, biz)) {
+    delete board.branches[k];
+    delete board.occupiedBy[k];
+    delete board.owner[k];
+  }
+}
 const LOCAL5 = { NW: [0, 0], N: [0, 2], NE: [0, 4], W: [2, 0], E: [2, 4], SW: [4, 0], S: [4, 2], SE: [4, 4] };
 function isCCDistrict0(dr, dc) { return CENTER_CELLS.some(([cr, cc]) => cr - 1 === dr && cc - 1 === dc); }
 
@@ -781,15 +848,24 @@ function reachableDistricts(state, biz, chosenExtra) {
   }
   if (bizInd(biz) === "UT") utBlock(state, biz, home).forEach((d) => out.add(d));
   if (bizInd(biz) === "RE") {
-    /* The Supply Chain Expert reaches one district further this quarter. The bonus used
-       to be read only in the fallback branch below, so the moment a human confirmed a
-       pick it was skipped entirely and the persona did nothing in human hands. The
-       allowance is now one number, reAllowance, that the picker and the engine share. */
-    const allow = reAllowance(state, biz);
-    const explicit = chosenExtra || (state.reChoices && state.reChoices[biz.id]);
-    // never honour more than the allowance, whatever a client sent
-    const extra = explicit ? explicit.slice(0, allow) : bestExtraDistrictsForRE(state, biz, allow, home);
-    extra.forEach((d) => out.add(d));
+    /* Where the chain stands, not where it fancies this quarter. */
+    branchDistricts(board, biz).forEach((d) => out.add(d));
+    /* The Supply Chain Expert still reaches one district further, and that one is
+       still a choice rather than a building - it is a person, not a shop. Being a
+       choice, it is PINNED for the length of a delivery. bestExtraDistrictsForRE
+       ranks by OPEN icons, so recomputing it mid-delivery makes it drift the
+       moment this company fills the icons it was picked for - which is the exact
+       bug the old per-delivery pin on reChoices existed to stop, and which
+       test_re_reach_stable caught coming back through this one line. */
+    const bonus = reAllowance(state, biz) - biz.level;
+    if (bonus > 0) {
+      state.reBonusPick = state.reBonusPick || {};
+      if (!state.reBonusPick[biz.id]) {
+        const covered = new Set([...home, ...branchDistricts(board, biz)]);
+        state.reBonusPick[biz.id] = bestExtraDistrictsForRE(state, biz, bonus, covered);
+      }
+      state.reBonusPick[biz.id].forEach((d) => out.add(d));
+    }
   }
   return out;
 }
@@ -1003,17 +1079,11 @@ function aboveLevelDiscount(state, p, biz, levelIdx) {
    units, which is what makes them decisions: where to send a unit, not whether to
    conjure one. */
 function autoDeliver(state, p, biz) {
-  /* A Retail company picks its extra districts ONCE per delivery, the way a human's
-     pick is pinned in reChoices. Without this the bot's pick was recomputed on every
-     slot by reachableDistricts, by open-icon count - so the moment it filled the icons
-     in one district the pick drifted to another, and the icons it had been counting
-     on became unreachable mid-delivery. Measured in audit_te_doubling.js: 39% of the
-     units Retail left over had enough capacity in reach when the delivery began;
-     pinned, that is 0% and Retail sells 59% of what it makes instead of 46%. */
-  if (bizInd(biz) === "RE" && !(state.reChoices && state.reChoices[biz.id])) {
-    state.reChoices = state.reChoices || {};
-    state.reChoices[biz.id] = bestExtraDistrictsForRE(state, biz, reAllowance(state, biz, p), footprintDistricts(state.board, biz.footprint));
-  }
+  /* Retail used to need its extra districts PINNED here for the length of a
+     delivery, because reachableDistricts recomputed them by open-icon count on
+     every slot and the pick drifted the moment it filled the icons it had been
+     counting on. A branch cannot drift: it is a building, placed once, and
+     reachableDistricts reads where it stands. Nothing to pin any more. */
   let remaining = bizProd(biz);
   let crossAllowance = bizInd(biz) === "MA" ? biz.level : 0;
   let earned = 0;
@@ -1557,6 +1627,10 @@ function sellCompany(state, p, b, solvency = false) {
   if (solvency) recv = b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4);
   else recv = voluntarySalePrice(b);
   p.cash += recv; b.distressed = true;
+  /* The branches come down with the chain - they were its shopfronts, not land
+     holdings, and the ground goes back to nobody. Reclaim opens fresh ones
+     wherever the new owner wants them. */
+  removeBranches(state, b);
   /* THE GROUND GOES WITH THE COMPANY in the beginner game. Everywhere else the
      land stays yours, because you can sell it or build on it again - that is the
      whole of audit_liquidation's finding. Here there is no BUY, no SELL and no
@@ -1883,7 +1957,11 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   } else if (!footprint.every((plot) => plot in state.board.owner && plotFree(state.board, plot))) return false;
   if (!footprintIsContiguous(state.board, footprint)) return false;
   if (p.cash < bp.setup) return false;
-  if (discsFree(state, p) <= 0) return false;   // no disc left to mark the new company
+  /* One disc for the company, plus one for each branch a Retail will open. The
+     whole chain is checked up front rather than opened as far as the discs reach,
+     so "I can afford this" is one question with one answer. */
+  const needDiscs = 1 + (bp.ind === "RE" ? bp.lvl : 0);
+  if (discsFree(state, p) < needDiscs) return false;
   p.cash -= bp.setup;
   const biz = newBusiness(bp, footprint, state.quarter, state);
   /* The ground comes with the company here, free. businessCanProduce checks
@@ -1891,6 +1969,7 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   if (isBeginner(state)) footprint.forEach((plot) => (state.board.owner[plot] = p.id));
   footprint.forEach((plot) => (state.board.occupiedBy[plot] = biz.id));
   p.businesses.push(biz);
+  placeBranches(state, p, biz, log);
   p.hand = p.hand.filter((x) => x !== bp);
   scoreCompanyOnCompletion(state, p, biz);
   onLaunch(state.pm, bp.ind, bp.deps.map((d) => d.ind));
@@ -1972,6 +2051,11 @@ function doUpgrade(state, p, b, rng, log, manualPlot, dir) {
   }
   b.upgraded = true; b.level += 1;
   b.scored = false;
+  /* A level up is another shopfront. If there is no disc for it the company still
+     upgrades - the branch simply is not opened, and the owner can free a disc and
+     it will be opened at the next launch or upgrade. Kept below the two lines
+     above because audit_industries splices on them being adjacent. */
+  placeBranches(state, p, b, log);
   scoreCompanyOnCompletion(state, p, b);
   log(logMsg("{0} upgrades {1} to level {2} for ${3} (cash: ${4}).", p.name, b.bp.name, b.level, bizSetup(b), Math.round(p.cash)), p.id);
   return true;
@@ -1986,7 +2070,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "33d6a618";
+const ENGINE_VERSION = "59818986";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2610,7 +2694,12 @@ function awardRanked(state, scoreFn, label, log) {
 /* The two endgame land awards, exposed so the standings can show the same running
    totals players will actually be scored on. */
 function plotCount(state, p) {
-  return Object.values(state.board.owner).filter((id) => id === p.id).length;
+  /* Branch plots are deliberately excluded. A branch holds its ground - it takes a
+     disc and nobody can build there - but The Real-Estate Mogul pays for how much
+     land you hold, and a shopfront is not a holding. The Omnipresent, which pays
+     for where you ARE, counts them, and gets that from board.owner for free. */
+  const br = state.board.branches || {};
+  return Object.entries(state.board.owner).filter(([k, id]) => id === p.id && !(k in br)).length;
 }
 function districtCount(state, p) {
   const districts = new Set();
@@ -2957,6 +3046,10 @@ function doReclaim(state, p, biz, log) {
      company in that industry. That is a player's own portfolio broadening, not the
      company being paid for twice. */
   p.businesses.push(biz);
+  /* The shopfronts went when the chain failed; the new owner opens their own,
+     wherever suits them now, which is the point of the branches being placed
+     rather than abstract. */
+  placeBranches(state, p, biz, log);
   const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
   log(logMsg("{0} buys the distressed {1} ({2} L{3}) back from the bank{4} for ${5} (cash: ${6}).", p.name, biz.bp.name, bizInd(biz), biz.level, from, cost, Math.round(p.cash)), p.id);
   claimIndustryBonus(state, p, bizInd(biz), log);
@@ -3669,7 +3762,7 @@ function continueProduction(state, log, rng) {
   runProduction(state, log);
   state.deliveryRemaining = {};
   state.crossSellRemaining = {};
-  state.reChoices = {};   // Retail re-picks its extra districts every delivery
+  state.reBonusPick = {};  // the Supply Chain Expert's one extra district, re-picked each delivery
   state.hoBonusPaid = {};
   /* Delivery runs in turn order, everybody in one sequence. Demand icons are first
      come first served, so who sells before whom is the whole point of being first
@@ -5932,7 +6025,6 @@ function GameScreens({ online }) {
     setTutorial(false);
   };
   const startedAt = useRef(null);
-  const [reSelection, setReSelection] = useState([]);
   /* Which final quarter this player has already been told about. Keyed on the quarter
      rather than a boolean so it cannot be re-shown by a re-render, and so a rematch -
      which starts a fresh state with no finalQuarter - announces the next one properly. */
@@ -6195,13 +6287,12 @@ function GameScreens({ online }) {
   const isHumanPlacingLH = state.phase === "placingLH" && myTurn;
   const isHumanRepaying = state.phase === "repayingLoans" && myTurn;
   const deliveringBiz = isHumanDelivering ? human.businesses.find((b) => b.id === state.deliveringBizId) : null;
-  const needsREChoice = deliveringBiz && bizInd(deliveringBiz) === "RE" && !state.reChoices[deliveringBiz.id];
   // one number for the picker: level, plus one while the Supply Chain bump is live
   const reAllow = deliveringBiz ? reAllowance(state, deliveringBiz, human) : 0;
   const isHumanSupplyChain = state.phase === "supplyChain" && myTurn;
   const scOptions = isHumanSupplyChain ? supplyChainOptions(state, human) : [];
   const scConcession = isHumanSupplyChain && concessionAvailable(state, human);
-  const deliverInfo = deliveringBiz && !needsREChoice ? {
+  const deliverInfo = deliveringBiz ? {
     ind: bizInd(deliveringBiz), level: deliveringBiz.level, reach: reachableDistricts(state, deliveringBiz),
     // how deep into a row this company may sell - see deliveryColumnCap
     cap: deliveryColumnCap(state, deliveringBiz, human),
@@ -6211,21 +6302,11 @@ function GameScreens({ online }) {
     crossHome: bizInd(deliveringBiz) === "MA" ? footprintDistricts(state.board, deliveringBiz.footprint) : new Set(),
   } : null;
 
-  function handleConfirmREChoice() {
-    if (!state || !deliveringBiz) return;
-    if (NET) { NET.send("reChoice", { bizId: deliveringBiz.id, districts: reSelection }); setReSelection([]); return; }
-    state.reChoices[deliveringBiz.id] = reSelection;
-    setReSelection([]);
-    setState({ ...state });
-  }
   function handleSupplyChain(ind) {
     if (!state) return;
     if (NET) return NET.send("supplyChain", { ind });
     chooseSupplyChain(state, human, ind, log, rngRef.current);
     setState({ ...state });
-  }
-  function toggleReDistrict(d, max) {
-    setReSelection((sel) => sel.includes(d) ? sel.filter((x) => x !== d) : sel.length < max ? [...sel, d] : sel);
   }
 
   function handleRepayOne() {
@@ -6473,34 +6554,7 @@ function GameScreens({ online }) {
                 </div>
               </div>
             )}
-            {isHumanDelivering && needsREChoice && (
-              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
-                <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
-                  {t(reAllow > 1 ? "{0} may reach {1} extra districts this delivery — pick {2}/{1}" : "{0} may reach {1} extra district this delivery — pick {2}/{1}",
-                     t(deliveringBiz.bp.name), reAllow, reSelection.length)}
-                </div>
-                <div className="text-[10px] text-gray-400 mb-2">
-                  {t("Retail may sell to any district(s) beyond its own, one per level. Choose which.")}
-                </div>
-                <div className="flex flex-wrap gap-1.5 mb-2" style={{ maxHeight: 160, overflowY: "auto" }}>
-                  {allDistrictKeys(state.board).filter((d) => !footprintDistricts(state.board, deliveringBiz.footprint).has(d)).map((d) => {
-                    const tname = state.board.tiles[d];
-                    const chosen = reSelection.includes(d);
-                    return (
-                      <button key={d} onClick={() => toggleReDistrict(d, reAllow)}
-                        className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: chosen ? "#1a4a2e" : "#1c1f26", border: chosen ? "1px solid #4ade80" : "1px solid #33384355", color: "#e5e7eb" }}>
-                        {tname}
-                      </button>
-                    );
-                  })}
-                </div>
-                <button onClick={handleConfirmREChoice} disabled={reSelection.length < 1 && reAllow > 0}
-                  className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
-                  {t("Confirm reach")}
-                </button>
-              </div>
-            )}
-            {isHumanDelivering && deliveringBiz && !needsREChoice && (
+            {isHumanDelivering && deliveringBiz && (
               <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
                 <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
                   {t("Delivering {0} ({1} L{2}) — {3} unit(s) left", t(deliveringBiz.bp.name), bizInd(deliveringBiz), deliveringBiz.level, state.deliveryRemaining[deliveringBiz.id])}

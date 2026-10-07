@@ -56,8 +56,8 @@ if (CUT < 0) { console.error("the engine marker moved - update this probe"); pro
 const NEEDLES = [
   ["one shared allowance feeds both the picker and the engine",
    "function reAllowance(state, biz, owner) {"],
-  ["the explicit branch is trimmed to that allowance",
-   "const extra = explicit ? explicit.slice(0, allow) : bestExtraDistrictsForRE(state, biz, allow, home);"],
+  ["the persona bonus is what the allowance adds ON TOP of the branches",
+   "const bonus = reAllowance(state, biz) - biz.level;"],
   ["humans are queued rather than auto-picked for",
    "function humansNeedingSupplyChain(state) {"],
   ["the bump loop skips humans",
@@ -133,34 +133,30 @@ const home = E.footprintDistricts(st.board, reBiz.footprint);
 console.log("\nWHAT THE ABILITY IS WORTH, MEASURED THREE WAYS");
 console.log("  (districts a level-2 Retail company can reach, minus its own)\n");
 
-/* 1. No persona bonus at all - the plain Retail baseline. */
+/* RETAIL REACHES WHERE ITS BRANCHES STAND NOW, so the three paths this used to
+   compare - bot, human picker, and a client ignoring the cap - have collapsed
+   into one. There is no district list on the wire any more to trim or to trust;
+   a branch is placed when it is opened and reachableDistricts reads the board.
+   What is left to check is that the persona still adds its one district on top,
+   and that it does so identically whoever is holding the seat. */
 st.reExtraDistrict = {};
-st.reChoices = {};
 const plain = E.reachableDistricts(st, reBiz);
 
-/* 2. Bonus granted, and NOTHING chosen - the path a bot takes. */
 st.reExtraDistrict = { [p.id]: true };
-st.reChoices = {};
 const botPath = E.reachableDistricts(st, reBiz);
 
-/* 3. Bonus granted, and the human confirms a pick sized by the SHARED allowance -
-      which is exactly what the picker now passes as its max. */
-const allow = E.reAllowance(st, reBiz, p);
-const offered = E.allDistrictKeys(st.board).filter((d) => !home.has(d));
-st.reExtraDistrict = { [p.id]: true };
-st.reChoices = { [reBiz.id]: offered.slice(0, allow) };
+p.isHuman = true;
 const humanPath = E.reachableDistricts(st, reBiz);
+p.isHuman = false;
 
-/* 4. A client that ignores the cap and sends more than the allowance. */
-st.reChoices = { [reBiz.id]: offered.slice(0, allow + 3) };
-const overreach = E.reachableDistricts(st, reBiz);
+const allow = E.reAllowance(st, reBiz, p);
+const overreach = botPath;        // nothing can be sent, so nothing can overreach
 
 const beyond = (set) => [...set].filter((d) => !home.has(d)).length;
 const pad = (s, n) => String(s).padEnd(n);
 console.log("  " + pad("no persona (baseline)", 36) + beyond(plain));
-console.log("  " + pad("persona, BOT path (no reChoice)", 36) + beyond(botPath));
-console.log("  " + pad("persona, HUMAN path (picker cap)", 36) + beyond(humanPath));
-console.log("  " + pad("persona, client sends 3 too many", 36) + beyond(overreach));
+console.log("  " + pad("persona, bot seat", 36) + beyond(botPath));
+console.log("  " + pad("persona, human seat", 36) + beyond(humanPath));
 
 console.log("");
 console.log(`  reAllowance for a level-${reBiz.level} Retail with the bump live: ${allow}\n`);
@@ -172,9 +168,9 @@ check("human and bot get the same reach from the same persona",
   beyond(humanPath) === beyond(botPath), `human ${beyond(humanPath)} vs bot ${beyond(botPath)}`);
 check("the allowance is level + 1 while the bump is live",
   allow === reBiz.level + 1, `level ${reBiz.level}, allowance ${allow}`);
-check("a client sending more districts than allowed is trimmed, not obeyed",
-  beyond(overreach) === beyond(humanPath),
-  `sent ${allow + 3}, honoured ${beyond(overreach)}`);
+check("there is no district list on the wire left to over-send",
+  typeof st.reChoices === "undefined" || !st.reChoices[reBiz.id],
+  "reachableDistricts reads the branches, not a client payload");
 
 console.log("\nIS THE INDUSTRY CHOICE OFFERED NOW?");
 /* A human seat with the persona and a Retail company must stop the game and be asked;
