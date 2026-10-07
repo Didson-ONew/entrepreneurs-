@@ -26,7 +26,7 @@ const box = {}; const sb = { console, Math, Set, Object, Array, JSON, String, Ma
 vm.createContext(sb);
 vm.runInContext(engine + `box.E = { logEntry, initGame, mulberry32, advanceDraft, startPlanning,
   advancePlanning, activeBiz, bizInd, autoDeliver, businessCanProduce, reachableDistricts,
-  footprintDistricts, branchDistricts, branchPlotsOf, ownerOf };`, sb);
+  footprintDistricts, branchDistricts, branchPlotsOf, ownerOf, branchesWanted, reAllowance };`, sb);
 const E = box.E;
 
 /* A seeded game where a bot holds a producing Retail company partway through. */
@@ -58,12 +58,16 @@ if (found) {
   const branches = E.branchDistricts(st.board, biz);
   const before = E.reachableDistricts(st, biz);
 
-  check("it has a branch for every level it has",
-    E.branchPlotsOf(st.board, biz).length === biz.level,
+  check("it has a branch for every level above the first",
+    E.branchPlotsOf(st.board, biz).length === E.branchesWanted(biz),
     `level ${biz.level}, ${E.branchPlotsOf(st.board, biz).length} branches`);
-  check("its reach is exactly its home district plus its branches",
-    before.size === home.size + branches.size,
-    `${before.size} reached, ${home.size} home + ${branches.size} branch`);
+  /* The Supply Chain Expert adds one district on top of the branches, and it is a
+     choice rather than a shop, so it is allowed for by name rather than by
+     slackening the equality - that equality is the point of the check. */
+  const persona = Math.max(0, E.reAllowance(st, biz, E.ownerOf(st, biz)) - biz.level);
+  check("its reach is exactly home + branches + any persona district",
+    before.size === home.size + branches.size + persona,
+    `${before.size} reached, ${home.size} home + ${branches.size} branch + ${persona} persona`);
 
   /* Deliver everything it has. Under the old rule this is the point at which the
      pick drifted, because filling icons changed which districts scored best. */

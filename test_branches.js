@@ -8,6 +8,7 @@
    them fall out of registering a branch in board.owner and board.occupiedBy and
    would break silently if either stopped being true:
 
+     one per level above 1    a level-1 Retail is a corner shop, not a chain
      it holds the ground      a disc each, and nobody may build there
      it is a structure        the land around it is dearer, like any building
      Hospitality counts it    any structure in range is a customer
@@ -61,13 +62,14 @@ section("one branch per level, each holding its own ground");
     const { st, me, built, biz } = retailTable(lvl);
     if (!built) { check(`level ${lvl}: built`, false); continue; }
     const br = E.branchPlotsOf(st.board, biz);
-    check(`level ${lvl}: opens ${lvl} branch(es)`, br.length === lvl, `${br.length}`);
+    const want = lvl - 1;
+    check(`level ${lvl}: opens ${want} branch(es)`, br.length === want, `${br.length}`);
     const held = br.every((k) => st.board.owner[k] === me.id);
     check(`level ${lvl}: every branch holds its plot`, held);
     const blocked = br.every((k) => !E.plotFree(st.board, k));
     check(`level ${lvl}: and nobody can build there`, blocked);
     const used = E.discsPerPlayer(st) - E.discsFree(st, me);
-    check(`level ${lvl}: costs ${2 + lvl} discs, not 2`, used === 2 + lvl, `${used}`);
+    check(`level ${lvl}: costs ${2 + want} discs`, used === 2 + want, `${used}`);
   }
 }
 
@@ -85,7 +87,7 @@ section("presence, not holdings");
 /* The branch picker aims at open demand, which often lands it somewhere hemmed in.
    These two checks are the whole point of the "a branch is a structure" decision, so
    they hunt for a board where there is something to measure rather than skipping. */
-function tableWithOpenNeighbour(lvl) {
+function tableWithOpenNeighbour(lvl) {   // lvl 2+, since level 1 opens none
   for (let seed = 1; seed < 60; seed++) {
     const t = retailTable(lvl, seed);
     if (!t.built) continue;
@@ -99,7 +101,7 @@ function tableWithOpenNeighbour(lvl) {
 
 section("a branch is a structure, so the land around it is dearer");
 {
-  const t = tableWithOpenNeighbour(1);
+  const t = tableWithOpenNeighbour(2);
   if (!t) { check("found a board to measure on", false); }
   else {
     const { st, br, nbr } = t;
@@ -113,7 +115,7 @@ section("a branch is a structure, so the land around it is dearer");
 
 section("Hospitality counts a branch like any other building in range");
 {
-  const t = tableWithOpenNeighbour(1);
+  const t = tableWithOpenNeighbour(2);
   if (!t) { check("found a board to measure on", false); }
   else {
     const { st, br, nbr } = t;
@@ -150,7 +152,7 @@ section("sold, the shopfronts come down");
 {
   const { st, me, biz } = retailTable(3);
   const br = E.branchPlotsOf(st.board, biz);
-  check("three branches standing", br.length === 3, `${br.length}`);
+  check("two branches standing", br.length === 2, `${br.length}`);
   const before = E.discsPerPlayer(st) - E.discsFree(st, me);
   E.sellCompany(st, me, biz, true);
   check("no branch is left on the board", E.branchPlotsOf(st.board, biz).length === 0);

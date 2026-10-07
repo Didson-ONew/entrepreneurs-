@@ -250,9 +250,11 @@ const lhPlaceable = (board, plot) => !(plot in board.owner) && plotFree(board, p
    board, sold 68%, and it is most of why Retail came out Good on five of the six
    axes an industry is judged on.
 
-   A branch is that reach made physical. One per level, placed once on a free
-   unowned plot in a district of your choosing, and from then on that is where
-   your chain is. It holds the ground like anything else - so it costs a disc,
+   A branch is that reach made physical. One per level ABOVE THE FIRST, placed
+   once on a free unowned plot in a district of your choosing, and from then on
+   that is where your chain is. A level-1 Retail opens none and trades only where
+   it stands - the level-1 cards are a Corner Store, a Pop-Up Kiosk and a Local
+   Market, and a shop that serves its own street is what they should be. It holds the ground like anything else - so it costs a disc,
    blocks the plot, and counts as a structure for what the land nearby is worth -
    and it counts towards The Omnipresent, which is about where you are, but NOT
    towards The Real-Estate Mogul, which is about how much you hold.
@@ -262,7 +264,7 @@ const lhPlaceable = (board, plot) => !(plot in board.owner) && plotFree(board, p
    them from ever colliding with a real one. Hospitality counts each as its own
    building, which is what any structure in range should do. */
 const branchId = (bizId, n) => -(bizId * 100 + n + 1);
-const branchesWanted = (biz) => (bizInd(biz) === "RE" ? biz.level : 0);
+const branchesWanted = (biz) => (bizInd(biz) === "RE" ? Math.max(0, biz.level - 1) : 0);
 const branchPlotsOf = (board, biz) =>
   Object.keys(board.branches || {}).filter((k) => board.branches[k].bizId === biz.id);
 const branchDistricts = (board, biz) =>
@@ -1960,7 +1962,7 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   /* One disc for the company, plus one for each branch a Retail will open. The
      whole chain is checked up front rather than opened as far as the discs reach,
      so "I can afford this" is one question with one answer. */
-  const needDiscs = 1 + (bp.ind === "RE" ? bp.lvl : 0);
+  const needDiscs = 1 + (bp.ind === "RE" ? Math.max(0, bp.lvl - 1) : 0);
   if (discsFree(state, p) < needDiscs) return false;
   p.cash -= bp.setup;
   const biz = newBusiness(bp, footprint, state.quarter, state);
@@ -2070,7 +2072,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "59818986";
+const ENGINE_VERSION = "b5defd7a";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
