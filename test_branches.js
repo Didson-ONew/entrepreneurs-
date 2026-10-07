@@ -8,7 +8,8 @@
    them fall out of registering a branch in board.owner and board.occupiedBy and
    would break silently if either stopped being true:
 
-     one per level above 1    a level-1 Retail is a corner shop, not a chain
+     one per level           and the chain has to JOIN UP - each branch next to
+                              a district the company already covers
      it holds the ground      a disc each, and nobody may build there
      it is a structure        the land around it is dearer, like any building
      Hospitality counts it    any structure in range is a customer
@@ -62,7 +63,7 @@ section("one branch per level, each holding its own ground");
     const { st, me, built, biz } = retailTable(lvl);
     if (!built) { check(`level ${lvl}: built`, false); continue; }
     const br = E.branchPlotsOf(st.board, biz);
-    const want = lvl - 1;
+    const want = lvl;
     check(`level ${lvl}: opens ${want} branch(es)`, br.length === want, `${br.length}`);
     const held = br.every((k) => st.board.owner[k] === me.id);
     check(`level ${lvl}: every branch holds its plot`, held);
@@ -70,6 +71,25 @@ section("one branch per level, each holding its own ground");
     check(`level ${lvl}: and nobody can build there`, blocked);
     const used = E.discsPerPlayer(st) - E.discsFree(st, me);
     check(`level ${lvl}: costs ${2 + want} discs`, used === 2 + want, `${used}`);
+    /* Each branch must sit next to something the chain already covered when it was
+       opened. Checked by growing the blob back out from home one branch at a time:
+       if any branch is unreachable from the rest, the chain is not connected. */
+    const dOf = (k) => { const c = st.board.cellOf[k]; return `${c.r},${c.c}`; };
+    const touch = (a, b) => {
+      const [ar, ac] = a.split(",").map(Number), [br, bc] = b.split(",").map(Number);
+      return Math.abs(ar - br) + Math.abs(ac - bc) === 1;
+    };
+    const blob = new Set([...E.footprintDistricts(st.board, biz.footprint)]);
+    const left = br.map(dOf).filter((d) => !blob.has(d));
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (let i = left.length - 1; i >= 0; i--) {
+        if ([...blob].some((d) => touch(d, left[i]))) { blob.add(left[i]); left.splice(i, 1); grew = true; }
+      }
+    }
+    check(`level ${lvl}: every branch joins the chain`, left.length === 0,
+      left.length ? `${left.length} stranded` : `${blob.size} districts connected`);
   }
 }
 
@@ -87,7 +107,7 @@ section("presence, not holdings");
 /* The branch picker aims at open demand, which often lands it somewhere hemmed in.
    These two checks are the whole point of the "a branch is a structure" decision, so
    they hunt for a board where there is something to measure rather than skipping. */
-function tableWithOpenNeighbour(lvl) {   // lvl 2+, since level 1 opens none
+function tableWithOpenNeighbour(lvl) {
   for (let seed = 1; seed < 60; seed++) {
     const t = retailTable(lvl, seed);
     if (!t.built) continue;
@@ -101,7 +121,7 @@ function tableWithOpenNeighbour(lvl) {   // lvl 2+, since level 1 opens none
 
 section("a branch is a structure, so the land around it is dearer");
 {
-  const t = tableWithOpenNeighbour(2);
+  const t = tableWithOpenNeighbour(1);
   if (!t) { check("found a board to measure on", false); }
   else {
     const { st, br, nbr } = t;
@@ -115,7 +135,7 @@ section("a branch is a structure, so the land around it is dearer");
 
 section("Hospitality counts a branch like any other building in range");
 {
-  const t = tableWithOpenNeighbour(2);
+  const t = tableWithOpenNeighbour(1);
   if (!t) { check("found a board to measure on", false); }
   else {
     const { st, br, nbr } = t;
@@ -152,7 +172,7 @@ section("sold, the shopfronts come down");
 {
   const { st, me, biz } = retailTable(3);
   const br = E.branchPlotsOf(st.board, biz);
-  check("two branches standing", br.length === 2, `${br.length}`);
+  check("three branches standing", br.length === 3, `${br.length}`);
   const before = E.discsPerPlayer(st) - E.discsFree(st, me);
   E.sellCompany(st, me, biz, true);
   check("no branch is left on the board", E.branchPlotsOf(st.board, biz).length === 0);

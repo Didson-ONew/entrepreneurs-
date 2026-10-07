@@ -250,11 +250,24 @@ const lhPlaceable = (board, plot) => !(plot in board.owner) && plotFree(board, p
    board, sold 68%, and it is most of why Retail came out Good on five of the six
    axes an industry is judged on.
 
-   A branch is that reach made physical. One per level ABOVE THE FIRST, placed
-   once on a free unowned plot in a district of your choosing, and from then on
-   that is where your chain is. A level-1 Retail opens none and trades only where
-   it stands - the level-1 cards are a Corner Store, a Pop-Up Kiosk and a Local
-   Market, and a shop that serves its own street is what they should be. It holds the ground like anything else - so it costs a disc,
+   A branch is that reach made physical. One per level, placed once on a free
+   unowned plot, and from then on that is where your chain is.
+
+   AND THE CHAIN HAS TO JOIN UP. A branch may only open in a district orthogonally
+   next to one this company already covers - its home district, or a branch it has
+   already opened - so the company spreads as a connected blob outward from where
+   it started rather than appearing wherever the demand happens to be best.
+   Diagonals do not count, the same as everywhere else on this board.
+
+   MEASURED, THOUGH, THE JOINING-UP IS NEARLY FREE. The guess when this was
+   written was that Retail's strength came from the freedom to aim its districts
+   rather than from how many it got. It is the other way round: making the chain
+   contiguous moves net cash per dollar of setup from 6.08 to 5.97, while cutting
+   the count by one moves it to 4.47. On a four-by-four board a blob of two to
+   four districts still reaches nearly as much demand as a free pick, because two
+   thirds of districts carry a Retail row and the next one along is usually one of
+   them. The count is the lever; the freedom is flavour - good flavour, and it
+   does fix a level-1 Retail having nowhere at all to sell, but not a balance fix. It holds the ground like anything else - so it costs a disc,
    blocks the plot, and counts as a structure for what the land nearby is worth -
    and it counts towards The Omnipresent, which is about where you are, but NOT
    towards The Real-Estate Mogul, which is about how much you hold.
@@ -264,28 +277,35 @@ const lhPlaceable = (board, plot) => !(plot in board.owner) && plotFree(board, p
    them from ever colliding with a real one. Hospitality counts each as its own
    building, which is what any structure in range should do. */
 const branchId = (bizId, n) => -(bizId * 100 + n + 1);
-const branchesWanted = (biz) => (bizInd(biz) === "RE" ? Math.max(0, biz.level - 1) : 0);
+const branchesWanted = (biz) => (bizInd(biz) === "RE" ? biz.level : 0);
 const branchPlotsOf = (board, biz) =>
   Object.keys(board.branches || {}).filter((k) => board.branches[k].bizId === biz.id);
 const branchDistricts = (board, biz) =>
   new Set(branchPlotsOf(board, biz).map((k) => { const c = board.cellOf[k]; return `${c.r},${c.c}`; }));
 
-/* Where the next branch goes: the district with the most open Retail demand this
-   company cannot already see, and inside it any plot nobody holds. */
+/* Two districts side by side on the 4x4 grid of districts. Orthogonal only. */
+function districtsTouch(a, b) {
+  const [ar, ac] = a.split(",").map(Number), [br, bc] = b.split(",").map(Number);
+  return Math.abs(ar - br) + Math.abs(ac - bc) === 1;
+}
+/* Where the next branch goes: of the districts this chain can still REACH - the
+   ones orthogonally next to something it already covers - the one with the most
+   open Retail demand, and inside it any plot nobody holds. Returning null when
+   the chain is boxed in is correct: a chain that cannot extend does not extend. */
 function branchSpot(state, p, biz) {
   const board = state.board;
   const covered = new Set([...footprintDistricts(board, biz.footprint), ...branchDistricts(board, biz)]);
-  const free = Object.keys(board.graph).filter((k) => !(k in board.owner) && plotFree(board, k));
-  if (!free.length) return null;
   let best = null, bestScore = -1;
-  for (const k of free) {
+  for (const k of Object.keys(board.graph)) {
+    if (k in board.owner || !plotFree(board, k)) continue;
     const c = board.cellOf[k];
     const d = `${c.r},${c.c}`;
     if (covered.has(d)) continue;
+    if (![...covered].some((cd) => districtsTouch(cd, d))) continue;
     const sc = openIconsFor(state, "RE", k);
     if (sc > bestScore) { bestScore = sc; best = k; }
   }
-  return best || free[0];
+  return best;
 }
 function placeBranches(state, p, biz, log) {
   const board = state.board;
@@ -1962,7 +1982,7 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   /* One disc for the company, plus one for each branch a Retail will open. The
      whole chain is checked up front rather than opened as far as the discs reach,
      so "I can afford this" is one question with one answer. */
-  const needDiscs = 1 + (bp.ind === "RE" ? Math.max(0, bp.lvl - 1) : 0);
+  const needDiscs = 1 + (bp.ind === "RE" ? bp.lvl : 0);
   if (discsFree(state, p) < needDiscs) return false;
   p.cash -= bp.setup;
   const biz = newBusiness(bp, footprint, state.quarter, state);
@@ -2072,7 +2092,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "b5defd7a";
+const ENGINE_VERSION = "788d09d3";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
