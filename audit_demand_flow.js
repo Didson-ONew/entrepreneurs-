@@ -46,6 +46,9 @@
                 Retail returns about two and a half times what the next best
                 industry does and is the cheapest thing on the board to start.
      tuned      flowCash + both
+     reProd     tuned + Retail's production cut from 4/8/16 to 3/6/12, level with
+                Hospitality and Manufacturing. Volume is the one advantage none of
+                the branch work touched.
 
    WHAT IT FOUND - 200 games an arm a table size, three and four seats.
 
@@ -88,6 +91,23 @@
 
    Retail also stops being the best EP per dollar, falling from 3.93 to 3.05,
    behind Hospitality and Utilities.
+
+   AND WHAT RETAIL'S BRANCHES CHANGED, measured after they went into the engine.
+   Net cash per dollar of setup at three seats, Retail against the industry
+   below it, and the best-to-worst spread across all six:
+
+     no branches                        RE 6.39   HO 5.07   5.0x
+     one per level, placed freely       RE 6.08   HO 4.96   4.1x
+     one per level, chain joins up      RE 5.97   HO 5.03   4.6x
+     L-1, placed freely                 RE 4.47   HO 5.05   3.9x   <- HO took the top
+     joined up + production 3/6/12      RE 5.11   HO 4.15   3.6x   <- tightest
+
+   Two separate goals pull apart here. The tightest SPREAD is the last row, this
+   probe's reProd arm; the only arrangement where Retail is not the strongest
+   industry at all is L-1, which costs a level-1 Retail its only district and
+   leaves 36% of them with nowhere to sell. Cutting production instead of the
+   count keeps level 1 alive, and it works ONLY alongside the setup rise - put
+   setup back to 10/15/25 and Retail returns to 6.71, exactly where it started.
 
    WHAT IS STILL WRONG. Healthcare ends up last on BOTH axes - lowest cash per
    dollar and lowest EP per dollar - which the shipped game hides by making it
@@ -133,22 +153,28 @@ const ARMS = [
   { key: "teOpex",   note: "+ TE opex 5/8/12" },
   { key: "reCost",   note: "+ RE setup 14/20/32" },
   { key: "tuned",    note: "cash + both" },
+  { key: "reProd",   note: "+ RE production 3/6/12" },
 ];
 
 function engine(key) {
   let L = BASE;
   if (key !== "stock") L = L.replace(N.consume, "  return cross ? 1 : exchangeRate(state, biz);");
   if (key !== "stock" && key !== "flow") L = L.replace(N.cashRate, "const CASH_PER_EP = 65;");
+  /* NOTE: every arm here now also carries Retail's branches, which went into the
+     engine after the findings below were written. The figures in this header are
+     from before that and are kept because they are what the arms were chosen
+     against; audit_industries is where the post-branch per-industry ledger lives. */
   /* The card economics live in one JSON literal, so they are retuned by parsing
      it, changing the numbers and putting it back - not by a text substitution
      that would have to match every card individually. */
-  if (key === "teOpex" || key === "reCost" || key === "tuned") {
+  if (key === "teOpex" || key === "reCost" || key === "tuned" || key === "reProd") {
     const m = L.match(/const BP_DATA = (\[.*?\]);/s);
     if (!m) { console.error("BP_DATA moved - update this probe"); process.exit(2); }
     const cards = JSON.parse(m[1]);
     for (const c of cards) {
-      if ((key === "teOpex" || key === "tuned") && c.ind === "TE") c.opex = { 1: 5, 2: 8, 3: 12 }[c.lvl];
-      if ((key === "reCost" || key === "tuned") && c.ind === "RE") c.setup = { 1: 14, 2: 20, 3: 32 }[c.lvl];
+      if ((key === "reCost" || key === "tuned" || key === "reProd") && c.ind === "RE") c.setup = { 1: 14, 2: 20, 3: 32 }[c.lvl];
+      if ((key === "teOpex" || key === "tuned" || key === "reProd") && c.ind === "TE") c.opex = { 1: 5, 2: 8, 3: 12 }[c.lvl];
+      if (key === "reProd" && c.ind === "RE") c.prod = { 1: 3, 2: 6, 3: 12 }[c.lvl];
     }
     L = L.replace(m[0], "const BP_DATA = " + JSON.stringify(cards) + ";");
   }
