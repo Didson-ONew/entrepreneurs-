@@ -57,7 +57,17 @@
    less than the clock suggests, because the quarters being cut are the ones
    where half of production is already worthless.
 
-   Run: node audit_industries.js [games a table size] [seats...]
+   ARMS, added later. By default this reads the shipped game; the flags listed
+   above the splices let the same ledger be read against the proposed retune.
+   Two warnings from using them. The arms STACK, so --pool2 alone is the shipped
+   economy on a different board, not the proposal. And 200 games is not enough
+   to compare industries this way: three disjoint 200-game blocks of identical
+   rules put Hospitality's net cash per dollar at 4.25, 5.93 and 5.43. Run 2000,
+   and run a second block with --off to see the noise before believing a gap.
+
+   Run: node audit_industries.js [games a table size] [seats...] [arms...]
+        node audit_industries.js 2000 3 4 --flow --tuned
+        node audit_industries.js 2000 3 4 --flow --tuned --off 5000   (control)
    ========================================================================== */
 const fs = require("fs");
 const path = require("path");
@@ -70,6 +80,82 @@ const SIZES = SEATS.length ? SEATS : [2, 3, 4, 5, 6];
 const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
 const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
 let logic = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
+
+/* ---------------------------------------------------------------------------
+   ARMS. By default this reads the shipped game. Each flag below swaps one part
+   of the proposed retune in, so the per-company ledger can be read against a
+   rule the repo does not implement yet. They stack in the order written.
+
+     --flow    demand as a rate: an icon absorbs one unit, is never consumed,
+               and stays open to everyone (audit_demand_flow.js owns this one)
+     --tuned   + cash at $65 an EP and the three-value setup/opex ladders
+     --p2      with --tuned, the second ladder pairing instead of the first
+     --pool    the suburb pool flattened to R4 C4 A4 I4
+     --pool2   the suburb pool tipped to R3 C3 A5 I5
+     --off N   start from seed N+1 instead of 1, for a disjoint sample
+
+   Every flag is a splice on an exact fragment, so a fragment that has moved
+   stops the probe rather than letting it quietly measure the shipped game.
+   --------------------------------------------------------------------------- */
+function need(frag, what) {
+  if (!logic.includes(frag)) { console.error(`the engine changed shape around ${what} - update this probe`); process.exit(2); }
+}
+const CONSUME = `  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
+  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);`;
+need(CONSUME, "the delivery rule");
+if (process.argv.includes("--flow")) logic = logic.replace(CONSUME, "  return cross ? 1 : exchangeRate(state, biz);");
+
+if (process.argv.includes("--tuned")) {
+  need("const CASH_PER_EP = 50;", "the cash-to-EP rate");
+  logic = logic.replace("const CASH_PER_EP = 50;", "const CASH_PER_EP = 65;");
+  /* The card economics live in one JSON literal, so they are retuned by parsing
+     it, changing the numbers and putting it back, not by a text substitution
+     that would have to match every card individually. */
+  const m = logic.match(/const BP_DATA = (\[.*?\]);/s);
+  if (!m) { console.error("BP_DATA moved - update this probe"); process.exit(2); }
+  const cards = JSON.parse(m[1]);
+  const SETUP = { cheap: [10, 15, 25], mid: [15, 25, 40], dear: [20, 35, 60] };
+  const OPEX  = { low:   [4, 7, 10],   mid: [5, 9, 14],   high: [6, 10, 16] };
+  /* P1: the mid setup ladder is unified at 15/25/40 so the attribute has three
+     values rather than four, and opex is re-paired - UT swaps with HC, RE with
+     TE - which is the fewest moves that makes every industry's weight zero. */
+  const P1_SETUP = { UT: "mid", RE: "cheap", HO: "cheap", MA: "dear", HC: "dear", TE: "mid" };
+  const P1_OPEX  = { UT: "mid", RE: "high",  HO: "high",  MA: "low",  HC: "low",  TE: "mid" };
+  /* P2: opex untouched, setup re-paired instead - cheap goes to HO and TE, mid
+     to RE and HC, dear to UT and MA. */
+  const P2_SETUP = { UT: "dear", RE: "mid", HO: "cheap", MA: "dear", HC: "mid", TE: "cheap" };
+  const P2_OPEX  = { UT: "low",  RE: "mid", HO: "high",  MA: "low",  HC: "mid", TE: "high" };
+  const P = process.argv.includes("--p2") ? { s: P2_SETUP, o: P2_OPEX } : { s: P1_SETUP, o: P1_OPEX };
+  for (const c of cards) {
+    c.setup = SETUP[P.s[c.ind]][c.lvl - 1];
+    c.opex  = OPEX[P.o[c.ind]][c.lvl - 1];
+  }
+  logic = logic.replace(m[0], "const BP_DATA = " + JSON.stringify(cards) + ";");
+}
+
+/* The demand table itself cannot be re-paired - audit_demand_table.js proves
+   that by enumeration. The one lever that moves demand volume or spread is the
+   SUBURB POOL: how many of the sixteen suburb tiles belong to each family, since
+   both numbers are weighted sums of those counts. A tile keeps its four plot
+   positions when it changes family, so the only physical change is which 4x4
+   demand grid is printed on it. */
+const POOL_LINE = `const SUBURB_POOL = ["R1", "R2", "R3", "R4", "R5", "C1", "C2", "C3", "C4", "C5", "A1", "A2", "A3", "I1", "I2", "I3"];`;
+function relabel(renames, pool) {
+  need(POOL_LINE, "the suburb pool");
+  for (const [from, to] of Object.entries(renames)) {
+    const frag = `${from}: [`;
+    const hits = logic.split(frag).length - 1;
+    if (hits !== 1) { console.error(`tile ${from} is declared ${hits} times - update this probe`); process.exit(2); }
+    logic = logic.replace(frag, `${to}: [`);
+  }
+  logic = logic.replace(POOL_LINE, `const SUBURB_POOL = ${JSON.stringify(pool)};`);
+}
+if (process.argv.includes("--pool"))
+  relabel({ R5: "A4", C5: "I4" },
+    ["R1", "R2", "R3", "R4", "C1", "C2", "C3", "C4", "A1", "A2", "A3", "A4", "I1", "I2", "I3", "I4"]);
+if (process.argv.includes("--pool2"))
+  relabel({ R4: "A4", R5: "A5", C4: "I4", C5: "I5" },
+    ["R1", "R2", "R3", "C1", "C2", "C3", "A1", "A2", "A3", "A4", "A5", "I1", "I2", "I3", "I4", "I5"]);
 
 /* Every hook is a splice on an exact line, and a line that has moved stops the probe
    rather than letting it measure half a ledger. */
@@ -122,7 +208,8 @@ function run(seats) {
   const T = {}; E.INDUSTRIES.forEach((i) => { T[i] = { n: 0, built: 0, lvl2plus: 0, upgraded: 0, revenue: 0, recycled: 0, prod: 0,
     setup: 0, suppliers: 0, rent: 0, quarters: 0, ep: 0, soldSolvency: 0, soldOther: 0, merged: 0, hq: 0, standing: 0 }; });
   const RQall = {}; let games = 0;
-  for (let seed = 1; seed <= GAMES; seed++) {
+  const OFF = (() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) : 0; })();
+  for (let seed = 1 + OFF; seed <= GAMES + OFF; seed++) {
     const st = E.initGame(seats - 1, seed, ["Seat 1"], undefined, true, undefined);
     st.players[0].isHuman = false;
     L = new Map(); RQ = {};
