@@ -1186,16 +1186,19 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
    flooded good is still worth twice what binning it is worth, which was not true
    when the track bottomed out at the recycling rate.
 
-   A marker on a blank cell reads as the NEXT number up, which is what makes the
-   halves work out: from $3 one company built leaves it still reading $3, and the
-   second takes it to $2.
+   Every move is TWO cells, so a marker only ever sits on an even one and every
+   even cell is a whole dollar. The odd cells are left over from the half-dollar
+   step; a marker on one reads as the next number up, which is what lets a game
+   saved under the old rules carry on without resetting every price.
 
-   Two things move a marker, and they are deliberately asymmetric:
+   Two things move a marker, and they are equal and opposite:
 
-     APPEARING AS A SUPPLIER on a Blueprint somebody builds moves it UP one cell.
-     BEING BUILT moves that industry's own marker DOWN one step. Each step is a whole
-     dollar - the two pressures are equal and opposite, and an industry that is built
-     as often as it is needed sits still.
+     APPEARING AS A SUPPLIER on a Blueprint somebody builds moves it UP $1.
+     BEING BUILT moves that industry's own marker DOWN $1.
+
+   So an industry that is built as often as it is needed sits still, and one
+   company is a whole dollar either way - from $3, one more company built takes
+   it to the $2 floor.
 
    The marker STOPS at each end. That is the reason this is one clamped position
    rather than the two counters it used to be: with separate demand and offer
@@ -1212,7 +1215,7 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
    track and the hard stops - which were the real improvements - without that.
    See audit_price_track.js. */
 const PRICE_MIN = 2, PRICE_MAX = 12;
-const CELL_MIN = 0, CELL_MAX = (PRICE_MAX - PRICE_MIN) * 2;   // 18
+const CELL_MIN = 0, CELL_MAX = (PRICE_MAX - PRICE_MIN) * 2;   // 20
 const cellOfPrice = (p) => (p - PRICE_MIN) * 2;
 const clampCell = (c) => Math.max(CELL_MIN, Math.min(CELL_MAX, c));
 
@@ -1238,9 +1241,9 @@ function moveMarker(pm, ind, cells) {
   if (!pm.cell) pm.cell = {};
   pm.cell[ind] = clampCell(trackCell(pm, ind) + cells);
 }
-/* Building a company: its own industry down one cell, every industry it lists as a
-   supplier up two. A Blueprint with two suppliers therefore lifts $2 of price into
-   the city and takes half a dollar out of its own. */
+/* Building a company: its own industry down $1, every industry it lists as a
+   supplier up $1. Both are two cells. A Blueprint with two suppliers therefore
+   lifts $2 of price into the city and takes $1 out of its own. */
 const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;
 function onLaunch(pm, ind, depInds) {
   moveMarker(pm, ind, BUILT_CELLS);
@@ -1817,7 +1820,7 @@ function launchScore(state, p, bp, archetype) {
 
      A Megacorp headquarters banks EP equal to its industry's CURRENT PRICE every
      quarter, so entering that industry takes points off its owner for the rest of the
-     game - the price falls a dollar for every two companies built there. It is the only
+     game - the price falls a dollar for every company built there. It is the only
      pressure the table has on a runaway leader, and it costs nothing extra: you are
      building a company you were going to build anyway, in a different sector.
 
@@ -2092,7 +2095,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "788d09d3";
+const ENGINE_VERSION = "1bb893c5";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
