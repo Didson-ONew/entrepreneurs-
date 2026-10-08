@@ -127,9 +127,83 @@
    consumption across all six instead of leaving Retail pinned at the bottom and
    the rest floating free. Four players is the same shape.
 
+   SOLVING FOR A ROOM SHAPE, AND WHAT CAME BACK. Run with --paper to see the
+   working. Write B for the bump at which margin reaches zero, so the price
+   base-B earns exactly nothing. Then
+
+       opex = prod * (base - B)      and      NET AT BASE = prod * B
+
+   so a break-even bump IS a net income, and payback = setup / (prod * B). Price
+   room, running cost and the setup ladder are one dial read three ways.
+
+   TWO THINGS THAT CLOSE OFF MOST OF THE SPACE. B = 0 means a company earns
+   nothing at its own base price, so no setup cost makes it repay. And the $2
+   floor caps B at base - 2, so Utilities and Retail, on base $4, can never
+   break even more than two bumps down however their running cost is set. Which
+   is also why three industries today have a break-even BELOW the floor - UT at
+   B 3.00, RE at 2.75, MA at 3.67 against caps of 2, 2 and 3 - so crowding can
+   never reach them at all. That is the finding behind the 0% above.
+
+   Asked for a room shape that SHRINKS as entry cost rises - cheap two bumps,
+   average one, dear break-even at base - the search returns NOTHING. Not a
+   near miss: zero of the candidates, because the setup tiers have to come out
+   cheap < average < dear and they are ordered by prod * B, which cannot fall
+   while B falls. A shape that GROWS with entry cost has exactly two solutions,
+   and the clean one is --roomA:
+
+                        UT/RE      HO/MA      HC/TE
+     entry cost         $10        $15        $20      (the three tiers already printed)
+     B                   1          2          4
+     running cost L1    $12        $9         $4       (today $4/$5, $6/$4, $5/$6)
+     net at base        $4         $6         $8
+     payback            2.5q       2.5q       2.5q     exactly level
+
+   MEASURED, THE RULE LANDS HARD AND THE BALANCE IS THE BEST YET. 2000 games a
+   seat count, demand as a rate, three players. Share of company-quarters not
+   covering the bill, which was 0% everywhere:
+
+       shipped    UT  0%  RE  0%  HO 1%  MA 0%  HC 0%  TE 0%
+       --flip     UT  0%  RE  0%  HO 1%  MA 0%  HC 1%  TE 0%
+       --roomA    UT 23%  RE 24%  HO 7%  MA 3%  HC 0%  TE 0%
+       --roomMax  UT  3%  RE  4%  HO 2%  MA 1%  HC 1%  TE 0%
+
+   and the industry spread on net value a game goes 4.23x shipped, 2.73x under
+   the setup re-assignment alone, 1.85x under --roomA - the flattest field any
+   arm in this repo has produced.
+
+   AND IT CHANGES WHAT A COMPANY IS. Under --roomA net cash over a company's
+   whole life is NEGATIVE for Utilities (-$18), Retail (-$7) and Hospitality
+   (-$8), and only 14-41% of companies ever repay their outlay against 42-89%
+   today. The money is not destroyed - running costs feed the supplier pots - but
+   it means your own companies stop being investments and become EP purchases
+   funded by what other people build. That is a different game, not a tuning.
+
+   THE PAPER IDENTITY IS AN UPPER BOUND, which is the correction worth keeping.
+   net = prod * B assumes every unit produced is sold. Measured it is not, and
+   that is what actually pushes a company under: Utilities sits at the $2 floor
+   in 2% of quarters but fails to cover its bill in 23% of them. The price was
+   almost never the problem - unsold production was. So opex = prod * (base - B)
+   puts break-even at base - B ONLY at full sales; with demand short, real
+   break-even sits above it. Setting this dial makes an industry fragile to a
+   thin demand board as much as to crowding, which may be what is wanted, but it
+   is not what the arithmetic says on its own.
+
+   AND THERE IS A DIRECT TRADE, which is the thing to decide. setup follows net
+   follows prod * B, so HOW HARD THE RULE BITES SETS HOW WIDE THE SETUP TIERS
+   CAN BE. B of 1/2/4 gives a 2x spread of entry cost and doubles the running
+   costs printed on the deck, $466 to $950. Push every pair to its floor-capped
+   maximum instead (--roomMax, B 1/2/3, running costs $684) and the rule still
+   lands in the right order but gently, the industry spread is 2.27x, net cash
+   stays positive everywhere and its spread is the lowest of any arm at 4.05x -
+   but net income comes out nearly flat, so the setup ladder has to be flat too
+   and cheap-versus-dear entry stops existing as an attribute at all.
+
    Run: node audit_price_room.js [games a table size] [seats...] [arms...]
         --paper    the arithmetic above, every level, then stop
+        --solve    print the dial, the two impossibilities and the solutions
         --flip     score it against the setup re-assignment from audit_setup
+        --roomA    cheap UT/RE B=1, average HO/MA B=2, dear HC/TE B=4
+        --roomMax  every pair at its floor-capped maximum, flat setup ladder
         --flow     demand as a rate (see audit_demand_flow.js)
         --off N    start from seed N+1, for a same-rules control block
    ========================================================================== */
@@ -198,6 +272,67 @@ function paperTable(cs, label) {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   SOLVING FOR A ROOM SHAPE.  Write B for the bump at which margin reaches zero,
+   so price base-B earns exactly nothing:
+
+       prod * (base - B) - opex = 0        =>   opex = prod * (base - B)
+       net at base = prod * base - opex    =>   NET  = prod * B
+
+   Asking for a break-even bump IS asking for a net income. And payback is
+   setup / net = setup / (prod * B), so the three things - price room, running
+   cost and the setup ladder - are one dial read three ways, not three dials.
+
+   Two consequences that close off most of the design space:
+
+     B = 0 means a company earns nothing at its own base price, so it never
+     repays its setup at any price it starts from. No setup cost fixes that.
+
+     the price floor caps B at base - 2, because a marker cannot go below $2.
+     UT and RE have base $4, so their break-even can never be more than two
+     bumps down however their running cost is set.
+
+   Which is why the search below reports no solution at all for a room shape
+   that SHRINKS as entry cost rises. --------------------------------------- */
+const PAIRS3 = [["UT", "RE"], ["HO", "MA"], ["HC", "TE"]];
+function solveRoom() {
+  const prodOf = (i) => card(CARDS0, i, 1).prod;
+  const pairs = PAIRS3.map((pr) => ({ name: pr.join("/"), inds: pr, prod: prodOf(pr[0]), cap: PRICE[pr[0]] - MIN }));
+  console.log("\nTHE DIAL, AND WHAT IT ALLOWS");
+  console.log("  net at base = production x B, so a break-even bump is a net income:");
+  for (const q of pairs) console.log(`    ${q.name}  production ${q.prod}, base $${PRICE[q.inds[0]]}  ->  B can be 1..${q.cap} (the $${MIN} floor caps it)`);
+  console.log("\n  today, where each industry's break-even actually sits:");
+  for (const i of IND) { const c = card(CARDS0, i, 1), net = c.prod * PRICE[i] - c.opex;
+    const B = net / c.prod, cap = PRICE[i] - MIN;
+    console.log(`    ${i}  net $${net}  B ${B.toFixed(2)}  cap ${cap}${B > cap ? "   <- below the floor, so crowding can never reach it" : ""}`); }
+
+  const perms = [];
+  (function pm(rest, acc) { if (!rest.length) { perms.push(acc.slice()); return; }
+    rest.forEach((x, k) => { acc.push(x); pm(rest.filter((_, n) => n !== k), acc); acc.pop(); }); })(pairs, []);
+  const found = { shrink: [], grow: [] };
+  for (const order of perms) for (let a = 1; a <= 4; a++) for (let b = 1; b <= 4; b++) for (let c = 1; c <= 4; c++) {
+    const B = [a, b, c];
+    if (new Set(B).size !== 3) continue;
+    if (B.some((x, k) => x > order[k].cap)) continue;
+    const net = order.map((q, k) => q.prod * B[k]);
+    /* the three setup tiers must come out cheap < average < dear, and payback
+       equal means setup is proportional to net */
+    if (!(net[0] < net[1] && net[1] < net[2])) continue;
+    const rec = { order, B, net };
+    if (B[0] > B[1] && B[1] > B[2]) found.shrink.push(rec);
+    if (B[0] < B[1] && B[1] < B[2]) found.grow.push(rec);
+  }
+  console.log(`\n  room SHRINKS as entry cost rises (cheap -2, average -1, dear at base): ${found.shrink.length} solutions`);
+  console.log(`  room GROWS   as entry cost rises:                                     ${found.grow.length} solutions`);
+  for (const r of found.grow) {
+    const T = 10 / r.net[0];
+    console.log(`\n    cheap ${r.order[0].name} B=${r.B[0]}    average ${r.order[1].name} B=${r.B[1]}    dear ${r.order[2].name} B=${r.B[2]}`);
+    console.log(`      net a quarter at base   ${r.net.map((x) => "$" + x).join("  ")}`);
+    console.log(`      running cost, L1        ${r.order.map((q, k) => `${q.name} $${q.prod * (PRICE[q.inds[0]] - r.B[k])}`).join("   ")}`);
+    console.log(`      setup for equal payback ${r.net.map((x) => "$" + Math.round(x * T)).join(" / ")}   (${(r.net[2] / r.net[0]).toFixed(1)}x across the tiers)`);
+  }
+}
+
 function supplierCensus(cs) {
   console.log("\nWHO THE DECK MAKES A SUPPLIER, which is where the upward pressure comes from");
   const app = Object.fromEntries(IND.map((i) => [i, 0])), own = Object.fromEntries(IND.map((i) => [i, 0]));
@@ -212,11 +347,32 @@ function supplierCensus(cs) {
   console.log("  supplier and is price-neutral; a level-3 lists three and puts $2 net INTO the city.");
 }
 
+const CAND = {
+  roomA: { opex:  { UT: [12, 24, 48], RE: [12, 24, 48], HO: [9, 18, 36], MA: [9, 18, 36], HC: [4, 8, 16], TE: [4, 8, 16] },
+           setup: { UT: [10, 20, 40], RE: [10, 20, 40], HO: [15, 30, 60], MA: [15, 30, 60], HC: [20, 40, 80], TE: [20, 40, 80] } },
+  roomMax: { opex:  { UT: [8, 16, 32], RE: [8, 16, 32], HO: [6, 12, 24], MA: [6, 12, 24], HC: [4, 8, 16], TE: [4, 8, 16] },
+             setup: { UT: [15, 30, 60], RE: [15, 30, 60], HO: [15, 30, 60], MA: [15, 30, 60], HC: [15, 30, 60], TE: [15, 30, 60] } },
+};
+const applyCand = (k) => CARDS0.map((c) => ({ ...c, opex: CAND[k].opex[c.ind][c.lvl - 1], setup: CAND[k].setup[c.ind][c.lvl - 1] }));
+function priceBill(cs, label) {
+  const sum = (f) => cs.reduce((a, c) => a + f(c), 0);
+  console.log(`  ${pad(label, 10)} running cost printed $${sum((c) => c.opex)}   setup printed $${sum((c) => c.setup)}`);
+}
+
 if (has("--paper")) {
   paperTable(CARDS0, "AS IT SHIPS");
   supplierCensus(CARDS0);
+  solveRoom();
+  paperTable(applyCand("roomA"), "\n--roomA   cheap UT/RE B=1, average HO/MA B=2, dear HC/TE B=4");
+  paperTable(applyCand("roomMax"), "\n--roomMax every pair at its floor-capped maximum, flat setup ladder");
+  console.log("\nWHAT EACH ONE PRINTS ACROSS THE 60 CARD TYPES");
+  priceBill(CARDS0, "shipped");
+  priceBill(applyCand("roomA"), "--roomA");
+  priceBill(applyCand("roomMax"), "--roomMax");
+  console.log("  running cost is what feeds the supplier pots, so doubling it doubles the");
+  console.log("  money moving between players and CASH_PER_EP has to be re-checked with it.");
   paperTable(CARDS0.map((c) => ({ ...c, setup: FLIP[c.ind][c.lvl - 1] })),
-    "SCORED AGAINST THE SETUP RE-ASSIGNMENT (--flip in audit_setup)");
+    "\nSCORED AGAINST THE SETUP RE-ASSIGNMENT (--flip in audit_setup)");
   console.log("");
   process.exit(0);
 }
@@ -239,9 +395,25 @@ const CONSUME = `  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
   return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);`;
 need(CONSUME, "the delivery rule");
 if (has("--flow")) logic = logic.replace(CONSUME, "  return cross ? 1 : exchangeRate(state, biz);");
-if (has("--flip")) {
+/* --roomA   the one feasible shape with three real setup tiers: cheap UT/RE at
+             B=1, average HO/MA at B=2, dear HC/TE at B=4. Running cost does all
+             the work; setup lands on the three tiers the game already prints.
+   --roomMax every pair pushed to its floor-capped maximum B. Room then orders
+             by base price and payback balances to 1.13x - but net income comes
+             out nearly flat, so the setup ladder has to be flat too and the
+             entry-cost attribute disappears. */
+const ROOM = {
+  roomA: { opex:  { UT: [12, 24, 48], RE: [12, 24, 48], HO: [9, 18, 36], MA: [9, 18, 36], HC: [4, 8, 16], TE: [4, 8, 16] },
+           setup: { UT: [10, 20, 40], RE: [10, 20, 40], HO: [15, 30, 60], MA: [15, 30, 60], HC: [20, 40, 80], TE: [20, 40, 80] } },
+  roomMax: { opex:  { UT: [8, 16, 32], RE: [8, 16, 32], HO: [6, 12, 24], MA: [6, 12, 24], HC: [4, 8, 16], TE: [4, 8, 16] },
+             setup: { UT: [15, 30, 60], RE: [15, 30, 60], HO: [15, 30, 60], MA: [15, 30, 60], HC: [15, 30, 60], TE: [15, 30, 60] } },
+};
+if (has("--flip") || has("--roomA") || has("--roomMax")) {
   const cards = JSON.parse(logic.match(CARDS_RE)[1]);
-  for (const c of cards) c.setup = FLIP[c.ind][c.lvl - 1];
+  if (has("--flip")) for (const c of cards) c.setup = FLIP[c.ind][c.lvl - 1];
+  for (const k of ["roomA", "roomMax"]) if (has("--" + k)) {
+    for (const c of cards) { c.opex = ROOM[k].opex[c.ind][c.lvl - 1]; c.setup = ROOM[k].setup[c.ind][c.lvl - 1]; }
+  }
   logic = logic.replace(logic.match(CARDS_RE)[0], "const BP_DATA = " + JSON.stringify(cards) + ";");
 }
 
@@ -311,7 +483,7 @@ function run(seats) {
   return games;
 }
 
-console.log(`\n${GAMES} games a table size.  arms: ${["--flow", "--flip"].filter(has).join(" ") || "as it ships"}.` +
+console.log(`\n${GAMES} games a table size.  arms: ${["--flow", "--flip", "--roomA", "--roomMax"].filter(has).join(" ") || "as it ships"}.` +
   `  A company built moves its own price -$1 and each supplier +$1; track $${MIN}..$${MAX}.`);
 for (const seats of SIZES) {
   const games = run(seats);

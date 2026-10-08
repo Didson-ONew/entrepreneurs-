@@ -301,6 +301,20 @@ if (has("--tuned")) { need("const CASH_PER_EP = 50;", "the cash-to-EP rate"); lo
   if (has("--tuned")) { for (const c of cards) { c.setup = P1_SETUP[c.ind][c.lvl - 1]; c.opex = P1_OPEX[c.ind][c.lvl - 1]; } touched = true; }
   if (has("--flip")) { for (const c of cards) c.setup = FLIP[c.ind][c.lvl - 1]; touched = true; }
   if (has("--flat")) { for (const c of cards) c.setup = FLAT[c.ind][c.lvl - 1]; touched = true; }
+  /* The two candidates from audit_price_room, where the break-even price is set
+     deliberately and the setup ladder follows the net income that implies. Both
+     move running cost as well as setup, so they are the only arms here that
+     change what a company earns rather than only what it costs. */
+  const ROOM = {
+    roomA:   { opex:  { UT: [12, 24, 48], RE: [12, 24, 48], HO: [9, 18, 36], MA: [9, 18, 36], HC: [4, 8, 16], TE: [4, 8, 16] },
+               setup: { UT: [10, 20, 40], RE: [10, 20, 40], HO: [15, 30, 60], MA: [15, 30, 60], HC: [20, 40, 80], TE: [20, 40, 80] } },
+    roomMax: { opex:  { UT: [8, 16, 32], RE: [8, 16, 32], HO: [6, 12, 24], MA: [6, 12, 24], HC: [4, 8, 16], TE: [4, 8, 16] },
+               setup: { UT: [15, 30, 60], RE: [15, 30, 60], HO: [15, 30, 60], MA: [15, 30, 60], HC: [15, 30, 60], TE: [15, 30, 60] } },
+  };
+  for (const k of Object.keys(ROOM)) if (has("--" + k)) {
+    for (const c of cards) { c.opex = ROOM[k].opex[c.ind][c.lvl - 1]; c.setup = ROOM[k].setup[c.ind][c.lvl - 1]; }
+    touched = true;
+  }
   if (touched) logic = logic.replace(logic.match(CARDS_RE)[0], "const BP_DATA = " + JSON.stringify(cards) + ";");
   var CARDS = cards;
 }
@@ -379,7 +393,7 @@ function run(seats) {
 
 const EPV = E.CASH_PER_EP;
 console.log(`\n${GAMES} games a table size, seeds from ${(() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) + 1 : 1; })()}.` +
-  `  arms: ${["--flow", "--tuned", "--flip", "--flat"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
+  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
 console.log(`setup printed:  ${IND.map((i) => `${i} ${ladderOf(CARDS, i).join("/")}`).join("   ")}`);
 for (const seats of SIZES) {
   const { T, games } = run(seats);
