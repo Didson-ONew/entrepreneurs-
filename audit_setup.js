@@ -311,10 +311,38 @@ if (has("--tuned")) { need("const CASH_PER_EP = 50;", "the cash-to-EP rate"); lo
     roomMax: { opex:  { UT: [8, 16, 32], RE: [8, 16, 32], HO: [6, 12, 24], MA: [6, 12, 24], HC: [4, 8, 16], TE: [4, 8, 16] },
                setup: { UT: [15, 30, 60], RE: [15, 30, 60], HO: [15, 30, 60], MA: [15, 30, 60], HC: [15, 30, 60], TE: [15, 30, 60] } },
   };
+/* --sheet   the spreadsheet revamp: setup, running cost and production all
+             re-set at level 1, doubling per level as the sheet's level-2 row
+             shows. Base prices are unchanged. Its design property is that every
+             industry loses exactly $3 at two bumps below its base price. */
+const SHEET_L1 = {
+  UT: { setup: 20, opex: 9,  prod: 3 }, RE: { setup: 10, opex: 11, prod: 4 },
+  HO: { setup: 15, opex: 9,  prod: 2 }, MA: { setup: 15, opex: 15, prod: 4 },
+  HC: { setup: 20, opex: 15, prod: 3 }, TE: { setup: 10, opex: 11, prod: 2 },
+};
+/* --sheetFix  the same sheet with ONE column changed. Holding the -$3 cliff fixes
+                EBIT at 2*prod-3, so equal payback needs setup in the ratio 1:3:5
+                across production 2:3:4, not the 2:3:4 the sheet uses. This is that
+                re-assignment: still three values, two industries each, every other
+                column untouched. */
+const SHEETFIX_SETUP = { UT: 15, RE: 25, HO: 5, MA: 25, HC: 15, TE: 5 };
+/* --cliff3  the sheet's idea with the cliff moved one bump further down. Fixing
+             margin at -$3 at base-3 instead of base-2 gives EBIT = 3*prod-3 =
+             3/6/9 rather than 1/3/5, so companies keep a workable margin, and
+             setup in the ratio 1:2:3 lands payback at 3.33 quarters for all six. */
+const CLIFF3 = { UT: { setup: 20, opex: 6,  prod: 3 }, RE: { setup: 30, opex: 7,  prod: 4 },
+                 HO: { setup: 10, opex: 7,  prod: 2 }, MA: { setup: 30, opex: 11, prod: 4 },
+                 HC: { setup: 20, opex: 12, prod: 3 }, TE: { setup: 10, opex: 9,  prod: 2 } };
+const cliffCard = (c) => { const m = 1 << (c.lvl - 1), b = CLIFF3[c.ind];
+  return { ...c, setup: b.setup * m, opex: b.opex * m, prod: b.prod * m }; };
+const sheetCard = (c, fix) => { const m = 1 << (c.lvl - 1), b = SHEET_L1[c.ind];
+  return { ...c, setup: (fix ? SHEETFIX_SETUP[c.ind] : b.setup) * m, opex: b.opex * m, prod: b.prod * m }; };
   for (const k of Object.keys(ROOM)) if (has("--" + k)) {
     for (const c of cards) { c.opex = ROOM[k].opex[c.ind][c.lvl - 1]; c.setup = ROOM[k].setup[c.ind][c.lvl - 1]; }
     touched = true;
   }
+  if (has("--sheet") || has("--sheetFix")) { const fx = has("--sheetFix"); cards.forEach((c, n) => { cards[n] = sheetCard(c, fx); }); touched = true; }
+  if (has("--cliff3")) { cards.forEach((c, n) => { cards[n] = cliffCard(c); }); touched = true; }
   if (touched) logic = logic.replace(logic.match(CARDS_RE)[0], "const BP_DATA = " + JSON.stringify(cards) + ";");
   var CARDS = cards;
 }
@@ -393,7 +421,7 @@ function run(seats) {
 
 const EPV = E.CASH_PER_EP;
 console.log(`\n${GAMES} games a table size, seeds from ${(() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) + 1 : 1; })()}.` +
-  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
+  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
 console.log(`setup printed:  ${IND.map((i) => `${i} ${ladderOf(CARDS, i).join("/")}`).join("   ")}`);
 for (const seats of SIZES) {
   const { T, games } = run(seats);
