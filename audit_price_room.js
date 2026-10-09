@@ -427,6 +427,17 @@ const SHEETFIX_SETUP = { UT: 15, RE: 25, HO: 5, MA: 25, HC: 15, TE: 5 };
              margin at -$3 at base-3 instead of base-2 gives EBIT = 3*prod-3 =
              3/6/9 rather than 1/3/5, so companies keep a workable margin, and
              setup in the ratio 1:2:3 lands payback at 3.33 quarters for all six. */
+/* --sheet2     the revised sheet: running costs cut $3 across the board, so every
+                industry now breaks even EXACTLY at base-2 rather than losing $3.
+                That pins EBIT = 2*prod, and payback = setup/(2*prod).
+   --sheet2pay  the same sheet with the setup column re-assigned so payback comes
+                out level at 2.50 quarters - still three values, two each. */
+const SHEET2 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 10, opex: 8,  prod: 4 },
+                 HO: { setup: 15, opex: 6, prod: 2 }, MA: { setup: 15, opex: 12, prod: 4 },
+                 HC: { setup: 20, opex: 12, prod: 3 }, TE: { setup: 10, opex: 8, prod: 2 } };
+const SHEET2_PAY = { UT: 15, RE: 20, HO: 10, MA: 20, HC: 15, TE: 10 };
+const sheet2Card = (c, pay) => { const m = 1 << (c.lvl - 1), b = SHEET2[c.ind];
+  return { ...c, setup: (pay ? SHEET2_PAY[c.ind] : b.setup) * m, opex: b.opex * m, prod: b.prod * m }; };
 const CLIFF3 = { UT: { setup: 20, opex: 6,  prod: 3 }, RE: { setup: 30, opex: 7,  prod: 4 },
                  HO: { setup: 10, opex: 7,  prod: 2 }, MA: { setup: 30, opex: 11, prod: 4 },
                  HC: { setup: 20, opex: 12, prod: 3 }, TE: { setup: 10, opex: 9,  prod: 2 } };
@@ -434,11 +445,12 @@ const cliffCard = (c) => { const m = 1 << (c.lvl - 1), b = CLIFF3[c.ind];
   return { ...c, setup: b.setup * m, opex: b.opex * m, prod: b.prod * m }; };
 const sheetCard = (c, fix) => { const m = 1 << (c.lvl - 1), b = SHEET_L1[c.ind];
   return { ...c, setup: (fix ? SHEETFIX_SETUP[c.ind] : b.setup) * m, opex: b.opex * m, prod: b.prod * m }; };
-if (has("--sheet") || has("--sheetFix") || has("--cliff3") || has("--flip") || has("--roomA") || has("--roomMax")) {
+if (has("--sheet") || has("--sheetFix") || has("--cliff3") || has("--sheet2") || has("--sheet2pay") || has("--flip") || has("--roomA") || has("--roomMax")) {
   const cards = JSON.parse(logic.match(CARDS_RE)[1]);
   if (has("--flip")) for (const c of cards) c.setup = FLIP[c.ind][c.lvl - 1];
   if (has("--sheet") || has("--sheetFix")) { const fx = has("--sheetFix"); cards.forEach((c, n) => { cards[n] = sheetCard(c, fx); }); }
   if (has("--cliff3")) cards.forEach((c, n) => { cards[n] = cliffCard(c); });
+  if (has("--sheet2") || has("--sheet2pay")) { const pay = has("--sheet2pay"); cards.forEach((c, n) => { cards[n] = sheet2Card(c, pay); }); }
   for (const k of ["roomA", "roomMax"]) if (has("--" + k)) {
     for (const c of cards) { c.opex = ROOM[k].opex[c.ind][c.lvl - 1]; c.setup = ROOM[k].setup[c.ind][c.lvl - 1]; }
   }
@@ -511,7 +523,7 @@ function run(seats) {
   return games;
 }
 
-console.log(`\n${GAMES} games a table size.  arms: ${["--flow", "--flip", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3"].filter(has).join(" ") || "as it ships"}.` +
+console.log(`\n${GAMES} games a table size.  arms: ${["--flow", "--flip", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay"].filter(has).join(" ") || "as it ships"}.` +
   `  A company built moves its own price -$1 and each supplier +$1; track $${MIN}..$${MAX}.`);
 for (const seats of SIZES) {
   const games = run(seats);
