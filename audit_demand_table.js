@@ -102,6 +102,7 @@
    problem and cannot be fixed on the demand board.
 
    Run: node audit_demand_table.js [ignored] [--loose] [--rewrite]
+        node audit_demand_table.js --want 14,10,8/10,8,6     check a proposal
    ========================================================================== */
 const fs = require("fs");
 const vm = require("vm");
@@ -316,6 +317,84 @@ if (process.argv.includes("--rewrite") && sym.length) {
   FAMS.forEach((f, k) => { const key = opts[byFam[k]].join(); (dup[key] = dup[key] || []).push(f); });
   const pairs = Object.values(dup).filter((g) => g.length > 1);
   if (pairs.length) console.log(`  districts that become copies of each other: ${pairs.map((g) => g.join("=")).join(", ")}`);
+}
+
+/* ---- checking a PROPOSED volume/spread pair ----
+   --want 14,10,8/10,8,6   reads as: UT/RE volume 14 spread 10, HO/MA 10 and 8,
+   HC/TE 8 and 6. Integer volumes need integer family weights, and a suburb
+   family of n names out of 16 (12 drawn) weighs 0.75n, so the pool has to be
+   R4 C4 A4 I4 - weights 3/3/3/3 and 1 for each centre. Enumerates every layout
+   at those volumes and reports whether the spread is among them, and if not,
+   the nearest that is. */
+const wantArg = (() => { const i = process.argv.findIndex((a) => a === "--want");
+  return i > 0 ? process.argv[i + 1] : null; })();
+if (wantArg) {
+  const [vs, ss] = wantArg.split("/");
+  const V3 = vs.split(",").map(Number), S3 = ss.split(",").map(Number);
+  if (V3.length !== 3 || S3.length !== 3 || [...V3, ...S3].some((x) => !isFinite(x))) {
+    console.error("--want takes v1,v2,v3/s1,s2,s3 - one volume and one spread per industry pair"); process.exit(2);
+  }
+  const PAIRS = [["UT", "RE"], ["HO", "MA"], ["HC", "TE"]];
+  const VT = [], ST = [];
+  PAIRS.forEach((pr, k) => pr.forEach(() => { VT.push(V3[k]); ST.push(S3[k]); }));
+  const order = PAIRS.flat();
+  const W = [3, 3, 3, 3, 1, 1, 1, 1], FN = ["R", "C", "A", "I", ...CENTER_POOL];
+  const tot = VT.reduce((a, b) => a + b, 0);
+  console.log(`\nCHECKING A PROPOSAL   volume ${order.map((i, j) => `${i} ${VT[j]}`).join("  ")}`);
+  console.log(`                      spread ${order.map((i, j) => `${i} ${ST[j]}`).join("  ")}`);
+  console.log(`  total volume ${tot}; the board is ${FN.length} families x ${ROWS_PER_FAMILY} rows x their weight = ${W.reduce((a, b) => a + b, 0) * ROWS_PER_FAMILY}`);
+  if (tot !== W.reduce((a, b) => a + b, 0) * ROWS_PER_FAMILY) {
+    console.log("  those volumes do not add up to the board. Nothing to search."); process.exit(0);
+  }
+  console.log("  integer volumes need the flat suburb pool R4 C4 A4 I4 (weights 3/3/3/3, centres 1).");
+  const O = [];
+  (function gen(i, c) { if (i === 6) { if (c.reduce((a, b) => a + b, 0) === ROWS_PER_FAMILY) O.push(c.slice()); return; }
+    for (let k = 0; k <= 2; k++) { c[i] = k; gen(i + 1, c); } c[i] = 0; })(0, [0, 0, 0, 0, 0, 0]);
+  const nice = O.map((c) => c.filter((x) => x > 0).length === 3);
+  const quads = (() => { const out = [], a = []; (function go(st) { if (a.length === 4) { out.push(a.slice()); return; }
+    for (let i = st; i < O.length; i++) { a.push(i); go(i); a.pop(); } })(0); return out; })();
+  const ix = order.map((i) => IND.indexOf(i));
+  const kk = (v) => v.join(",");
+  const tally = (idx, w) => { const v = new Array(6).fill(0), sp = new Array(6).fill(0);
+    for (const k of idx) { const c = O[k]; for (let j = 0; j < 6; j++) { v[j] += c[j] * w; if (c[j] > 0) sp[j] += w; } } return [v, sp]; };
+  const vt = new Array(6), st = new Array(6);
+  ix.forEach((j, n) => { vt[j] = VT[n]; st[j] = ST[n]; });
+  const ones = new Map();
+  for (const idx of quads) { const [v, sp] = tally(idx, 1); if (v.some((x, j) => x > vt[j])) continue;
+    const k = kk(v); let L = ones.get(k); if (!L) { L = []; ones.set(k, L); } L.push([sp, idx]); }
+  const reach = new Map();
+  for (const idx of quads) { const [v, sp] = tally(idx, 3);
+    const need = vt.map((t, j) => t - v[j]); if (need.some((x) => x < 0)) continue;
+    const L = ones.get(kk(need)); if (!L) continue;
+    for (const [s1, one] of L) { const t = sp.map((x, j) => x + s1[j]), k = kk(t);
+      const clean = [...idx, ...one].every((q) => nice[q]);
+      const cur = reach.get(k); if (!cur || (clean && !cur.clean)) reach.set(k, { w: [idx, one], clean }); } }
+  if (!reach.size) { console.log("\n  those VOLUMES are not reachable at all."); process.exit(0); }
+  console.log(`\n  the volumes are reachable; ${reach.size} spread vectors go with them.`);
+  const hit = reach.get(kk(st));
+  console.log(`  the spread asked for: ${hit ? "REACHABLE" : "NOT REACHABLE"}`);
+  const all = [...reach.keys()].map((k) => k.split(",").map(Number));
+  console.log("\n  the band each pair's spread can reach at these volumes:");
+  PAIRS.forEach((pr, k) => { const j = IND.indexOf(pr[0]);
+    console.log(`    ${pr.join("/")}   ${Math.min(...all.map((v) => v[j]))} .. ${Math.max(...all.map((v) => v[j]))}      asked for ${S3[k]}`); });
+  if (!hit) {
+    const d = (v) => PAIRS.reduce((a, pr, k) => a + Math.abs(v[IND.indexOf(pr[0])] - S3[k]), 0);
+    const sym = all.filter((v) => PAIRS.every((pr) => v[IND.indexOf(pr[0])] === v[IND.indexOf(pr[1])]));
+    sym.sort((a, b) => d(a) - d(b) || (reach.get(kk(b)).clean - reach.get(kk(a)).clean));
+    console.log("\n  nearest reachable, with the pairs kept level (distance in districts):");
+    for (const v of sym.slice(0, 6))
+      console.log(`    ${PAIRS.map((pr) => `${pr.join("/")} ${v[IND.indexOf(pr[0])]}`).join("   ")}    off by ${d(v)}${reach.get(kk(v)).clean ? "    (every family keeps today's shape)" : ""}`);
+  }
+  const best = hit ? st : (() => { const d = (v) => PAIRS.reduce((a, pr, k) => a + Math.abs(v[IND.indexOf(pr[0])] - S3[k]), 0);
+    const sym = all.filter((v) => PAIRS.every((pr) => v[IND.indexOf(pr[0])] === v[IND.indexOf(pr[1])]));
+    sym.sort((a, b) => d(a) - d(b) || (reach.get(kk(b)).clean - reach.get(kk(a)).clean)); return sym[0]; })();
+  const w = reach.get(kk(best));
+  console.log(`\n  a board for ${PAIRS.map((pr) => `${pr.join("/")} ${best[IND.indexOf(pr[0])]}`).join(", ")}:`);
+  [...w.w[0], ...w.w[1]].forEach((k, n) => { const c = O[k], r = [];
+    IND.forEach((i, j) => { for (let x = 0; x < c[j]; x++) r.push(i); });
+    console.log(`    ${FN[n].padEnd(3)} ${r.join(" ")}${nice[k] ? "" : "   (not three distinct)"}`); });
+  console.log("");
+  process.exit(0);
 }
 
 /* ---- the suburb pool: the one lever that moves both ---- */

@@ -133,6 +133,26 @@ if (process.argv.includes("--tuned")) {
   logic = logic.replace(m[0], "const BP_DATA = " + JSON.stringify(cards) + ";");
 }
 
+/* --sheet2 / --sheet2pay: the spreadsheet revamp's level-1 set, doubling per
+   level. Carried here so the per-industry LEDGER - and in particular the share
+   of production that finds no icon - can be read against it. */
+const SHEET2 = { UT: { setup: 20, opex: 6,  prod: 3 }, RE: { setup: 10, opex: 8,  prod: 4 },
+                 HO: { setup: 15, opex: 6,  prod: 2 }, MA: { setup: 15, opex: 12, prod: 4 },
+                 HC: { setup: 20, opex: 12, prod: 3 }, TE: { setup: 10, opex: 8,  prod: 2 } };
+const SHEET2_PAY = { UT: 15, RE: 20, HO: 10, MA: 20, HC: 15, TE: 10 };
+if (process.argv.includes("--sheet2") || process.argv.includes("--sheet2pay")) {
+  const pay = process.argv.includes("--sheet2pay");
+  const m = logic.match(/const BP_DATA = (\[.*?\]);/s);
+  if (!m) { console.error("BP_DATA moved - update this probe"); process.exit(2); }
+  const cards = JSON.parse(m[1]);
+  for (const c of cards) {
+    const mul = 1 << (c.lvl - 1), b = SHEET2[c.ind];
+    c.setup = (pay ? SHEET2_PAY[c.ind] : b.setup) * mul;
+    c.opex = b.opex * mul; c.prod = b.prod * mul;
+  }
+  logic = logic.replace(m[0], "const BP_DATA = " + JSON.stringify(cards) + ";");
+}
+
 /* The demand table itself cannot be re-paired - audit_demand_table.js proves
    that by enumeration. The one lever that moves demand volume or spread is the
    SUBURB POOL: how many of the sixteen suburb tiles belong to each family, since
