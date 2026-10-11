@@ -157,6 +157,25 @@ if (process.argv.includes("--rows2")) {
   logic = logic.replace(ROWS_NOW, ROWS2);
 }
 
+/* --rows3  the board-exact table. Every pair - UT/RE, HO/MA, HC/TE - has the
+            same row count in each of R, C, A, I and the same total across the
+            four centres, which is exactly the condition for two industries to
+            land on identical demand on EVERY draw. Volumes are held at
+            13.25/13.25/10.25/10.25/8.5/8.5 and the spread order still re-pairs
+            (UT/RE 10.00, HC/TE 8.50, HO/MA 8.00). The price is the family
+            shape: only FC and IA still print three distinct industries. */
+const ROWS3 = `const DEMAND_ROWS = {
+  R: ["HO", "MA", "HC", "TE"], C: ["UT", "RE", "HC", "TE"],
+  A: ["HO", "HO", "MA", "MA"], I: ["UT", "UT", "RE", "RE"],
+  FC: ["UT", "UT", "RE", "HC"], IA: ["UT", "RE", "RE", "HO"],
+  CC: ["HO", "RE", "UT", "MA"], LM: ["MA", "TE", "UT", "RE"],
+};`;
+if (process.argv.includes("--rows3")) {
+  if (!logic.includes(ROWS_NOW)) { console.error("the demand table moved - update this probe"); process.exit(2); }
+  logic = logic.replace(ROWS_NOW, ROWS3);
+}
+
+
 /* --sheet2 / --sheet2pay: the spreadsheet revamp's level-1 set, doubling per
    level. Carried here so the per-industry LEDGER - and in particular the share
    of production that finds no icon - can be read against it. */
