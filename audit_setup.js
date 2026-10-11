@@ -290,6 +290,30 @@ if (has("--paper")) {
 }
 
 /* ---- arms ---- */
+/* --rows2  the proposed demand table. Same 16-district board and same suburb
+            pool (R5 C5 A3 I3, twelve placed), only which industries each family
+            prints. Expected volume 13.25/13.25/10.25/10.25/8.5/8.5 against
+            today's 14.5/14.5/11.25/11.25/6.25/6.25, and expected spread
+            9.5/9.5/7/7/7.5/7.5 against 10.75/10.75/8/8/5.25/5.25 - which is the
+            first arrangement in this repo where the spread order stops matching
+            the volume order, because HC and TE now touch five families each. */
+const ROWS2 = `const DEMAND_ROWS = {
+  R: ["UT", "RE", "MA", "UT"], C: ["RE", "UT", "HO", "RE"],
+  A: ["HO", "TE", "HC", "HO"], I: ["MA", "HC", "TE", "MA"],
+  FC: ["TE", "HC", "RE", "TE"], IA: ["HC", "TE", "UT", "HC"],
+  CC: ["MA", "RE", "HC", "MA"], LM: ["HO", "UT", "TE", "HO"],
+};`;
+const ROWS_NOW = `const DEMAND_ROWS = {
+  R: ["UT", "RE", "HO", "UT"], C: ["RE", "UT", "MA", "RE"],
+  A: ["HO", "UT", "TE", "HO"], I: ["MA", "RE", "HC", "MA"],
+  FC: ["TE", "UT", "HC", "TE"], IA: ["MA", "RE", "TE", "MA"],
+  CC: ["HC", "HO", "TE", "HC"], LM: ["HO", "MA", "HC", "HO"],
+};`;
+if (has("--rows2")) {
+  if (!logic.includes(ROWS_NOW)) { console.error("the demand table moved - update this probe"); process.exit(2); }
+  logic = logic.replace(ROWS_NOW, ROWS2);
+}
+
 const CONSUME = `  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
   return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);`;
 need(CONSUME, "the delivery rule");

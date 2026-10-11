@@ -101,6 +101,52 @@
    of the industry gap by shaving the leader. The dominance is not a demand-board
    problem and cannot be fixed on the demand board.
 
+   AND HERE IS A TABLE THAT DOES RE-PAIR THEM, by doing the one thing this audit
+   says is needed: changing the row totals rather than only the arrangement.
+   It is --rows2 in audit_industries and audit_setup.
+
+     R  UT RE MA UT      FC  TE HC RE TE
+     C  RE UT HO RE      IA  HC TE UT HC
+     A  HO TE HC HO      CC  MA RE HC MA
+     I  MA HC TE MA      LM  HO UT TE HO
+
+     volume   UT/RE 13.25   HO/MA 10.25   HC/TE 8.50    (today 14.50 / 11.25 / 6.25)
+     spread   UT/RE  9.50   HO/MA  7.00   HC/TE 7.50    (today 10.75 /  8.00 / 5.25)
+
+   The spread order is UT RE HC TE HO MA against a volume order of UT RE HO MA
+   HC TE: the two axes stop agreeing, which nothing with today's row totals can
+   do. It works because Healthcare and Technology now appear in FIVE of the
+   eight families each while Hospitality and Manufacturing appear in three, so
+   their six rows are scattered rather than stacked.
+
+   MEASURED it does what it is for and little else. With the proposed cards at
+   three players, the share of production that finds no icon moves Healthcare
+   17% to 11% and Technology 35% to 29%, their net cash improves, and everyone
+   else gives up one to three points. Overall industry balance barely moves -
+   net value a game 2.96x to 2.93x, or 2.11x to 2.19x on the payback-levelled
+   cards - which is the same lesson as the suburb pool: the demand board is the
+   right lever for WHO CAN SELL and a weak one for who wins.
+
+   WHAT IT ALSO FIXES, AND WHAT IT LEAVES. Twelve of the sixteen suburb tiles
+   are placed, so each family's count varies from game to game, and an
+   industry's demand is a formula in those counts. Over all 1820 possible
+   boards:
+
+                   today                     proposed
+     HC            nI + 4                    nA + nI + 4
+     TE            nA + 4                    nA + nI + 4
+     HO            nR + 2nA + 3              nC + 2nA + 2
+     MA            nC + 2nI + 3              nR + 2nI + 2
+
+   Healthcare and Technology now read the SAME sum, so they land identical on
+   100% of boards against 34% today - the pair is exactly symmetric rather than
+   symmetric on average. Hospitality and Manufacturing are untouched: each still
+   sits doubled on a different three-name family, so they differ by 2.06 rows on
+   the average board and by as much as SEVEN on the worst, and land identical on
+   only 18%. That is the largest remaining source of board-to-board swing, it is
+   inherited rather than introduced, and the Healthcare/Technology fix shows the
+   cure - have both halves of the pair read nA + nI instead of one each.
+
    Run: node audit_demand_table.js [ignored] [--loose] [--rewrite]
         node audit_demand_table.js --want 14,10,8/10,8,6     check a proposal
    ========================================================================== */
