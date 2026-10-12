@@ -382,15 +382,17 @@ if (has("--strat")) {
 
 /* --rows6  the table that adds the Year-1 / Year-2 swing. Same volumes and
             spreads as --rows5 (14/10/8 and 10/8/6 on the stratified board), the
-            same rules, five of the eight families lightly edited, and the
-            availability now tilts across the years:
+            same rules, and ONLY TWO FAMILIES TOUCHED - A and I swap which
+            industry sits in their Year-1 row and which in their Year-2 row.
+            Everything else is the table it came from. Availability now tilts
+            across the years:
               Year 1  UT/RE 10   HO/MA 4   HC/TE 2
               Year 2  UT/RE  4   HO/MA 6   HC/TE 6 */
 const ROWS6 = `const DEMAND_ROWS = {
-  R: ["UT", "RE", "HO", "UT"], C: ["RE", "UT", "MA", "RE"],
+  R: ["UT", "RE", "MA", "UT"], C: ["RE", "UT", "HO", "RE"],
   A: ["HO", "UT", "HC", "HO"], I: ["MA", "RE", "TE", "MA"],
-  FC: ["HC", "HO", "TE", "HC"], IA: ["HC", "MA", "TE", "HC"],
-  CC: ["TE", "HO", "HC", "TE"], LM: ["TE", "MA", "HC", "TE"],
+  FC: ["TE", "MA", "HC", "TE"], IA: ["HC", "MA", "TE", "HC"],
+  CC: ["TE", "HO", "HC", "TE"], LM: ["HC", "HO", "TE", "HC"],
 };`;
 if (has("--rows6")) {
   if (!logic.includes(ROWS_NOW)) { console.error("the demand table moved - update this probe"); process.exit(2); }
