@@ -242,6 +242,22 @@ if (process.argv.includes("--rows6")) {
   logic = logic.replace(ROWS_NOW, ROWS6);
 }
 
+/* --rows7  the configuration with Year 1 at 9/6/1 and Year 2 at 5/4/7. Volumes
+            stay 14/10/8 but the spread compresses to 9/8/7, Healthcare and
+            Technology drop to ONE district of Year-1 demand on the whole board,
+            and Utilities and Retail pick up three centres each. */
+const ROWS7 = `const DEMAND_ROWS = {
+  R: ["UT", "HO", "TE", "UT"], C: ["RE", "MA", "HC", "RE"],
+  A: ["HO", "RE", "MA", "HO"], I: ["MA", "UT", "HO", "MA"],
+  FC: ["HC", "UT", "TE", "HC"], IA: ["TE", "RE", "HC", "TE"],
+  CC: ["UT", "RE", "HC", "UT"], LM: ["RE", "UT", "TE", "RE"],
+};`;
+if (process.argv.includes("--rows7")) {
+  if (!logic.includes(ROWS_NOW)) { console.error("the demand table moved - update this probe"); process.exit(2); }
+  logic = logic.replace(ROWS_NOW, ROWS7);
+}
+
+
 
 
 
@@ -316,10 +332,11 @@ for (const [what, find, put] of HOOKS) {
 let L = null;   // the current game's ledgers
 const key = (b) => b.__k || (b.__k = `${b.bp.ind}#${b.id}#${b.quarterBuilt}`);
 const ledger = (b) => L.get(key(b)) || (L.set(key(b), { ind: b.bp.ind, lvl0: b.bp.lvl, built: b.quarterBuilt,
-  revenue: 0, recycled: 0, prod: 0, setup: 0, suppliers: 0, rent: 0, quarters: 0, upgraded: false,
+  revenue: 0, recycled: 0, prod: 0, y1rev: 0, y1prod: 0, y1left: 0, setup: 0, suppliers: 0, rent: 0, quarters: 0, upgraded: false,
   soldSolvency: false, soldOther: false, merged: false, hq: false }), L.get(key(b)));
 const probe = {
   sale: (state, p, biz, earned, leftover, prod) => { const l = ledger(biz); l.revenue += earned + leftover; l.recycled += leftover; l.prod += prod;
+    if (state.quarter <= 4) { l.y1rev += earned + leftover; l.y1prod += prod; l.y1left += leftover; }
     RQ[state.quarter] = RQ[state.quarter] || { prod: 0, left: 0 }; RQ[state.quarter].prod += prod; RQ[state.quarter].left += leftover; },
   launch: (state, p, biz, setup) => { ledger(biz).setup += setup; },
   upgrade: (state, p, b, setup) => { const l = ledger(b); l.setup += setup; l.upgraded = true; },
@@ -339,7 +356,7 @@ const E = box.E;
 const bpInd = {}; E.BP_DATA.forEach((bp) => { bpInd[bp.name] = bp.ind; });
 
 function run(seats) {
-  const T = {}; E.INDUSTRIES.forEach((i) => { T[i] = { n: 0, built: 0, lvl2plus: 0, upgraded: 0, revenue: 0, recycled: 0, prod: 0,
+  const T = {}; E.INDUSTRIES.forEach((i) => { T[i] = { n: 0, built: 0, lvl2plus: 0, upgraded: 0, revenue: 0, recycled: 0, prod: 0, y1rev: 0, y1prod: 0, y1left: 0, bornY1: 0,
     setup: 0, suppliers: 0, rent: 0, quarters: 0, ep: 0, soldSolvency: 0, soldOther: 0, merged: 0, hq: 0, standing: 0 }; });
   const RQall = {}; let games = 0;
   const OFF = (() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) : 0; })();
@@ -361,7 +378,8 @@ function run(seats) {
     const alive = new Set(); for (const p of st.players) for (const b of p.businesses) if (!b.distressed) alive.add(key(b));
     for (const [k, l] of L) {
       const t = T[l.ind]; t.n++; t.built += l.built; if (l.lvl0 >= 2) t.lvl2plus++; if (l.upgraded) t.upgraded++;
-      t.revenue += l.revenue; t.recycled += l.recycled; t.prod += l.prod; t.setup += l.setup; t.suppliers += l.suppliers; t.rent += l.rent; t.quarters += l.quarters;
+      t.revenue += l.revenue; t.recycled += l.recycled; t.prod += l.prod; t.y1rev += l.y1rev; t.y1prod += l.y1prod; t.y1left += l.y1left;
+      if (l.built <= 4) t.bornY1++; t.setup += l.setup; t.suppliers += l.suppliers; t.rent += l.rent; t.quarters += l.quarters;
       if (l.soldSolvency) t.soldSolvency++; else if (l.soldOther) t.soldOther++;
       if (l.merged) t.merged++; if (l.hq) t.hq++; if (alive.has(k) && !l.merged) t.standing++;
     }
@@ -400,6 +418,11 @@ for (const seats of SIZES) {
   row("  merged into a Megacorp", (t) => pc(t.merged, t.n));
   row("    ...and kept as its HQ", (t) => pc(t.hq, Math.max(1, t.merged)));
   row("  still standing at the end", (t) => pc(t.standing, t.n));
+  console.log("  " + pad("HOW MUCH OF IT IS YEAR 1", 34));
+  row("  built in Q1-Q4", (t) => pc(t.bornY1, t.n));
+  row("  of its production, made in Y1", (t) => pc(t.y1prod, t.prod));
+  row("  of its revenue, earned in Y1", (t) => pc(t.y1rev, t.revenue));
+  row("  Y1 production recycled", (t) => pc(t.y1left, t.y1prod));
   console.log("  " + pad("RECYCLED AT $1", 34));
   row("  share of its production", (t) => pc(t.recycled, t.prod));
   const qs = Object.keys(RQall).map(Number).sort((a, b) => a - b);

@@ -399,6 +399,22 @@ if (has("--rows6")) {
   logic = logic.replace(ROWS_NOW, ROWS6);
 }
 
+/* --rows7  the configuration with Year 1 at 9/6/1 and Year 2 at 5/4/7. Volumes
+            stay 14/10/8 but the spread compresses to 9/8/7, Healthcare and
+            Technology drop to ONE district of Year-1 demand on the whole board,
+            and Utilities and Retail pick up three centres each. */
+const ROWS7 = `const DEMAND_ROWS = {
+  R: ["UT", "HO", "TE", "UT"], C: ["RE", "MA", "HC", "RE"],
+  A: ["HO", "RE", "MA", "HO"], I: ["MA", "UT", "HO", "MA"],
+  FC: ["HC", "UT", "TE", "HC"], IA: ["TE", "RE", "HC", "TE"],
+  CC: ["UT", "RE", "HC", "UT"], LM: ["RE", "UT", "TE", "RE"],
+};`;
+if (has("--rows7")) {
+  if (!logic.includes(ROWS_NOW)) { console.error("the demand table moved - update this probe"); process.exit(2); }
+  logic = logic.replace(ROWS_NOW, ROWS7);
+}
+
+
 
 
 
