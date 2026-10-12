@@ -380,6 +380,24 @@ if (has("--strat")) {
   const chosen = shuffle([...__byFam("R", 4), ...__byFam("C", 4), ...__byFam("A", 2), ...__byFam("I", 2)], rng);`);
 }
 
+/* --rows6  the table that adds the Year-1 / Year-2 swing. Same volumes and
+            spreads as --rows5 (14/10/8 and 10/8/6 on the stratified board), the
+            same rules, five of the eight families lightly edited, and the
+            availability now tilts across the years:
+              Year 1  UT/RE 10   HO/MA 4   HC/TE 2
+              Year 2  UT/RE  4   HO/MA 6   HC/TE 6 */
+const ROWS6 = `const DEMAND_ROWS = {
+  R: ["UT", "RE", "HO", "UT"], C: ["RE", "UT", "MA", "RE"],
+  A: ["HO", "UT", "HC", "HO"], I: ["MA", "RE", "TE", "MA"],
+  FC: ["HC", "HO", "TE", "HC"], IA: ["HC", "MA", "TE", "HC"],
+  CC: ["TE", "HO", "HC", "TE"], LM: ["TE", "MA", "HC", "TE"],
+};`;
+if (has("--rows6")) {
+  if (!logic.includes(ROWS_NOW)) { console.error("the demand table moved - update this probe"); process.exit(2); }
+  logic = logic.replace(ROWS_NOW, ROWS6);
+}
+
+
 
 
 
