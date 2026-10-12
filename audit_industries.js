@@ -175,6 +175,57 @@ if (process.argv.includes("--rows3")) {
   logic = logic.replace(ROWS_NOW, ROWS3);
 }
 
+/* --rows4  the table that keeps the first-row = last-row rule in all eight
+            families, holds the proposal's volumes, and puts the spread order
+            back the way round it was meant to be: UT/RE 11.25, HO/MA 8.00,
+            HC/TE 4.75 - evenly spaced, 3.25 between each tier. UT and RE also
+            come out board-exact, landing identical on every draw. Within a
+            weight class the families are interchangeable ({R,C}, {A,I} and the
+            four centres), so these eight patterns can be permuted freely to
+            suit the theme without changing any number. */
+const ROWS4 = `const DEMAND_ROWS = {
+  R: ["HC", "UT", "RE", "HC"], C: ["TE", "HO", "MA", "TE"],
+  A: ["HO", "UT", "RE", "HO"], I: ["MA", "UT", "RE", "MA"],
+  FC: ["UT", "RE", "HO", "UT"], IA: ["UT", "HO", "MA", "UT"],
+  CC: ["RE", "UT", "MA", "RE"], LM: ["RE", "HC", "TE", "RE"],
+};`;
+if (process.argv.includes("--rows4")) {
+  if (!logic.includes(ROWS_NOW)) { console.error("the demand table moved - update this probe"); process.exit(2); }
+  logic = logic.replace(ROWS_NOW, ROWS4);
+}
+
+/* --rows5  the table as sent: first row = last row in all eight families, all
+            eight patterns distinct, UT and RE in suburbs only, and the spread
+            order back the right way round - UT/RE 9.75, HO/MA 8.00, HC/TE 6.25
+            on the free twelve-of-sixteen draw the engine uses, or exactly
+            10/8/6 if the draw is stratified to 4 R, 4 C, 2 A, 2 I. */
+const ROWS5 = `const DEMAND_ROWS = {
+  R: ["UT", "RE", "MA", "UT"], C: ["RE", "UT", "HO", "RE"],
+  A: ["HO", "TE", "RE", "HO"], I: ["MA", "HC", "UT", "MA"],
+  FC: ["TE", "MA", "HC", "TE"], IA: ["HC", "MA", "TE", "HC"],
+  CC: ["TE", "HO", "HC", "TE"], LM: ["HC", "HO", "TE", "HC"],
+};`;
+if (process.argv.includes("--rows5")) {
+  if (!logic.includes(ROWS_NOW)) { console.error("the demand table moved - update this probe"); process.exit(2); }
+  logic = logic.replace(ROWS_NOW, ROWS5);
+}
+
+/* --strat  draw the suburbs stratified instead of free: four of the five R
+           tiles, four of the five C, two of the three A, two of the three I.
+           Twelve tiles either way, but every game then has exactly 4 R, 4 C,
+           2 A, 2 I, so each industry's demand is the same in every game and the
+           two halves of every pair are identical by construction. Variety stays
+           in WHICH tiles are drawn and where they sit, not in how many. */
+const DRAW_NOW = `  const chosen = sample(SUBURB_POOL, 12, rng);`;
+if (process.argv.includes("--strat")) {
+  if (!logic.includes(DRAW_NOW)) { console.error("the suburb draw moved - update this probe"); process.exit(2); }
+  logic = logic.replace(DRAW_NOW, `  const __byFam = (f, n) => sample(SUBURB_POOL.filter((t) => t[0] === f), n, rng);
+  const chosen = shuffle([...__byFam("R", 4), ...__byFam("C", 4), ...__byFam("A", 2), ...__byFam("I", 2)], rng);`);
+}
+
+
+
+
 
 /* --sheet2 / --sheet2pay: the spreadsheet revamp's level-1 set, doubling per
    level. Carried here so the per-industry LEDGER - and in particular the share
