@@ -571,7 +571,14 @@ const SHEET5 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 15, opex: 10,
                  HO: { setup: 15, opex: 6, prod: 2 }, MA: { setup: 10, opex: 8,  prod: 4 },
                  HC: { setup: 20, opex: 10, prod: 3 }, TE: { setup: 10, opex: 8,  prod: 2 } };
 const SHEET5B = { ...SHEET5, MA: { setup: 18, opex: 8, prod: 4 } };
-const V5 = process.argv.includes("--v5") || process.argv.includes("--v5b");
+/* --sheet6: the setup column alone moves again - UT 20 to 15, HO 15 to 10, MA 10 to 20 -
+   which pairs it (HO,TE) 10, (UT,RE) 15, (MA,HC) 20 and lands payback LEVEL at 2.50
+   quarters for five of six, Manufacturing alone at 1.67. */
+const SHEET6 = { UT: { setup: 15, opex: 6, prod: 3 }, RE: { setup: 15, opex: 10, prod: 4 },
+                 HO: { setup: 10, opex: 6, prod: 2 }, MA: { setup: 20, opex: 8,  prod: 4 },
+                 HC: { setup: 20, opex: 10, prod: 3 }, TE: { setup: 10, opex: 8,  prod: 2 } };
+const V6 = process.argv.includes("--v6");
+const V5 = process.argv.includes("--v5") || process.argv.includes("--v5b") || V6;
 const V4 = process.argv.includes("--v4");
 const v3 = (f) => process.argv.includes(f) || process.argv.includes("--v3") ||
   ((V4 || V5) && ["--rows8", "--strat", "--sheet3", "--deps3"].includes(f));
@@ -601,7 +608,7 @@ function applySheet3(logicIn) {
     }
     if (v3("--sheet3")) {
       const mul = 1 << (c.lvl - 1);
-      const b = (process.argv.includes("--v5b") ? SHEET5B : V5 ? SHEET5 : V4 ? SHEET4 : SHEET3)[c.ind];
+      const b = (V6 ? SHEET6 : process.argv.includes("--v5b") ? SHEET5B : V5 ? SHEET5 : V4 ? SHEET4 : SHEET3)[c.ind];
       if (process.argv.includes("--lvlkeep") || (V5 && !process.argv.includes("--double"))) {
         const base = CARDS0.find((x) => x.ind === c.ind && x.lvl === 1);
         c.setup = Math.round((b.setup * c.setup) / base.setup);
@@ -661,6 +668,9 @@ const bpInd = {}; E.BP_DATA.forEach((bp) => { bpInd[bp.name] = bp.ind; });
 
 function run(seats) {
   const T = Object.fromEntries(E.INDUSTRIES.map((i) => [i, { n: 0, outlay: 0, in: 0, out: 0, quarters: 0, built: 0, ep: 0, paid: 0, payback: 0, lvl0: 0, plots: 0 }]));
+  /* One row a game, so the TAILS can be read and not just the mean. A spread of means
+     says nothing about whether an industry is ever dead or ever runs away with it. */
+  const perGame = Object.fromEntries(E.INDUSTRIES.map((i) => [i, []]));
   let games = 0;
   const OFF = (() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) : 0; })();
   for (let seed = 1 + OFF; seed <= GAMES + OFF; seed++) {
@@ -682,17 +692,19 @@ function run(seats) {
       t.n++; t.outlay += l.outlay; t.in += l.in; t.out += l.out; t.quarters += l.quarters; t.built += l.built; t.lvl0 += l.lvl0; t.plots += l.plots;
       if (l.payback !== null) { t.paid++; t.payback += l.payback; }
     }
-    for (const i of E.INDUSTRIES) T[i].ep += epBy[i];
+    const nBy = Object.fromEntries(E.INDUSTRIES.map((i) => [i, 0]));
+    for (const l of L.values()) nBy[l.ind]++;
+    for (const i of E.INDUSTRIES) { T[i].ep += epBy[i]; perGame[i].push({ ep: epBy[i], n: nBy[i] }); }
   }
-  return { T, games };
+  return { T, games, perGame };
 }
 
 const EPV = E.CASH_PER_EP;
 console.log(`\n${GAMES} games a table size, seeds from ${(() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) + 1 : 1; })()}.` +
-  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--v5", "--v5b", "--lvlkeep", "--double"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
+  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--v5", "--v5b", "--v6", "--lvlkeep", "--double", "--tails"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
 console.log(`setup printed:  ${IND.map((i) => `${i} ${ladderOf(CARDS, i).join("/")}`).join("   ")}`);
 for (const seats of SIZES) {
-  const { T, games } = run(seats);
+  const { T, games, perGame } = run(seats);
   console.log(`\n${"=".repeat(92)}\n${seats} PLAYERS  -  ${games} games\n${"=".repeat(92)}`);
   console.log("  " + pad("", 32) + IND.map((i) => rp(i, 10)).join(""));
   const row = (label, fn, note) => {
@@ -731,6 +743,34 @@ for (const seats of SIZES) {
   const grp = (g, f) => g.reduce((a, i) => a + f(T[i]), 0) / g.length;
   const val = (t) => (t.in - t.out - t.outlay + t.ep * EPV) / games;
   const within = (g) => { const v = g.map((i) => val(T[i])); return Math.max(...v) / Math.min(...v); };
+  /* ---- the tails ----
+     The brief is not that the six come out level, it is that no industry is dead or
+     dominant with any real frequency once personas, tiles, prices, draws, plots, seat
+     order, hubs and pots have all had their say. A spread of means cannot answer that;
+     the per-game distribution can. "Ran the table" means that industry banked the most
+     EP of the six in that game, ties shared. */
+  if (has("--tails")) {
+    const q = (a, f) => { const b = a.slice().sort((x, y) => x - y); return b[Math.min(b.length - 1, Math.floor(f * b.length))]; };
+    const eps = Object.fromEntries(IND.map((i) => [i, perGame[i].map((g) => g.ep)]));
+    let topCount = Object.fromEntries(IND.map((i) => [i, 0])), deadCount = Object.fromEntries(IND.map((i) => [i, 0]));
+    for (let g = 0; g < games; g++) {
+      const best = Math.max(...IND.map((i) => eps[i][g]));
+      const win = IND.filter((i) => eps[i][g] === best);
+      for (const i of win) topCount[i] += 1 / win.length;
+      for (const i of IND) if (perGame[i][g].n === 0) deadCount[i]++;
+    }
+    console.log("\n  THE TAILS, not the means - one row a game over " + games + " games");
+    const trow = (lab, fn) => console.log("  " + pad(lab, 32) + IND.map((i) => rp(fn(i), 10)).join(""));
+    trow("  games with nothing built in it", (i) => (100 * deadCount[i] / games).toFixed(1) + "%");
+    trow("  games it banked the most EP", (i) => (100 * topCount[i] / games).toFixed(1) + "%");
+    trow("  EP a game, 10th percentile", (i) => q(eps[i], 0.10));
+    trow("  EP a game, median", (i) => q(eps[i], 0.50));
+    trow("  EP a game, 90th percentile", (i) => q(eps[i], 0.90));
+    const tc = IND.map((i) => topCount[i] / games), dc = IND.map((i) => deadCount[i] / games);
+    console.log(`    most-EP share runs ${(100 * Math.min(...tc)).toFixed(1)}% to ${(100 * Math.max(...tc)).toFixed(1)}% against an even 16.7%` +
+      `, and the deadest industry is empty in ${(100 * Math.max(...dc)).toFixed(1)}% of games`);
+  }
+
   console.log("\n  BY HOW THE COMPANY GROWS, which no card number can change");
   console.log(`    vertical   ${V.join(" ")}  - one plot, whatever the level   net value a game $${grp(V, val).toFixed(0)}   spread inside the group ${within(V).toFixed(2)}x`);
   console.log(`    horizontal ${H.join(" ")}  - a plot for every level         net value a game $${grp(H, val).toFixed(0)}   spread inside the group ${within(H).toFixed(2)}x`);
