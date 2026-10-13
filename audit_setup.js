@@ -626,6 +626,38 @@ logic = applySheet3(logic);
    rather than assumed, and valued in dollars so the metric does not move with
    the thing being changed. ---- */
 const HOOKS = [
+  /* A land award is EP that no company banks, and it is the channel the horizontal
+     industries are MEANT to win: The Real-Estate Mogul ranks raw plots, The Omnipresent
+     ranks DISTRICTS, and one horizontal disc spans several. Attributing only
+     "Company: ..." and "Entered ..." lines counts the half of the score where vertical
+     industries are strong and drops the half built to pay horizontal play back.
+     So split each award across what earned it: by footprint for the Mogul, and for the
+     Omnipresent by district with each district divided equally among whatever of the
+     player's touches it. Plots owned with nothing standing on them earn their share
+     too and belong to no industry, so they go to a bare-land bucket, visible rather
+     than hidden. */
+  ["a land award", `    addEP(p, share, label, state.quarter);`,
+   `    __probe.land(label, share, (() => {
+      const w = {}; let bare = 0;
+      const mine = activeBiz(p), inCo = new Set();
+      mine.forEach((b) => b.footprint.forEach((x) => inCo.add(String(x))));
+      const spare = Object.entries(state.board.owner)
+        .filter((e) => e[1] === p.id && !inCo.has(String(e[0]))).map((e) => e[0]);
+      if (label === "The Real-Estate Mogul") {
+        mine.forEach((b) => { w[bizInd(b)] = (w[bizInd(b)] || 0) + b.footprint.length; });
+        bare = spare.length;
+      } else {
+        const touch = {};
+        const mark = (plot, who) => { const c = state.board.cellOf[plot]; if (!c) return;
+          const k = c.r + "," + c.c; (touch[k] = touch[k] || new Set()).add(who); };
+        mine.forEach((b) => b.footprint.forEach((plot) => mark(plot, bizInd(b))));
+        spare.forEach((plot) => mark(plot, "__bare"));
+        Object.keys(touch).forEach((k) => { const set = Array.from(touch[k]);
+          set.forEach((who) => { if (who === "__bare") bare += 1 / set.length;
+                                 else w[who] = (w[who] || 0) + 1 / set.length; }); });
+      }
+      return { w: w, bare: bare }; })());
+    addEP(p, share, label, state.quarter);`],
   ["a sale",     "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;",
                  "  const leftover = Math.max(0, remaining);\n  __probe.sale(state, biz, earned + leftover * 1);\n  p.cash += earned + leftover * 1;"],
   ["a launch",   "  const biz = newBusiness(bp, footprint, state.quarter, state);",
@@ -637,7 +669,7 @@ const HOOKS = [
 ];
 for (const [what, find, put] of HOOKS) { need(find, what); logic = logic.replace(find, put); }
 
-let L = null;
+let L = null, LAND = [];
 const key = (b) => b.__k || (b.__k = `${b.bp.ind}#${b.id}#${b.quarterBuilt}`);
 const ledger = (b) => {
   const k = key(b);
@@ -648,6 +680,7 @@ const probe = {
   launch:  (st, b, setup) => { const l = ledger(b); l.outlay += setup; },
   upgrade: (st, b, setup) => { const l = ledger(b); l.outlay += setup; },
   sale:    (st, b, got)   => { ledger(b).in += got; },
+  land:    (label, share, split) => { LAND.push({ label: label, share: share, split: split }); },
   bill:    (st, b, paid)  => { const l = ledger(b); l.out += paid; l.quarters++;
                                /* a horizontal company needs a plot per level and a
                                   vertical one needs exactly one, which is an entry
@@ -667,16 +700,16 @@ const E = box.E;
 const bpInd = {}; E.BP_DATA.forEach((bp) => { bpInd[bp.name] = bp.ind; });
 
 function run(seats) {
-  const T = Object.fromEntries(E.INDUSTRIES.map((i) => [i, { n: 0, outlay: 0, in: 0, out: 0, quarters: 0, built: 0, ep: 0, paid: 0, payback: 0, lvl0: 0, plots: 0 }]));
+  const T = Object.fromEntries(E.INDUSTRIES.map((i) => [i, { n: 0, outlay: 0, in: 0, out: 0, quarters: 0, built: 0, ep: 0, land: 0, paid: 0, payback: 0, lvl0: 0, plots: 0 }]));
   /* One row a game, so the TAILS can be read and not just the mean. A spread of means
      says nothing about whether an industry is ever dead or ever runs away with it. */
   const perGame = Object.fromEntries(E.INDUSTRIES.map((i) => [i, []]));
-  let games = 0;
+  let games = 0, bareEP = 0, landTotal = 0;
   const OFF = (() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) : 0; })();
   for (let seed = 1 + OFF; seed <= GAMES + OFF; seed++) {
     const st = E.initGame(seats - 1, seed, ["Seat 1"], undefined, true, undefined);
     st.players[0].isHuman = false;      // seat 0 is a human by default and would stall
-    L = new Map();
+    L = new Map(); LAND = [];
     if (st.phase === "drafting") { E.advanceDraft(st, () => {}); E.startPlanning(st); }
     E.advancePlanning(st, E.mulberry32(seed + 777), () => {});
     if (st.phase !== "gameover") continue;
@@ -694,9 +727,21 @@ function run(seats) {
     }
     const nBy = Object.fromEntries(E.INDUSTRIES.map((i) => [i, 0]));
     for (const l of L.values()) nBy[l.ind]++;
-    for (const i of E.INDUSTRIES) { T[i].ep += epBy[i]; perGame[i].push({ ep: epBy[i], n: nBy[i] }); }
+    /* Land EP, split across whatever earned it, added on top of what the companies banked. */
+    const landBy = Object.fromEntries(E.INDUSTRIES.map((i) => [i, 0]));
+    for (const a of LAND) {
+      const tot = Object.values(a.split.w).reduce((x, y) => x + y, 0) + a.split.bare;
+      if (tot <= 0) { bareEP += a.share; landTotal += a.share; continue; }
+      for (const i of E.INDUSTRIES) if (a.split.w[i]) landBy[i] += (a.share * a.split.w[i]) / tot;
+      bareEP += (a.share * a.split.bare) / tot;
+      landTotal += a.share;
+    }
+    for (const i of E.INDUSTRIES) {
+      T[i].ep += epBy[i]; T[i].land += landBy[i];
+      perGame[i].push({ ep: epBy[i] + landBy[i], epCo: epBy[i], n: nBy[i] });
+    }
   }
-  return { T, games, perGame };
+  return { T, games, perGame, bareEP, landTotal };
 }
 
 const EPV = E.CASH_PER_EP;
@@ -704,7 +749,7 @@ console.log(`\n${GAMES} games a table size, seeds from ${(() => { const i = proc
   `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--v5", "--v5b", "--v6", "--lvlkeep", "--double", "--tails"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
 console.log(`setup printed:  ${IND.map((i) => `${i} ${ladderOf(CARDS, i).join("/")}`).join("   ")}`);
 for (const seats of SIZES) {
-  const { T, games, perGame } = run(seats);
+  const { T, games, perGame, bareEP, landTotal } = run(seats);
   console.log(`\n${"=".repeat(92)}\n${seats} PLAYERS  -  ${games} games\n${"=".repeat(92)}`);
   console.log("  " + pad("", 32) + IND.map((i) => rp(i, 10)).join(""));
   const row = (label, fn, note) => {
@@ -763,12 +808,20 @@ for (const seats of SIZES) {
     const trow = (lab, fn) => console.log("  " + pad(lab, 32) + IND.map((i) => rp(fn(i), 10)).join(""));
     trow("  games with nothing built in it", (i) => (100 * deadCount[i] / games).toFixed(1) + "%");
     trow("  games it banked the most EP", (i) => (100 * topCount[i] / games).toFixed(1) + "%");
-    trow("  EP a game, 10th percentile", (i) => q(eps[i], 0.10));
-    trow("  EP a game, median", (i) => q(eps[i], 0.50));
-    trow("  EP a game, 90th percentile", (i) => q(eps[i], 0.90));
+    trow("    of it, land award EP", (i) => (T[i].land / games).toFixed(1));
+    trow("    company + debut EP", (i) => (T[i].ep / games).toFixed(1));
+    trow("  EP a game, 10th percentile", (i) => q(eps[i], 0.10).toFixed(1));
+    trow("  EP a game, median", (i) => q(eps[i], 0.50).toFixed(1));
+    trow("  EP a game, 90th percentile", (i) => q(eps[i], 0.90).toFixed(1));
     const tc = IND.map((i) => topCount[i] / games), dc = IND.map((i) => deadCount[i] / games);
     console.log(`    most-EP share runs ${(100 * Math.min(...tc)).toFixed(1)}% to ${(100 * Math.max(...tc)).toFixed(1)}% against an even 16.7%` +
       `, and the deadest industry is empty in ${(100 * Math.max(...dc)).toFixed(1)}% of games`);
+    const landInd = IND.reduce((x, i) => x + T[i].land, 0), coEP = IND.reduce((x, i) => x + T[i].ep, 0);
+    console.log(`    land awards are $${(landTotal / games).toFixed(1)} EP a game of ${((landTotal + coEP) / games).toFixed(1)} attributed` +
+      ` (${(100 * landTotal / (landTotal + coEP)).toFixed(0)}%), of which ${(bareEP / games).toFixed(1)} went to plots with nothing on them`);
+    const V = ["RE", "HO", "HC"], H = ["UT", "MA", "TE"];
+    const sh = (g) => 100 * g.reduce((x, i) => x + topCount[i], 0) / games;
+    console.log(`    vertical RE HO HC take ${sh(V).toFixed(1)}% of games against horizontal UT MA TE on ${sh(H).toFixed(1)}%`);
   }
 
   console.log("\n  BY HOW THE COMPANY GROWS, which no card number can change");
