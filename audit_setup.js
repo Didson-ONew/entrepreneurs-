@@ -662,6 +662,51 @@ if (has("--builtland")) {
   logic = logic.replace(PLOT_OWNED, PLOT_BUILT);
 }
 
+
+/* ---- what a Retail branch costs ----
+   As it stands a branch takes ground for NOTHING: branchSpot looks only at plots nobody
+   owns, and placeBranches then writes board.owner[spot] = p.id. The only price is a
+   disc. Buying that same plot through BUY costs plotValue in cash AND a disc, so Retail
+   scales its reach for free while every other industry pays for its ground.
+
+   --branchbuy   a branch may only open on a plot the player ALREADY OWNS, so the land
+                 is bought first at the normal price. Rent follows the normal rule and
+                 comes to nothing, because you cannot owe yourself.
+   --branchrent  a branch may open on any plot SOMEBODY owns, yours or a rival's, and a
+                 branch on a rival's plot pays them ground rent every quarter like any
+                 other structure. This is the reading where "pay rent as normal" bites.
+   Both stop a branch from seizing free land, which is the bulk of the change either way. */
+const SPOT_FREE = "    if (k in board.owner || !plotFree(board, k)) continue;";
+const SPOT_OWN  = "    if (board.owner[k] !== p.id || !plotFree(board, k)) continue;";
+const SPOT_ANY  = "    if (!(k in board.owner) || !plotFree(board, k)) continue;";
+const TAKE_LAND = "    board.owner[spot] = p.id;                      // holds the ground, so it costs a disc";
+const RENT_NOW = [
+  "const bizGroundRent = (state, p, b) => b.footprint.reduce((s, plot) => {",
+  "  const ownerId = state.board.owner[plot];",
+  "  if (ownerId === undefined || ownerId === p.id) return s;",
+  "  return s + RENT_PER_LEVEL * levelsOn(b, plot);",
+  "}, 0);",
+].join("\n");
+const RENT_WITH_BRANCHES = [
+  "const bizGroundRent = (state, p, b) => b.footprint.reduce((s, plot) => {",
+  "  const ownerId = state.board.owner[plot];",
+  "  if (ownerId === undefined || ownerId === p.id) return s;",
+  "  return s + RENT_PER_LEVEL * levelsOn(b, plot);",
+  "}, 0) + Object.keys(state.board.branches || {}).reduce((s, k) => {",
+  "  const br = state.board.branches[k];",
+  "  if (!br || br.bizId !== b.id) return s;",
+  "  const o = state.board.owner[k];",
+  "  return (o === undefined || o === p.id) ? s : s + RENT_PER_LEVEL;",
+  "}, 0);",
+].join("\n");
+if (has("--branchbuy") || has("--branchrent")) {
+  need(SPOT_FREE, "where a branch may open");
+  logic = logic.replace(SPOT_FREE, has("--branchrent") ? SPOT_ANY : SPOT_OWN);
+  need(TAKE_LAND, "a branch taking the ground");
+  logic = logic.replace(TAKE_LAND, "    /* the ground is already owned - a branch no longer takes it */");
+  if (has("--branchrent")) { need(RENT_NOW, "the ground rent"); logic = logic.replace(RENT_NOW, RENT_WITH_BRANCHES); }
+}
+
 /* ---- the probe: one ledger a company, stamped by quarter so payback is measured
    rather than assumed, and valued in dollars so the metric does not move with
    the thing being changed. ---- */
@@ -680,6 +725,8 @@ const HOOKS = [
      player's touches it. Plots owned with nothing standing on them earn their share
      too and belong to no industry, so they go to a bare-land bucket, visible rather
      than hidden. */
+  ["a branch opening", `    board.branches[spot] = { playerId: p.id, bizId: biz.id };`,
+                       `    board.branches[spot] = { playerId: p.id, bizId: biz.id }; __probe.branch();`],
   ["a land award", `    addEP(p, share, label, state.quarter);`,
    `    __probe.land(label, share, (() => {
       const w = {}; let bare = 0;
@@ -712,7 +759,7 @@ const HOOKS = [
 ];
 for (const [what, find, put] of HOOKS) { need(find, what); logic = logic.replace(find, put); }
 
-let L = null, LAND = [];
+let L = null, LAND = [], BRANCHES = 0;
 const key = (b) => b.__k || (b.__k = `${b.bp.ind}#${b.id}#${b.quarterBuilt}`);
 const ledger = (b) => {
   const k = key(b);
@@ -724,6 +771,7 @@ const probe = {
   upgrade: (st, b, setup) => { const l = ledger(b); l.outlay += setup; },
   sale:    (st, b, got)   => { ledger(b).in += got; },
   land:    (label, share, split) => { LAND.push({ label: label, share: share, split: split }); },
+  branch:  () => { BRANCHES++; },
   bill:    (st, b, paid)  => { const l = ledger(b); l.out += paid; l.quarters++;
                                /* a horizontal company needs a plot per level and a
                                   vertical one needs exactly one, which is an entry
@@ -748,6 +796,7 @@ function run(seats) {
      says nothing about whether an industry is ever dead or ever runs away with it. */
   const perGame = Object.fromEntries(E.INDUSTRIES.map((i) => [i, []]));
   let games = 0, bareEP = 0, landTotal = 0;
+  BRANCHES = 0;
   const OFF = (() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) : 0; })();
   for (let seed = 1 + OFF; seed <= GAMES + OFF; seed++) {
     const st = E.initGame(seats - 1, seed, ["Seat 1"], undefined, true, undefined);
@@ -784,15 +833,15 @@ function run(seats) {
       perGame[i].push({ ep: epBy[i] + landBy[i], epCo: epBy[i], n: nBy[i] });
     }
   }
-  return { T, games, perGame, bareEP, landTotal };
+  return { T, games, perGame, bareEP, landTotal, branches: BRANCHES };
 }
 
 const EPV = E.CASH_PER_EP;
 console.log(`\n${GAMES} games a table size, seeds from ${(() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) + 1 : 1; })()}.` +
-  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--v5", "--v5b", "--v6", "--lvlkeep", "--double", "--tails", "--builtland"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
+  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--v5", "--v5b", "--v6", "--lvlkeep", "--double", "--tails", "--builtland", "--branchbuy", "--branchrent"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
 console.log(`setup printed:  ${IND.map((i) => `${i} ${ladderOf(CARDS, i).join("/")}`).join("   ")}`);
 for (const seats of SIZES) {
-  const { T, games, perGame, bareEP, landTotal } = run(seats);
+  const { T, games, perGame, bareEP, landTotal, branches } = run(seats);
   console.log(`\n${"=".repeat(92)}\n${seats} PLAYERS  -  ${games} games\n${"=".repeat(92)}`);
   console.log("  " + pad("", 32) + IND.map((i) => rp(i, 10)).join(""));
   const row = (label, fn, note) => {
@@ -862,6 +911,7 @@ for (const seats of SIZES) {
     const landInd = IND.reduce((x, i) => x + T[i].land, 0), coEP = IND.reduce((x, i) => x + T[i].ep, 0);
     console.log(`    land awards are $${(landTotal / games).toFixed(1)} EP a game of ${((landTotal + coEP) / games).toFixed(1)} attributed` +
       ` (${(100 * landTotal / (landTotal + coEP)).toFixed(0)}%), of which ${(bareEP / games).toFixed(1)} went to plots with nothing on them`);
+    console.log(`    Retail opened ${(branches / games).toFixed(2)} branches a game`);
     const V = ["RE", "HO", "HC"], H = ["UT", "MA", "TE"];
     const sh = (g) => 100 * g.reduce((x, i) => x + topCount[i], 0) / games;
     console.log(`    vertical RE HO HC take ${sh(V).toFixed(1)}% of games against horizontal UT MA TE on ${sh(H).toFixed(1)}%`);
