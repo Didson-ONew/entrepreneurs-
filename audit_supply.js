@@ -215,10 +215,18 @@ const SHEET3 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 15, opex: 8, 
 const SHEET4 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 10, opex: 10, prod: 4 },
                  HO: { setup: 15, opex: 6, prod: 2 }, MA: { setup: 15, opex: 8,  prod: 4 },
                  HC: { setup: 20, opex: 10, prod: 3 }, TE: { setup: 10, opex: 8,  prod: 2 } };
+/* --sheet5: RE setup 10 to 15 and MA setup 15 to 10, the only two cells that move.
+   Opex is untouched, so the pot bills are identical to --sheet4 and any change in the
+   loop comes purely from WHO GETS BUILT. */
+const SHEET5 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 15, opex: 10, prod: 4 },
+                 HO: { setup: 15, opex: 6, prod: 2 }, MA: { setup: 10, opex: 8,  prod: 4 },
+                 HC: { setup: 20, opex: 10, prod: 3 }, TE: { setup: 10, opex: 8,  prod: 2 } };
 let CARDS = CARDS0;
-if (has("--sheet2") || has("--sheet2pay") || has("--sheet3") || has("--v3") || has("--sheet4") || has("--v4")) {
+if (has("--sheet2") || has("--sheet2pay") || has("--sheet3") || has("--v3") || has("--sheet4") || has("--v4")
+    || has("--sheet5") || has("--v5")) {
   const pay = has("--sheet2pay");
-  const B = (has("--sheet4") || has("--v4")) ? SHEET4 : (has("--sheet3") || has("--v3")) ? SHEET3 : SHEET2;
+  const B = (has("--sheet5") || has("--v5")) ? SHEET5 : (has("--sheet4") || has("--v4")) ? SHEET4
+          : (has("--sheet3") || has("--v3")) ? SHEET3 : SHEET2;
   const cards = JSON.parse(logic.match(CARDS_RE)[1]);
   for (const c of cards) {
     const m = 1 << (c.lvl - 1), b = B[c.ind], want = b.opex * m;
@@ -261,7 +269,7 @@ const GRAPHS = {
             MA: ["HO", "TE", "UT"], HC: ["RE", "UT", "HO"], TE: ["MA", "RE", "HC"] },
 };
 const GRAPH = (() => { const i = process.argv.indexOf("--graph");
-  return i > 0 ? process.argv[i + 1] : has("--v4") ? "sheet4" : has("--v3") ? "sheet" : null; })();
+  return i > 0 ? process.argv[i + 1] : (has("--v4") || has("--v5")) ? "sheet4" : has("--v3") ? "sheet" : null; })();
 if (GRAPH) {
   if (!GRAPHS[GRAPH]) { console.error(`no such graph '${GRAPH}' - try ${Object.keys(GRAPHS).join(" or ")}`); process.exit(2); }
   const cards = JSON.parse(JSON.stringify(CARDS));
@@ -306,16 +314,17 @@ const ROWS9 = `const DEMAND_ROWS = {
   CC: ["HC", "UT", "MA", "HC"], LM: ["TE", "HC", "HO", "TE"],
 };`;
 if (has("--rows8") || has("--v3")) { need(ROWS_NOW, "the demand table"); logic = logic.replace(ROWS_NOW, ROWS8); }
-if (has("--rows9") || has("--v4")) { need(ROWS_NOW, "the demand table"); logic = logic.replace(ROWS_NOW, ROWS9); }
+if (has("--rows9") || has("--v4") || has("--v5")) { need(ROWS_NOW, "the demand table"); logic = logic.replace(ROWS_NOW, ROWS9); }
 
 const DRAW_NOW = `  const chosen = sample(SUBURB_POOL, 12, rng);`;
-if (has("--strat") || has("--v3") || has("--v4")) {
+if (has("--strat") || has("--v3") || has("--v4") || has("--v5")) {
   need(DRAW_NOW, "the suburb draw");
   logic = logic.replace(DRAW_NOW, `  const __byFam = (f, n) => sample(SUBURB_POOL.filter((t) => t[0] === f), n, rng);
   const chosen = shuffle([...__byFam("R", 4), ...__byFam("C", 4), ...__byFam("A", 2), ...__byFam("I", 2)], rng);`);
 }
 
-if (has("--paper")) { paper(CARDS, has("--sheet2") || has("--sheet2pay") ? "UNDER THE PROPOSED CARDS" : "AS IT SHIPS"); console.log(""); process.exit(0); }
+if (has("--paper")) { paper(CARDS, ["--sheet2", "--sheet2pay", "--sheet3", "--sheet4", "--sheet5", "--v3", "--v4", "--v5"].some(has)
+  ? "UNDER THE PROPOSED CARDS" : "AS IT SHIPS"); console.log(""); process.exit(0); }
 
 /* --nohq: a headquarters produces nothing and pays no OPEX, yet draws an equal share.
    With one or two companies standing in an industry that is a third to a half of the pot
@@ -412,7 +421,7 @@ function run(seats) {
 }
 
 const ARMS = ["--flow", "--sheet2", "--sheet2pay", "--sheet3", "--sheet4", "--rows6", "--rows8",
-              "--rows9", "--v3", "--v4", "--strat", "--expire", "--bylevel", "--nohq"];
+              "--rows9", "--sheet5", "--v3", "--v4", "--v5", "--strat", "--expire", "--bylevel", "--nohq"];
 console.log(`\n${GAMES} games a table size.  arms: ${[...ARMS.filter(has), GRAPH ? "--graph " + GRAPH : "",
   GROW_OPEX !== null ? "--grow " + GROW_OPEX : ""].filter(Boolean).join(" ") || "as it ships"}.`);
 for (const seats of SIZES) {

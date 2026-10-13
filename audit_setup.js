@@ -553,14 +553,33 @@ const ROWS9 = `const DEMAND_ROWS = {
 };`;
 const DEPS4 = { UT: ["TE", "HC", "MA"], RE: ["UT", "HO", "TE"], HO: ["HC", "MA", "RE"],
                 MA: ["HO", "TE", "UT"], HC: ["RE", "UT", "HO"], TE: ["MA", "RE", "HC"] };
+/* ---- and the revision after that ----
+   --sheet5  RE setup 10 to 15 and MA setup 15 to 10, the only two cells that move.
+             Everything else - opex, prod, base price, the demand table, the supplier
+             matrix - is the previous revision unchanged. Its B2B row now reconciles
+             exactly: every figure is the sum of that industry's three suppliers' opex,
+             six for six, which confirms the matrix.
+   --sheet5b the same with MA at 18 instead of 10. The sheet's own payback cell for MA
+             reads 1.50, which needs setup 18, while its setup cell reads 10, which
+             gives 0.83. The other five cells agree with setup/EBIT exactly, so one of
+             the two MA cells is stale. Both are measured rather than guessed.
+   --v5      sheet5 with the demand table, the matrix and the stratified draw, on each
+             industry's own printed level curve - the stated rule is that base cards
+             follow the curve while UPGRADING keeps doubling, which is what the engine
+             already does to a grown company's opex and production.              */
+const SHEET5 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 15, opex: 10, prod: 4 },
+                 HO: { setup: 15, opex: 6, prod: 2 }, MA: { setup: 10, opex: 8,  prod: 4 },
+                 HC: { setup: 20, opex: 10, prod: 3 }, TE: { setup: 10, opex: 8,  prod: 2 } };
+const SHEET5B = { ...SHEET5, MA: { setup: 18, opex: 8, prod: 4 } };
+const V5 = process.argv.includes("--v5") || process.argv.includes("--v5b");
 const V4 = process.argv.includes("--v4");
 const v3 = (f) => process.argv.includes(f) || process.argv.includes("--v3") ||
-  (V4 && ["--rows8", "--strat", "--sheet3", "--deps3"].includes(f));
+  ((V4 || V5) && ["--rows8", "--strat", "--sheet3", "--deps3"].includes(f));
 function applySheet3(logicIn) {
   let out = logicIn;
   if (v3("--rows8")) {
     if (!out.includes(ROWS_NOW)) { console.error("the demand table moved - update this probe"); process.exit(2); }
-    out = out.replace(ROWS_NOW, V4 ? ROWS9 : ROWS8);
+    out = out.replace(ROWS_NOW, (V4 || V5) ? ROWS9 : ROWS8);
   }
   if (v3("--strat")) {
     const d = `  const chosen = sample(SUBURB_POOL, 12, rng);`;
@@ -573,7 +592,7 @@ function applySheet3(logicIn) {
   const m = out.match(/const BP_DATA = (\[.*?\]);/s);
   if (!m) { console.error("BP_DATA moved - update this probe"); process.exit(2); }
   const cards = JSON.parse(m[1]);
-  const G = v3("--deps3b") ? DEPS3B : V4 ? DEPS4 : v3("--deps3") ? DEPS3 : null;
+  const G = v3("--deps3b") ? DEPS3B : (V4 || V5) ? DEPS4 : v3("--deps3") ? DEPS3 : null;
   for (const c of cards) {
     if (G) {
       const from = TRIPLE_NOW[c.ind], to = G[c.ind];
@@ -581,8 +600,9 @@ function applySheet3(logicIn) {
       c.deps = c.deps.map((d) => ({ ...d, ind: to[from.indexOf(d.ind)] }));
     }
     if (v3("--sheet3")) {
-      const mul = 1 << (c.lvl - 1), b = (V4 ? SHEET4 : SHEET3)[c.ind];
-      if (process.argv.includes("--lvlkeep")) {
+      const mul = 1 << (c.lvl - 1);
+      const b = (process.argv.includes("--v5b") ? SHEET5B : V5 ? SHEET5 : V4 ? SHEET4 : SHEET3)[c.ind];
+      if (process.argv.includes("--lvlkeep") || (V5 && !process.argv.includes("--double"))) {
         const base = CARDS0.find((x) => x.ind === c.ind && x.lvl === 1);
         c.setup = Math.round((b.setup * c.setup) / base.setup);
         c.opex = Math.round((b.opex * c.opex) / base.opex);
@@ -669,7 +689,7 @@ function run(seats) {
 
 const EPV = E.CASH_PER_EP;
 console.log(`\n${GAMES} games a table size, seeds from ${(() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) + 1 : 1; })()}.` +
-  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--lvlkeep"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
+  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--v5", "--v5b", "--lvlkeep", "--double"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
 console.log(`setup printed:  ${IND.map((i) => `${i} ${ladderOf(CARDS, i).join("/")}`).join("   ")}`);
 for (const seats of SIZES) {
   const { T, games } = run(seats);
