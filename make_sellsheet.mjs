@@ -258,6 +258,17 @@ const doc = new Document({
         })],
       }),
 
+      H("Room to grow"),
+      P("The core box is complete and self-contained. The structure it is built on - a closed supply loop, a city that changes every game, and one currency of score - takes expansions without re-teaching anything, and several are already drafted."),
+      grid(null, [
+        [{ t: "Experts", bold: true }, "Hireable specialists, drawn and paid for, each bending one rule you already know: a logistics expert who puts your goods on another player's hub, a surveyor who reprices the ground you stand on, an auditor who reads a rival's hand."],
+        [{ t: "Policies", bold: true }, "The city legislates. A policy comes up for vote at a year end, the table decides it, and it stays on the board for the rest of the game: rent control, a building moratorium, a subsidy for whichever industry is cheapest."],
+        [{ t: "Events", bold: true }, "A quarterly shock that every player reads at once - a boom in one industry, a strike in another, a district closed for redevelopment. Short, public, and never a surprise you cannot plan around."],
+        [{ t: "Import & Export", bold: true }, "A port district and a world market. Sell beyond the city at a price you cannot influence, or import a good you refuse to buy from the rival who makes it - the first way to step outside the supply loop, at a cost."],
+        [{ t: "And beyond", bold: true }, "Further drafts in the drawer: scenario cities with fixed district layouts, a campaign where the board carries forward between games, and a two-player duel variant with a tighter map."],
+      ], [1700, TEXT_WIDTH - 1700], { size: 18 }),
+      gap(90),
+
       H("Where it stands today"),
       grid(null, [
         [{ t: "Rules", bold: true }, `Complete. ${EDITION} is generated from the data the game runs on, so it cannot drift.`],
