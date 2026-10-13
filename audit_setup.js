@@ -699,6 +699,22 @@ const RENT_WITH_BRANCHES = [
   "  return (o === undefined || o === p.id) ? s : s + RENT_PER_LEVEL;",
   "}, 0);",
 ].join("\n");
+/* --branchpay: the middle road. A branch still reaches wherever the chain can, and
+   still takes the ground, but it PAYS plotValue for it in cash the way BUY does - so
+   Retail keeps its own special scaling and simply stops getting the land free. Neither
+   of the arms above can show this, because both work by denying the plot rather than
+   pricing it, and --branchbuy in particular collapses the mechanic against a bot that
+   does not know to buy ground ahead of its chain. */
+const BRANCH_PAY = [
+  "    const __cost = plotValue(state, spot);",
+  "    if (p.cash < __cost) break;                 // a branch you cannot buy the ground for is not opened",
+  "    p.cash -= __cost;",
+  "    board.owner[spot] = p.id;                      // holds the ground, so it costs a disc",
+].join("\n");
+if (has("--branchpay")) {
+  need(TAKE_LAND, "a branch taking the ground");
+  logic = logic.replace(TAKE_LAND, BRANCH_PAY);
+}
 if (has("--branchbuy") || has("--branchrent")) {
   need(SPOT_FREE, "where a branch may open");
   logic = logic.replace(SPOT_FREE, has("--branchrent") ? SPOT_ANY : SPOT_OWN);
@@ -838,7 +854,7 @@ function run(seats) {
 
 const EPV = E.CASH_PER_EP;
 console.log(`\n${GAMES} games a table size, seeds from ${(() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) + 1 : 1; })()}.` +
-  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--v5", "--v5b", "--v6", "--lvlkeep", "--double", "--tails", "--builtland", "--branchbuy", "--branchrent"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
+  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--v5", "--v5b", "--v6", "--lvlkeep", "--double", "--tails", "--builtland", "--branchbuy", "--branchrent", "--branchpay"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
 console.log(`setup printed:  ${IND.map((i) => `${i} ${ladderOf(CARDS, i).join("/")}`).join("   ")}`);
 for (const seats of SIZES) {
   const { T, games, perGame, bareEP, landTotal, branches } = run(seats);
