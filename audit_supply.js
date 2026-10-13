@@ -38,6 +38,7 @@
         --v3       all of it: --sheet3 --rows8 --strat --graph sheet
         --sheet3   its level-1 attributes   --rows8  its demand table
         --graph sheet   its supplier matrix, --graph sheetB the one its B2B row implies
+        --v4       the next revision: --sheet4 --rows9 --strat --graph sheet4
 
    WHAT IT FOUND, 1500 games a table size, three players, with a disjoint block of
    the same rules as the control:
@@ -209,9 +210,15 @@ const SHEET2_PAY = { UT: 15, RE: 20, HO: 10, MA: 20, HC: 15, TE: 10 };
 const SHEET3 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 15, opex: 8, prod: 4 },
                  HO: { setup: 10, opex: 6, prod: 2 }, MA: { setup: 15, opex: 12, prod: 4 },
                  HC: { setup: 20, opex: 12, prod: 3 }, TE: { setup: 10, opex: 8, prod: 2 } };
+/* --sheet4: the next revision, with the opex column brought down where it was biting -
+   MA 12 to 8, HC 12 to 10, RE 8 to 10 - and setup back to RE $10 / HO $15. */
+const SHEET4 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 10, opex: 10, prod: 4 },
+                 HO: { setup: 15, opex: 6, prod: 2 }, MA: { setup: 15, opex: 8,  prod: 4 },
+                 HC: { setup: 20, opex: 10, prod: 3 }, TE: { setup: 10, opex: 8,  prod: 2 } };
 let CARDS = CARDS0;
-if (has("--sheet2") || has("--sheet2pay") || has("--sheet3") || has("--v3")) {
-  const pay = has("--sheet2pay"), B = (has("--sheet3") || has("--v3")) ? SHEET3 : SHEET2;
+if (has("--sheet2") || has("--sheet2pay") || has("--sheet3") || has("--v3") || has("--sheet4") || has("--v4")) {
+  const pay = has("--sheet2pay");
+  const B = (has("--sheet4") || has("--v4")) ? SHEET4 : (has("--sheet3") || has("--v3")) ? SHEET3 : SHEET2;
   const cards = JSON.parse(logic.match(CARDS_RE)[1]);
   for (const c of cards) {
     const m = 1 << (c.lvl - 1), b = B[c.ind], want = b.opex * m;
@@ -249,9 +256,12 @@ const GRAPHS = {
      four industries and Retail by two, so the slot count stops being identical. */
   sheetB: { UT: ["MA", "HC", "TE"], RE: ["TE", "MA", "HC"], HO: ["UT", "RE", "TE"],
             MA: ["RE", "HO", "TE"], HC: ["UT", "HO", "MA"], TE: ["UT", "HO", "HC"] },
+  /* The next revision's matrix, also 3-regular both ways. */
+  sheet4: { UT: ["TE", "HC", "MA"], RE: ["UT", "HO", "TE"], HO: ["HC", "MA", "RE"],
+            MA: ["HO", "TE", "UT"], HC: ["RE", "UT", "HO"], TE: ["MA", "RE", "HC"] },
 };
 const GRAPH = (() => { const i = process.argv.indexOf("--graph");
-  return i > 0 ? process.argv[i + 1] : (has("--v3") ? "sheet" : null); })();
+  return i > 0 ? process.argv[i + 1] : has("--v4") ? "sheet4" : has("--v3") ? "sheet" : null; })();
 if (GRAPH) {
   if (!GRAPHS[GRAPH]) { console.error(`no such graph '${GRAPH}' - try ${Object.keys(GRAPHS).join(" or ")}`); process.exit(2); }
   const cards = JSON.parse(JSON.stringify(CARDS));
@@ -288,10 +298,18 @@ const ROWS8 = `const DEMAND_ROWS = {
   FC: ["HC", "UT", "TE", "HC"], IA: ["TE", "HO", "HC", "TE"],
   CC: ["HC", "TE", "UT", "HC"], LM: ["UT", "HC", "HO", "UT"],
 };`;
+/* --rows9: the next table. Volumes 12/10/12/10/10/10 and EVERY SPREAD EQUAL AT 8. */
+const ROWS9 = `const DEMAND_ROWS = {
+  R: ["UT", "RE", "TE", "UT"], C: ["HO", "MA", "HC", "HO"],
+  A: ["RE", "TE", "HO", "RE"], I: ["MA", "UT", "RE", "MA"],
+  FC: ["HC", "MA", "UT", "HC"], IA: ["TE", "HO", "HC", "TE"],
+  CC: ["HC", "UT", "MA", "HC"], LM: ["TE", "HC", "HO", "TE"],
+};`;
 if (has("--rows8") || has("--v3")) { need(ROWS_NOW, "the demand table"); logic = logic.replace(ROWS_NOW, ROWS8); }
+if (has("--rows9") || has("--v4")) { need(ROWS_NOW, "the demand table"); logic = logic.replace(ROWS_NOW, ROWS9); }
 
 const DRAW_NOW = `  const chosen = sample(SUBURB_POOL, 12, rng);`;
-if (has("--strat") || has("--v3")) {
+if (has("--strat") || has("--v3") || has("--v4")) {
   need(DRAW_NOW, "the suburb draw");
   logic = logic.replace(DRAW_NOW, `  const __byFam = (f, n) => sample(SUBURB_POOL.filter((t) => t[0] === f), n, rng);
   const chosen = shuffle([...__byFam("R", 4), ...__byFam("C", 4), ...__byFam("A", 2), ...__byFam("I", 2)], rng);`);
@@ -393,8 +411,8 @@ function run(seats) {
   return games;
 }
 
-const ARMS = ["--flow", "--sheet2", "--sheet2pay", "--sheet3", "--rows6", "--rows8", "--v3",
-              "--strat", "--expire", "--bylevel", "--nohq"];
+const ARMS = ["--flow", "--sheet2", "--sheet2pay", "--sheet3", "--sheet4", "--rows6", "--rows8",
+              "--rows9", "--v3", "--v4", "--strat", "--expire", "--bylevel", "--nohq"];
 console.log(`\n${GAMES} games a table size.  arms: ${[...ARMS.filter(has), GRAPH ? "--graph " + GRAPH : "",
   GROW_OPEX !== null ? "--grow " + GROW_OPEX : ""].filter(Boolean).join(" ") || "as it ships"}.`);
 for (const seats of SIZES) {

@@ -529,12 +529,38 @@ const DEPS3 = { UT: ["TE", "MA", "HC"], RE: ["UT", "HO", "TE"], HO: ["MA", "HC",
                 MA: ["HO", "TE", "UT"], HC: ["RE", "UT", "HO"], TE: ["HC", "RE", "MA"] };
 const DEPS3B = { UT: ["MA", "HC", "TE"], RE: ["TE", "MA", "HC"], HO: ["UT", "RE", "TE"],
                  MA: ["RE", "HO", "TE"], HC: ["UT", "HO", "MA"], TE: ["UT", "HO", "HC"] };
-const v3 = (f) => process.argv.includes(f) || process.argv.includes("--v3");
+/* ---- and the next revision of it ----
+   --sheet4  its level-1 attributes. Setup goes back to RE $10 / HO $15, and the OPEX
+             column comes DOWN where it was biting: MA 12 to 8 and HC 12 to 10, with RE
+             8 to 10. Total running cost 48 against the previous 52. That breaks the
+             uniform break-even on purpose - at base price minus $2 the six now sit at
+             UT 0, RE -2, HO 0, MA +4, HC +2, TE 0, so price headroom finally differs by
+             industry. It costs payback spread to buy it: 3.00x against the previous
+             1.78x, because MA falls to 1.25 quarters and HO rises to 3.75.
+   --rows9   its demand table. Volumes 12/10/12/10/10/10 and EVERY SPREAD EQUAL AT 8.
+             Hospitality picks up the A family and two centres, which is what cures the
+             3.00x draw-to-draw swing the previous table left it with.
+   --deps4   its supplier matrix: 3-regular both ways, like the last one.
+   --v4      all three, on the stratified draw.                                      */
+const SHEET4 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 10, opex: 10, prod: 4 },
+                 HO: { setup: 15, opex: 6, prod: 2 }, MA: { setup: 15, opex: 8,  prod: 4 },
+                 HC: { setup: 20, opex: 10, prod: 3 }, TE: { setup: 10, opex: 8,  prod: 2 } };
+const ROWS9 = `const DEMAND_ROWS = {
+  R: ["UT", "RE", "TE", "UT"], C: ["HO", "MA", "HC", "HO"],
+  A: ["RE", "TE", "HO", "RE"], I: ["MA", "UT", "RE", "MA"],
+  FC: ["HC", "MA", "UT", "HC"], IA: ["TE", "HO", "HC", "TE"],
+  CC: ["HC", "UT", "MA", "HC"], LM: ["TE", "HC", "HO", "TE"],
+};`;
+const DEPS4 = { UT: ["TE", "HC", "MA"], RE: ["UT", "HO", "TE"], HO: ["HC", "MA", "RE"],
+                MA: ["HO", "TE", "UT"], HC: ["RE", "UT", "HO"], TE: ["MA", "RE", "HC"] };
+const V4 = process.argv.includes("--v4");
+const v3 = (f) => process.argv.includes(f) || process.argv.includes("--v3") ||
+  (V4 && ["--rows8", "--strat", "--sheet3", "--deps3"].includes(f));
 function applySheet3(logicIn) {
   let out = logicIn;
   if (v3("--rows8")) {
     if (!out.includes(ROWS_NOW)) { console.error("the demand table moved - update this probe"); process.exit(2); }
-    out = out.replace(ROWS_NOW, ROWS8);
+    out = out.replace(ROWS_NOW, V4 ? ROWS9 : ROWS8);
   }
   if (v3("--strat")) {
     const d = `  const chosen = sample(SUBURB_POOL, 12, rng);`;
@@ -547,7 +573,7 @@ function applySheet3(logicIn) {
   const m = out.match(/const BP_DATA = (\[.*?\]);/s);
   if (!m) { console.error("BP_DATA moved - update this probe"); process.exit(2); }
   const cards = JSON.parse(m[1]);
-  const G = v3("--deps3b") ? DEPS3B : v3("--deps3") ? DEPS3 : null;
+  const G = v3("--deps3b") ? DEPS3B : V4 ? DEPS4 : v3("--deps3") ? DEPS3 : null;
   for (const c of cards) {
     if (G) {
       const from = TRIPLE_NOW[c.ind], to = G[c.ind];
@@ -555,7 +581,7 @@ function applySheet3(logicIn) {
       c.deps = c.deps.map((d) => ({ ...d, ind: to[from.indexOf(d.ind)] }));
     }
     if (v3("--sheet3")) {
-      const mul = 1 << (c.lvl - 1), b = SHEET3[c.ind];
+      const mul = 1 << (c.lvl - 1), b = (V4 ? SHEET4 : SHEET3)[c.ind];
       if (process.argv.includes("--lvlkeep")) {
         const base = CARDS0.find((x) => x.ind === c.ind && x.lvl === 1);
         c.setup = Math.round((b.setup * c.setup) / base.setup);
@@ -643,7 +669,7 @@ function run(seats) {
 
 const EPV = E.CASH_PER_EP;
 console.log(`\n${GAMES} games a table size, seeds from ${(() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) + 1 : 1; })()}.` +
-  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
+  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--lvlkeep"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
 console.log(`setup printed:  ${IND.map((i) => `${i} ${ladderOf(CARDS, i).join("/")}`).join("   ")}`);
 for (const seats of SIZES) {
   const { T, games } = run(seats);
