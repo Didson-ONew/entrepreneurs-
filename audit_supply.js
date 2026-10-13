@@ -60,17 +60,28 @@
    a game gain most on price AND collect most from pots; HO nets +$0.2 and is the biggest
    payer. Small in dollars, but aligned, so it adds to the imbalance instead of damping it.
 
-   THE MECHANISM IS GROWTH, NOT THE PRINTED OPEX. Growing a company DOUBLES its opex and
-   adds a level, while ground rent only rises $2, so the supplier bill climbs faster than
-   the level: a Retail L2 owes $9-4=$5 a quarter, the same card grown owes $18-6=$12, and
-   a grown L3 owes $28-8=$20. GROWN COMPANIES ARE NEARLY TWO THIRDS of Retail's entire
-   supplier spend and almost half of Hospitality's; Manufacturing's two growth rungs come
-   to $3.50 a game between them. Cheap entry buys more companies, more of them grow, and
-   each growth more than doubles what that one owes - the drain compounds, which is why no
-   rule inside the loop could flatten it. --grow N is the lever that reaches it.
+   GROWTH IS WHERE THE MAGNITUDE COMES FROM. Growing a company DOUBLES its opex and adds
+   a level, while ground rent only rises $2, so the supplier bill climbs faster than the
+   level: a Retail L2 owes $9-4=$5 a quarter, the same card grown owes $18-6=$12, and a
+   grown L3 owes $28-8=$20. Note the rung labels - growing adds a level, so "L3+" is a
+   level-2 Blueprint that grew and a grown L3 stands at L4. Grown companies are 83% of
+   Retail's entire supplier spend ($142.50 of $172.70 a game), 67% of Healthcare's and
+   65% of Hospitality's - against 29% of Manufacturing's, which is $6.10 a game. A 23x
+   gap in what growth contributes.
+
+   BUT IT IS NOT WHERE THE RANKING COMES FROM, and that is the surprise. --grow 1 holds
+   opex flat through growth and HALVES the money moving through the whole B2B economy
+   ($477 collected a game to $248), for a spread of 2.95x against a 3.46x-3.63x baseline
+   and a per-company spread that does not move at all (3.0x to 2.8x at three players, 3.0x
+   to 3.0x at four). The compounding explains how BIG Retail's outflow is; the ranking
+   survives flattening it, because Retail and Hospitality are still built far more often
+   at every rung. A very large economy-wide change for a gain inside the noise.
 
    WHAT MOVES IT, ranked:
-     the opex set (--sheet2)   3.46x -> 1.81x. The ONLY thing that touches the macro flow.
+     the opex set (--sheet2)   3.46x -> 1.81x. The only thing that moves the macro flow
+                               without shrinking it, and it cuts Retail's reliance on
+                               growth from 83% to 63% as a side effect, by front-loading
+                               the bill at level 1 (proposed MA opex is 12 against 4).
      --expire                  worst scoop $222 -> $35, per-company 3.0x -> 2.3x, and no
                                adverse feedback: orphan quarters do not budge.
      --graph heavy             per-company 3.0x -> 2.1x. Nothing on the flow (inside noise).
@@ -84,6 +95,10 @@
                  when the industry at the other end never gets built. Reciprocity is not
                  the virtue; WHICH industries the heavy payers point at is.
      --rows6 --strat --flow   3.51x against 3.46x. The demand table is not a lever here.
+     --grow 1 / --grow 1.5  shrinks the loop instead of rebalancing it - see above. The
+                 growth multiplier is the mechanism behind the magnitude and NOT behind
+                 the imbalance, so flattening it costs half the B2B economy and buys
+                 nothing the cards do not buy better.
    ========================================================================== */
 const fs = require("fs");
 const path = require("path");
