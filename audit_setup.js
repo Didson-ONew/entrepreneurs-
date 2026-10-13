@@ -489,6 +489,86 @@ const sheetCard = (c, fix) => { const m = 1 << (c.lvl - 1), b = SHEET_L1[c.ind];
   var CARDS = cards;
 }
 
+
+/* ---- the configuration on the spreadsheet ----
+   --sheet3  its level-1 attributes. The same set as --sheet2 with the SETUP COLUMN
+             OF RE AND HO SWAPPED, Retail to $15 and Hospitality to $10, which is the
+             only attribute that moves between the two. It pairs the six into (UT,HC)
+             at 20, (RE,MA) at 15 and (HO,TE) at 10, every one of them breaking even
+             exactly at base price minus $2, and payback at base of 3.33 / 1.88 / 2.50.
+   --rows8   its demand table. Volumes 14/10/10/10/10/10, spreads 9/8/6/8/8/9, the
+             first-row-equals-last-row rule held in all eight families, and Retail and
+             Manufacturing printed on no centre at all.
+   --deps3   its supplier matrix, read off the S1/S2/S3 columns: 3-regular both ways,
+             fourteen of eighteen edges mutual.
+   --deps3b  the matrix the sheet's own B2B row implies instead. The two disagree.
+             Each B2B figure is exactly the sum of that industry's three suppliers'
+             opex, and only this assignment reproduces all six - but it is NOT regular,
+             with Technology listed by four industries and Retail by two.
+   --lvlkeep when the sheet's level-1 values are applied, scale levels 2 and 3 by
+             each industry's OWN printed curve instead of doubling. The sheet only
+             states level 1, and doubling is a guess: it puts a Utilities level 3 at
+             $80 of setup against the $30 printed today. This arm reads the same
+             sheet the other way, so the two together bracket the answer.
+   --v3      all three together, on the stratified draw.                            */
+const SHEET3 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 15, opex: 8,  prod: 4 },
+                 HO: { setup: 10, opex: 6, prod: 2 }, MA: { setup: 15, opex: 12, prod: 4 },
+                 HC: { setup: 20, opex: 12, prod: 3 }, TE: { setup: 10, opex: 8,  prod: 2 } };
+const ROWS8 = `const DEMAND_ROWS = {
+  R: ["UT", "RE", "TE", "UT"], C: ["HO", "MA", "HC", "HO"],
+  A: ["RE", "TE", "MA", "RE"], I: ["MA", "UT", "RE", "MA"],
+  FC: ["HC", "UT", "TE", "HC"], IA: ["TE", "HO", "HC", "TE"],
+  CC: ["HC", "TE", "UT", "HC"], LM: ["UT", "HC", "HO", "UT"],
+};`;
+/* Each industry's suppliers sit in a fixed order on its cards and the vals are
+   positional, so re-pointing by position moves the dollars without changing how
+   many there are. */
+const TRIPLE_NOW = { UT: ["HO", "TE", "HC"], RE: ["TE", "HO", "MA"], HO: ["MA", "HC", "RE"],
+                     MA: ["HC", "RE", "UT"], HC: ["RE", "UT", "TE"], TE: ["UT", "MA", "HO"] };
+const DEPS3 = { UT: ["TE", "MA", "HC"], RE: ["UT", "HO", "TE"], HO: ["MA", "HC", "RE"],
+                MA: ["HO", "TE", "UT"], HC: ["RE", "UT", "HO"], TE: ["HC", "RE", "MA"] };
+const DEPS3B = { UT: ["MA", "HC", "TE"], RE: ["TE", "MA", "HC"], HO: ["UT", "RE", "TE"],
+                 MA: ["RE", "HO", "TE"], HC: ["UT", "HO", "MA"], TE: ["UT", "HO", "HC"] };
+const v3 = (f) => process.argv.includes(f) || process.argv.includes("--v3");
+function applySheet3(logicIn) {
+  let out = logicIn;
+  if (v3("--rows8")) {
+    if (!out.includes(ROWS_NOW)) { console.error("the demand table moved - update this probe"); process.exit(2); }
+    out = out.replace(ROWS_NOW, ROWS8);
+  }
+  if (v3("--strat")) {
+    const d = `  const chosen = sample(SUBURB_POOL, 12, rng);`;
+    if (!out.includes(d)) { console.error("the suburb draw moved - update this probe"); process.exit(2); }
+    out = out.replace(d, `  const __byFam = (f, n) => sample(SUBURB_POOL.filter((t) => t[0] === f), n, rng);
+  const chosen = shuffle([...__byFam("R", 4), ...__byFam("C", 4), ...__byFam("A", 2), ...__byFam("I", 2)], rng);`);
+  }
+  const wantCards = v3("--sheet3") || v3("--deps3") || v3("--deps3b");
+  if (!wantCards) return out;
+  const m = out.match(/const BP_DATA = (\[.*?\]);/s);
+  if (!m) { console.error("BP_DATA moved - update this probe"); process.exit(2); }
+  const cards = JSON.parse(m[1]);
+  const G = v3("--deps3b") ? DEPS3B : v3("--deps3") ? DEPS3 : null;
+  for (const c of cards) {
+    if (G) {
+      const from = TRIPLE_NOW[c.ind], to = G[c.ind];
+      if (c.deps.some((d) => !from.includes(d.ind))) { console.error(`${c.code} does not draw from the triple this probe expects`); process.exit(2); }
+      c.deps = c.deps.map((d) => ({ ...d, ind: to[from.indexOf(d.ind)] }));
+    }
+    if (v3("--sheet3")) {
+      const mul = 1 << (c.lvl - 1), b = SHEET3[c.ind];
+      if (process.argv.includes("--lvlkeep")) {
+        const base = CARDS0.find((x) => x.ind === c.ind && x.lvl === 1);
+        c.setup = Math.round((b.setup * c.setup) / base.setup);
+        c.opex = Math.round((b.opex * c.opex) / base.opex);
+      } else { c.setup = b.setup * mul; c.opex = b.opex * mul; }
+      c.prod = b.prod * mul;
+    }
+  }
+  CARDS = cards;                                      // so the banner prints what ran
+  return out.replace(m[0], "const BP_DATA = " + JSON.stringify(cards) + ";");
+}
+logic = applySheet3(logic);
+
 /* ---- the probe: one ledger a company, stamped by quarter so payback is measured
    rather than assumed, and valued in dollars so the metric does not move with
    the thing being changed. ---- */
@@ -563,7 +643,7 @@ function run(seats) {
 
 const EPV = E.CASH_PER_EP;
 console.log(`\n${GAMES} games a table size, seeds from ${(() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) + 1 : 1; })()}.` +
-  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
+  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
 console.log(`setup printed:  ${IND.map((i) => `${i} ${ladderOf(CARDS, i).join("/")}`).join("   ")}`);
 for (const seats of SIZES) {
   const { T, games } = run(seats);

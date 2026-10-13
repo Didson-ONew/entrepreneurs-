@@ -34,6 +34,10 @@
                    `prism` makes the graph fully reciprocal with the smallest edit,
                    `heavy` does the same but puts the three big payers in one triangle
         --grow N   what growing a company does to its opex, instead of doubling it
+   And the configuration on the spreadsheet, whole or in thirds:
+        --v3       all of it: --sheet3 --rows8 --strat --graph sheet
+        --sheet3   its level-1 attributes   --rows8  its demand table
+        --graph sheet   its supplier matrix, --graph sheetB the one its B2B row implies
 
    WHAT IT FOUND, 1500 games a table size, three players, with a disjoint block of
    the same rules as the control:
@@ -198,12 +202,19 @@ const SHEET2 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 10, opex: 8, 
                  HO: { setup: 15, opex: 6, prod: 2 }, MA: { setup: 15, opex: 12, prod: 4 },
                  HC: { setup: 20, opex: 12, prod: 3 }, TE: { setup: 10, opex: 8, prod: 2 } };
 const SHEET2_PAY = { UT: 15, RE: 20, HO: 10, MA: 20, HC: 15, TE: 10 };
+/* --sheet3: the same sheet with the SETUP COLUMN OF RE AND HO SWAPPED - Retail to
+   $15 and Hospitality to $10 - which is the only attribute that moves between the
+   two. It pairs the six into (UT,HC) at 20, (RE,MA) at 15 and (HO,TE) at 10, and
+   every one of them breaks even exactly at base price minus $2. */
+const SHEET3 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 15, opex: 8, prod: 4 },
+                 HO: { setup: 10, opex: 6, prod: 2 }, MA: { setup: 15, opex: 12, prod: 4 },
+                 HC: { setup: 20, opex: 12, prod: 3 }, TE: { setup: 10, opex: 8, prod: 2 } };
 let CARDS = CARDS0;
-if (has("--sheet2") || has("--sheet2pay")) {
-  const pay = has("--sheet2pay");
+if (has("--sheet2") || has("--sheet2pay") || has("--sheet3") || has("--v3")) {
+  const pay = has("--sheet2pay"), B = (has("--sheet3") || has("--v3")) ? SHEET3 : SHEET2;
   const cards = JSON.parse(logic.match(CARDS_RE)[1]);
   for (const c of cards) {
-    const m = 1 << (c.lvl - 1), b = SHEET2[c.ind], want = b.opex * m;
+    const m = 1 << (c.lvl - 1), b = B[c.ind], want = b.opex * m;
     c.deps = reshare(c.deps, want);
     c.setup = (pay ? SHEET2_PAY[c.ind] : b.setup) * m; c.opex = want; c.prod = b.prod * m;
   }
@@ -228,8 +239,19 @@ const GRAPHS = {
            MA: ["HC", "RE", "HO"], HC: ["MA", "UT", "TE"], TE: ["UT", "RE", "HC"] },
   heavy: { UT: ["HO", "TE", "MA"], RE: ["TE", "HO", "HC"], HO: ["UT", "HC", "RE"],
            MA: ["HC", "TE", "UT"], HC: ["RE", "HO", "MA"], TE: ["UT", "MA", "RE"] },
+  /* The matrix on the sheet, read off its S1/S2/S3 columns. It is 3-regular both
+     ways, and fourteen of its eighteen edges are mutual. */
+  sheet: { UT: ["TE", "MA", "HC"], RE: ["UT", "HO", "TE"], HO: ["MA", "HC", "RE"],
+           MA: ["HO", "TE", "UT"], HC: ["RE", "UT", "HO"], TE: ["HC", "RE", "MA"] },
+  /* The matrix the sheet's own B2B row implies instead - the two disagree. Each
+     industry's B2B figure is exactly the sum of its three suppliers' opex, and only
+     this assignment reproduces all six. It is NOT regular: Technology is listed by
+     four industries and Retail by two, so the slot count stops being identical. */
+  sheetB: { UT: ["MA", "HC", "TE"], RE: ["TE", "MA", "HC"], HO: ["UT", "RE", "TE"],
+            MA: ["RE", "HO", "TE"], HC: ["UT", "HO", "MA"], TE: ["UT", "HO", "HC"] },
 };
-const GRAPH = (() => { const i = process.argv.indexOf("--graph"); return i > 0 ? process.argv[i + 1] : null; })();
+const GRAPH = (() => { const i = process.argv.indexOf("--graph");
+  return i > 0 ? process.argv[i + 1] : (has("--v3") ? "sheet" : null); })();
 if (GRAPH) {
   if (!GRAPHS[GRAPH]) { console.error(`no such graph '${GRAPH}' - try ${Object.keys(GRAPHS).join(" or ")}`); process.exit(2); }
   const cards = JSON.parse(JSON.stringify(CARDS));
@@ -257,8 +279,19 @@ if (has("--rows6")) {
   CC: ["TE", "HO", "HC", "TE"], LM: ["HC", "HO", "TE", "HC"],
 };`);
 }
+/* --rows8: the demand table on the sheet. Volumes 14/10/10/10/10/10 and spreads
+   9/8/6/8/8/9, the first-row-equals-last-row rule held in all eight families, and
+   Retail and Manufacturing on no centre at all. */
+const ROWS8 = `const DEMAND_ROWS = {
+  R: ["UT", "RE", "TE", "UT"], C: ["HO", "MA", "HC", "HO"],
+  A: ["RE", "TE", "MA", "RE"], I: ["MA", "UT", "RE", "MA"],
+  FC: ["HC", "UT", "TE", "HC"], IA: ["TE", "HO", "HC", "TE"],
+  CC: ["HC", "TE", "UT", "HC"], LM: ["UT", "HC", "HO", "UT"],
+};`;
+if (has("--rows8") || has("--v3")) { need(ROWS_NOW, "the demand table"); logic = logic.replace(ROWS_NOW, ROWS8); }
+
 const DRAW_NOW = `  const chosen = sample(SUBURB_POOL, 12, rng);`;
-if (has("--strat")) {
+if (has("--strat") || has("--v3")) {
   need(DRAW_NOW, "the suburb draw");
   logic = logic.replace(DRAW_NOW, `  const __byFam = (f, n) => sample(SUBURB_POOL.filter((t) => t[0] === f), n, rng);
   const chosen = shuffle([...__byFam("R", 4), ...__byFam("C", 4), ...__byFam("A", 2), ...__byFam("I", 2)], rng);`);
@@ -360,7 +393,8 @@ function run(seats) {
   return games;
 }
 
-const ARMS = ["--flow", "--sheet2", "--sheet2pay", "--rows6", "--strat", "--expire", "--bylevel", "--nohq"];
+const ARMS = ["--flow", "--sheet2", "--sheet2pay", "--sheet3", "--rows6", "--rows8", "--v3",
+              "--strat", "--expire", "--bylevel", "--nohq"];
 console.log(`\n${GAMES} games a table size.  arms: ${[...ARMS.filter(has), GRAPH ? "--graph " + GRAPH : "",
   GROW_OPEX !== null ? "--grow " + GROW_OPEX : ""].filter(Boolean).join(" ") || "as it ships"}.`);
 for (const seats of SIZES) {
