@@ -63,13 +63,18 @@ for (const [n, rows] of Object.entries(E.STARTING)) {
 
 /* --------------------------------------------------------- the six industries */
 section("The six industries - setup / OPEX / production per level");
+/* A deliberate snapshot, not a derivation: if these numbers drifted silently the book
+   and the cards could agree with each other while both being wrong. Rebalanced with the
+   rest of the game - entry paired at (HO,TE) $10, (UT,RE) $15 and (MA,HC) $20, which
+   lands payback level at 2.50 quarters for five of six. Levels 2 and 3 follow each
+   industry's own printed curve for setup and OPEX; production doubles. */
 const V10 = {
-  UT: { base: 4, scale: "H", lv: [[15, 4, 4], [20, 7, 8], [30, 10, 16]] },
-  RE: { base: 4, scale: "V", lv: [[10, 5, 4], [15, 9, 8], [25, 14, 16]] },
-  HO: { base: 5, scale: "V", lv: [[10, 6, 3], [15, 10, 6], [25, 16, 12]] },
-  MA: { base: 5, scale: "H", lv: [[20, 4, 3], [35, 7, 6], [60, 10, 12]] },
-  HC: { base: 6, scale: "V", lv: [[20, 5, 2], [35, 9, 4], [60, 14, 8]] },
-  TE: { base: 6, scale: "H", lv: [[15, 6, 2], [25, 10, 4], [40, 16, 8]] },
+  UT: { base: 4, scale: "H", lv: [[15, 6, 3], [20, 11, 6], [30, 15, 12]] },
+  RE: { base: 4, scale: "V", lv: [[15, 10, 4], [23, 18, 8], [38, 28, 16]] },
+  HO: { base: 5, scale: "V", lv: [[10, 6, 2], [15, 10, 4], [25, 16, 8]] },
+  MA: { base: 5, scale: "H", lv: [[20, 8, 4], [35, 14, 8], [60, 20, 16]] },
+  HC: { base: 6, scale: "V", lv: [[20, 10, 3], [35, 18, 6], [60, 28, 12]] },
+  TE: { base: 6, scale: "H", lv: [[10, 8, 2], [17, 13, 4], [27, 21, 8]] },
 };
 for (const [ind, want] of Object.entries(V10)) {
   check(`${ind} base $${want.base}, ${want.scale === "H" ? "horizontal" : "vertical"}`,

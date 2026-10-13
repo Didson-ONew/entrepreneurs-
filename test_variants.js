@@ -38,6 +38,17 @@ const section = (t) => console.log(`\n${t}`);
 
 const game = (variants, seed = 5) => E.initGame(3, seed, ["You"], undefined, false, variants);
 /* Put a company on a plot without going through the action economy. */
+/* The land awards pay for BUILT ground, so a land leader needs a company standing on
+   the plots, not just the deeds. Marked scored, so a year end banks the two land awards
+   and nothing else - which is what these checks count. */
+function develop(st, p, n) {
+  const plots = Object.keys(st.board.graph).slice(0, n);
+  plots.forEach((k) => { st.board.owner[k] = p.id; });
+  const bp = E.BP_DATA.find((x) => x.lvl === 1);
+  p.businesses.push({ id: 9100 + p.id, bp, footprint: plots, level: 1, upgraded: false,
+                      distressed: false, scored: true, quarterBuilt: 1 });
+  plots.forEach((k) => { st.board.occupiedBy[k] = 9100 + p.id; });
+}
 function plant(st, p, ind, plot, level = 1) {
   const bp = E.BP_DATA.find((x) => x.ind === ind && x.lvl === 1);
   const biz = { id: 5000 + p.businesses.length + p.id * 100, bp, footprint: [plot], level,
@@ -220,7 +231,7 @@ section("5. Land awards at the end only");
     const st = game(v);
     st.quarter = 4;
     const me = E.byId(st, 0);
-    Object.keys(st.board.graph).slice(0, 6).forEach((p) => { st.board.owner[p] = me.id; });
+    develop(st, me, 6);
     E.runClosingRest(st, () => {});
     return me.epBank;
   };
@@ -238,7 +249,7 @@ section("5. Land awards at the end only");
   const st = game(undefined);
   st.quarter = 12;
   const me = E.byId(st, 0);
-  Object.keys(st.board.graph).slice(0, 6).forEach((p) => { st.board.owner[p] = me.id; });
+  develop(st, me, 6);
   E.runClosingRest(st, () => {});
   const afterClose = me.epBank;
   E.finalizeGame(st);
@@ -276,7 +287,7 @@ section("Land awards are logged in the quarter they were given");
 {
   const st = game(undefined);
   const me = E.byId(st, 0);
-  Object.keys(st.board.graph).slice(0, 6).forEach((p) => { st.board.owner[p] = me.id; });
+  develop(st, me, 6);
   st.quarter = 4;
   E.runClosingRest(st, () => {});
   const y1 = (me.epLog || []).filter((e) => e.label === "The Real-Estate Mogul");

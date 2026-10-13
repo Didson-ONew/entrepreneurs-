@@ -19,7 +19,7 @@ function loadEngine() {
   const sandbox = { console, Math, Set, Object, Array, JSON, box };
   vm.createContext(sandbox);
   vm.runInContext(logic + `
-    box.exports = { initGame, byId, runClosingRest, finalizeGame, landAward };
+    box.exports = { initGame, byId, runClosingRest, finalizeGame, landAward, BP_DATA };
   `, sandbox);
   return box.exports;
 }
@@ -28,12 +28,19 @@ const E = loadEngine();
 let failures = 0;
 const check = (label, cond) => { console.log(`${cond ? "  ok  " : " FAIL "} ${label}`); if (!cond) failures++; };
 
-/* Two players, one of whom owns a plot: the outright land leader. */
+/* Two players, one of whom has BUILT on a plot: the outright land leader. The awards
+   pay for built ground, not owned ground, so merely holding the deed scores nothing -
+   the leader needs a company standing on it. It is already scored, so the year end
+   banks the land awards and nothing else, which is what these checks count. */
 function table(quarter, finalQuarter) {
   const st = E.initGame(2, 99, ["Leader", "Other"], undefined, false);
   const me = E.byId(st, 0);
   const plot = Object.keys(st.board.graph).find((k) => !(k in st.board.owner));
   st.board.owner[plot] = me.id;
+  const bp = E.BP_DATA.find((x) => x.lvl === 1);
+  me.businesses.push({ id: 9001, bp, footprint: [plot], level: 1, upgraded: false,
+                       distressed: false, scored: true, quarterBuilt: 1 });
+  st.board.occupiedBy[plot] = 9001;
   st.quarter = quarter;
   if (finalQuarter) st.finalQuarter = finalQuarter;
   return { st, me };

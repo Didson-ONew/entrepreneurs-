@@ -44,6 +44,24 @@ const check = (label, cond, detail) => {
 const section = (t) => console.log(`\n${t}`);
 const quiet = () => {};
 
+/* A branch opens on ground that is ALREADY OWNED, so a Retail player buys ahead of the
+   chain: a plot in each district next door, secured before the shopfront goes up. That
+   is the play the rule asks for, and it keeps the disc arithmetic the same - the ground
+   costs its disc when it is bought instead of when the branch lands on it. */
+function ownNextDoor(st, me, homePlot, n) {
+  const c0 = st.board.cellOf[homePlot], taken = [];
+  for (const k of Object.keys(st.board.graph)) {
+    if (!E.plotFree(st.board, k) || k in st.board.owner) continue;
+    const c = st.board.cellOf[k];
+    if (Math.abs(c.r - c0.r) + Math.abs(c.c - c0.c) !== 1) continue;
+    const d = `${c.r},${c.c}`;
+    if (taken.some((x) => x.d === d)) continue;
+    taken.push({ k, d });
+    if (taken.length >= n) break;
+  }
+  taken.forEach((x) => { st.board.owner[x.k] = me.id; });
+  return taken.length;
+}
 function retailTable(lvl, seed = 5) {
   const st = E.initGame(2, seed, ["Seat"], undefined, true, undefined);
   st.players.forEach((p) => { p.isHuman = false; });
@@ -53,6 +71,7 @@ function retailTable(lvl, seed = 5) {
   me.hand.push(bp);
   const spot = Object.keys(st.board.graph).find((k) => E.plotFree(st.board, k) && !(k in st.board.owner));
   st.board.owner[spot] = me.id;
+  ownNextDoor(st, me, spot, lvl);
   const built = E.doLaunch(st, me, bp, E.mulberry32(seed + 1), quiet, [spot]);
   return { st, me, spot, built, biz: me.businesses[me.businesses.length - 1] };
 }
@@ -176,10 +195,13 @@ section("sold, the shopfronts come down");
   const before = E.discsPerPlayer(st) - E.discsFree(st, me);
   E.sellCompany(st, me, biz, true);
   check("no branch is left on the board", E.branchPlotsOf(st.board, biz).length === 0);
-  check("their ground is nobody's again", br.every((k) => !(k in st.board.owner)));
+  /* The shopfront goes; the deed does not. A branch now opens on ground somebody
+     already owns, so closing one cannot dispossess them - it used to seize free land
+     and giving that back was right, but there is nothing to give back now. */
+  check("their ground is still its owner's", br.every((k) => st.board.owner[k] === me.id));
   check("and their plots are free to build on", br.every((k) => E.plotFree(st.board, k)));
   const after = E.discsPerPlayer(st) - E.discsFree(st, me);
-  check("the discs come back", after < before, `${before} -> ${after}`);
+  check("the company's disc comes back", after < before, `${before} -> ${after}`);
 }
 
 console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed\n");

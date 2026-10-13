@@ -642,7 +642,7 @@ const DISTRICT_OWNED = [
 const DISTRICT_BUILT = [
   "  const districts = new Set();",
   "  Object.entries(state.board.branches || {}).forEach(([plot, br]) => {",
-  "    if (br && br.playerId === p.id) { const c = state.board.cellOf[plot]; if (c) districts.add(c.r + ',' + c.c); }",
+  "    if (br && br.playerId === p.id) { const c = state.board.cellOf[plot]; if (c) districts.add(`${c.r},${c.c}`); }",
   "  });",
 ].join("\n");
 const PLOT_OWNED = [
@@ -655,11 +655,13 @@ const PLOT_BUILT = [
   "  activeBiz(p).forEach((b) => b.footprint.forEach((x) => { if (!(String(x) in br)) built.add(String(x)); }));",
   "  return built.size;",
 ].join("\n");
-if (has("--builtland")) {
-  need(DISTRICT_OWNED, "the district count");
-  logic = logic.replace(DISTRICT_OWNED, DISTRICT_BUILT);
-  need(PLOT_OWNED, "the plot count");
-  logic = logic.replace(PLOT_OWNED, PLOT_BUILT);
+/* The engine counts BUILT ground now, so this arm runs the other way: --ownedland puts
+   back the rule the game had before the rebalance, for comparison. */
+if (has("--ownedland")) {
+  need(DISTRICT_BUILT, "the district count");
+  logic = logic.replace(DISTRICT_BUILT, DISTRICT_OWNED);
+  need(PLOT_BUILT, "the plot count");
+  logic = logic.replace(PLOT_BUILT, PLOT_OWNED);
 }
 
 
@@ -726,10 +728,12 @@ if (has("--branchbuy") || has("--branchrent")) {
 /* ---- the probe: one ledger a company, stamped by quarter so payback is measured
    rather than assumed, and valued in dollars so the metric does not move with
    the thing being changed. ---- */
-/* Under --builtland bare ground earns nothing, so the attribution must not credit it
-   either, or the report would show a bare-land share the rule has just abolished. */
-const SPARE_EXPR = has("--builtland") ? "[]"
-  : "Object.entries(state.board.owner).filter((e) => e[1] === p.id && !inCo.has(String(e[0]))).map((e) => e[0])";
+/* Bare ground earns nothing now, so the attribution must not credit it either, or the
+   report would show a bare-land share the rules no longer have. Only --ownedland, which
+   puts the old rule back, puts bare plots back into the split. */
+const SPARE_EXPR = has("--ownedland")
+  ? "Object.entries(state.board.owner).filter((e) => e[1] === p.id && !inCo.has(String(e[0]))).map((e) => e[0])"
+  : "[]";
 const HOOKS = [
   /* A land award is EP that no company banks, and it is the channel the horizontal
      industries are MEANT to win: The Real-Estate Mogul ranks raw plots, The Omnipresent
@@ -854,7 +858,7 @@ function run(seats) {
 
 const EPV = E.CASH_PER_EP;
 console.log(`\n${GAMES} games a table size, seeds from ${(() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) + 1 : 1; })()}.` +
-  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--v5", "--v5b", "--v6", "--lvlkeep", "--double", "--tails", "--builtland", "--branchbuy", "--branchrent", "--branchpay"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
+  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--v5", "--v5b", "--v6", "--lvlkeep", "--double", "--tails", "--ownedland", "--branchbuy", "--branchrent", "--branchpay"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
 console.log(`setup printed:  ${IND.map((i) => `${i} ${ladderOf(CARDS, i).join("/")}`).join("   ")}`);
 for (const seats of SIZES) {
   const { T, games, perGame, bareEP, landTotal, branches } = run(seats);

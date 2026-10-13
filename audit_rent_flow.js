@@ -119,8 +119,14 @@ console.log("THE INVARIANT: rent must never exceed the OPEX it is carved from,")
 console.log("or the landlords are paid money the tenant never handed over.\n");
 check(`shipped rate ($${E.RENT_PER_LEVEL}/level) keeps the loop closed on every card`,
   flatOver === 0, `${flatOver} card shape(s) over`);
-check("the proposed $2/$3/$4/$5 ladder does NOT",
-  ladderOver > 0, `${ladderOver} card shape(s) would create money`);
+/* This used to read "the proposed ladder does NOT", and it was true of the cards as
+   they were: a steep ladder tipped past the OPEX it is carved from on the thin ones and
+   paid landlords money no tenant handed over. The rebalance raised OPEX across the
+   board - the leanest card now runs $6 against $4 - and that headroom is enough to
+   absorb the ladder on every shape. So the objection has been overtaken by the cards,
+   not answered: the invariant is what matters, and it is checked either way. */
+check("the ladder is clear of the invariant too, on these cards",
+  ladderOver === 0, `${ladderOver} card shape(s) would create money`);
 
 console.log("\nWHAT THE LADDER WOULD DO TO THE POTS");
 console.log(`  money reaching the pots, shipped:  $${flatPots} per full round of these shapes`);

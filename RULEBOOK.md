@@ -21,7 +21,8 @@
 17. [Playing online](#online)
 18. [Quick reference](#quickref)
 19. [The words on the board](#glossary)
-20. [Annex: the sixty Blueprints](#blueprints)
+20. [Annex: every component, and what is printed on it](#components)
+21. [Annex: the sixty Blueprints](#blueprints)
 
 ---
 
@@ -254,12 +255,12 @@ Setup / OPEX / Production, by level.
 
 | Industry | Level 1 | Level 2 | Level 3 |
 | --- | --- | --- | --- |
-| Utilities (UT) | 15 / 4 / 4 | 20 / 7 / 8 | 30 / 10 / 16 |
-| Retail (RE) | 10 / 5 / 4 | 15 / 9 / 8 | 25 / 14 / 16 |
-| Hospitality (HO) | 10 / 6 / 3 | 15 / 10 / 6 | 25 / 16 / 12 |
-| Manufacturing (MA) | 20 / 4 / 3 | 35 / 7 / 6 | 60 / 10 / 12 |
-| Healthcare (HC) | 20 / 5 / 2 | 35 / 9 / 4 | 60 / 14 / 8 |
-| Technology (TE) | 15 / 6 / 2 | 25 / 10 / 4 | 40 / 16 / 8 |
+| Utilities (UT) | 15 / 6 / 3 | 20 / 11 / 6 | 30 / 15 / 12 |
+| Retail (RE) | 15 / 10 / 4 | 23 / 18 / 8 | 38 / 28 / 16 |
+| Hospitality (HO) | 10 / 6 / 2 | 15 / 10 / 4 | 25 / 16 / 8 |
+| Manufacturing (MA) | 20 / 8 / 4 | 35 / 14 / 8 | 60 / 20 / 16 |
+| Healthcare (HC) | 20 / 10 / 3 | 35 / 18 / 6 | 60 / 28 / 12 |
+| Technology (TE) | 10 / 8 / 2 | 17 / 13 / 4 | 27 / 21 / 8 |
 
 ### Who pays whom
 
@@ -267,12 +268,12 @@ Every company pays a supplier bill - its printed OPEX less $2 a level of ground 
 
 | Industry | Supplier 1 | Supplier 2 | Supplier 3 |
 | --- | --- | --- | --- |
-| Utilities | HO | TE | HC |
-| Retail | TE | HO | MA |
-| Hospitality | MA | HC | RE |
-| Manufacturing | HC | RE | UT |
-| Healthcare | RE | UT | TE |
-| Technology | UT | MA | HO |
+| Utilities | TE | HC | MA |
+| Retail | UT | HO | TE |
+| Hospitality | HC | MA | RE |
+| Manufacturing | HO | TE | UT |
+| Healthcare | RE | UT | HO |
+| Technology | MA | RE | HC |
 
 The three are not equally common: across the ten Blueprints of an industry, the first supplier appears most often and the third least. Read the Blueprint in front of you rather than the table.
 
@@ -336,11 +337,23 @@ A company can always sell into the district or districts its own plots sit in. B
 | Industry | Ability |
 | --- | --- |
 | Utilities | Reads demand across a block of districts as wide as its level, positioned anywhere that still covers its own footprint. Never uses hubs. |
-| Retail | Sells into one extra district of your choice per level. Never uses hubs. |
+| Retail | Opens BRANCHES - one shopfront per level, each on a plot somebody already owns, each in a district the chain can reach. It sells into every district it has a branch in. Never uses hubs. |
 | Hospitality | May sell to the businesses and hubs around it instead of to demand icons - one unit at market price for each business or hub within its level in plots, no icon needed. Those units come out of its production like any other. |
 | Manufacturing | May route up to its level in units into OTHER industries' rows in its own district. Those units come out of its production - cross-selling is a place to send goods, not extra goods. |
 | Healthcare | Reaches every district on the hub network without touching a hub. |
 | Technology | Every icon it fills takes twice its column in units - 2, 4, 6 or 8 - and pays for all of them. |
+
+### Retail branches
+
+Retail does not reach further by declaring it. It OPENS A SHOPFRONT: one branch per level, each taking a plot of its own, and the company sells into every district it has a branch in as if it stood there.
+
+- A branch may only open on a plot SOMEBODY ALREADY OWNS - you or a rival - and the plot must be empty. It does not take the ground: the deed stays with its owner.
+- A branch on somebody else's plot pays them $2 of ground rent every quarter, exactly as a building standing on their land would.
+- Each branch must open in a district orthogonally beside one the chain already covers, counting the company's own plot and its existing branches. The chain joins up; it does not jump.
+- A branch takes a disc, like anything else you put on the board, and nobody can build on its plot while it stands.
+- Sell or lose the company and its shopfronts come down. The ground stays with whoever owned it.
+
+> **Designer's note.** The branch used to take free land for nothing - it looked only at plots nobody held, then wrote itself in as the owner, so the whole price was a disc while the same plot bought outright costs cash AND a disc. Retail was scaling its reach for free while every other industry paid for its ground, and it showed: Retail decided 26% of games at three players and took the largest share of the land awards once those were paid for built ground. Requiring the ground to be owned first drops that to 21.4% and brings its land award into line with Utilities and Manufacturing, while branches still open at 1.68 a game so the mechanic survives. Pricing the plot instead of restricting it was measured too and does almost nothing - plotValue is a rounding error against a Retail chain's cash flow. It is WHERE a branch may go that matters, not what it costs. See audit_setup.js --branchrent, --branchbuy and --branchpay.
 
 ### B2B: the pots pay out
 
@@ -460,12 +473,14 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Megacorp tile | +8 to +22 as printed |
 | Megacorp HQ, each quarter it stands | + its industry's price / its tile's tier, rounded down |
 | Megacorp HQ, every quarter | +its industry's price divided by the tile's tier; and it pays 1 EP to each rival company beside it, which that owner banks |
-| The Real-Estate Mogul - most plots owned, at every year end | +4 plus the number of players, to the leader alone |
-| The Omnipresent - most districts you are present in, at every year end | +4 plus the number of players, to the leader alone |
+| The Real-Estate Mogul - most plots BUILT ON, at every year end | +4 plus the number of players, to the leader alone |
+| The Omnipresent - most districts you have something standing in, at every year end | +4 plus the number of players, to the leader alone |
 | Cash on hand at the end | +1 per full $50 |
 | Each loan disc still in the bank | -5 |
 
-For The Omnipresent, a district counts if you own a plot in it or one of your active companies stands in it.
+BOTH AWARDS COUNT BUILT GROUND, NOT OWNED GROUND. For The Real-Estate Mogul, a plot counts if one of your active companies stands on it; a plot you hold the deed to and have not built on counts for nothing. For The Omnipresent, a district counts if one of your companies stands in it or you have a Retail branch there - a shopfront is somewhere you ARE, which is why it counts here and not for the Mogul.
+
+> **Designer's note.** They used to count the deeds, and the deeds are not the point. Measured, 78% of all land-award EP was going to ground with nothing standing on it - the awards had become a land-banking dividend rather than a race to develop the city, and the one thing they are written to reward, a horizontal company's disc spanning several districts, could not show through that noise. Counting built ground sends 6 to 9 points of games back to Utilities, Manufacturing and Technology at every table size, and bare ground now earns $0.2 of a $40 award instead of $31.9. It is worth little on its own and a great deal alongside the branch rule and the rebalanced cards: separately those give 8.8 and 1.8 points, together 15.4. See audit_setup.js --builtland and --tails.
 
 Ground rent is simply money. It is collected as it is earned and scores inside your cash at the end like every other dollar - there is nothing separate to track. What is worth knowing is how much of your income it quietly becomes: a plot with somebody else’s building on it pays you every quarter, and by six players half the plots a player owns carry a rival’s building.
 
@@ -692,6 +707,108 @@ Almost every term in this game is a real one, used the way a real business uses 
 
 ---
 
+<a id="components"></a>
+
+## Annex: every component, and what is printed on it
+
+What is in the box, piece by piece, with the numbers that are printed on each one. The Blueprint cards have an annex of their own after this; everything else lives here.
+
+### The board: 16 districts in a 4x4 grid
+
+Twelve of the sixteen districts are SUBURB tiles drawn at random from a pool of sixteen, so a third of the pool is left out of every game and no two cities are alike. The other four are CENTRE districts, always present and always the same.
+
+| Tile family | In the pool | Placed each game |
+| --- | --- | --- |
+| Residential (R1-R5) | 5 | drawn |
+| Commercial (C1-C5) | 5 | drawn |
+| Academic (A1-A3) | 3 | drawn |
+| Industrial (I1-I3) | 3 | drawn |
+| Financial Centre (FC) | 1 | always |
+| Industrial Area (IA) | 1 | always |
+| City Centre (CC) | 1 | always |
+| Landmark (LM) | 1 | always |
+
+Twelve of the first sixteen rows are drawn freely, so a game can run short of a whole family - one Residential district, or no Academic at all - and that reshapes which industries are worth entering before a single card is played.
+
+### What demand is printed on each district
+
+Every district carries a 4x4 grid: four ROWS, one industry each, and four COLUMNS of rising value. Rows 1 and 2 are open from the start; ROWS 3 AND 4 OPEN AT QUARTER 5, when Year 2 begins. The first row of a district and its last row are ALWAYS THE SAME INDUSTRY, so whatever opens a district also closes it.
+
+| District | Row 1 | Row 2 | Row 3 (Y2) | Row 4 (Y2) |
+| --- | --- | --- | --- | --- |
+| Residential | UT | RE | TE | UT |
+| Commercial | HO | MA | HC | HO |
+| Academic | RE | TE | HO | RE |
+| Industrial | MA | UT | RE | MA |
+| Financial Centre | HC | MA | UT | HC |
+| Industrial Area | TE | HO | HC | TE |
+| City Centre | HC | UT | MA | HC |
+| Landmark | TE | HC | HO | TE |
+
+Across a whole board that gives each industry the same breadth and slightly different depth - every industry appears in exactly eight districts, and Utilities and Hospitality carry twelve rows each against ten for the rest.
+
+| Industry | Rows on the board | Districts it appears in | Rows open in Year 1 | Rows opening in Year 2 |
+| --- | --- | --- | --- | --- |
+| Utilities | 12 | 8 | 7 | 5 |
+| Retail | 10 | 8 | 6 | 4 |
+| Hospitality | 12 | 8 | 5 | 7 |
+| Manufacturing | 10 | 8 | 7 | 3 |
+| Healthcare | 10 | 8 | 3 | 7 |
+| Technology | 10 | 8 | 4 | 6 |
+
+> **Designer's note.** Equal spread at 8 and a deliberate year tilt: Manufacturing and Utilities are early industries, Healthcare and Technology late ones, and Hospitality is the only one that is flat across both years. The spread being equal six ways is what stops the demand table carrying any of the industry balance - whatever is left over is on the cards, where it can be read. Retail and Manufacturing are the only industries printed on NO centre district, so their demand swings with the draw more than anyone else's; Healthcare, on all four centres, swings least.
+
+### Discs, money and the loan
+
+| Component | Per player | What it does |
+| --- | --- | --- |
+| Discs | 12 (6 in the beginner game) | One for every plot you own, one for every company you run, and one for every loan outstanding. Running out of discs is what stops you, not running out of money. |
+| Starting cash | $25 / $22 / $19 by seat order | The later you sit, the less you start with - the first player pays for the first pick. |
+| Loan | $20 for one disc | Taken any time you can spare a disc. Each one still in the bank at the end is -5 EP. |
+
+### The price track
+
+One marker per industry on a track from $2 to $12, each dollar split into two cells. Building a company moves its own industry DOWN one dollar and each supplier named on its Blueprint UP one dollar. The ends are hard stops.
+
+| Industry | Base price | How it upgrades | Suppliers it pays |
+| --- | --- | --- | --- |
+| Utilities (UT) | $4 | Horizontal - a plot per level | TE, HC, MA |
+| Retail (RE) | $4 | Vertical - one plot, any level | UT, HO, TE |
+| Hospitality (HO) | $5 | Vertical - one plot, any level | HC, MA, RE |
+| Manufacturing (MA) | $5 | Horizontal - a plot per level | HO, TE, UT |
+| Healthcare (HC) | $6 | Vertical - one plot, any level | RE, UT, HO |
+| Technology (TE) | $6 | Horizontal - a plot per level | MA, RE, HC |
+
+Each industry buys from three others and is named as a supplier by three others, so the money cannot pool in one corner of the loop: fourteen of the eighteen links run both ways.
+
+### What a company is worth at each level
+
+Setup is paid to build and again to upgrade. OPEX is charged every quarter - $2 a level of it is ground rent, the rest is the supplier bill. Production is units a quarter. Growing a company adds a level and DOUBLES both its OPEX and its production.
+
+| Industry | Level 1 | Level 2 | Level 3 | Quarters to pay back at base price |
+| --- | --- | --- | --- | --- |
+| Utilities | 15 / 6 / 3 | 20 / 11 / 6 | 30 / 15 / 12 | 2.50 |
+| Retail | 15 / 10 / 4 | 23 / 18 / 8 | 38 / 28 / 16 | 2.50 |
+| Hospitality | 10 / 6 / 2 | 15 / 10 / 4 | 25 / 16 / 8 | 2.50 |
+| Manufacturing | 20 / 8 / 4 | 35 / 14 / 8 | 60 / 20 / 16 | 1.67 |
+| Healthcare | 20 / 10 / 3 | 35 / 18 / 6 | 60 / 28 / 12 | 2.50 |
+| Technology | 10 / 8 / 2 | 17 / 13 / 4 | 27 / 21 / 8 | 2.50 |
+
+Entry is paired - Hospitality and Technology at $10, Utilities and Retail at $15, Manufacturing and Healthcare at $20 - and five of the six pay back in the same 2.50 quarters at their base price. What differs is HOW FAR THE PRICE CAN FALL before a company stops making money.
+
+| Industry | Profit at base price | At base -$1 | At base -$2 | Dollars of price it can lose |
+| --- | --- | --- | --- | --- |
+| Retail | $6 | $2 | -$2 | 1.5 |
+| Utilities | $6 | $3 | $0 | 2.0 |
+| Hospitality | $4 | $2 | $0 | 2.0 |
+| Technology | $4 | $2 | $0 | 2.0 |
+| Healthcare | $8 | $5 | $2 | 2.67 |
+| Manufacturing | $12 | $8 | $4 | 3.0 |
+
+> **Designer's note.** That is the whole industry character in one table. Retail turns the most goods and dies first when its market sours; Manufacturing costs the most to enter and can ride all the way to the floor. Payback and headroom are not independent - headroom is profit divided by production, and payback is setup divided by profit - so level payback with graded headroom is only possible when setup rises with production times headroom, which is what the pairing above does.
+
+---
+
 <a id="blueprints"></a>
 
 ## Annex: the sixty Blueprints
@@ -704,88 +821,88 @@ Every card in the game, by industry. SETUP is what it costs to build, and again 
 
 | UT Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
 | --- | --- | --- | --- |
-| Solar Field I | 1 | 15 / 4 / 4 | HO 4 |
-| Hydro-Farm Initiative I | 1 | 15 / 4 / 4 | HO 4 |
-| Wind Farm I | 1 | 15 / 4 / 4 | TE 4 |
-| Biomass Plant I | 1 | 15 / 4 / 4 | TE 4 |
-| Tidal Generator I | 1 | 15 / 4 / 4 | HC 4 |
-| Fusion Conduit Hub II | 2 | 20 / 7 / 8 | HO 4, TE 3 |
-| Smart Grid Node II | 2 | 20 / 7 / 8 | HO 4, HC 3 |
-| Oceanic Turbine II | 2 | 20 / 7 / 8 | TE 4, HC 3 |
-| Geothermal Supernode III | 3 | 30 / 10 / 16 | HO 4, TE 3, HC 3 |
-| Antimatter Reactor III | 3 | 30 / 10 / 16 | HO 4, TE 3, HC 3 |
+| Solar Field I | 1 | 15 / 6 / 3 | TE 6 |
+| Hydro-Farm Initiative I | 1 | 15 / 6 / 3 | TE 6 |
+| Wind Farm I | 1 | 15 / 6 / 3 | HC 6 |
+| Biomass Plant I | 1 | 15 / 6 / 3 | HC 6 |
+| Tidal Generator I | 1 | 15 / 6 / 3 | MA 6 |
+| Fusion Conduit Hub II | 2 | 20 / 11 / 6 | TE 6, HC 5 |
+| Smart Grid Node II | 2 | 20 / 11 / 6 | TE 6, MA 5 |
+| Oceanic Turbine II | 2 | 20 / 11 / 6 | HC 6, MA 5 |
+| Geothermal Supernode III | 3 | 30 / 15 / 12 | TE 6, HC 5, MA 4 |
+| Antimatter Reactor III | 3 | 30 / 15 / 12 | TE 6, HC 5, MA 4 |
 
 ### Retail (RE) - base price $4, upgrades vertical
 
 | RE Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
 | --- | --- | --- | --- |
-| Corner Store I | 1 | 10 / 5 / 4 | TE 5 |
-| Pop-Up Kiosk I | 1 | 10 / 5 / 4 | TE 5 |
-| Local Market I | 1 | 10 / 5 / 4 | HO 5 |
-| Strip Mall I | 1 | 10 / 5 / 4 | HO 5 |
-| Vending Network I | 1 | 10 / 5 / 4 | MA 5 |
-| Supermarket II | 2 | 15 / 9 / 8 | TE 5, HO 4 |
-| Department Store II | 2 | 15 / 9 / 8 | TE 5, MA 4 |
-| Outlet Center II | 2 | 15 / 9 / 8 | HO 5, MA 4 |
-| Mega-Mall III | 3 | 25 / 14 / 16 | TE 6, HO 4, MA 4 |
-| Omni-Channel Hub III | 3 | 25 / 14 / 16 | TE 6, HO 4, MA 4 |
+| Corner Store I | 1 | 15 / 10 / 4 | UT 10 |
+| Pop-Up Kiosk I | 1 | 15 / 10 / 4 | UT 10 |
+| Local Market I | 1 | 15 / 10 / 4 | HO 10 |
+| Strip Mall I | 1 | 15 / 10 / 4 | HO 10 |
+| Vending Network I | 1 | 15 / 10 / 4 | TE 10 |
+| Supermarket II | 2 | 23 / 18 / 8 | UT 10, HO 8 |
+| Department Store II | 2 | 23 / 18 / 8 | UT 10, TE 8 |
+| Outlet Center II | 2 | 23 / 18 / 8 | HO 10, TE 8 |
+| Mega-Mall III | 3 | 38 / 28 / 16 | UT 12, HO 8, TE 8 |
+| Omni-Channel Hub III | 3 | 38 / 28 / 16 | UT 12, HO 8, TE 8 |
 
 ### Hospitality (HO) - base price $5, upgrades vertical
 
 | HO Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
 | --- | --- | --- | --- |
-| Motel I | 1 | 10 / 6 / 3 | MA 6 |
-| Bed & Breakfast I | 1 | 10 / 6 / 3 | MA 6 |
-| Transit Hostel I | 1 | 10 / 6 / 3 | HC 6 |
-| Roadside Inn I | 1 | 10 / 6 / 3 | HC 6 |
-| Capsule Hotel I | 1 | 10 / 6 / 3 | RE 6 |
-| Business Hotel II | 2 | 15 / 10 / 6 | MA 6, HC 4 |
-| Resort Lodge II | 2 | 15 / 10 / 6 | MA 6, RE 4 |
-| Boutique Hotel II | 2 | 15 / 10 / 6 | HC 6, RE 4 |
-| Luxury Casino III | 3 | 25 / 16 / 12 | MA 6, HC 5, RE 5 |
-| Orbit Resort III | 3 | 25 / 16 / 12 | MA 6, HC 5, RE 5 |
+| Motel I | 1 | 10 / 6 / 2 | HC 6 |
+| Bed & Breakfast I | 1 | 10 / 6 / 2 | HC 6 |
+| Transit Hostel I | 1 | 10 / 6 / 2 | MA 6 |
+| Roadside Inn I | 1 | 10 / 6 / 2 | MA 6 |
+| Capsule Hotel I | 1 | 10 / 6 / 2 | RE 6 |
+| Business Hotel II | 2 | 15 / 10 / 4 | HC 6, MA 4 |
+| Resort Lodge II | 2 | 15 / 10 / 4 | HC 6, RE 4 |
+| Boutique Hotel II | 2 | 15 / 10 / 4 | MA 6, RE 4 |
+| Luxury Casino III | 3 | 25 / 16 / 8 | HC 6, MA 5, RE 5 |
+| Orbit Resort III | 3 | 25 / 16 / 8 | HC 6, MA 5, RE 5 |
 
 ### Manufacturing (MA) - base price $5, upgrades horizontal
 
 | MA Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
 | --- | --- | --- | --- |
-| Assembly Workshop I | 1 | 20 / 4 / 3 | HC 4 |
-| Parts Fabricator I | 1 | 20 / 4 / 3 | HC 4 |
-| Textile Mill I | 1 | 20 / 4 / 3 | RE 4 |
-| Canning Facility I | 1 | 20 / 4 / 3 | RE 4 |
-| Injection Molder I | 1 | 20 / 4 / 3 | UT 4 |
-| Auto Plant II | 2 | 35 / 7 / 6 | HC 4, RE 3 |
-| Microchip Foundry II | 2 | 35 / 7 / 6 | HC 4, UT 3 |
-| Chemical Plant II | 2 | 35 / 7 / 6 | RE 4, UT 3 |
-| Heavy Robotics III | 3 | 60 / 10 / 12 | HC 4, RE 3, UT 3 |
-| Orbital Shipyard III | 3 | 60 / 10 / 12 | HC 4, RE 3, UT 3 |
+| Assembly Workshop I | 1 | 20 / 8 / 4 | HO 8 |
+| Parts Fabricator I | 1 | 20 / 8 / 4 | HO 8 |
+| Textile Mill I | 1 | 20 / 8 / 4 | TE 8 |
+| Canning Facility I | 1 | 20 / 8 / 4 | TE 8 |
+| Injection Molder I | 1 | 20 / 8 / 4 | UT 8 |
+| Auto Plant II | 2 | 35 / 14 / 8 | HO 8, TE 6 |
+| Microchip Foundry II | 2 | 35 / 14 / 8 | HO 8, UT 6 |
+| Chemical Plant II | 2 | 35 / 14 / 8 | TE 8, UT 6 |
+| Heavy Robotics III | 3 | 60 / 20 / 16 | HO 8, TE 6, UT 6 |
+| Orbital Shipyard III | 3 | 60 / 20 / 16 | HO 8, TE 6, UT 6 |
 
 ### Healthcare (HC) - base price $6, upgrades vertical
 
 | HC Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
 | --- | --- | --- | --- |
-| Urgent Care Clinic I | 1 | 20 / 5 / 2 | RE 5 |
-| Pharmacy I | 1 | 20 / 5 / 2 | RE 5 |
-| Dental Office I | 1 | 20 / 5 / 2 | UT 5 |
-| Wellness Center I | 1 | 20 / 5 / 2 | UT 5 |
-| Physical Therapy I | 1 | 20 / 5 / 2 | TE 5 |
-| General Hospital II | 2 | 35 / 9 / 4 | RE 5, UT 4 |
-| Trauma Center II | 2 | 35 / 9 / 4 | RE 5, TE 4 |
-| Specialized Clinic II | 2 | 35 / 9 / 4 | UT 5, TE 4 |
-| Biotech Campus III | 3 | 60 / 14 / 8 | RE 6, UT 4, TE 4 |
-| Cybernetics Inst. III | 3 | 60 / 14 / 8 | RE 6, UT 4, TE 4 |
+| Urgent Care Clinic I | 1 | 20 / 10 / 3 | RE 10 |
+| Pharmacy I | 1 | 20 / 10 / 3 | RE 10 |
+| Dental Office I | 1 | 20 / 10 / 3 | UT 10 |
+| Wellness Center I | 1 | 20 / 10 / 3 | UT 10 |
+| Physical Therapy I | 1 | 20 / 10 / 3 | HO 10 |
+| General Hospital II | 2 | 35 / 18 / 6 | RE 10, UT 8 |
+| Trauma Center II | 2 | 35 / 18 / 6 | RE 10, HO 8 |
+| Specialized Clinic II | 2 | 35 / 18 / 6 | UT 10, HO 8 |
+| Biotech Campus III | 3 | 60 / 28 / 12 | RE 12, UT 8, HO 8 |
+| Cybernetics Inst. III | 3 | 60 / 28 / 12 | RE 12, UT 8, HO 8 |
 
 ### Technology (TE) - base price $6, upgrades horizontal
 
 | TE Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
 | --- | --- | --- | --- |
-| App Startup I | 1 | 15 / 6 / 2 | UT 6 |
-| Data Center I | 1 | 15 / 6 / 2 | UT 6 |
-| Server Farm I | 1 | 15 / 6 / 2 | MA 6 |
-| IT Support Firm I | 1 | 15 / 6 / 2 | MA 6 |
-| Cloud Provider I | 1 | 15 / 6 / 2 | HO 6 |
-| Software Campus II | 2 | 25 / 10 / 4 | UT 6, MA 4 |
-| Network Hub II | 2 | 25 / 10 / 4 | UT 6, HO 4 |
-| Telecom Provider II | 2 | 25 / 10 / 4 | MA 6, HO 4 |
-| Sentient AI Cluster III | 3 | 40 / 16 / 8 | UT 6, MA 5, HO 5 |
-| Quantum Computing III | 3 | 40 / 16 / 8 | UT 6, MA 5, HO 5 |
+| App Startup I | 1 | 10 / 8 / 2 | MA 8 |
+| Data Center I | 1 | 10 / 8 / 2 | MA 8 |
+| Server Farm I | 1 | 10 / 8 / 2 | RE 8 |
+| IT Support Firm I | 1 | 10 / 8 / 2 | RE 8 |
+| Cloud Provider I | 1 | 10 / 8 / 2 | HC 8 |
+| Software Campus II | 2 | 17 / 13 / 4 | MA 8, RE 5 |
+| Network Hub II | 2 | 17 / 13 / 4 | MA 8, HC 5 |
+| Telecom Provider II | 2 | 17 / 13 / 4 | RE 8, HC 5 |
+| Sentient AI Cluster III | 3 | 27 / 21 / 8 | MA 8, RE 7, HC 6 |
+| Quantum Computing III | 3 | 27 / 21 / 8 | MA 8, RE 7, HC 6 |

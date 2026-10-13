@@ -469,39 +469,39 @@ export const RULEBOOK_PT = [
           "rows": [
             [
               "Serviços Públicos (UT)",
-              "15 / 4 / 4",
-              "20 / 7 / 8",
-              "30 / 10 / 16"
+              "15 / 6 / 3",
+              "20 / 11 / 6",
+              "30 / 15 / 12"
             ],
             [
               "Varejo (RE)",
-              "10 / 5 / 4",
-              "15 / 9 / 8",
-              "25 / 14 / 16"
+              "15 / 10 / 4",
+              "23 / 18 / 8",
+              "38 / 28 / 16"
             ],
             [
               "Hotelaria (HO)",
-              "10 / 6 / 3",
-              "15 / 10 / 6",
-              "25 / 16 / 12"
+              "10 / 6 / 2",
+              "15 / 10 / 4",
+              "25 / 16 / 8"
             ],
             [
               "Manufatura (MA)",
-              "20 / 4 / 3",
-              "35 / 7 / 6",
-              "60 / 10 / 12"
+              "20 / 8 / 4",
+              "35 / 14 / 8",
+              "60 / 20 / 16"
             ],
             [
               "Saúde (HC)",
-              "20 / 5 / 2",
-              "35 / 9 / 4",
-              "60 / 14 / 8"
+              "20 / 10 / 3",
+              "35 / 18 / 6",
+              "60 / 28 / 12"
             ],
             [
               "Tecnologia (TE)",
-              "15 / 6 / 2",
-              "25 / 10 / 4",
-              "40 / 16 / 8"
+              "10 / 8 / 2",
+              "17 / 13 / 4",
+              "27 / 21 / 8"
             ]
           ]
         }
@@ -678,6 +678,24 @@ export const RULEBOOK_PT = [
             ]
           ]
         }
+      },
+      {
+        "h": "Filiais do Varejo"
+      },
+      {
+        "p": "O Varejo não alcança mais longe por declaração. Ele ABRE UMA LOJA: uma filial por nível, cada uma ocupando um lote próprio, e a empresa vende em todos os distritos onde tem filial como se estivesse ali."
+      },
+      {
+        "ul": [
+          "Uma filial só pode abrir num lote que ALGUÉM JÁ POSSUI - você ou um rival - e o lote precisa estar vazio. Ela não toma o terreno: a escritura continua com o dono.",
+          "Uma filial no lote de outra pessoa paga a ela $2 de aluguel de terreno por trimestre, exatamente como um prédio sobre o terreno dela.",
+          "Cada filial deve abrir num distrito ortogonalmente vizinho a um que a rede já cobre, contando o lote da própria empresa e as filiais existentes. A rede se liga; ela não salta.",
+          "Uma filial consome uma ficha, como tudo que você põe no tabuleiro, e ninguém pode construir no lote dela enquanto estiver de pé.",
+          "Venda ou perca a empresa e as lojas caem. O terreno fica com quem era dono."
+        ]
+      },
+      {
+        "note": "A filial tomava terreno livre de graça - ela olhava só para lotes que ninguém possuía e se escrevia como dona, então o preço inteiro era uma ficha, enquanto o mesmo lote comprado custa dinheiro E uma ficha. O Varejo escalava seu alcance de graça enquanto todo outro setor pagava pelo terreno, e isso aparecia: o Varejo decidia 26% das partidas com três jogadores e levava a maior fatia dos prêmios de terras quando estes passaram a pagar por terreno construído. Exigir que o terreno já tenha dono derruba isso para 21.4% e põe o prêmio de terras do Varejo em linha com Serviços Públicos e Indústria, e ainda assim as filiais abrem 1.68 por partida. Cobrar pelo lote em vez de restringi-lo também foi medido e quase não faz nada. O que importa é ONDE uma filial pode abrir, não quanto custa."
       },
       {
         "h": "B2B: os fundos pagam"
@@ -994,6 +1012,9 @@ export const RULEBOOK_PT = [
       },
       {
         "p": "Para O Onipresente, um distrito conta se você possui um lote nele ou se uma de suas empresas ativas está nele."
+      },
+      {
+        "note": "Antes contavam as escrituras, e as escrituras não são o ponto. Medido, 78% de todo o EP de prêmios de terras ia para terreno sem nada em cima - os prêmios viraram dividendo de especulação em vez de corrida para desenvolver a cidade. Contar terreno construído devolve de 6 a 9 pontos de partidas a Serviços Públicos, Indústria e Tecnologia em qualquer número de jogadores, e o terreno vazio agora ganha $0.2 de um prêmio de $40 em vez de $31.9. Vale pouco sozinho e muito junto com a regra das filiais e as cartas reequilibradas: separadamente dão 8.8 e 1.8 pontos, juntos 15.4."
       },
       {
         "p": "O aluguel do terreno é simplesmente dinheiro. Ele é recebido conforme é gerado e pontua dentro do seu caixa no fim, como qualquer outro dólar - não há nada separado para controlar. O que vale saber é quanto da sua renda ele silenciosamente se torna: um lote com a construção de outra pessoa em cima paga você todo trimestre, e com seis jogadores metade dos lotes que um jogador possui carrega a construção de um rival."
@@ -1558,6 +1579,419 @@ export const RULEBOOK_PT = [
     ]
   },
   {
+    "id": "components",
+    "title": "Anexo: cada componente e o que está impresso nele",
+    "blocks": [
+      {
+        "p": "O que vem na caixa, peça por peça, com os números impressos em cada uma. As cartas de Projeto têm um anexo próprio depois deste; todo o resto está aqui."
+      },
+      {
+        "h": "O tabuleiro: 16 distritos numa grade 4x4"
+      },
+      {
+        "p": "Doze dos dezesseis distritos são peças de SUBÚRBIO sorteadas de um conjunto de dezesseis, então um terço do conjunto fica de fora de cada partida e não há duas cidades iguais. Os outros quatro são distritos CENTRAIS, sempre presentes e sempre os mesmos."
+      },
+      {
+        "table": {
+          "head": [
+            "Família de peça",
+            "No conjunto",
+            "Colocadas por partida"
+          ],
+          "rows": [
+            [
+              "Residencial (R1-R5)",
+              "5",
+              "sorteada"
+            ],
+            [
+              "Comercial (C1-C5)",
+              "5",
+              "sorteada"
+            ],
+            [
+              "Acadêmico (A1-A3)",
+              "3",
+              "sorteada"
+            ],
+            [
+              "Industrial (I1-I3)",
+              "3",
+              "sorteada"
+            ],
+            [
+              "Centro Financeiro (FC)",
+              "1",
+              "sempre"
+            ],
+            [
+              "Área Industrial (IA)",
+              "1",
+              "sempre"
+            ],
+            [
+              "Centro da Cidade (CC)",
+              "1",
+              "sempre"
+            ],
+            [
+              "Marco (LM)",
+              "1",
+              "sempre"
+            ]
+          ]
+        }
+      },
+      {
+        "p": "Doze das dezesseis peças são sorteadas livremente, então uma partida pode ficar sem uma família inteira - um único distrito Residencial, ou nenhum Acadêmico - e isso remodela quais setores valem a pena antes de uma carta ser jogada."
+      },
+      {
+        "h": "Que demanda está impressa em cada distrito"
+      },
+      {
+        "p": "Cada distrito traz uma grade 4x4: quatro LINHAS, um setor em cada, e quatro COLUNAS de valor crescente. As linhas 1 e 2 estão abertas desde o início; AS LINHAS 3 E 4 ABREM NO TRIMESTRE 5, quando começa o Ano 2. A primeira linha de um distrito e a última são SEMPRE O MESMO SETOR, então quem abre um distrito também o fecha."
+      },
+      {
+        "table": {
+          "head": [
+            "Distrito",
+            "Linha 1",
+            "Linha 2",
+            "Linha 3 (A2)",
+            "Linha 4 (A2)"
+          ],
+          "rows": [
+            [
+              "Residencial",
+              "UT",
+              "RE",
+              "TE",
+              "UT"
+            ],
+            [
+              "Comercial",
+              "HO",
+              "MA",
+              "HC",
+              "HO"
+            ],
+            [
+              "Acadêmico",
+              "RE",
+              "TE",
+              "HO",
+              "RE"
+            ],
+            [
+              "Industrial",
+              "MA",
+              "UT",
+              "RE",
+              "MA"
+            ],
+            [
+              "Centro Financeiro",
+              "HC",
+              "MA",
+              "UT",
+              "HC"
+            ],
+            [
+              "Área Industrial",
+              "TE",
+              "HO",
+              "HC",
+              "TE"
+            ],
+            [
+              "Centro da Cidade",
+              "HC",
+              "UT",
+              "MA",
+              "HC"
+            ],
+            [
+              "Marco",
+              "TE",
+              "HC",
+              "HO",
+              "TE"
+            ]
+          ]
+        }
+      },
+      {
+        "p": "No tabuleiro inteiro isso dá a cada setor a mesma amplitude e profundidades ligeiramente diferentes - cada setor aparece em exatamente oito distritos, e Serviços Públicos e Hotelaria carregam doze linhas cada, contra dez dos demais."
+      },
+      {
+        "table": {
+          "head": [
+            "Setor",
+            "Linhas no tabuleiro",
+            "Distritos em que aparece",
+            "Linhas abertas no Ano 1",
+            "Linhas que abrem no Ano 2"
+          ],
+          "rows": [
+            [
+              "Serviços Públicos",
+              "12",
+              "8",
+              "7",
+              "5"
+            ],
+            [
+              "Varejo",
+              "10",
+              "8",
+              "6",
+              "4"
+            ],
+            [
+              "Hotelaria",
+              "12",
+              "8",
+              "5",
+              "7"
+            ],
+            [
+              "Indústria",
+              "10",
+              "8",
+              "7",
+              "3"
+            ],
+            [
+              "Saúde",
+              "10",
+              "8",
+              "3",
+              "7"
+            ],
+            [
+              "Tecnologia",
+              "10",
+              "8",
+              "4",
+              "6"
+            ]
+          ]
+        }
+      },
+      {
+        "note": "Amplitude igual em 8 e uma inclinação de ano deliberada: Indústria e Serviços Públicos são setores do início, Saúde e Tecnologia do fim, e Hotelaria é o único plano nos dois anos. A amplitude ser igual nos seis é o que impede a tabela de demanda de carregar parte do equilíbrio entre setores - o que sobra está nas cartas, onde pode ser lido. Varejo e Indústria são os únicos setores impressos em NENHUM distrito central, então a demanda deles oscila com o sorteio mais do que a de qualquer outro; Saúde, presente nos quatro centrais, oscila menos."
+      },
+      {
+        "h": "Fichas, dinheiro e o empréstimo"
+      },
+      {
+        "table": {
+          "head": [
+            "Componente",
+            "Por jogador",
+            "O que faz"
+          ],
+          "rows": [
+            [
+              "Fichas",
+              "12 (6 no jogo de iniciantes)",
+              "Uma para cada lote que você possui, uma para cada empresa que opera e uma para cada empréstimo em aberto. Ficar sem fichas é o que te trava, não ficar sem dinheiro."
+            ],
+            [
+              "Dinheiro inicial",
+              "$25 / $22 / $19 pela ordem dos assentos",
+              "Quanto mais tarde você senta, com menos começa - o primeiro jogador paga pela primeira escolha."
+            ],
+            [
+              "Empréstimo",
+              "$20 por uma ficha",
+              "Tomado a qualquer momento em que sobre uma ficha. Cada um ainda no banco no fim vale -5 PE."
+            ]
+          ]
+        }
+      },
+      {
+        "h": "A trilha de preços"
+      },
+      {
+        "p": "Um marcador por setor numa trilha de $2 a $12, cada dólar dividido em duas casas. Construir uma empresa move o próprio setor UM dólar para baixo e cada fornecedor citado no Projeto UM dólar para cima. As pontas são paradas rígidas."
+      },
+      {
+        "table": {
+          "head": [
+            "Setor",
+            "Preço base",
+            "Como melhora",
+            "Fornecedores que paga"
+          ],
+          "rows": [
+            [
+              "Serviços Públicos (UT)",
+              "$4",
+              "Horizontal - um lote por nível",
+              "TE, HC, MA"
+            ],
+            [
+              "Varejo (RE)",
+              "$4",
+              "Vertical - um lote, qualquer nível",
+              "UT, HO, TE"
+            ],
+            [
+              "Hotelaria (HO)",
+              "$5",
+              "Vertical - um lote, qualquer nível",
+              "HC, MA, RE"
+            ],
+            [
+              "Indústria (MA)",
+              "$5",
+              "Horizontal - um lote por nível",
+              "HO, TE, UT"
+            ],
+            [
+              "Saúde (HC)",
+              "$6",
+              "Vertical - um lote, qualquer nível",
+              "RE, UT, HO"
+            ],
+            [
+              "Tecnologia (TE)",
+              "$6",
+              "Horizontal - um lote por nível",
+              "MA, RE, HC"
+            ]
+          ]
+        }
+      },
+      {
+        "p": "Cada setor compra de três outros e é citado como fornecedor por três outros, então o dinheiro não pode empoçar num canto do circuito: catorze das dezoito ligações correm nos dois sentidos."
+      },
+      {
+        "h": "Quanto vale uma empresa em cada nível"
+      },
+      {
+        "p": "O Setup é pago para construir e de novo para melhorar. O OPEX é cobrado todo trimestre - $2 por nível dele é aluguel de terreno, o resto é a conta dos fornecedores. A Produção é em unidades por trimestre. Crescer uma empresa adiciona um nível e DOBRA tanto o OPEX quanto a produção."
+      },
+      {
+        "table": {
+          "head": [
+            "Setor",
+            "Nível 1",
+            "Nível 2",
+            "Nível 3",
+            "Trimestres para se pagar ao preço base"
+          ],
+          "rows": [
+            [
+              "Serviços Públicos",
+              "15 / 6 / 3",
+              "20 / 11 / 6",
+              "30 / 15 / 12",
+              "2.50"
+            ],
+            [
+              "Varejo",
+              "15 / 10 / 4",
+              "23 / 18 / 8",
+              "38 / 28 / 16",
+              "2.50"
+            ],
+            [
+              "Hotelaria",
+              "10 / 6 / 2",
+              "15 / 10 / 4",
+              "25 / 16 / 8",
+              "2.50"
+            ],
+            [
+              "Indústria",
+              "20 / 8 / 4",
+              "35 / 14 / 8",
+              "60 / 20 / 16",
+              "1.67"
+            ],
+            [
+              "Saúde",
+              "20 / 10 / 3",
+              "35 / 18 / 6",
+              "60 / 28 / 12",
+              "2.50"
+            ],
+            [
+              "Tecnologia",
+              "10 / 8 / 2",
+              "17 / 13 / 4",
+              "27 / 21 / 8",
+              "2.50"
+            ]
+          ]
+        }
+      },
+      {
+        "p": "A entrada é pareada - Hotelaria e Tecnologia a $10, Serviços Públicos e Varejo a $15, Indústria e Saúde a $20 - e cinco dos seis se pagam nos mesmos 2.50 trimestres ao preço base. O que difere é QUANTO O PREÇO PODE CAIR antes de uma empresa parar de dar lucro."
+      },
+      {
+        "table": {
+          "head": [
+            "Setor",
+            "Lucro ao preço base",
+            "A base -$1",
+            "A base -$2",
+            "Dólares de preço que pode perder"
+          ],
+          "rows": [
+            [
+              "Varejo",
+              "$6",
+              "$2",
+              "-$2",
+              "1.5"
+            ],
+            [
+              "Serviços Públicos",
+              "$6",
+              "$3",
+              "$0",
+              "2.0"
+            ],
+            [
+              "Hotelaria",
+              "$4",
+              "$2",
+              "$0",
+              "2.0"
+            ],
+            [
+              "Tecnologia",
+              "$4",
+              "$2",
+              "$0",
+              "2.0"
+            ],
+            [
+              "Saúde",
+              "$8",
+              "$5",
+              "$2",
+              "2.67"
+            ],
+            [
+              "Indústria",
+              "$12",
+              "$8",
+              "$4",
+              "3.0"
+            ]
+          ]
+        }
+      },
+      {
+        "note": "Isso é o caráter inteiro de cada setor numa tabela só. O Varejo gira mais mercadoria e morre primeiro quando seu mercado azeda; a Indústria custa mais para entrar e aguenta cair até o piso. Retorno e folga de preço não são independentes - a folga é o lucro dividido pela produção, e o retorno é o setup dividido pelo lucro - então retorno nivelado com folga graduada só é possível quando o setup sobe junto com produção vezes folga, que é o que o pareamento acima faz."
+      }
+    ]
+  },
+  {
     "id": "blueprints",
     "title": "Anexo: os sessenta Projetos",
     "blocks": [
@@ -1582,62 +2016,62 @@ export const RULEBOOK_PT = [
             [
               "Usina Solar I",
               "1",
-              "15 / 4 / 4",
-              "HO 4"
+              "15 / 6 / 3",
+              "TE 6"
             ],
             [
               "Pequena Hidrelétrica I",
               "1",
-              "15 / 4 / 4",
-              "HO 4"
+              "15 / 6 / 3",
+              "TE 6"
             ],
             [
               "Parque Eólico I",
               "1",
-              "15 / 4 / 4",
-              "TE 4"
+              "15 / 6 / 3",
+              "HC 6"
             ],
             [
               "Usina de Biomassa I",
               "1",
-              "15 / 4 / 4",
-              "TE 4"
+              "15 / 6 / 3",
+              "HC 6"
             ],
             [
               "Usina Maremotriz I",
               "1",
-              "15 / 4 / 4",
-              "HC 4"
+              "15 / 6 / 3",
+              "MA 6"
             ],
             [
               "Hub de Fusão II",
               "2",
-              "20 / 7 / 8",
-              "HO 4, TE 3"
+              "20 / 11 / 6",
+              "TE 6, HC 5"
             ],
             [
               "Nó de Smart Grid II",
               "2",
-              "20 / 7 / 8",
-              "HO 4, HC 3"
+              "20 / 11 / 6",
+              "TE 6, MA 5"
             ],
             [
               "Turbina Oceânica II",
               "2",
-              "20 / 7 / 8",
-              "TE 4, HC 3"
+              "20 / 11 / 6",
+              "HC 6, MA 5"
             ],
             [
               "Supernó Geotérmico III",
               "3",
-              "30 / 10 / 16",
-              "HO 4, TE 3, HC 3"
+              "30 / 15 / 12",
+              "TE 6, HC 5, MA 4"
             ],
             [
               "Reator de Antimatéria III",
               "3",
-              "30 / 10 / 16",
-              "HO 4, TE 3, HC 3"
+              "30 / 15 / 12",
+              "TE 6, HC 5, MA 4"
             ]
           ]
         }
@@ -1657,62 +2091,62 @@ export const RULEBOOK_PT = [
             [
               "Mercadinho I",
               "1",
-              "10 / 5 / 4",
-              "TE 5"
+              "15 / 10 / 4",
+              "UT 10"
             ],
             [
               "Quiosque Pop-Up I",
               "1",
-              "10 / 5 / 4",
-              "TE 5"
+              "15 / 10 / 4",
+              "UT 10"
             ],
             [
               "Feira do Bairro I",
               "1",
-              "10 / 5 / 4",
-              "HO 5"
+              "15 / 10 / 4",
+              "HO 10"
             ],
             [
               "Galeria I",
               "1",
-              "10 / 5 / 4",
-              "HO 5"
+              "15 / 10 / 4",
+              "HO 10"
             ],
             [
               "Rede de Vending I",
               "1",
-              "10 / 5 / 4",
-              "MA 5"
+              "15 / 10 / 4",
+              "TE 10"
             ],
             [
               "Supermercado II",
               "2",
-              "15 / 9 / 8",
-              "TE 5, HO 4"
+              "23 / 18 / 8",
+              "UT 10, HO 8"
             ],
             [
               "Loja de Departamentos II",
               "2",
-              "15 / 9 / 8",
-              "TE 5, MA 4"
+              "23 / 18 / 8",
+              "UT 10, TE 8"
             ],
             [
               "Outlet II",
               "2",
-              "15 / 9 / 8",
-              "HO 5, MA 4"
+              "23 / 18 / 8",
+              "HO 10, TE 8"
             ],
             [
               "Mega-Shopping III",
               "3",
-              "25 / 14 / 16",
-              "TE 6, HO 4, MA 4"
+              "38 / 28 / 16",
+              "UT 12, HO 8, TE 8"
             ],
             [
               "Hub Omnichannel III",
               "3",
-              "25 / 14 / 16",
-              "TE 6, HO 4, MA 4"
+              "38 / 28 / 16",
+              "UT 12, HO 8, TE 8"
             ]
           ]
         }
@@ -1732,62 +2166,62 @@ export const RULEBOOK_PT = [
             [
               "Pousada I",
               "1",
-              "10 / 6 / 3",
-              "MA 6"
+              "10 / 6 / 2",
+              "HC 6"
             ],
             [
               "Cama e Café I",
               "1",
-              "10 / 6 / 3",
-              "MA 6"
+              "10 / 6 / 2",
+              "HC 6"
             ],
             [
               "Hostel de Passagem I",
               "1",
-              "10 / 6 / 3",
-              "HC 6"
+              "10 / 6 / 2",
+              "MA 6"
             ],
             [
               "Hotel de Estrada I",
               "1",
-              "10 / 6 / 3",
-              "HC 6"
+              "10 / 6 / 2",
+              "MA 6"
             ],
             [
               "Hotel Cápsula I",
               "1",
-              "10 / 6 / 3",
+              "10 / 6 / 2",
               "RE 6"
             ],
             [
               "Hotel Executivo II",
               "2",
-              "15 / 10 / 6",
-              "MA 6, HC 4"
+              "15 / 10 / 4",
+              "HC 6, MA 4"
             ],
             [
               "Eco-Resort II",
               "2",
-              "15 / 10 / 6",
-              "MA 6, RE 4"
+              "15 / 10 / 4",
+              "HC 6, RE 4"
             ],
             [
               "Hotel Boutique II",
               "2",
-              "15 / 10 / 6",
-              "HC 6, RE 4"
+              "15 / 10 / 4",
+              "MA 6, RE 4"
             ],
             [
               "Cassino de Luxo III",
               "3",
-              "25 / 16 / 12",
-              "MA 6, HC 5, RE 5"
+              "25 / 16 / 8",
+              "HC 6, MA 5, RE 5"
             ],
             [
               "Resort Orbital III",
               "3",
-              "25 / 16 / 12",
-              "MA 6, HC 5, RE 5"
+              "25 / 16 / 8",
+              "HC 6, MA 5, RE 5"
             ]
           ]
         }
@@ -1807,62 +2241,62 @@ export const RULEBOOK_PT = [
             [
               "Oficina de Montagem I",
               "1",
-              "20 / 4 / 3",
-              "HC 4"
+              "20 / 8 / 4",
+              "HO 8"
             ],
             [
               "Fábrica de Peças I",
               "1",
-              "20 / 4 / 3",
-              "HC 4"
+              "20 / 8 / 4",
+              "HO 8"
             ],
             [
               "Tecelagem I",
               "1",
-              "20 / 4 / 3",
-              "RE 4"
+              "20 / 8 / 4",
+              "TE 8"
             ],
             [
               "Fábrica de Conservas I",
               "1",
-              "20 / 4 / 3",
-              "RE 4"
+              "20 / 8 / 4",
+              "TE 8"
             ],
             [
               "Injetora de Plástico I",
               "1",
-              "20 / 4 / 3",
-              "UT 4"
+              "20 / 8 / 4",
+              "UT 8"
             ],
             [
               "Montadora II",
               "2",
-              "35 / 7 / 6",
-              "HC 4, RE 3"
+              "35 / 14 / 8",
+              "HO 8, TE 6"
             ],
             [
               "Fundição de Chips II",
               "2",
-              "35 / 7 / 6",
-              "HC 4, UT 3"
+              "35 / 14 / 8",
+              "HO 8, UT 6"
             ],
             [
               "Indústria Química II",
               "2",
-              "35 / 7 / 6",
-              "RE 4, UT 3"
+              "35 / 14 / 8",
+              "TE 8, UT 6"
             ],
             [
               "Robótica Pesada III",
               "3",
-              "60 / 10 / 12",
-              "HC 4, RE 3, UT 3"
+              "60 / 20 / 16",
+              "HO 8, TE 6, UT 6"
             ],
             [
               "Estaleiro Orbital III",
               "3",
-              "60 / 10 / 12",
-              "HC 4, RE 3, UT 3"
+              "60 / 20 / 16",
+              "HO 8, TE 6, UT 6"
             ]
           ]
         }
@@ -1882,62 +2316,62 @@ export const RULEBOOK_PT = [
             [
               "Pronto Atendimento I",
               "1",
-              "20 / 5 / 2",
-              "RE 5"
+              "20 / 10 / 3",
+              "RE 10"
             ],
             [
               "Farmácia I",
               "1",
-              "20 / 5 / 2",
-              "RE 5"
+              "20 / 10 / 3",
+              "RE 10"
             ],
             [
               "Consultório Dentário I",
               "1",
-              "20 / 5 / 2",
-              "UT 5"
+              "20 / 10 / 3",
+              "UT 10"
             ],
             [
               "Centro de Bem-Estar I",
               "1",
-              "20 / 5 / 2",
-              "UT 5"
+              "20 / 10 / 3",
+              "UT 10"
             ],
             [
               "Fisioterapia I",
               "1",
-              "20 / 5 / 2",
-              "TE 5"
+              "20 / 10 / 3",
+              "HO 10"
             ],
             [
               "Hospital Geral II",
               "2",
-              "35 / 9 / 4",
-              "RE 5, UT 4"
+              "35 / 18 / 6",
+              "RE 10, UT 8"
             ],
             [
               "Centro de Trauma II",
               "2",
-              "35 / 9 / 4",
-              "RE 5, TE 4"
+              "35 / 18 / 6",
+              "RE 10, HO 8"
             ],
             [
               "Clínica Especializada II",
               "2",
-              "35 / 9 / 4",
-              "UT 5, TE 4"
+              "35 / 18 / 6",
+              "UT 10, HO 8"
             ],
             [
               "Polo de Biotecnologia III",
               "3",
-              "60 / 14 / 8",
-              "RE 6, UT 4, TE 4"
+              "60 / 28 / 12",
+              "RE 12, UT 8, HO 8"
             ],
             [
               "Inst. de Cibernética III",
               "3",
-              "60 / 14 / 8",
-              "RE 6, UT 4, TE 4"
+              "60 / 28 / 12",
+              "RE 12, UT 8, HO 8"
             ]
           ]
         }
@@ -1957,62 +2391,62 @@ export const RULEBOOK_PT = [
             [
               "Startup de App I",
               "1",
-              "15 / 6 / 2",
-              "UT 6"
+              "10 / 8 / 2",
+              "MA 8"
             ],
             [
               "Data Center I",
               "1",
-              "15 / 6 / 2",
-              "UT 6"
+              "10 / 8 / 2",
+              "MA 8"
             ],
             [
               "Sala de Servidores I",
               "1",
-              "15 / 6 / 2",
-              "MA 6"
+              "10 / 8 / 2",
+              "RE 8"
             ],
             [
               "Suporte de TI I",
               "1",
-              "15 / 6 / 2",
-              "MA 6"
+              "10 / 8 / 2",
+              "RE 8"
             ],
             [
               "Provedor de Nuvem I",
               "1",
-              "15 / 6 / 2",
-              "HO 6"
+              "10 / 8 / 2",
+              "HC 8"
             ],
             [
               "Campus de Software II",
               "2",
-              "25 / 10 / 4",
-              "UT 6, MA 4"
+              "17 / 13 / 4",
+              "MA 8, RE 5"
             ],
             [
               "Hub de Rede II",
               "2",
-              "25 / 10 / 4",
-              "UT 6, HO 4"
+              "17 / 13 / 4",
+              "MA 8, HC 5"
             ],
             [
               "Operadora de Telecom II",
               "2",
-              "25 / 10 / 4",
-              "MA 6, HO 4"
+              "17 / 13 / 4",
+              "RE 8, HC 5"
             ],
             [
               "Cluster de IA Senciente III",
               "3",
-              "40 / 16 / 8",
-              "UT 6, MA 5, HO 5"
+              "27 / 21 / 8",
+              "MA 8, RE 7, HC 6"
             ],
             [
               "Computação Quântica III",
               "3",
-              "40 / 16 / 8",
-              "UT 6, MA 5, HO 5"
+              "27 / 21 / 8",
+              "MA 8, RE 7, HC 6"
             ]
           ]
         }

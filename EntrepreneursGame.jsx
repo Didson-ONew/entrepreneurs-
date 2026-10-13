@@ -6,7 +6,7 @@ import { t, useLang } from "./i18n.js";
 
 /* ============================== DATA ============================== */
 
-const BP_DATA = [{"code": "UT-01", "ind": "UT", "name": "Solar Field I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "HO", "val": 4}], "prod": 4}, {"code": "UT-02", "ind": "UT", "name": "Hydro-Farm Initiative I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "HO", "val": 4}], "prod": 4}, {"code": "UT-03", "ind": "UT", "name": "Wind Farm I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "TE", "val": 4}], "prod": 4}, {"code": "UT-04", "ind": "UT", "name": "Biomass Plant I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "TE", "val": 4}], "prod": 4}, {"code": "UT-05", "ind": "UT", "name": "Tidal Generator I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "HC", "val": 4}], "prod": 4}, {"code": "UT-06", "ind": "UT", "name": "Fusion Conduit Hub II", "lvl": 2, "setup": 20, "opex": 7, "deps": [{"ind": "HO", "val": 4}, {"ind": "TE", "val": 3}], "prod": 8}, {"code": "UT-07", "ind": "UT", "name": "Smart Grid Node II", "lvl": 2, "setup": 20, "opex": 7, "deps": [{"ind": "HO", "val": 4}, {"ind": "HC", "val": 3}], "prod": 8}, {"code": "UT-08", "ind": "UT", "name": "Oceanic Turbine II", "lvl": 2, "setup": 20, "opex": 7, "deps": [{"ind": "TE", "val": 4}, {"ind": "HC", "val": 3}], "prod": 8}, {"code": "UT-09", "ind": "UT", "name": "Geothermal Supernode III", "lvl": 3, "setup": 30, "opex": 10, "deps": [{"ind": "HO", "val": 4}, {"ind": "TE", "val": 3}, {"ind": "HC", "val": 3}], "prod": 16}, {"code": "UT-10", "ind": "UT", "name": "Antimatter Reactor III", "lvl": 3, "setup": 30, "opex": 10, "deps": [{"ind": "HO", "val": 4}, {"ind": "TE", "val": 3}, {"ind": "HC", "val": 3}], "prod": 16}, {"code": "RE-01", "ind": "RE", "name": "Corner Store I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "TE", "val": 5}], "prod": 4}, {"code": "RE-02", "ind": "RE", "name": "Pop-Up Kiosk I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "TE", "val": 5}], "prod": 4}, {"code": "RE-03", "ind": "RE", "name": "Local Market I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "HO", "val": 5}], "prod": 4}, {"code": "RE-04", "ind": "RE", "name": "Strip Mall I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "HO", "val": 5}], "prod": 4}, {"code": "RE-05", "ind": "RE", "name": "Vending Network I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "MA", "val": 5}], "prod": 4}, {"code": "RE-06", "ind": "RE", "name": "Supermarket II", "lvl": 2, "setup": 15, "opex": 9, "deps": [{"ind": "TE", "val": 5}, {"ind": "HO", "val": 4}], "prod": 8}, {"code": "RE-07", "ind": "RE", "name": "Department Store II", "lvl": 2, "setup": 15, "opex": 9, "deps": [{"ind": "TE", "val": 5}, {"ind": "MA", "val": 4}], "prod": 8}, {"code": "RE-08", "ind": "RE", "name": "Outlet Center II", "lvl": 2, "setup": 15, "opex": 9, "deps": [{"ind": "HO", "val": 5}, {"ind": "MA", "val": 4}], "prod": 8}, {"code": "RE-09", "ind": "RE", "name": "Mega-Mall III", "lvl": 3, "setup": 25, "opex": 14, "deps": [{"ind": "TE", "val": 6}, {"ind": "HO", "val": 4}, {"ind": "MA", "val": 4}], "prod": 16}, {"code": "RE-10", "ind": "RE", "name": "Omni-Channel Hub III", "lvl": 3, "setup": 25, "opex": 14, "deps": [{"ind": "TE", "val": 6}, {"ind": "HO", "val": 4}, {"ind": "MA", "val": 4}], "prod": 16}, {"code": "HO-01", "ind": "HO", "name": "Motel I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 3}, {"code": "HO-02", "ind": "HO", "name": "Bed & Breakfast I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 3}, {"code": "HO-03", "ind": "HO", "name": "Transit Hostel I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "HC", "val": 6}], "prod": 3}, {"code": "HO-04", "ind": "HO", "name": "Roadside Inn I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "HC", "val": 6}], "prod": 3}, {"code": "HO-05", "ind": "HO", "name": "Capsule Hotel I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "RE", "val": 6}], "prod": 3}, {"code": "HO-06", "ind": "HO", "name": "Business Hotel II", "lvl": 2, "setup": 15, "opex": 10, "deps": [{"ind": "MA", "val": 6}, {"ind": "HC", "val": 4}], "prod": 6}, {"code": "HO-07", "ind": "HO", "name": "Resort Lodge II", "lvl": 2, "setup": 15, "opex": 10, "deps": [{"ind": "MA", "val": 6}, {"ind": "RE", "val": 4}], "prod": 6}, {"code": "HO-08", "ind": "HO", "name": "Boutique Hotel II", "lvl": 2, "setup": 15, "opex": 10, "deps": [{"ind": "HC", "val": 6}, {"ind": "RE", "val": 4}], "prod": 6}, {"code": "HO-09", "ind": "HO", "name": "Luxury Casino III", "lvl": 3, "setup": 25, "opex": 16, "deps": [{"ind": "MA", "val": 6}, {"ind": "HC", "val": 5}, {"ind": "RE", "val": 5}], "prod": 12}, {"code": "HO-10", "ind": "HO", "name": "Orbit Resort III", "lvl": 3, "setup": 25, "opex": 16, "deps": [{"ind": "MA", "val": 6}, {"ind": "HC", "val": 5}, {"ind": "RE", "val": 5}], "prod": 12}, {"code": "MA-01", "ind": "MA", "name": "Assembly Workshop I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "HC", "val": 4}], "prod": 3}, {"code": "MA-02", "ind": "MA", "name": "Parts Fabricator I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "HC", "val": 4}], "prod": 3}, {"code": "MA-03", "ind": "MA", "name": "Textile Mill I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "RE", "val": 4}], "prod": 3}, {"code": "MA-04", "ind": "MA", "name": "Canning Facility I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "RE", "val": 4}], "prod": 3}, {"code": "MA-05", "ind": "MA", "name": "Injection Molder I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "UT", "val": 4}], "prod": 3}, {"code": "MA-06", "ind": "MA", "name": "Auto Plant II", "lvl": 2, "setup": 35, "opex": 7, "deps": [{"ind": "HC", "val": 4}, {"ind": "RE", "val": 3}], "prod": 6}, {"code": "MA-07", "ind": "MA", "name": "Microchip Foundry II", "lvl": 2, "setup": 35, "opex": 7, "deps": [{"ind": "HC", "val": 4}, {"ind": "UT", "val": 3}], "prod": 6}, {"code": "MA-08", "ind": "MA", "name": "Chemical Plant II", "lvl": 2, "setup": 35, "opex": 7, "deps": [{"ind": "RE", "val": 4}, {"ind": "UT", "val": 3}], "prod": 6}, {"code": "MA-09", "ind": "MA", "name": "Heavy Robotics III", "lvl": 3, "setup": 60, "opex": 10, "deps": [{"ind": "HC", "val": 4}, {"ind": "RE", "val": 3}, {"ind": "UT", "val": 3}], "prod": 12}, {"code": "MA-10", "ind": "MA", "name": "Orbital Shipyard III", "lvl": 3, "setup": 60, "opex": 10, "deps": [{"ind": "HC", "val": 4}, {"ind": "RE", "val": 3}, {"ind": "UT", "val": 3}], "prod": 12}, {"code": "HC-01", "ind": "HC", "name": "Urgent Care Clinic I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "RE", "val": 5}], "prod": 2}, {"code": "HC-02", "ind": "HC", "name": "Pharmacy I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "RE", "val": 5}], "prod": 2}, {"code": "HC-03", "ind": "HC", "name": "Dental Office I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "UT", "val": 5}], "prod": 2}, {"code": "HC-04", "ind": "HC", "name": "Wellness Center I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "UT", "val": 5}], "prod": 2}, {"code": "HC-05", "ind": "HC", "name": "Physical Therapy I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "TE", "val": 5}], "prod": 2}, {"code": "HC-06", "ind": "HC", "name": "General Hospital II", "lvl": 2, "setup": 35, "opex": 9, "deps": [{"ind": "RE", "val": 5}, {"ind": "UT", "val": 4}], "prod": 4}, {"code": "HC-07", "ind": "HC", "name": "Trauma Center II", "lvl": 2, "setup": 35, "opex": 9, "deps": [{"ind": "RE", "val": 5}, {"ind": "TE", "val": 4}], "prod": 4}, {"code": "HC-08", "ind": "HC", "name": "Specialized Clinic II", "lvl": 2, "setup": 35, "opex": 9, "deps": [{"ind": "UT", "val": 5}, {"ind": "TE", "val": 4}], "prod": 4}, {"code": "HC-09", "ind": "HC", "name": "Biotech Campus III", "lvl": 3, "setup": 60, "opex": 14, "deps": [{"ind": "RE", "val": 6}, {"ind": "UT", "val": 4}, {"ind": "TE", "val": 4}], "prod": 8}, {"code": "HC-10", "ind": "HC", "name": "Cybernetics Inst. III", "lvl": 3, "setup": 60, "opex": 14, "deps": [{"ind": "RE", "val": 6}, {"ind": "UT", "val": 4}, {"ind": "TE", "val": 4}], "prod": 8}, {"code": "TE-01", "ind": "TE", "name": "App Startup I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "UT", "val": 6}], "prod": 2}, {"code": "TE-02", "ind": "TE", "name": "Data Center I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "UT", "val": 6}], "prod": 2}, {"code": "TE-03", "ind": "TE", "name": "Server Farm I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 2}, {"code": "TE-04", "ind": "TE", "name": "IT Support Firm I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 2}, {"code": "TE-05", "ind": "TE", "name": "Cloud Provider I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "HO", "val": 6}], "prod": 2}, {"code": "TE-06", "ind": "TE", "name": "Software Campus II", "lvl": 2, "setup": 25, "opex": 10, "deps": [{"ind": "UT", "val": 6}, {"ind": "MA", "val": 4}], "prod": 4}, {"code": "TE-07", "ind": "TE", "name": "Network Hub II", "lvl": 2, "setup": 25, "opex": 10, "deps": [{"ind": "UT", "val": 6}, {"ind": "HO", "val": 4}], "prod": 4}, {"code": "TE-08", "ind": "TE", "name": "Telecom Provider II", "lvl": 2, "setup": 25, "opex": 10, "deps": [{"ind": "MA", "val": 6}, {"ind": "HO", "val": 4}], "prod": 4}, {"code": "TE-09", "ind": "TE", "name": "Sentient AI Cluster III", "lvl": 3, "setup": 40, "opex": 16, "deps": [{"ind": "UT", "val": 6}, {"ind": "MA", "val": 5}, {"ind": "HO", "val": 5}], "prod": 8}, {"code": "TE-10", "ind": "TE", "name": "Quantum Computing III", "lvl": 3, "setup": 40, "opex": 16, "deps": [{"ind": "UT", "val": 6}, {"ind": "MA", "val": 5}, {"ind": "HO", "val": 5}], "prod": 8}];
+const BP_DATA = [{"code":"UT-01","ind":"UT","name":"Solar Field I","lvl":1,"setup":15,"opex":6,"deps":[{"ind":"TE","val":6}],"prod":3},{"code":"UT-02","ind":"UT","name":"Hydro-Farm Initiative I","lvl":1,"setup":15,"opex":6,"deps":[{"ind":"TE","val":6}],"prod":3},{"code":"UT-03","ind":"UT","name":"Wind Farm I","lvl":1,"setup":15,"opex":6,"deps":[{"ind":"HC","val":6}],"prod":3},{"code":"UT-04","ind":"UT","name":"Biomass Plant I","lvl":1,"setup":15,"opex":6,"deps":[{"ind":"HC","val":6}],"prod":3},{"code":"UT-05","ind":"UT","name":"Tidal Generator I","lvl":1,"setup":15,"opex":6,"deps":[{"ind":"MA","val":6}],"prod":3},{"code":"UT-06","ind":"UT","name":"Fusion Conduit Hub II","lvl":2,"setup":20,"opex":11,"deps":[{"ind":"TE","val":6},{"ind":"HC","val":5}],"prod":6},{"code":"UT-07","ind":"UT","name":"Smart Grid Node II","lvl":2,"setup":20,"opex":11,"deps":[{"ind":"TE","val":6},{"ind":"MA","val":5}],"prod":6},{"code":"UT-08","ind":"UT","name":"Oceanic Turbine II","lvl":2,"setup":20,"opex":11,"deps":[{"ind":"HC","val":6},{"ind":"MA","val":5}],"prod":6},{"code":"UT-09","ind":"UT","name":"Geothermal Supernode III","lvl":3,"setup":30,"opex":15,"deps":[{"ind":"TE","val":6},{"ind":"HC","val":5},{"ind":"MA","val":4}],"prod":12},{"code":"UT-10","ind":"UT","name":"Antimatter Reactor III","lvl":3,"setup":30,"opex":15,"deps":[{"ind":"TE","val":6},{"ind":"HC","val":5},{"ind":"MA","val":4}],"prod":12},{"code":"RE-01","ind":"RE","name":"Corner Store I","lvl":1,"setup":15,"opex":10,"deps":[{"ind":"UT","val":10}],"prod":4},{"code":"RE-02","ind":"RE","name":"Pop-Up Kiosk I","lvl":1,"setup":15,"opex":10,"deps":[{"ind":"UT","val":10}],"prod":4},{"code":"RE-03","ind":"RE","name":"Local Market I","lvl":1,"setup":15,"opex":10,"deps":[{"ind":"HO","val":10}],"prod":4},{"code":"RE-04","ind":"RE","name":"Strip Mall I","lvl":1,"setup":15,"opex":10,"deps":[{"ind":"HO","val":10}],"prod":4},{"code":"RE-05","ind":"RE","name":"Vending Network I","lvl":1,"setup":15,"opex":10,"deps":[{"ind":"TE","val":10}],"prod":4},{"code":"RE-06","ind":"RE","name":"Supermarket II","lvl":2,"setup":23,"opex":18,"deps":[{"ind":"UT","val":10},{"ind":"HO","val":8}],"prod":8},{"code":"RE-07","ind":"RE","name":"Department Store II","lvl":2,"setup":23,"opex":18,"deps":[{"ind":"UT","val":10},{"ind":"TE","val":8}],"prod":8},{"code":"RE-08","ind":"RE","name":"Outlet Center II","lvl":2,"setup":23,"opex":18,"deps":[{"ind":"HO","val":10},{"ind":"TE","val":8}],"prod":8},{"code":"RE-09","ind":"RE","name":"Mega-Mall III","lvl":3,"setup":38,"opex":28,"deps":[{"ind":"UT","val":12},{"ind":"HO","val":8},{"ind":"TE","val":8}],"prod":16},{"code":"RE-10","ind":"RE","name":"Omni-Channel Hub III","lvl":3,"setup":38,"opex":28,"deps":[{"ind":"UT","val":12},{"ind":"HO","val":8},{"ind":"TE","val":8}],"prod":16},{"code":"HO-01","ind":"HO","name":"Motel I","lvl":1,"setup":10,"opex":6,"deps":[{"ind":"HC","val":6}],"prod":2},{"code":"HO-02","ind":"HO","name":"Bed & Breakfast I","lvl":1,"setup":10,"opex":6,"deps":[{"ind":"HC","val":6}],"prod":2},{"code":"HO-03","ind":"HO","name":"Transit Hostel I","lvl":1,"setup":10,"opex":6,"deps":[{"ind":"MA","val":6}],"prod":2},{"code":"HO-04","ind":"HO","name":"Roadside Inn I","lvl":1,"setup":10,"opex":6,"deps":[{"ind":"MA","val":6}],"prod":2},{"code":"HO-05","ind":"HO","name":"Capsule Hotel I","lvl":1,"setup":10,"opex":6,"deps":[{"ind":"RE","val":6}],"prod":2},{"code":"HO-06","ind":"HO","name":"Business Hotel II","lvl":2,"setup":15,"opex":10,"deps":[{"ind":"HC","val":6},{"ind":"MA","val":4}],"prod":4},{"code":"HO-07","ind":"HO","name":"Resort Lodge II","lvl":2,"setup":15,"opex":10,"deps":[{"ind":"HC","val":6},{"ind":"RE","val":4}],"prod":4},{"code":"HO-08","ind":"HO","name":"Boutique Hotel II","lvl":2,"setup":15,"opex":10,"deps":[{"ind":"MA","val":6},{"ind":"RE","val":4}],"prod":4},{"code":"HO-09","ind":"HO","name":"Luxury Casino III","lvl":3,"setup":25,"opex":16,"deps":[{"ind":"HC","val":6},{"ind":"MA","val":5},{"ind":"RE","val":5}],"prod":8},{"code":"HO-10","ind":"HO","name":"Orbit Resort III","lvl":3,"setup":25,"opex":16,"deps":[{"ind":"HC","val":6},{"ind":"MA","val":5},{"ind":"RE","val":5}],"prod":8},{"code":"MA-01","ind":"MA","name":"Assembly Workshop I","lvl":1,"setup":20,"opex":8,"deps":[{"ind":"HO","val":8}],"prod":4},{"code":"MA-02","ind":"MA","name":"Parts Fabricator I","lvl":1,"setup":20,"opex":8,"deps":[{"ind":"HO","val":8}],"prod":4},{"code":"MA-03","ind":"MA","name":"Textile Mill I","lvl":1,"setup":20,"opex":8,"deps":[{"ind":"TE","val":8}],"prod":4},{"code":"MA-04","ind":"MA","name":"Canning Facility I","lvl":1,"setup":20,"opex":8,"deps":[{"ind":"TE","val":8}],"prod":4},{"code":"MA-05","ind":"MA","name":"Injection Molder I","lvl":1,"setup":20,"opex":8,"deps":[{"ind":"UT","val":8}],"prod":4},{"code":"MA-06","ind":"MA","name":"Auto Plant II","lvl":2,"setup":35,"opex":14,"deps":[{"ind":"HO","val":8},{"ind":"TE","val":6}],"prod":8},{"code":"MA-07","ind":"MA","name":"Microchip Foundry II","lvl":2,"setup":35,"opex":14,"deps":[{"ind":"HO","val":8},{"ind":"UT","val":6}],"prod":8},{"code":"MA-08","ind":"MA","name":"Chemical Plant II","lvl":2,"setup":35,"opex":14,"deps":[{"ind":"TE","val":8},{"ind":"UT","val":6}],"prod":8},{"code":"MA-09","ind":"MA","name":"Heavy Robotics III","lvl":3,"setup":60,"opex":20,"deps":[{"ind":"HO","val":8},{"ind":"TE","val":6},{"ind":"UT","val":6}],"prod":16},{"code":"MA-10","ind":"MA","name":"Orbital Shipyard III","lvl":3,"setup":60,"opex":20,"deps":[{"ind":"HO","val":8},{"ind":"TE","val":6},{"ind":"UT","val":6}],"prod":16},{"code":"HC-01","ind":"HC","name":"Urgent Care Clinic I","lvl":1,"setup":20,"opex":10,"deps":[{"ind":"RE","val":10}],"prod":3},{"code":"HC-02","ind":"HC","name":"Pharmacy I","lvl":1,"setup":20,"opex":10,"deps":[{"ind":"RE","val":10}],"prod":3},{"code":"HC-03","ind":"HC","name":"Dental Office I","lvl":1,"setup":20,"opex":10,"deps":[{"ind":"UT","val":10}],"prod":3},{"code":"HC-04","ind":"HC","name":"Wellness Center I","lvl":1,"setup":20,"opex":10,"deps":[{"ind":"UT","val":10}],"prod":3},{"code":"HC-05","ind":"HC","name":"Physical Therapy I","lvl":1,"setup":20,"opex":10,"deps":[{"ind":"HO","val":10}],"prod":3},{"code":"HC-06","ind":"HC","name":"General Hospital II","lvl":2,"setup":35,"opex":18,"deps":[{"ind":"RE","val":10},{"ind":"UT","val":8}],"prod":6},{"code":"HC-07","ind":"HC","name":"Trauma Center II","lvl":2,"setup":35,"opex":18,"deps":[{"ind":"RE","val":10},{"ind":"HO","val":8}],"prod":6},{"code":"HC-08","ind":"HC","name":"Specialized Clinic II","lvl":2,"setup":35,"opex":18,"deps":[{"ind":"UT","val":10},{"ind":"HO","val":8}],"prod":6},{"code":"HC-09","ind":"HC","name":"Biotech Campus III","lvl":3,"setup":60,"opex":28,"deps":[{"ind":"RE","val":12},{"ind":"UT","val":8},{"ind":"HO","val":8}],"prod":12},{"code":"HC-10","ind":"HC","name":"Cybernetics Inst. III","lvl":3,"setup":60,"opex":28,"deps":[{"ind":"RE","val":12},{"ind":"UT","val":8},{"ind":"HO","val":8}],"prod":12},{"code":"TE-01","ind":"TE","name":"App Startup I","lvl":1,"setup":10,"opex":8,"deps":[{"ind":"MA","val":8}],"prod":2},{"code":"TE-02","ind":"TE","name":"Data Center I","lvl":1,"setup":10,"opex":8,"deps":[{"ind":"MA","val":8}],"prod":2},{"code":"TE-03","ind":"TE","name":"Server Farm I","lvl":1,"setup":10,"opex":8,"deps":[{"ind":"RE","val":8}],"prod":2},{"code":"TE-04","ind":"TE","name":"IT Support Firm I","lvl":1,"setup":10,"opex":8,"deps":[{"ind":"RE","val":8}],"prod":2},{"code":"TE-05","ind":"TE","name":"Cloud Provider I","lvl":1,"setup":10,"opex":8,"deps":[{"ind":"HC","val":8}],"prod":2},{"code":"TE-06","ind":"TE","name":"Software Campus II","lvl":2,"setup":17,"opex":13,"deps":[{"ind":"MA","val":8},{"ind":"RE","val":5}],"prod":4},{"code":"TE-07","ind":"TE","name":"Network Hub II","lvl":2,"setup":17,"opex":13,"deps":[{"ind":"MA","val":8},{"ind":"HC","val":5}],"prod":4},{"code":"TE-08","ind":"TE","name":"Telecom Provider II","lvl":2,"setup":17,"opex":13,"deps":[{"ind":"RE","val":8},{"ind":"HC","val":5}],"prod":4},{"code":"TE-09","ind":"TE","name":"Sentient AI Cluster III","lvl":3,"setup":27,"opex":21,"deps":[{"ind":"MA","val":8},{"ind":"RE","val":7},{"ind":"HC","val":6}],"prod":8},{"code":"TE-10","ind":"TE","name":"Quantum Computing III","lvl":3,"setup":27,"opex":21,"deps":[{"ind":"MA","val":8},{"ind":"RE","val":7},{"ind":"HC","val":6}],"prod":8}];
 
 const INDUSTRIES = ["UT", "RE", "HO", "MA", "HC", "TE"];
 const BASE_PRICE = { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 };
@@ -57,10 +57,10 @@ const CENTER_POOL = ["FC", "IA", "CC", "LM"];
 const TILE_LABEL = { R:"#D65B4A22", C:"#3E8FD022" };
 
 const DEMAND_ROWS = {
-  R: ["UT", "RE", "HO", "UT"], C: ["RE", "UT", "MA", "RE"],
-  A: ["HO", "UT", "TE", "HO"], I: ["MA", "RE", "HC", "MA"],
-  FC: ["TE", "UT", "HC", "TE"], IA: ["MA", "RE", "TE", "MA"],
-  CC: ["HC", "HO", "TE", "HC"], LM: ["HO", "MA", "HC", "HO"],
+  R: ["UT", "RE", "TE", "UT"], C: ["HO", "MA", "HC", "HO"],
+  A: ["RE", "TE", "HO", "RE"], I: ["MA", "UT", "RE", "MA"],
+  FC: ["HC", "MA", "UT", "HC"], IA: ["TE", "HO", "HC", "TE"],
+  CC: ["HC", "UT", "MA", "HC"], LM: ["TE", "HC", "HO", "TE"],
 };
 function districtFamily(tname) {
   return ["FC", "IA", "CC", "LM"].includes(tname) ? tname : tname[0];
@@ -290,14 +290,21 @@ function districtsTouch(a, b) {
 }
 /* Where the next branch goes: of the districts this chain can still REACH - the
    ones orthogonally next to something it already covers - the one with the most
-   open Retail demand, and inside it any plot nobody holds. Returning null when
-   the chain is boxed in is correct: a chain that cannot extend does not extend. */
+   open Retail demand, and inside it a plot SOMEBODY ALREADY OWNS. Returning null when
+   the chain is boxed in is correct: a chain that cannot extend does not extend.
+
+   A branch used to take free ground for nothing: it looked only at plots nobody held,
+   then wrote itself in as the owner. The whole price was a disc, while the same plot
+   bought through BUY costs cash and a disc - so Retail scaled its reach for free while
+   every other industry paid for its land. Now the ground has to be owned first, by you
+   or by a rival, and a branch on a rival's plot pays them rent like any other
+   structure. Retail keeps its own special way of scaling; it stops getting it free. */
 function branchSpot(state, p, biz) {
   const board = state.board;
   const covered = new Set([...footprintDistricts(board, biz.footprint), ...branchDistricts(board, biz)]);
   let best = null, bestScore = -1;
   for (const k of Object.keys(board.graph)) {
-    if (k in board.owner || !plotFree(board, k)) continue;
+    if (!(k in board.owner) || !plotFree(board, k)) continue;   // the ground must already be owned
     const c = board.cellOf[k];
     const d = `${c.r},${c.c}`;
     if (covered.has(d)) continue;
@@ -315,7 +322,7 @@ function placeBranches(state, p, biz, log) {
     if (discsFree(state, p) <= 0) break;          // a branch you cannot staff is not opened
     const spot = branchSpot(state, p, biz);
     if (!spot) break;
-    board.owner[spot] = p.id;                      // holds the ground, so it costs a disc
+    /* the ground is already owned, by this player or a rival - a branch no longer takes it */
     board.occupiedBy[spot] = branchId(biz.id, have);
     board.branches[spot] = { playerId: p.id, bizId: biz.id };
     have++;
@@ -323,11 +330,14 @@ function placeBranches(state, p, biz, log) {
   }
 }
 function removeBranches(state, biz) {
+  /* The branch goes; the ground stays with whoever owns it. It was this player's own
+     doing when a branch seized free land, and deleting the owner was right then. Now
+     the plot was somebody's before the branch opened, and closing a shopfront cannot
+     dispossess them. */
   const board = state.board;
   for (const k of branchPlotsOf(board, biz)) {
     delete board.branches[k];
     delete board.occupiedBy[k];
-    delete board.owner[k];
   }
 }
 const LOCAL5 = { NW: [0, 0], N: [0, 2], NE: [0, 4], W: [2, 0], E: [2, 4], SW: [4, 0], S: [4, 2], SE: [4, 4] };
@@ -1566,6 +1576,13 @@ const bizGroundRent = (state, p, b) => b.footprint.reduce((s, plot) => {
   const ownerId = state.board.owner[plot];
   if (ownerId === undefined || ownerId === p.id) return s;
   return s + RENT_PER_LEVEL * levelsOn(b, plot);
+}, 0) + Object.keys(state.board.branches || {}).reduce((s, k) => {
+  /* A branch stands on ground somebody owns, so it pays that owner rent like anything
+     else standing on their land - one level's worth, since a shopfront is one storey. */
+  const br = state.board.branches[k];
+  if (!br || br.bizId !== b.id) return s;
+  const o = state.board.owner[k];
+  return (o === undefined || o === p.id) ? s : s + RENT_PER_LEVEL;
 }, 0);
 /* Every dollar of rent this player owes, companies and headquarters together. */
 const groundRentDue = (state, p) =>
@@ -2095,7 +2112,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "1bb893c5";
+const ENGINE_VERSION = "b1b315cf";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2719,17 +2736,29 @@ function awardRanked(state, scoreFn, label, log) {
 /* The two endgame land awards, exposed so the standings can show the same running
    totals players will actually be scored on. */
 function plotCount(state, p) {
-  /* Branch plots are deliberately excluded. A branch holds its ground - it takes a
-     disc and nobody can build there - but The Real-Estate Mogul pays for how much
-     land you hold, and a shopfront is not a holding. The Omnipresent, which pays
-     for where you ARE, counts them, and gets that from board.owner for free. */
+  /* THE AWARDS PAY FOR BUILT GROUND, NOT OWNED GROUND. They used to read board.owner,
+     so a plot bought and left bare scored exactly as much as one with a factory on it -
+     and measured, 78% of all land-award EP went to ground with nothing standing on it.
+     That buried the thing the awards are for: holding the most land is supposed to be a
+     race you win by DEVELOPING the city, and one horizontal disc spanning several
+     districts is the reason a horizontal industry is worth drafting. Neither could show
+     through a count dominated by land banking.
+
+     Branch plots stay out of this one. A branch holds its ground - it takes a disc and
+     nobody can build there - but The Real-Estate Mogul pays for how much land you have
+     developed, and a shopfront is not a holding. The Omnipresent, which pays for where
+     you ARE, counts them. */
   const br = state.board.branches || {};
-  return Object.entries(state.board.owner).filter(([k, id]) => id === p.id && !(k in br)).length;
+  const built = new Set();
+  activeBiz(p).forEach((b) => b.footprint.forEach((x) => { if (!(String(x) in br)) built.add(String(x)); }));
+  return built.size;
 }
 function districtCount(state, p) {
+  /* Built ground again, and a branch is somewhere you ARE, so it counts here. Bare
+     plots do not: owning a corner of a district is not being present in it. */
   const districts = new Set();
-  Object.entries(state.board.owner).forEach(([plot, id]) => {
-    if (id === p.id) districts.add(`${state.board.cellOf[plot].r},${state.board.cellOf[plot].c}`);
+  Object.entries(state.board.branches || {}).forEach(([plot, br]) => {
+    if (br && br.playerId === p.id) { const c = state.board.cellOf[plot]; if (c) districts.add(`${c.r},${c.c}`); }
   });
   activeBiz(p).forEach((b) => b.footprint.forEach((plot) => districts.add(`${state.board.cellOf[plot].r},${state.board.cellOf[plot].c}`)));
   return districts.size;
