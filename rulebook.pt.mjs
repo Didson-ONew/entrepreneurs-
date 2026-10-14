@@ -476,8 +476,8 @@ export const RULEBOOK_PT = [
             [
               "Varejo (RE)",
               "15 / 10 / 4",
-              "23 / 18 / 8",
-              "38 / 28 / 16"
+              "25 / 18 / 8",
+              "40 / 28 / 16"
             ],
             [
               "Hotelaria (HO)",
@@ -500,8 +500,8 @@ export const RULEBOOK_PT = [
             [
               "Tecnologia (TE)",
               "10 / 8 / 2",
-              "17 / 13 / 4",
-              "27 / 21 / 8"
+              "15 / 13 / 4",
+              "25 / 21 / 8"
             ]
           ]
         }
@@ -1893,8 +1893,8 @@ export const RULEBOOK_PT = [
             [
               "Varejo",
               "15 / 10 / 4",
-              "23 / 18 / 8",
-              "38 / 28 / 16",
+              "25 / 18 / 8",
+              "40 / 28 / 16",
               "2.50"
             ],
             [
@@ -1921,8 +1921,8 @@ export const RULEBOOK_PT = [
             [
               "Tecnologia",
               "10 / 8 / 2",
-              "17 / 13 / 4",
-              "27 / 21 / 8",
+              "15 / 13 / 4",
+              "25 / 21 / 8",
               "2.50"
             ]
           ]
@@ -2121,31 +2121,31 @@ export const RULEBOOK_PT = [
             [
               "Supermercado II",
               "2",
-              "23 / 18 / 8",
+              "25 / 18 / 8",
               "UT 10, HO 8"
             ],
             [
               "Loja de Departamentos II",
               "2",
-              "23 / 18 / 8",
+              "25 / 18 / 8",
               "UT 10, TE 8"
             ],
             [
               "Outlet II",
               "2",
-              "23 / 18 / 8",
+              "25 / 18 / 8",
               "HO 10, TE 8"
             ],
             [
               "Mega-Shopping III",
               "3",
-              "38 / 28 / 16",
+              "40 / 28 / 16",
               "UT 12, HO 8, TE 8"
             ],
             [
               "Hub Omnichannel III",
               "3",
-              "38 / 28 / 16",
+              "40 / 28 / 16",
               "UT 12, HO 8, TE 8"
             ]
           ]
@@ -2421,31 +2421,31 @@ export const RULEBOOK_PT = [
             [
               "Campus de Software II",
               "2",
-              "17 / 13 / 4",
+              "15 / 13 / 4",
               "MA 8, RE 5"
             ],
             [
               "Hub de Rede II",
               "2",
-              "17 / 13 / 4",
+              "15 / 13 / 4",
               "MA 8, HC 5"
             ],
             [
               "Operadora de Telecom II",
               "2",
-              "17 / 13 / 4",
+              "15 / 13 / 4",
               "RE 8, HC 5"
             ],
             [
               "Cluster de IA Senciente III",
               "3",
-              "27 / 21 / 8",
+              "25 / 21 / 8",
               "MA 8, RE 7, HC 6"
             ],
             [
               "Computação Quântica III",
               "3",
-              "27 / 21 / 8",
+              "25 / 21 / 8",
               "MA 8, RE 7, HC 6"
             ]
           ]

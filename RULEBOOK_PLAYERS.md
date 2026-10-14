@@ -234,11 +234,11 @@ Setup / OPEX / Production, by level.
 | Industry | Level 1 | Level 2 | Level 3 |
 | --- | --- | --- | --- |
 | Utilities (UT) | 15 / 6 / 3 | 20 / 11 / 6 | 30 / 15 / 12 |
-| Retail (RE) | 15 / 10 / 4 | 23 / 18 / 8 | 38 / 28 / 16 |
+| Retail (RE) | 15 / 10 / 4 | 25 / 18 / 8 | 40 / 28 / 16 |
 | Hospitality (HO) | 10 / 6 / 2 | 15 / 10 / 4 | 25 / 16 / 8 |
 | Manufacturing (MA) | 20 / 8 / 4 | 35 / 14 / 8 | 60 / 20 / 16 |
 | Healthcare (HC) | 20 / 10 / 3 | 35 / 18 / 6 | 60 / 28 / 12 |
-| Technology (TE) | 10 / 8 / 2 | 17 / 13 / 4 | 27 / 21 / 8 |
+| Technology (TE) | 10 / 8 / 2 | 15 / 13 / 4 | 25 / 21 / 8 |
 
 ### Who pays whom
 
@@ -712,11 +712,11 @@ Setup is paid to build and again to upgrade. OPEX is charged every quarter - $2 
 | Industry | Level 1 | Level 2 | Level 3 | Quarters to pay back at base price |
 | --- | --- | --- | --- | --- |
 | Utilities | 15 / 6 / 3 | 20 / 11 / 6 | 30 / 15 / 12 | 2.50 |
-| Retail | 15 / 10 / 4 | 23 / 18 / 8 | 38 / 28 / 16 | 2.50 |
+| Retail | 15 / 10 / 4 | 25 / 18 / 8 | 40 / 28 / 16 | 2.50 |
 | Hospitality | 10 / 6 / 2 | 15 / 10 / 4 | 25 / 16 / 8 | 2.50 |
 | Manufacturing | 20 / 8 / 4 | 35 / 14 / 8 | 60 / 20 / 16 | 1.67 |
 | Healthcare | 20 / 10 / 3 | 35 / 18 / 6 | 60 / 28 / 12 | 2.50 |
-| Technology | 10 / 8 / 2 | 17 / 13 / 4 | 27 / 21 / 8 | 2.50 |
+| Technology | 10 / 8 / 2 | 15 / 13 / 4 | 25 / 21 / 8 | 2.50 |
 
 Entry is paired - Hospitality and Technology at $10, Utilities and Retail at $15, Manufacturing and Healthcare at $20 - and five of the six pay back in the same 2.50 quarters at their base price. What differs is HOW FAR THE PRICE CAN FALL before a company stops making money.
 
@@ -761,11 +761,11 @@ Every card in the game, by industry. SETUP is what it costs to build, and again 
 | Local Market I | 1 | 15 / 10 / 4 | HO 10 |
 | Strip Mall I | 1 | 15 / 10 / 4 | HO 10 |
 | Vending Network I | 1 | 15 / 10 / 4 | TE 10 |
-| Supermarket II | 2 | 23 / 18 / 8 | UT 10, HO 8 |
-| Department Store II | 2 | 23 / 18 / 8 | UT 10, TE 8 |
-| Outlet Center II | 2 | 23 / 18 / 8 | HO 10, TE 8 |
-| Mega-Mall III | 3 | 38 / 28 / 16 | UT 12, HO 8, TE 8 |
-| Omni-Channel Hub III | 3 | 38 / 28 / 16 | UT 12, HO 8, TE 8 |
+| Supermarket II | 2 | 25 / 18 / 8 | UT 10, HO 8 |
+| Department Store II | 2 | 25 / 18 / 8 | UT 10, TE 8 |
+| Outlet Center II | 2 | 25 / 18 / 8 | HO 10, TE 8 |
+| Mega-Mall III | 3 | 40 / 28 / 16 | UT 12, HO 8, TE 8 |
+| Omni-Channel Hub III | 3 | 40 / 28 / 16 | UT 12, HO 8, TE 8 |
 
 ### Hospitality (HO) - base price $5, upgrades vertical
 
@@ -821,8 +821,8 @@ Every card in the game, by industry. SETUP is what it costs to build, and again 
 | Server Farm I | 1 | 10 / 8 / 2 | RE 8 |
 | IT Support Firm I | 1 | 10 / 8 / 2 | RE 8 |
 | Cloud Provider I | 1 | 10 / 8 / 2 | HC 8 |
-| Software Campus II | 2 | 17 / 13 / 4 | MA 8, RE 5 |
-| Network Hub II | 2 | 17 / 13 / 4 | MA 8, HC 5 |
-| Telecom Provider II | 2 | 17 / 13 / 4 | RE 8, HC 5 |
-| Sentient AI Cluster III | 3 | 27 / 21 / 8 | MA 8, RE 7, HC 6 |
-| Quantum Computing III | 3 | 27 / 21 / 8 | MA 8, RE 7, HC 6 |
+| Software Campus II | 2 | 15 / 13 / 4 | MA 8, RE 5 |
+| Network Hub II | 2 | 15 / 13 / 4 | MA 8, HC 5 |
+| Telecom Provider II | 2 | 15 / 13 / 4 | RE 8, HC 5 |
+| Sentient AI Cluster III | 3 | 25 / 21 / 8 | MA 8, RE 7, HC 6 |
+| Quantum Computing III | 3 | 25 / 21 / 8 | MA 8, RE 7, HC 6 |
