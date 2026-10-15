@@ -161,30 +161,44 @@ const TESTS = countFiles(/^test_.*\.js$/);
    play. A publisher discounts a designer's own enthusiasm and does not discount
    a stranger's.
 
-   Both lines are from one playtester's handwritten form after a physical
-   session, and BOTH ARE QUOTED VERBATIM, swearing included. A tidied quote is
-   not testimony any more, and "f***ing" would keep the word while looking
+   EVERY LINE IS QUOTED VERBATIM, swearing and all. A tidied quote is not
+   testimony any more, and "f***ing" would keep the word while looking
    embarrassed about it. If a particular publisher is the wrong audience for it,
    change WHICH line is quoted - never the words inside one.
 
-   They earn their space by saying two different things. The first is the
-   intensity a heavy euro lives on. The second is a learning curve admitted out
-   loud, which for this genre is not a warning but the product: a publisher of
-   heavy games is buying the game people come back to, and a designer who is
-   candid about the teach is a cheaper one to work with. */
-const QUOTES = [
-  "“Some people will fucking love this game.”",
-  "“…a game that may require a few plays to ‘get’, and that’s okay.”",
-];
-const QUOTE_SOURCE = "Michael Boggs  ·  playtester, physical session";
+   They come from seven handwritten forms after physical sessions, all
+   transcribed in PLAYTESTS.md, and they are picked to say four different
+   things. The intensity a heavy euro lives on. The theme arriving unprompted in
+   a player's own words - Tiago's line is his answer to "what is the goal of
+   this game", not to "did you like it". A player who wants the second play. And
+   a learning curve admitted out loud, which for this genre is not a warning but
+   the product: a publisher of heavy games is buying the game people come back
+   to, and a designer who is candid about the teach is a cheaper one to work with.
 
-const quote = (text, o = {}) => new Paragraph({
+   AND THE SCORES UNDERNEATH INCLUDE THE WEAK ONE. Rules clarity means 3.1 of 5
+   across the seven forms and is printed next to theme's 4.7, because a publisher
+   who playtests will find it in an afternoon, and the sheet that got there first
+   is the one they believe on the other numbers. It is named with the two things
+   built to answer it. */
+const QUOTES = [
+  ["“Some people will fucking love this game.”", "Michael Boggs"],
+  ["“Build your economy and obliterate your competitors.”", "Tiago Monteiro"],
+  ["“I can’t wait to play it again and experiment with different strategies.”", "Nikola"],
+  ["“…a game that may require a few plays to ‘get’, and that’s okay.”", "Michael Boggs"],
+];
+const QUOTE_SOURCE = "Seven handwritten forms after physical sessions  ·  theme 4.7/5, strategic depth 4.4/5, rules clarity 3.1/5 — the ten-minute teaching script and the built-in beginner game answer the last one";
+
+/* The name sits on the same line as the words, in smaller muted type. Four
+   quotes with four attribution lines under them would be eight paragraphs for
+   four sentences, and a publisher skimming would read the block as a wall. */
+const quote = (text, who, o = {}) => new Paragraph({
   spacing: { after: o.after ?? 60, line: 252 },
   indent: { left: 150 },
   border: { left: { style: BorderStyle.SINGLE, size: 12, color: VIOLET, space: 10 } },
-  children: [new TextRun({
-    text, font: FONT, size: o.size ?? 19, italics: true, color: INK,
-  })],
+  children: [
+    new TextRun({ text, font: FONT, size: o.size ?? 19, italics: true, color: INK }),
+    new TextRun({ text: "  \u2014 " + who, font: FONT, size: 16, color: MUTED }),
+  ],
 });
 
 const doc = new Document({
@@ -248,7 +262,7 @@ const doc = new Document({
         { size: 18 }),
 
       /* The simulation says it is balanced. It cannot say anyone enjoyed it. */
-      ...QUOTES.map((q) => quote(q)),
+      ...QUOTES.map(([q, who]) => quote(q, who)),
       new Paragraph({
         spacing: { after: 90, line: 252 },
         indent: { left: 150 },

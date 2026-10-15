@@ -6,7 +6,8 @@
    level) goes to whoever owns its land and the REST goes into its suppliers'
    pots, split in proportion to the `val` printed beside each one. At Revenue
    each pot is divided equally among that industry's active companies - one
-   share each whatever the level - and a pot with nobody to pay rides forward.
+   share each whatever the level - and a pot with nobody to pay is written off at
+   the end of that quarter.
 
    THE GRAPH IS PERFECTLY REGULAR AND THE MONEY IS NOT. Every industry buys from
    exactly three others and is listed by exactly seventeen cards, so the slot
@@ -56,9 +57,30 @@
    real corrective on the setup ladder, but it is conditional on being ALONE: the second
    player in halves it. A first-mover prize, not a standing subsidy.
 
-   THE EMPTY-POT RULE IS THE SHARPEST EDGE ON THE BOARD. Technology sits with nobody to
-   pay for 6.4 quarters a game, banking to $262. Three games in four somebody walks into
-   MA or TE late and scoops ~$50, up to $222 - a free company and change, uncontested.
+   THE EMPTY POT WAS THE SHARPEST EDGE ON THE BOARD AND IS NOW WRITTEN OFF. Under the
+   old rule - still measurable with --carry - a pot with nobody to pay rode forward and
+   grew, so the industry nobody served became the best-paid thing on the board. Over 400
+   games a table size on the shipped cards, --carry banks a pot of up to $355, hands out a
+   single scoop of up to $342, and pays a mean scoop of $31-$67 to whoever happens to
+   enter first. Written off, the same seeds give a biggest pot of $76, a biggest scoop of
+   $66 and a mean of $8-$19. Both maxima grow with the number of games measured; the means
+   do not, and they are the number to quote.
+
+   WHAT THE RULE DOES NOT DO is change WHO the pot favours. Per-company return spreads
+   1.86x written off against 1.89x carried at three players, 1.96x against 1.95x at four:
+   the rule scales every share down by about 40% and leaves the ranking alone. (An earlier
+   run of this header claimed 3.0x -> 2.3x. That was measured on the pre-rebalance card
+   set, where the spread was 3.0x to begin with.)
+
+   AND IT IS A TRADE, NOT A FREE FIX. Quarter-to-quarter emptiness does not move - 3.40
+   empty industry-quarters a game written off against 3.58 carried at three players, 2.63
+   against 2.58 at four, which flips sign between table sizes and is inside noise. What
+   moves is whether anybody turns up at ALL: measured in audit_setup --tails against the
+   commit before the rule, the deadest industry goes a whole game unentered in 26.1% of
+   games against 23.9% at three players, and 11.9% against 10.7% at four. A banked prize
+   was pulling players into industries nobody else wanted, and removing it leaves those
+   industries emptier. The judgement shipped is that an uncontested $342 late in a game
+   decided by a few EP is the worse of the two.
 
    THE SECOND CHANNEL REINFORCES THE FIRST. onLaunch moves the price track too, and an
    industry's price is lifted by how often its CUSTOMERS are built. MA +$1.9 and TE +$2.1
@@ -87,8 +109,9 @@
                                without shrinking it, and it cuts Retail's reliance on
                                growth from 83% to 63% as a side effect, by front-loading
                                the bill at level 1 (proposed MA opex is 12 against 4).
-     --expire                  worst scoop $222 -> $35, per-company 3.0x -> 2.3x, and no
-                               adverse feedback: orphan quarters do not budge.
+     the empty-pot rule        SHIPPED, and the one change here that reached the
+                               rulebook. --carry puts the old rule back for comparison:
+                               worst scoop $66 -> $342 and every share up about 40%.
      --graph heavy             per-company 3.0x -> 2.1x. Nothing on the flow (inside noise).
      both together             collects 1.84x, per-company 1.57x, worst scoop $85.
 
