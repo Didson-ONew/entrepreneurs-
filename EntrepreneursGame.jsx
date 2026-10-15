@@ -11,7 +11,13 @@ const BP_DATA = [{"code":"UT-01","ind":"UT","name":"Solar Field I","lvl":1,"setu
 const INDUSTRIES = ["UT", "RE", "HO", "MA", "HC", "TE"];
 const BASE_PRICE = { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 };
 const SCALING = { UT: "H", MA: "H", TE: "H", RE: "V", HO: "V", HC: "V" };
-const IND_COLOR = { UT: "#E8B330", RE: "#3FAE6A", HO: "#D65B4A", MA: "#9066C8", HC: "#3E8FD0", TE: "#D6428B" };
+/* Checked, not chosen by eye: audit_palette.js measures every pair in CIE Lab against
+   a floor of 15, four times over - as seen normally and through each of the three
+   dichromacies. The old set failed five pair-views, worst of all Manufacturing
+   against Healthcare at 3.3 for a deuteranope, which is the commonest form and more
+   than one player at a full table. These clear the floor everywhere, worst pair 27.3,
+   and each industry keeps the colour family players already name it by. */
+const IND_COLOR = { UT: "#D9C70D", RE: "#5DD067", HO: "#DA421D", MA: "#744BAA", HC: "#324DE1", TE: "#DD61B0" };
 const IND_NAME = { UT: "Utilities", RE: "Retail", HO: "Hospitality", MA: "Manufacturing", HC: "Healthcare", TE: "Technology" };
 const IND_ABILITY = {
   UT: "Reaches a level\u00d7level block of districts around it. Never uses hubs.",
@@ -54,7 +60,7 @@ const TILES = {
 };
 const SUBURB_POOL = ["R1", "R2", "R3", "R4", "R5", "C1", "C2", "C3", "C4", "C5", "A1", "A2", "A3", "I1", "I2", "I3"];
 const CENTER_POOL = ["FC", "IA", "CC", "LM"];
-const TILE_LABEL = { R:"#D65B4A22", C:"#3E8FD022" };
+const TILE_LABEL = { R:"#DA421D22", C:"#324DE122" };
 
 const DEMAND_ROWS = {
   R: ["UT", "RE", "TE", "UT"], C: ["HO", "MA", "HC", "HO"],
@@ -2112,7 +2118,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "e1471038";
+const ENGINE_VERSION = "c30ab802";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2468,7 +2474,15 @@ function runB2B(state, log) {
       activeBiz(p).forEach((b) => { if (bizInd(b) === ind) recipients.push({ p, b }); });
       megacorpHQs(p).forEach((b) => { if (bizInd(b) === ind && businessCanProduce(state, b)) recipients.push({ p, b }); });
     });
-    if (!recipients.length) continue;                    // nobody to pay: carries over
+    /* NOBODY TO PAY: THE MONEY IS WRITTEN OFF. It used to ride forward, and a pot
+       nobody could collect simply grew - Technology stood empty for six quarters of
+       an average game and banked up to $262, so three games in four somebody walked
+       into an empty industry late and scooped around $50, uncontested, for the price
+       of one company. That is a windfall decided by who happened to be positioned,
+       not by anything anyone played. Expiring it takes the lump away without making
+       industries any emptier: measured, the quarters an industry sits unbuilt do not
+       move, because the prize was never what drew anyone in. */
+    if (!recipients.length) { state.pots[ind] = 0; continue; }
     /* One equal share each, whatever size the companies are, and whatever will not
        divide cleanly rides forward in the pot. A big company draws no more from the
        pot than a small one - it is the industry that is being paid, not the building. */

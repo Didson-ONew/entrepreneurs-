@@ -330,7 +330,9 @@ Each pot is split evenly among the companies of that industry - one equal share 
 
 Whatever will not divide cleanly stays in the pot and rides forward. A pot of $10 shared between three Healthcare companies pays $3 to each and carries $1 into next quarter.
 
-A pot with no company of that type to pay carries over in full, growing quarter by quarter. An industry nobody serves is often the most profitable thing on the board.
+A POT WITH NOBODY TO PAY IS WRITTEN OFF. If an industry has no active company when its pot is shared out, that quarter's money is simply gone. Supplying an industry nobody operates in is money out of your pocket and into nobody's.
+
+That is worth reading twice when you plan a build. The industry you are about to enter pays you nothing for the quarters before you arrive.
 
 ---
 

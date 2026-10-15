@@ -27,7 +27,7 @@
         --rows6    the proposed demand table   --strat  the stratified draw
         --off N    start from seed N+1, for a same-rules control block
    And candidate repairs to the loop itself:
-        --expire   a pot with nobody to pay is written off, not banked for the first in
+        --carry    put back the old rule, where a pot with nobody to pay rode forward
         --bylevel  the pot splits in proportion to level, instead of one share each
         --nohq     a headquarters stops drawing a share it paid nothing into
         --graph N  re-point WHO supplies whom, holding every val and every template:
@@ -336,8 +336,10 @@ if (has("--nohq")) { need(HQ_SEAT, "the headquarters seat"); logic = logic.repla
 const HOOKS = [
   ["a pot credit", `        deps.forEach((d, i) => { state.pots[d.ind] += shares[i]; });`,
                    `        deps.forEach((d, i) => { __probe.pay(bizInd(b), d.ind, shares[i], b.level, !!b.upgraded); state.pots[d.ind] += shares[i]; });`],
-  ["an unclaimed pot", `    if (!recipients.length) continue;                    // nobody to pay: carries over`,
-                   `    if (!recipients.length) { __probe.orphan(ind, pot);${has("--expire") ? " state.pots[ind] = 0;" : ""} continue; }`],
+  /* The pot is written off now; --carry puts back the rule the game had before, where
+     it rode forward and the first company into an empty industry scooped the lot. */
+  ["an unclaimed pot", `    if (!recipients.length) { state.pots[ind] = 0; continue; }`,
+                   `    if (!recipients.length) { __probe.orphan(ind, pot); ${has("--carry") ? "" : "state.pots[ind] = 0; "}continue; }`],
   ["a pot payout", `    recipients.forEach((r) => { r.p.cash += share; });`,
                    `    __probe.payout(ind, share, recipients.length, pot);\n    recipients.forEach((r) => { r.p.cash += share; });`],
   ["a company launching", `function onLaunch(pm, ind, depInds) {`,
@@ -421,7 +423,7 @@ function run(seats) {
 }
 
 const ARMS = ["--flow", "--sheet2", "--sheet2pay", "--sheet3", "--sheet4", "--rows6", "--rows8",
-              "--rows9", "--sheet5", "--v3", "--v4", "--v5", "--strat", "--expire", "--bylevel", "--nohq"];
+              "--rows9", "--sheet5", "--v3", "--v4", "--v5", "--strat", "--carry", "--bylevel", "--nohq"];
 console.log(`\n${GAMES} games a table size.  arms: ${[...ARMS.filter(has), GRAPH ? "--graph " + GRAPH : "",
   GROW_OPEX !== null ? "--grow " + GROW_OPEX : ""].filter(Boolean).join(" ") || "as it ships"}.`);
 for (const seats of SIZES) {

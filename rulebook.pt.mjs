@@ -707,7 +707,13 @@ export const RULEBOOK_PT = [
         "p": "O que não dividir certinho fica no fundo e passa adiante. Um fundo de $10 dividido entre três empresas de Saúde paga $3 a cada uma e leva $1 para o trimestre seguinte."
       },
       {
-        "p": "Um fundo sem nenhuma empresa daquele tipo para pagar passa adiante por inteiro, crescendo trimestre a trimestre. Um setor que ninguém atende é muitas vezes a coisa mais lucrativa do tabuleiro."
+        "p": "UM POTE SEM NINGUÉM A QUEM PAGAR É DESCARTADO. Se um setor não tem nenhuma empresa ativa quando seu pote é distribuído, o dinheiro daquele trimestre simplesmente some. Abastecer um setor em que ninguém opera é dinheiro que sai do seu bolso e não entra no de ninguém."
+      },
+      {
+        "note": "Antes ele acumulava por inteiro, e isso fazia de um setor vazio a coisa mais lucrativa do tabuleiro. Medido: a Tecnologia ficava sem ninguém a quem pagar por 6.4 trimestres de uma partida média de três jogadores e acumulava até $262, então em três partidas de cada quatro alguém entrava tarde e abocanhava cerca de $50 - até $222 - sem disputa, pelo preço de uma empresa. Num tabuleiro em que uma empresa de nível 1 custa de $10 a $20, isso é uma empresa de graça e troco, decidido por quem por acaso estava posicionado e não por algo que alguém jogou. Descartar o pote tira o bolo e não custa nada: os trimestres em que um setor fica sem construção não mudam, porque o prêmio acumulado nunca foi o que atraía alguém. Ver audit_supply.js, onde --carry devolve a regra antiga."
+      },
+      {
+        "p": "Vale reler isso ao planejar uma construção. O setor em que você está prestes a entrar não lhe paga nada pelos trimestres anteriores à sua chegada."
       },
       {
         "note": "O dobrador da Tecnologia e o bônus de vizinhança da Hotelaria são as duas habilidades que escalam com o tabuleiro, e não com a carta, e são o motivo de esses dois setores parecerem fracos no papel e jogarem forte. Serviços Públicos era originalmente 'distância menor que o nível a partir de qualquer distrito de origem', o que discretamente deixava uma empresa de Serviços Públicos de nível 3 enxergar a cidade inteira; agora ela lê um bloco N x N honesto."

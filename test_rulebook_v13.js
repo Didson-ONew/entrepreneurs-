@@ -188,7 +188,10 @@ section("B2B - one equal share each, remainder rides forward");
   st2.pots = Object.fromEntries(E.INDUSTRIES.map((i) => [i, 0]));
   st2.pots.TE = 40;
   E.runB2B(st2, () => {});
-  check("a pot with nobody to pay carries over in full", st2.pots.TE === 40);
+  /* It used to carry over in full, and the first company into an empty industry
+     scooped the lot - measured at up to $262 banked and a ~$50 windfall in three
+     games out of four, decided by positioning rather than play. Written off now. */
+  check("a pot with nobody to pay is written off", st2.pots.TE === 0, `pot $${st2.pots.TE}`);
 }
 
 /* ------------------------------------------------------- going public / IPO */
