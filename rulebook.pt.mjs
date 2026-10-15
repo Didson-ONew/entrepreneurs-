@@ -1579,6 +1579,85 @@ export const RULEBOOK_PT = [
     ]
   },
   {
+    "id": "history",
+    "title": "Anexo: histórico de versões",
+    "blocks": [
+      {
+        "p": "O NÚMERO MUDA QUANDO UMA REGRA MUDA. Uma edição é reimpressa sempre que algo muda a ponto de tornar um manual mais antigo errado na mesa - não por uma frase mais clara, um erro de digitação corrigido ou um anexo novo sozinho. Se você tem uma edição anterior, é isto que está faltando."
+      },
+      {
+        "h": "v21 - esta edição"
+      },
+      {
+        "ul": [
+          "OS PRÊMIOS DE TERRAS PAGAM POR TERRENO CONSTRUÍDO. O Magnata Imobiliário conta lotes com uma de suas empresas em cima, e O Onipresente conta distritos em que você tem uma empresa ou uma filial de Varejo. Um lote cuja escritura você tem e no qual não construiu não conta nada. Na v20 ambos contavam propriedade, e 78% de todos os pontos de prêmios de terras iam para terreno vazio.",
+          "UMA FILIAL DE VAREJO FICA EM TERRENO DE ALGUÉM. Ela só pode abrir num lote que você ou um rival já possui, não toma a escritura, e no lote de um rival paga a ele $2 de aluguel por trimestre. Na v20 uma filial tomava terreno livre pelo preço de uma ficha, enquanto todo outro setor pagava em dinheiro pelo seu terreno.",
+          "TODO PROJETO TEM PREÇO NOVO. A entrada é pareada - Hotelaria e Tecnologia $10, Serviços Públicos e Varejo $15, Indústria e Saúde $20 - e cinco dos seis agora se pagam nos mesmos 2.50 trimestres ao preço base, contra uma amplitude de 3.14x antes. O que difere em lugar disso é quanto o preço pode cair antes de uma empresa parar de lucrar, de $1.50 no Varejo a $3 na Indústria.",
+          "A TABELA DE DEMANDA FOI REDESENHADA. Cada setor aparece agora em exatamente oito distritos, então a amplitude não carrega nada do equilíbrio, e os anos são inclinados de propósito: Indústria e Serviços Públicos são do início, Saúde e Tecnologia do fim, Hotelaria plana nos dois.",
+          "A MATRIZ DE FORNECEDORES FOI REAPONTADA. Cada setor ainda compra de três outros e é citado por três outros, mas catorze das dezoito ligações agora correm nos dois sentidos, em vez de dez.",
+          "Um anexo novo apresenta cada componente e os números impressos nele, e este aqui registra o histórico."
+        ]
+      },
+      {
+        "note": "Medido ao longo de 1500 partidas por número de jogadores, com um bloco de controle separado. Com três jogadores os três setores verticais levavam 90.9% das partidas na v20 e agora levam cerca de 69.5%; o setor mais dominante caiu de 43.6% para 34.8% e o mais silencioso subiu de 1.9% para 9.1%. Nenhuma das três mudanças vale muito sozinha - os prêmios de terras valem 8.8 pontos dessa divisão e a regra das filiais 1.8 - e juntas valem 15.4, porque terreno construído é o que torna uma filial valiosa e a regra das filiais é o que impede o setor que mais ganha com isso de disparar."
+      },
+      {
+        "h": "v20"
+      },
+      {
+        "ul": [
+          "O VALOR DE UM LOTE é seu preço de estrada impresso mais $3 por estrutura em cima dele ou encostando ortogonalmente - o lote e seus quatro vizinhos, cantos nunca contando. A v19 precificava por adjacência solta a $1 por vizinho, o que fazia do valor do lote a única regra do jogo em que um canto contava.",
+          "UM CENTRO LOGÍSTICO É UMA ESTRUTURA como qualquer outra, então move o preço de um vizinho nos mesmos $3. A v19 trazia uma cláusula à parte pagando $1 por encostar num centro, o que era redundante e invertido - um centro ocupa seu lote para sempre, que é mais do que uma empresa faz.",
+          "OS PRÊMIOS DE TERRAS ESCALAM COM A MESA: 4 PE mais o número de jogadores, só para o líder isolado, então 6 PE com dois assentos subindo a 10 com seis. Um prêmio fixo era um arredondamento numa mesa grande e um terço de uma pontuação vencedora numa pequena.",
+          "DUAS VARIANTES FORAM REMOVIDAS depois de vinte e seis partidas registradas em que ninguém ligou nenhuma das duas: centros logísticos na estrada, e níveis pontuam pesado.",
+          "UM JOGO DE INICIANTES foi adicionado e ajustado: 8 trimestres, quatro ações, sem Megacorporações, terras tomadas de graça ao construir."
+        ]
+      },
+      {
+        "h": "v19"
+      },
+      {
+        "ul": [
+          "Uma venda forçada pelo banco sai pelas mesmas metades da janela de insolvência. Na v18 ela rendia preço cheio e entregava um empréstimo que ninguém tinha pedido.",
+          "Uma partida encerrada numa virada de ano paga os prêmios de terras UMA vez. A v18 pagava duas.",
+          "Entrar num setor pela primeira vez vale 3 PE. A v18 imprimia 5.",
+          "Uma sede de Megacorporação paga um dízimo todo trimestre em vez de pontuar pelos vizinhos no fim.",
+          "Um empate é resolvido primeiro por empresas ativas, depois dinheiro, depois fichas de empréstimo.",
+          "Uma melhoria horizontal pode tomar qualquer lote vazio com dono, não só um seu - você paga aluguel ao dono.",
+          "As contagens de peças com cinco e seis jogadores estavam subestimadas na v18.",
+          "Esta edição trouxe pela primeira vez o anexo dos Projetos."
+        ]
+      },
+      {
+        "h": "v18"
+      },
+      {
+        "ul": [
+          "O glossário: o que o jargão econômico significa neste jogo, e o único lugar em que o jogo usa uma palavra de forma mais estreita que as finanças."
+        ]
+      },
+      {
+        "h": "v17"
+      },
+      {
+        "ul": [
+          "A ECONOMIA DE PREÇOS FOI RECONSTRUÍDA. Todo preço base subiu $2, a trilha foi refeita para ir de $2 a $12, uma construção move um marcador um dólar inteiro em vez de meio, e o dinheiro converte a $50 por PE em vez de $20. Os quatro são um ajuste só em quatro lugares e não podem ser separados.",
+          "O preço de recompra de um prédio em dificuldade é exatamente o que o banco pagou por ele, em vez de uma metade fixa do setup.",
+          "Quando uma Megacorporação se forma, sempre se pergunta qual empresa fica com o prédio."
+        ]
+      },
+      {
+        "h": "v16 e anteriores"
+      },
+      {
+        "p": "Não registradas individualmente. As edições v12, v15 e v16 entraram neste repositório junto com o primeiro commit que versionou documentos, e o que cada uma mudou antes disso nunca foi anotado. O teste-âncora do próprio motor ainda carrega o nome v13, que é a edição mais antiga a que qualquer verificação do repositório se refere."
+      },
+      {
+        "note": "Este anexo existe porque um número de versão que ninguém consegue decodificar é só uma data. Uma editora, um playtester com uma impressão na mão, ou eu daqui a dois anos, todos precisam olhar para uma capa e saber quais regras estão nela. Tudo aqui foi reconstruído a partir do histórico do próprio repositório, e onde o registro acaba - antes da v17 - ele diz isso em vez de chutar."
+      }
+    ]
+  },
+  {
     "id": "components",
     "title": "Anexo: cada componente e o que está impresso nele",
     "blocks": [

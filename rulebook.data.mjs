@@ -25,23 +25,15 @@
      { note }   designer's note - PLAYERS NEVER SEE THIS
    ========================================================================== */
 
-/* v19 rather than a corrected v18. Two things changed that a v18 book gets wrong
-   at the table, so a reader has to be able to tell the two apart. The rules: a
-   forced sale by the bank now goes at the same half rates as the shortfall window,
-   where it used to fetch full price and hand out a loan nobody asked for, and a
-   game called on a year end pays the land awards once rather than twice. The text:
-   the industry debut is 3 EP and was printed as 5, the Megacorp headquarters pays
-   a tithe every quarter rather than scoring for its neighbours at the end, a tie is
-   broken by active companies first, a horizontal upgrade may take any owned empty
-   plot rather than only your own, and the tile counts at five and six players were
-   understated. This edition also carries the Blueprint annex, which v18 did not.
+/* v21 rather than a corrected v20. Three rules changed, and a v20 book gets all
+   three wrong at the table: the two land awards now pay for ground you have BUILT
+   on rather than ground you merely own, a Retail branch must stand on a plot
+   somebody already owns and pays that owner rent, and every Blueprint has a
+   new price. A reader has to be able to tell the two apart, so the number moves.
 
-   The v17 note, kept because it explains the numbers a v16 holder still has:
-   the released v16 was cut before the price economy was rebuilt - every base $2
-   higher, the track running $2..$12, a whole dollar per event and cash converting
-   at $50 per EP - and before a distressed building's buy-back price changed from a
-   flat half setup to exactly what the bank paid for it. */
-export const EDITION = "Rulebook v20";
+   The full history, and what each earlier edition changed, is the last annex in
+   this book. The v19 and v17 notes that used to sit here have moved there. */
+export const EDITION = "Rulebook v21";
 
 /* Filter the book down to one edition. `edition` is "digital" (the app, which has a
    host, bots and a waiting room) or "table" (a physical game, which has none of them).
@@ -679,6 +671,63 @@ export const RULEBOOK = [
 },
 
 
+
+/* ------------------------------------------------------------------ */
+{
+  id: "history",
+  title: "Annex: version history",
+  blocks: [
+    { p: "THE NUMBER MOVES WHEN A RULE MOVES. An edition is reprinted whenever something changes that would make an older book wrong at the table - not for a clearer sentence, a corrected typo or a new annex on its own. If you are holding an earlier edition, this is what you are missing." },
+
+    { h: "v21 - this edition" },
+    { ul: [
+      "THE LAND AWARDS PAY FOR BUILT GROUND. The Real-Estate Mogul counts plots with one of your companies standing on them, and The Omnipresent counts districts you have a company or a Retail branch in. A plot you hold the deed to and have not built on counts for nothing. Under v20 both counted ownership, and 78% of all land-award points were going to empty ground.",
+      "A RETAIL BRANCH STANDS ON GROUND SOMEBODY OWNS. It may only open on a plot you or a rival already holds, it does not take the deed, and on a rival's plot it pays them $2 of rent every quarter. Under v20 a branch took free land for the price of a disc, while every other industry paid cash for its ground.",
+      "EVERY BLUEPRINT HAS A NEW PRICE. Entry is paired - Hospitality and Technology $10, Utilities and Retail $15, Manufacturing and Healthcare $20 - and five of the six now pay back in the same 2.50 quarters at base price, against a spread of 3.14x before. What differs instead is how far the price can fall before a company stops earning, from Retail's $1.50 to Manufacturing's $3.",
+      "THE DEMAND TABLE IS REDRAWN. Every industry now appears in exactly eight districts, so breadth carries none of the balance, and the years are deliberately tilted: Manufacturing and Utilities are early, Healthcare and Technology late, Hospitality flat across both.",
+      "THE SUPPLIER MATRIX IS REDIRECTED. Each industry still buys from three others and is named by three others, but fourteen of the eighteen links now run both ways rather than ten.",
+      "A new annex sets out every component and the numbers printed on it, and this one records the history.",
+    ] },
+    { note: "Measured over 1500 games a table size, with a disjoint control block. At three players the three vertical industries took 90.9% of games under v20 and now take about 69.5%; the most-dominant industry is down from 43.6% to 34.8% and the quietest up from 1.9% to 9.1%. None of the three changes is worth much alone - the land awards are worth 8.8 points of that split and the branch rule 1.8 - and together they are worth 15.4, because built ground is what makes a branch worth having and the branch rule is what stops the industry that gains most from running away with it." },
+
+    { h: "v20" },
+    { ul: [
+      "A PLOT'S VALUE is its printed road price plus $3 for every structure standing on it or orthogonally touching it - the plot and its four neighbours, corners never counting. v19 priced by loose adjacency at $1 a neighbour, which made plot value the only rule in the game where a corner counted.",
+      "A LOGISTIC HUB IS A STRUCTURE like any other, so it moves a neighbour's price by the same $3. v19 carried a separate clause paying $1 for touching a hub, which was both redundant and backwards - a hub fills its plot permanently, which is more than a company does.",
+      "THE LAND AWARDS SCALE WITH THE TABLE: 4 EP plus the number of players, to the outright leader alone, so 6 EP at two seats rising to 10 at six. A flat prize was a rounding error at a big table and a third of a winning score at a small one.",
+      "TWO VARIANTS WERE REMOVED after twenty-six recorded games in which nobody switched either on: hubs on the road, and levels score heavy.",
+      "A BEGINNER GAME was added and tuned: 8 quarters, four actions, no Megacorps, land claimed free by building.",
+    ] },
+
+    { h: "v19" },
+    { ul: [
+      "A forced sale by the bank goes at the same half rates as the shortfall window. In v18 it fetched full price and handed out a loan nobody had asked for.",
+      "A game called on a year end pays the land awards ONCE. v18 paid them twice.",
+      "Entering an industry for the first time is 3 EP. v18 printed 5.",
+      "A Megacorp headquarters pays a tithe every quarter instead of scoring for its neighbours at the end.",
+      "A tie is broken by active companies first, then money, then loan discs.",
+      "A horizontal upgrade may take any owned empty plot, not only one of your own - you pay the owner rent for it.",
+      "The tile counts at five and six players were understated in v18.",
+      "This edition first carried the Blueprint annex.",
+    ] },
+
+    { h: "v18" },
+    { ul: [
+      "The glossary: what the economic jargon means in this game, and the one place the game uses a word more narrowly than finance does.",
+    ] },
+
+    { h: "v17" },
+    { ul: [
+      "THE PRICE ECONOMY WAS REBUILT. Every base price went up $2, the track was re-cut to run $2 to $12, a build moves a marker a whole dollar rather than half, and cash converts at $50 per EP instead of $20. The four are one setting in four places and cannot be taken separately.",
+      "A distressed building's buy-back price is exactly what the bank paid for it, rather than a flat half of setup.",
+      "When a Megacorp forms, you are always asked which company keeps the building.",
+    ] },
+
+    { h: "v16 and earlier" },
+    { p: "Not individually recorded. The v12, v15 and v16 editions entered this repository together with the first commit that tracked documents, and what each one changed before that was never written down. The engine's own anchor test still carries the v13 name, which is the earliest edition any check in the repository refers to." },
+    { note: "This annex exists because a version number that nobody can decode is just a date. A publisher, a playtester holding a printout, or me in two years all need to be able to look at a cover and know which rules are in it. Everything here was reconstructed from the repository's own history rather than from memory, and where the record runs out - before v17 - it says so instead of guessing." },
+  ],
+},
 /* ------------------------------------------------------------------ */
 {
   id: "components",

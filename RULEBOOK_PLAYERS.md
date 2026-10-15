@@ -1,6 +1,6 @@
 # Entrepreneurs - How to play
 
-*Rulebook v20. Everything you need to play, and nothing you don't.*
+*Rulebook v21. Everything you need to play, and nothing you don't.*
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
@@ -21,8 +21,9 @@
 17. [Playing online](#online)
 18. [Quick reference](#quickref)
 19. [The words on the board](#glossary)
-20. [Annex: every component, and what is printed on it](#components)
-21. [Annex: the sixty Blueprints](#blueprints)
+20. [Annex: version history](#history)
+21. [Annex: every component, and what is printed on it](#components)
+22. [Annex: the sixty Blueprints](#blueprints)
 
 ---
 
@@ -630,6 +631,56 @@ Almost every term in this game is a real one, used the way a real business uses 
 | Fiscal year | The twelve months a company reports on, which need not match the calendar. In the game: three of them, four quarters each. Accounts are settled at the end of every year. |
 | Quarter | A three-month reporting period; public companies report four times a year. In the game: one round - plan, act, produce, sell, close. |
 | EP | Not a real term - the game's own score. Entrepreneurial Points: buildings, industry debuts, Megacorps, land and leftover cash all convert to it. |
+
+---
+
+<a id="history"></a>
+
+## Annex: version history
+
+THE NUMBER MOVES WHEN A RULE MOVES. An edition is reprinted whenever something changes that would make an older book wrong at the table - not for a clearer sentence, a corrected typo or a new annex on its own. If you are holding an earlier edition, this is what you are missing.
+
+### v21 - this edition
+
+- THE LAND AWARDS PAY FOR BUILT GROUND. The Real-Estate Mogul counts plots with one of your companies standing on them, and The Omnipresent counts districts you have a company or a Retail branch in. A plot you hold the deed to and have not built on counts for nothing. Under v20 both counted ownership, and 78% of all land-award points were going to empty ground.
+- A RETAIL BRANCH STANDS ON GROUND SOMEBODY OWNS. It may only open on a plot you or a rival already holds, it does not take the deed, and on a rival's plot it pays them $2 of rent every quarter. Under v20 a branch took free land for the price of a disc, while every other industry paid cash for its ground.
+- EVERY BLUEPRINT HAS A NEW PRICE. Entry is paired - Hospitality and Technology $10, Utilities and Retail $15, Manufacturing and Healthcare $20 - and five of the six now pay back in the same 2.50 quarters at base price, against a spread of 3.14x before. What differs instead is how far the price can fall before a company stops earning, from Retail's $1.50 to Manufacturing's $3.
+- THE DEMAND TABLE IS REDRAWN. Every industry now appears in exactly eight districts, so breadth carries none of the balance, and the years are deliberately tilted: Manufacturing and Utilities are early, Healthcare and Technology late, Hospitality flat across both.
+- THE SUPPLIER MATRIX IS REDIRECTED. Each industry still buys from three others and is named by three others, but fourteen of the eighteen links now run both ways rather than ten.
+- A new annex sets out every component and the numbers printed on it, and this one records the history.
+
+### v20
+
+- A PLOT'S VALUE is its printed road price plus $3 for every structure standing on it or orthogonally touching it - the plot and its four neighbours, corners never counting. v19 priced by loose adjacency at $1 a neighbour, which made plot value the only rule in the game where a corner counted.
+- A LOGISTIC HUB IS A STRUCTURE like any other, so it moves a neighbour's price by the same $3. v19 carried a separate clause paying $1 for touching a hub, which was both redundant and backwards - a hub fills its plot permanently, which is more than a company does.
+- THE LAND AWARDS SCALE WITH THE TABLE: 4 EP plus the number of players, to the outright leader alone, so 6 EP at two seats rising to 10 at six. A flat prize was a rounding error at a big table and a third of a winning score at a small one.
+- TWO VARIANTS WERE REMOVED after twenty-six recorded games in which nobody switched either on: hubs on the road, and levels score heavy.
+- A BEGINNER GAME was added and tuned: 8 quarters, four actions, no Megacorps, land claimed free by building.
+
+### v19
+
+- A forced sale by the bank goes at the same half rates as the shortfall window. In v18 it fetched full price and handed out a loan nobody had asked for.
+- A game called on a year end pays the land awards ONCE. v18 paid them twice.
+- Entering an industry for the first time is 3 EP. v18 printed 5.
+- A Megacorp headquarters pays a tithe every quarter instead of scoring for its neighbours at the end.
+- A tie is broken by active companies first, then money, then loan discs.
+- A horizontal upgrade may take any owned empty plot, not only one of your own - you pay the owner rent for it.
+- The tile counts at five and six players were understated in v18.
+- This edition first carried the Blueprint annex.
+
+### v18
+
+- The glossary: what the economic jargon means in this game, and the one place the game uses a word more narrowly than finance does.
+
+### v17
+
+- THE PRICE ECONOMY WAS REBUILT. Every base price went up $2, the track was re-cut to run $2 to $12, a build moves a marker a whole dollar rather than half, and cash converts at $50 per EP instead of $20. The four are one setting in four places and cannot be taken separately.
+- A distressed building's buy-back price is exactly what the bank paid for it, rather than a flat half of setup.
+- When a Megacorp forms, you are always asked which company keeps the building.
+
+### v16 and earlier
+
+Not individually recorded. The v12, v15 and v16 editions entered this repository together with the first commit that tracked documents, and what each one changed before that was never written down. The engine's own anchor test still carries the v13 name, which is the earliest edition any check in the repository refers to.
 
 ---
 
