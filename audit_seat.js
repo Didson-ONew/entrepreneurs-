@@ -33,45 +33,89 @@
      rotate     turn order rotates one seat every quarter, so first player comes
                 round to everybody; capital and cards untouched
 
-   WHAT IT FOUND - 400 games an arm a table size, measured AFTER placeNewLH was
-   taught to aim. The first run of this probe predates that fix and its numbers
-   are not comparable; this is the one that counts.
+   EVERYTHING BELOW WAS RE-MEASURED AFTER v21. The findings this header used to
+   carry were taken before built-ground land awards, branch rent and the new card
+   ladder went in, and they did not survive the change. They are kept at the
+   bottom, marked, because a probe that quietly swaps its conclusion is a probe
+   nobody can check.
 
-   SEAT 1 IS THE WORST SEAT, NOT THE BEST. At three players it wins 27.9% against
-   a 33.3% baseline and finishes 6.6 EP behind seat 3, which wins 40.0%. At four
-   it is 24.1% against 25.0%, which is near enough to chance. The compensation
-   for going late is not thin, it is too generous: seat 3 holds three Blueprints
-   to seat 1's one AND drafts first, and the cards beat the $6 of capital.
+   WHAT IT FINDS NOW - 1000 games an arm a table size, all five arms, seeds
+   1..1000, cross-checked against a 400-game block at --len 12.
 
-   SO REVERSING THE CAPITAL MAKES IT WORSE - seat 3 to 40.5% at three players,
-   and to 34.8% at four where it had been 22.5%. So does rotating turn order,
-   44.1% at three, because order is not what was carrying the seat. The only arm
-   that closes the gap is flatAll, equal capital AND equal cards: 32.5 / 33.8 /
-   33.8, a spread of 1.3 points against the shipped 12.1.
+   SEAT 2 IS THE BEST SEAT, AND BOTH ENDS OF THE TABLE PAY FOR IT. At three
+   players seat 2 wins 41.9% against a 33.3% baseline while seat 1 takes 28.7%
+   and seat 3 takes 29.3% - the two extremes land within half a point of each
+   other and the middle runs away with it. At four players it is 26.0 / 29.5 /
+   23.0 / 21.5. The compensation curve is not too steep or too shallow, it is the
+   WRONG SHAPE: most capital and fewest cards is a bad hand, fewest capital and
+   most cards is also a bad hand, and the seat holding the middle of both beats
+   them. That is not the problem the old numbers described and it does not have
+   the same fix.
 
-   AND THE BLINDNESS THAT USED TO QUALIFY ALL OF THIS IS GONE. placeNewLH picked
-   uniformly at random until recently, so the one first-player privilege that
-   never expires was worth exactly zero in every simulation here. It now scores
-   each candidate plot for the first player. Measured either way, the verdict did
-   not move: in audit_first_player the seat holding first longest wins 34.0% with
-   aiming and 33.9% without at three players, 27.3% against 25.5% at four. Aiming
-   the hub is worth about two points of win rate at four seats and nothing at
-   three, because first player circulates - it is held for 1.8 quarters in a row
-   at four players and REPOSITION is taken five times a game.
+   AND THE FIX REVERSED TOO. flatAll - equal capital AND equal cards - used to be
+   the only arm that closed the gap and is now among the worst: it hands three
+   players a 11.6-point spread by making seat 1 dominant at 38.0%, and at four
+   players it OPENS the spread, 9.3 against a shipped 8.0. What closes it now is
+   the pair that used to fail. REVERSED, which is Rick's wand, takes four players
+   to a 4.4-point spread from 8.0 and three to 8.8 from 13.2. ROTATE takes three
+   to 7.0. Rick asked for the capital column to be reversed, this probe told him
+   it made things worse, and on the rebalanced game he is right. The reason is
+   legible: v21 pays for building EARLY and building WIDE, so capital compounds
+   where it used to sit, and handing the most of it to the seat that also moves
+   first stacks two advantages that now multiply.
 
-   WHAT IS STILL NOT MODELLED, and it is the honest reason a table may disagree:
-   bots do not fight over demand icons the way a human reading the board does,
-   and delivery order is the other thing seat 1 holds. A table that says seat 1
-   is a godsend is pointing at that, not at the hub.
+   HANNA, PLAYING ONE YEAR, SAID THE LAST PLAYER IS SET TO LOSE - AND AT THAT
+   LENGTH SHE IS RIGHT. Her table played FOUR QUARTERS, so --len was added to cut
+   the game rather than argue with her. At four players and four quarters the last
+   seat wins 17.5% against a 25.0% baseline, a 16.8-point spread; at eight it is
+   24.1% and 3.9; at twelve, 21.5% and 8.0. A Blueprint is only worth what you
+   have time to build and run, so the late seat's three cards need a game long
+   enough to pay, while capital and delivery order pay from quarter one. The
+   compensation is sized for twelve quarters and is simply wrong at four.
 
-   Run: node audit_seat.js [games a table size] [seats...]
+   THAT MAKES IT A LENGTH-DEPENDENT RULE, not a flat one, and it is the strongest
+   argument in this file: whatever the opening table becomes, the beginner game
+   and any one-year teaching game need their own, because flatAll at four quarters
+   is the worst arm measured anywhere here (20.1-point spread at three players)
+   and reversed is the best.
+
+   WHAT IS STILL NOT MODELLED, and it is the honest reason a table may disagree
+   in the other direction: bots do not fight over demand icons the way a human
+   reading the board does. The ENGINE enforces delivery order - turn order decides
+   who sells first and icons are first come first served - but a bot does not
+   build somewhere BECAUSE a rival would reach the icon first. Chris, at Hanna's
+   table, wrote that there "was no challenge to Player 1". That is the part these
+   numbers cannot price.
+
+   THE HUB BLINDNESS IS GONE and it changed nothing. placeNewLH picked uniformly
+   at random until recently, so the one first-player privilege that never expires
+   was worth zero in every simulation here. It now scores each candidate plot.
+   Measured either way the verdict did not move: in audit_first_player the seat
+   holding first longest wins 34.0% with aiming and 33.9% without at three
+   players, 27.3% against 25.5% at four. Aiming is worth about two points at four
+   seats and nothing at three, because first player circulates - held 1.8 quarters
+   in a row at four players, with REPOSITION taken five times a game.
+
+   SUPERSEDED, kept for the record - the pre-v21 run, 400 games an arm: seat 1
+   worst at 27.9% and seat 3 best at 40.0% at three players; reversing the capital
+   pushed seat 3 to 40.5% and rotating to 44.1%; flatAll closed the spread to 1.3
+   points against a shipped 12.1. Every one of those statements is false on the
+   current engine. Nothing about the probe changed - the game did.
+
+   Run: node audit_seat.js [games a table size] [seats...] [--len N]
    ========================================================================== */
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 
-const GAMES = parseInt(process.argv[2] || "300", 10);
-const SEATS = process.argv.slice(3).map(Number).filter(Boolean);
+const ARGV = process.argv.slice(2);
+/* --len is pulled out before the seat list is read, or its argument would be
+   counted as a table size. */
+const LEN_AT = ARGV.indexOf("--len");
+const LEN = LEN_AT >= 0 ? parseInt(ARGV[LEN_AT + 1], 10) : 0;
+if (LEN_AT >= 0) ARGV.splice(LEN_AT, 2);
+const GAMES = parseInt(ARGV[0] || "300", 10);
+const SEATS = ARGV.slice(1).map(Number).filter(Boolean);
 const SIZES = SEATS.length ? SEATS : [3, 4];
 
 const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
@@ -87,9 +131,13 @@ const STARTING_NEEDLE = `const STARTING = {
   3: [[25, 1], [22, 2], [19, 3]],
   2: [[20, 2], [20, 2]],
 };`;
+const FINAL_NEEDLE = `const finalQuarterOf = (state) => (isBeginner(state) ? BEGINNER_QUARTERS : 12);`;
+const YEAREND_NEEDLE = `const yearEndsOf = (state) => (isBeginner(state) ? [4, 8] : [4, 8, 12]);`;
 const ROTATE_NEEDLE = `  state.quarter += 1;
   log(logMsg("\\u25b6 Year {0}, Quarter {1}", Math.ceil(state.quarter / 4), state.quarter), null);`;
-for (const [name, needle] of [["STARTING", STARTING_NEEDLE], ["quarter advance", ROTATE_NEEDLE]]) {
+const NEEDLES = [["STARTING", STARTING_NEEDLE], ["quarter advance", ROTATE_NEEDLE]];
+if (LEN) NEEDLES.push(["the final quarter", FINAL_NEEDLE], ["the year ends", YEAREND_NEEDLE]);
+for (const [name, needle] of NEEDLES) {
   if (!BASE.includes(needle)) {
     console.error(`the engine changed shape around ${name} - update this probe`);
     process.exit(2);
@@ -121,6 +169,14 @@ const ARMS = ["current", "flatCash", "flatAll", "reversed", "rotate"];
 
 function engine(arm) {
   let logic = BASE;
+  /* A shorter game, if one was asked for. The land award still pays at every
+     year end that FITS - a four-quarter game pays it once, which is what a table
+     playing one year actually sees. */
+  if (LEN) {
+    logic = logic.replace(FINAL_NEEDLE, `const finalQuarterOf = (state) => ${LEN};`);
+    logic = logic.replace(YEAREND_NEEDLE,
+      `const yearEndsOf = (state) => ${JSON.stringify([4, 8, 12].filter((q) => q <= LEN))};`);
+  }
   if (arm !== "current" && arm !== "rotate") {
     logic = logic.replace(STARTING_NEEDLE, "const STARTING = " + JSON.stringify(tableFor(arm)) + ";");
   }
@@ -159,7 +215,8 @@ function play(E, seats, seed) {
 }
 
 const pct = (x) => (100 * x).toFixed(1) + "%";
-console.log(`\n${GAMES} games an arm a table size, seeds 1..${GAMES}, all-bot tables.`);
+console.log(`\n${GAMES} games an arm a table size, seeds 1..${GAMES}, all-bot tables` +
+  (LEN ? `, cut to ${LEN} quarters.` : "."));
 console.log("Seat 1 is first in turn order at setup: most capital, fewest cards, first to deliver.\n");
 
 for (const n of SIZES) {

@@ -183,20 +183,23 @@ const TESTS = countFiles(/^test_.*\.js$/);
 const QUOTES = [
   ["“Some people will fucking love this game.”", "Michael Boggs"],
   ["“Build your economy and obliterate your competitors.”", "Tiago Monteiro"],
-  ["“I can’t wait to play it again and experiment with different strategies.”", "Nikola"],
+  ["“Sim. Eu super compraria esse jogo!”", "Fábio Zanin", "“Yes. I would totally buy this game!”"],
   ["“…a game that may require a few plays to ‘get’, and that’s okay.”", "Michael Boggs"],
 ];
-const QUOTE_SOURCE = "Seven handwritten forms after physical sessions  ·  theme 4.7/5, strategic depth 4.4/5, rules clarity 3.1/5 — the ten-minute teaching script and the built-in beginner game answer the last one";
+const QUOTE_SOURCE = "Twelve handwritten forms after physical sessions  ·  strategic depth 4.3/5, theme immersion 4.3/5, rules clarity 3.3/5 — clarity was 3.1 before the teaching script and the beginner game, and is 3.6 on the forms from the current version";
 
 /* The name sits on the same line as the words, in smaller muted type. Four
    quotes with four attribution lines under them would be eight paragraphs for
-   four sentences, and a publisher skimming would read the block as a wall. */
-const quote = (text, who, o = {}) => new Paragraph({
+   four sentences, and a publisher skimming would read the block as a wall. A
+   gloss, where there is one, goes between them: still italic because it is still
+   the quote, but muted and a size down because it is not the words. */
+const quote = (text, who, gloss, o = {}) => new Paragraph({
   spacing: { after: o.after ?? 60, line: 252 },
   indent: { left: 150 },
   border: { left: { style: BorderStyle.SINGLE, size: 12, color: VIOLET, space: 10 } },
   children: [
     new TextRun({ text, font: FONT, size: o.size ?? 19, italics: true, color: INK }),
+    ...(gloss ? [new TextRun({ text: "  " + gloss, font: FONT, size: 17, italics: true, color: MUTED })] : []),
     new TextRun({ text: "  \u2014 " + who, font: FONT, size: 16, color: MUTED }),
   ],
 });
@@ -262,7 +265,7 @@ const doc = new Document({
         { size: 18 }),
 
       /* The simulation says it is balanced. It cannot say anyone enjoyed it. */
-      ...QUOTES.map(([q, who]) => quote(q, who)),
+      ...QUOTES.map(([q, who, gloss]) => quote(q, who, gloss)),
       new Paragraph({
         spacing: { after: 90, line: 252 },
         indent: { left: 150 },
