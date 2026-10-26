@@ -50,6 +50,7 @@ const quiet = () => {};
    costs its disc when it is bought instead of when the branch lands on it. */
 function ownNextDoor(st, me, homePlot, n) {
   const c0 = st.board.cellOf[homePlot], taken = [];
+  if (n <= 0) return 0;   // a level-1 chain has no branch to buy ahead of
   for (const k of Object.keys(st.board.graph)) {
     if (!E.plotFree(st.board, k) || k in st.board.owner) continue;
     const c = st.board.cellOf[k];
@@ -71,18 +72,18 @@ function retailTable(lvl, seed = 5) {
   me.hand.push(bp);
   const spot = Object.keys(st.board.graph).find((k) => E.plotFree(st.board, k) && !(k in st.board.owner));
   st.board.owner[spot] = me.id;
-  ownNextDoor(st, me, spot, lvl);
+  ownNextDoor(st, me, spot, lvl - 1);   // v22: one plot per branch, and a chain has level - 1 of them
   const built = E.doLaunch(st, me, bp, E.mulberry32(seed + 1), quiet, [spot]);
   return { st, me, spot, built, biz: me.businesses[me.businesses.length - 1] };
 }
 
-section("one branch per level, each holding its own ground");
+section("a chain is its level in shopfronts - the home and one branch per level above it - each holding its own ground");
 {
   for (const lvl of [1, 2, 3]) {
     const { st, me, built, biz } = retailTable(lvl);
     if (!built) { check(`level ${lvl}: built`, false); continue; }
     const br = E.branchPlotsOf(st.board, biz);
-    const want = lvl;
+    const want = lvl - 1;   // v22: a level-L chain is L shops INCLUDING the home
     check(`level ${lvl}: opens ${want} branch(es)`, br.length === want, `${br.length}`);
     const held = br.every((k) => st.board.owner[k] === me.id);
     check(`level ${lvl}: every branch holds its plot`, held);
@@ -140,7 +141,7 @@ function tableWithOpenNeighbour(lvl) {
 
 section("a branch is a structure, so the land around it is dearer");
 {
-  const t = tableWithOpenNeighbour(1);
+  const t = tableWithOpenNeighbour(2);   // a level-1 chain has no branch since v22
   if (!t) { check("found a board to measure on", false); }
   else {
     const { st, br, nbr } = t;
@@ -154,7 +155,7 @@ section("a branch is a structure, so the land around it is dearer");
 
 section("Hospitality counts a branch like any other building in range");
 {
-  const t = tableWithOpenNeighbour(1);
+  const t = tableWithOpenNeighbour(2);   // a level-1 chain has no branch since v22
   if (!t) { check("found a board to measure on", false); }
   else {
     const { st, br, nbr } = t;
@@ -191,7 +192,7 @@ section("sold, the shopfronts come down");
 {
   const { st, me, biz } = retailTable(3);
   const br = E.branchPlotsOf(st.board, biz);
-  check("three branches standing", br.length === 3, `${br.length}`);
+  check("two branches standing at level 3", br.length === 2, `${br.length}`);
   const before = E.discsPerPlayer(st) - E.discsFree(st, me);
   E.sellCompany(st, me, biz, true);
   check("no branch is left on the board", E.branchPlotsOf(st.board, biz).length === 0);

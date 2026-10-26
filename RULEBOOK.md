@@ -338,7 +338,7 @@ A company can always sell into the district or districts its own plots sit in. B
 | Industry | Ability |
 | --- | --- |
 | Utilities | Reads demand across a block of districts as wide as its level, positioned anywhere that still covers its own footprint. Never uses hubs. |
-| Retail | Opens BRANCHES - one shopfront per level, each on a plot somebody already owns, each in a district the chain can reach. It sells into every district it has a branch in. Never uses hubs. |
+| Retail | A chain is its level in shopfronts: its own plot and one BRANCH for every level above the first, each on a plot somebody already owns, each in a district the chain can reach. It sells into every district it stands in. Never uses hubs. |
 | Hospitality | May sell to the businesses and hubs around it instead of to demand icons - one unit at market price for each business or hub within its level in plots, no icon needed. Those units come out of its production like any other. |
 | Manufacturing | May route up to its level in units into OTHER industries' rows in its own district. Those units come out of its production - cross-selling is a place to send goods, not extra goods. |
 | Healthcare | Reaches every district on the hub network without touching a hub. |
@@ -346,7 +346,7 @@ A company can always sell into the district or districts its own plots sit in. B
 
 ### Retail branches
 
-Retail does not reach further by declaring it. It OPENS A SHOPFRONT: one branch per level, each taking a plot of its own, and the company sells into every district it has a branch in as if it stood there.
+Retail does not reach further by declaring it. It OPENS SHOPFRONTS: a chain is its level in shops, the home plot included, so a level-3 chain is its home and two branches, standing in three districts. Each branch takes a plot of its own, and the company sells into every district it stands in as if it stood there.
 
 - A branch may only open on a plot SOMEBODY ALREADY OWNS - you or a rival - and the plot must be empty. It does not take the ground: the deed stays with its owner.
 - A branch on somebody else's plot pays them $2 of ground rent every quarter, exactly as a building standing on their land would.
@@ -480,7 +480,7 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Megacorp HQ, every quarter | +its industry's price divided by the tile's tier; and it pays 1 EP to each rival company beside it, which that owner banks |
 | The Real-Estate Mogul - most plots BUILT ON, at every year end | +4 plus the number of players, to the leader alone |
 | The Omnipresent - most districts you have something standing in, at every year end | +4 plus the number of players, to the leader alone |
-| Cash on hand at the end | +1 per full $50 |
+| Cash on hand at the end | +1 per full $100 |
 | Each loan disc still in the bank | -5 |
 
 BOTH AWARDS COUNT BUILT GROUND, NOT OWNED GROUND. For The Real-Estate Mogul, a plot counts if one of your active companies stands on it; a plot you hold the deed to and have not built on counts for nothing. For The Omnipresent, a district counts if one of your companies stands in it or you have a Retail branch there - a shopfront is somewhere you ARE, which is why it counts here and not for the Mogul.
@@ -489,7 +489,7 @@ BOTH AWARDS COUNT BUILT GROUND, NOT OWNED GROUND. For The Real-Estate Mogul, a p
 
 Ground rent is simply money. It is collected as it is earned and scores inside your cash at the end like every other dollar - there is nothing separate to track. What is worth knowing is how much of your income it quietly becomes: a plot with somebody else’s building on it pays you every quarter, and by six players half the plots a player owns carry a rival’s building.
 
-> **Designer's note.** This number has moved twice, both times because the price rules moved. It was $10 until the price track landed; the track made the economy bigger, and scoring that at the old rate doubled the cash line from about a third of a winning score to about half, so not spending was outscoring building. $20 put it back. Raising every base $2 and making each event worth a whole dollar has done the same thing again on a larger scale - takings rise 83% - and $50 puts it back a second time: measured over 2250 games the winning score lands within 2% of where it was, where leaving the rate at $20 would have inflated it 44%. A rate that only tracked the money would be $37; $50 is right because the bots price every decision through this number too, so a higher rate also makes building worth more than banking. See audit_base_plus_two.js. If the price rules ever move again, this number moves with them - they are one setting in two places.
+> **Designer's note.** This number has moved twice, both times because the price rules moved. It was $10 until the price track landed; the track made the economy bigger, and scoring that at the old rate doubled the cash line from about a third of a winning score to about half, so not spending was outscoring building. $20 put it back. Raising every base $2 and making each event worth a whole dollar has done the same thing again on a larger scale - takings rise 83% - and $50 puts it back a second time: measured over 2250 games the winning score lands within 2% of where it was, where leaving the rate at $20 would have inflated it 44%. A rate that only tracked the money would be $37; $50 is right because the bots price every decision through this number too, so a higher rate also makes building worth more than banking. See audit_base_plus_two.js. If the price rules ever move again, this number moves with them - they are one setting in two places. v22 doubled it again, to $100: with demand as a rate the same board absorbs more and cash piles higher, and the designer's reading is that money is the means and not the score.
 
 > **Designer's note.** Rent was briefly given its own scoring line while the balance of land was being investigated. It has been folded back into cash: the split changed no totals, and asking a table to keep a running rent tally all game to divide one number into two halves that add back to it is bookkeeping without a decision. The digital build still shows the flow, where it costs nothing. Land plus rent is about 27% of a winning score at two seats and 14% at six - see audit_idle_land.js.
 
@@ -593,7 +593,7 @@ A COMPANY YOU LOSE IS GONE. Solvency works exactly as it does in the full game, 
 
 CASH ONLY SCORES IF YOU SPEND IT. There is no land to buy, nothing to upgrade and no Megacorp to form, so money has nowhere to go and piles up - measured, a seat ended this mode holding as much cash as a full game three quarters longer. Here it buys EP outright at a year end, and nowhere else. Money still in front of you when the game ends is worth nothing at all.
 
-AND THE PRICE RISES. EP cost $50 each at the end of Year 1 and $100 each at the end of Year 2. Buying early is half price, and the catch is that early is exactly when you are poorest and need the money to build. That is the decision: build now, or bank the points cheaply. In the full game cash scores on its own at $50 a point, with no window and no deadline.
+AND THE PRICE RISES. EP cost $50 each at the end of Year 1 and $100 each at the end of Year 2. Buying early is half price, and the catch is that early is exactly when you are poorest and need the money to build. That is the decision: build now, or bank the points cheaply. In the full game cash scores on its own at $100 a point, with no window and no deadline.
 
 > **Designer's note.** Measured over 200 games at each of the three table sizes, the last two quarters still carry a third to two fifths of the winning score, so the short game does not end before anything compounds. It is also markedly gentler than the full game: no seat ever ended with nothing standing, against one in twenty-eight to one in thirteen, and a player last at halfway reached the top half between a third and nearly a half of the time. The one figure that moved the wrong way is cash, which is a fifth to a quarter of a winning score here against about a seventh in the full game - the points Megacorps used to carry went to cash and to industry debuts. Somebody taught here learns to sit on money in a game that rewards it more than the real one does.
 
@@ -722,6 +722,8 @@ THE NUMBER MOVES WHEN A RULE MOVES. An edition is reprinted whenever something c
 
 - DEMAND IS NOT USED UP. An icon absorbs one unit a quarter from every company that reaches it (two from Technology) and is open again next quarter; nothing is tracked on the grid, nothing is wiped at Quarter 8, and nobody races anybody for an icon. v21 had an icon absorb its own column once, first come first served, and the table had already stopped playing it that way.
 - A POT WITH NOBODY TO PAY WAITS, as it did under v20. v21 wrote it off; the carry is back by choice, and the prize it hands the late entrant is measured in the B2B note.
+- CASH SCORES AT $100 AN EP, from $50. With demand as a rate the same board absorbs more and cash piles higher; money is the means, not the score.
+- A RETAIL CHAIN IS ITS LEVEL IN SHOPFRONTS, the home included: a level-3 chain is its home and two branches, in three districts. v21 opened a branch per level on top of the home, one district more at every level than the chain was ever meant to have.
 
 > **Designer's note.** Measured over 200 games a table size on the v21 cards: the rate rule removes the race for icons - seat spread 8.0 at both three and four players against 18.5 and 12.5 - halves the share of level-1 quarters that see no demand at all (48% to 24%), and grows trade income by about a quarter. It was measured and left unshipped once before, in audit_demand_flow.js; the physical prototype had been playing it for weeks.
 

@@ -108,8 +108,10 @@ need(CONSUME, "the delivery rule");
 /* --flow SHIPPED in v22 - the engine plays the rate rule; the flag is accepted and does nothing. */
 
 if (process.argv.includes("--tuned")) {
-  need("const CASH_PER_EP = 50;", "the cash-to-EP rate");
-  logic = logic.replace("const CASH_PER_EP = 50;", "const CASH_PER_EP = 65;");
+  /* --tuned used to lift the rate from $50 to $65; v22 took it to $100, so the arm
+     now measures the pre-v22 rate against the shipped one. */
+  need("const CASH_PER_EP = 100;", "the cash-to-EP rate");
+  logic = logic.replace("const CASH_PER_EP = 100;", "const CASH_PER_EP = 50;");
   /* The card economics live in one JSON literal, so they are retuned by parsing
      it, changing the numbers and putting it back, not by a text substitution
      that would have to match every card individually. */

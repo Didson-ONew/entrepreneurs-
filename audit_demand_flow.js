@@ -144,11 +144,11 @@ const N = {
   slotOpen: "  return bizId === undefined || !slotUsedBy(pool, bizId, tileKey, rowIdx, levelIdx);",
   reset: "  resetDeliveries(state.demand);   // every icon is open to everyone again",
   closing: "  if (quarter === 4) unlockY2(demand);",
-  cashRate: "const CASH_PER_EP = 50;",
+  cashRate: "const CASH_PER_EP = 100;",
   teDouble: `function exchangeRate(state, biz) {
   if (bizInd(biz) === "TE") return 2;   // Technology is the only doubler`,
   colCap: `  return Math.min(biz.level + (isBeginner(state) ? 1 : 0), 4);`,
-  reAllow: `  return biz.level + bonus;`,
+  reAllow: `  return branchesWanted(biz) + bonus;`,
 };
 for (const [k, v] of Object.entries(N)) {
   if (!BASE.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
@@ -157,7 +157,7 @@ for (const [k, v] of Object.entries(N)) {
 const ARMS = [
   { key: "stock",    note: "as it ships" },
   { key: "flow",     note: "icons recur, one unit each" },
-  { key: "flowCash", note: "+ $65 an EP" },
+  { key: "flowCash", note: "+ $50 an EP (the pre-v22 rate)" },
   { key: "teOpex",   note: "+ TE opex 5/8/12" },
   { key: "reCost",   note: "+ RE setup 14/20/32" },
   { key: "tuned",    note: "cash + both" },
@@ -174,7 +174,10 @@ function engine(key) {
     L = L.replace(N.reset, "");
     L = L.replace(N.closing, "  if (quarter === 4) unlockY2(demand);\n  if (quarter === 8) resetDeliveries(demand);");
   }
-  if (key !== "stock" && key !== "flow") L = L.replace(N.cashRate, "const CASH_PER_EP = 65;");
+  /* The rate shipped at $100 in v22 (it was $50, and this probe's retune arm asked for
+     $65). The arm now measures the OLD $50 rate on top of flow, so the direction of the
+     original finding can still be checked. */
+  if (key !== "stock" && key !== "flow") L = L.replace(N.cashRate, "const CASH_PER_EP = 50;");
   /* NOTE: every arm here now also carries Retail's branches, which went into the
      engine after the findings below were written. The figures in this header are
      from before that and are kept because they are what the arms were chosen

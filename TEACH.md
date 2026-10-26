@@ -156,7 +156,7 @@ Then the rule, slowly:
 > - **+2 per level** every time you build or upgrade. Banked the moment it happens.
 > - **Land awards** at every year end: most plots, and most districts you are in.
 >   Outright leader only, and ties pay badly.
-> - **Cash** at the end — $50 is 1 point. *(In the beginner game cash only scores
+> - **Cash** at the end — $100 is 1 point. *(In the beginner game cash only scores
 >   if you spend it on points at a year end.)*
 > - **−5** for every loan disc you never repaid.
 

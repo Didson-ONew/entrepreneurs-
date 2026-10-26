@@ -658,7 +658,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Varejo",
-              "Vende em um distrito extra à sua escolha por nível. Nunca usa centros."
+              "Uma rede é o seu nível em lojas: o próprio lote e uma FILIAL para cada nível acima do primeiro, cada uma num lote que alguém já possui, cada uma num distrito que a rede alcança. Ela vende em todo distrito onde está. Nunca usa centros."
             ],
             [
               "Hotelaria",
@@ -683,7 +683,7 @@ export const RULEBOOK_PT = [
         "h": "Filiais do Varejo"
       },
       {
-        "p": "O Varejo não alcança mais longe por declaração. Ele ABRE UMA LOJA: uma filial por nível, cada uma ocupando um lote próprio, e a empresa vende em todos os distritos onde tem filial como se estivesse ali."
+        "p": "O Varejo não alcança mais longe por declaração. Ele ABRE LOJAS: uma rede é o seu nível em lojas, contando o lote de origem, então uma rede de nível 3 é a sua sede e duas filiais, em três distritos. Cada filial ocupa um lote próprio, e a empresa vende em todos os distritos onde está como se estivesse ali."
       },
       {
         "ul": [
@@ -1007,7 +1007,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Dinheiro em caixa no fim",
-              "+1 a cada $50 completos"
+              "+1 a cada $100 completos"
             ],
             [
               "Cada disco de empréstimo ainda no banco",
@@ -1026,7 +1026,7 @@ export const RULEBOOK_PT = [
         "p": "O aluguel do terreno é simplesmente dinheiro. Ele é recebido conforme é gerado e pontua dentro do seu caixa no fim, como qualquer outro dólar - não há nada separado para controlar. O que vale saber é quanto da sua renda ele silenciosamente se torna: um lote com a construção de outra pessoa em cima paga você todo trimestre, e com seis jogadores metade dos lotes que um jogador possui carrega a construção de um rival."
       },
       {
-        "note": "Esse número já mudou duas vezes, nas duas por causa de mudanças nas regras de preço. Era $10 até a trilha de preços entrar; a trilha deixou a economia maior, e pontuar isso na taxa antiga dobrou a linha do dinheiro, de cerca de um terço de uma pontuação vencedora para cerca de metade, de modo que não gastar rendia mais do que construir. $20 corrigiu isso. Aumentar toda base em $2 e fazer cada evento valer um dólar inteiro provocou a mesma coisa de novo, em escala maior - a arrecadação sobe 83% - e $50 corrige de novo: medida ao longo de 2250 partidas, a pontuação vencedora fica a 2% de onde estava, ao passo que deixar a taxa em $20 a teria inflado em 44%. Uma taxa que só acompanhasse o dinheiro seria $37; $50 está certo porque os bots também precificam cada decisão por meio desse número, então uma taxa mais alta também faz construir valer mais do que guardar. Veja audit_base_plus_two.js. Se as regras de preço mudarem de novo, esse número muda junto - são um único ajuste em dois lugares."
+        "note": "Esse número já mudou duas vezes, nas duas por causa de mudanças nas regras de preço. Era $10 até a trilha de preços entrar; a trilha deixou a economia maior, e pontuar isso na taxa antiga dobrou a linha do dinheiro, de cerca de um terço de uma pontuação vencedora para cerca de metade, de modo que não gastar rendia mais do que construir. $20 corrigiu isso. Aumentar toda base em $2 e fazer cada evento valer um dólar inteiro provocou a mesma coisa de novo, em escala maior - a arrecadação sobe 83% - e $50 corrige de novo: medida ao longo de 2250 partidas, a pontuação vencedora fica a 2% de onde estava, ao passo que deixar a taxa em $20 a teria inflado em 44%. Uma taxa que só acompanhasse o dinheiro seria $37; $50 está certo porque os bots também precificam cada decisão por meio desse número, então uma taxa mais alta também faz construir valer mais do que guardar. Veja audit_base_plus_two.js. Se as regras de preço mudarem de novo, esse número muda junto - são um único ajuste em dois lugares. A v22 dobrou de novo, para $100: com a demanda como fluxo o mesmo tabuleiro absorve mais e o dinheiro se acumula mais alto, e a leitura do designer é que dinheiro é o meio, não a pontuação."
       },
       {
         "note": "O aluguel chegou a ter sua própria linha de pontuação por um tempo, enquanto o equilíbrio das terras estava sendo investigado. Ele foi reincorporado ao caixa: a separação não mudou nenhum total, e pedir que a mesa mantenha uma contagem corrente de aluguel a partida inteira para dividir um número em duas metades que voltam a somá-lo é burocracia sem decisão. A versão digital ainda mostra o fluxo, onde isso não custa nada. Terras mais aluguel somam cerca de 27% de uma pontuação vencedora com dois assentos e 14% com seis - veja audit_idle_land.js."
@@ -1260,7 +1260,7 @@ export const RULEBOOK_PT = [
         "p": "DINHEIRO SÓ PONTUA SE VOCÊ GASTAR. Não há terreno para comprar, nada para melhorar e nenhuma Megacorp para formar, então o dinheiro não tem para onde ir e se acumula - medido, um jogador terminou este modo com tanto dinheiro quanto numa partida completa três trimestres mais longa. Aqui ele compra EP diretamente num fim de ano, e em nenhum outro lugar. O dinheiro ainda na sua frente quando a partida acaba não vale nada."
       },
       {
-        "p": "E O PREÇO SOBE. Cada EP custa $50 no fim do Ano 1 e $100 no fim do Ano 2. Comprar cedo sai pela metade, e o problema é que cedo é justamente quando você está mais pobre e precisa do dinheiro para construir. É essa a decisão: construir agora, ou guardar os pontos barato. Na partida completa o dinheiro pontua sozinho a $50 por ponto, sem janela e sem prazo."
+        "p": "E O PREÇO SOBE. Cada EP custa $50 no fim do Ano 1 e $100 no fim do Ano 2. Comprar cedo sai pela metade, e o problema é que cedo é justamente quando você está mais pobre e precisa do dinheiro para construir. É essa a decisão: construir agora, ou guardar os pontos barato. Na partida completa o dinheiro pontua sozinho a $100 por ponto, sem janela e sem prazo."
       },
       {
         "note": "Medido em 200 partidas em cada um dos três tamanhos de mesa, os dois últimos trimestres ainda carregam de um terço a dois quintos da pontuação vencedora, então o jogo curto não acaba antes de algo acumular. Ele também é bem mais gentil que o jogo completo: nenhum assento terminou sem nada de pé, contra um em vinte e oito a um em treze, e quem estava em último na metade chegou à metade de cima entre um terço e quase metade das vezes. O único número que foi para o lado errado é o dinheiro, que aqui é de um quinto a um quarto de uma pontuação vencedora contra cerca de um sétimo no jogo completo - os pontos que as Megacorporações carregavam foram para o dinheiro e para as estreias de setor. Quem aprende aqui aprende a sentar em cima do dinheiro num jogo que premia isso mais do que o de verdade."
@@ -1597,7 +1597,9 @@ export const RULEBOOK_PT = [
       {
         "ul": [
           "A DEMANDA NÃO SE ESGOTA. Um ícone absorve uma unidade por trimestre de cada empresa que o alcança (duas de Tecnologia) e volta a ficar aberto no trimestre seguinte; nada é marcado na grade, nada é limpo no Trimestre 8, e ninguém disputa ícone com ninguém. Na v21 um ícone absorvia a própria coluna uma única vez, por ordem de chegada, e a mesa já tinha parado de jogar assim.",
-          "UM POTE SEM NINGUÉM A QUEM PAGAR ESPERA, como na v20. A v21 o descartava; o acúmulo voltou por escolha, e o prêmio que ele dá a quem entra tarde está medido na nota de B2B."
+          "UM POTE SEM NINGUÉM A QUEM PAGAR ESPERA, como na v20. A v21 o descartava; o acúmulo voltou por escolha, e o prêmio que ele dá a quem entra tarde está medido na nota de B2B.",
+          "O DINHEIRO PONTUA A $100 POR EP, antes $50. Com a demanda como fluxo o mesmo tabuleiro absorve mais e o dinheiro se acumula mais alto; dinheiro é o meio, não a pontuação.",
+          "UMA REDE DE VAREJO É O SEU NÍVEL EM LOJAS, contando a sede: uma rede de nível 3 é a sua sede e duas filiais, em três distritos. A v21 abria uma filial por nível além da sede, um distrito a mais em todo nível do que a rede jamais deveria ter."
         ]
       },
       {

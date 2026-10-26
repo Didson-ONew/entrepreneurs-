@@ -283,7 +283,11 @@ const lhPlaceable = (board, plot) => !(plot in board.owner) && plotFree(board, p
    them from ever colliding with a real one. Hospitality counts each as its own
    building, which is what any structure in range should do. */
 const branchId = (bizId, n) => -(bizId * 100 + n + 1);
-const branchesWanted = (biz) => (bizInd(biz) === "RE" ? biz.level : 0);
+/* A RETAIL CHAIN IS ITS LEVEL IN SHOPFRONTS, the home plot included: a level-1 chain
+   is one shop, a level-3 chain is its home and two branches, standing in three
+   districts. It used to be a branch PER level on top of the home - four districts at
+   level 3 - which is one more than the designer's own count of the chain. */
+const branchesWanted = (biz) => (bizInd(biz) === "RE" ? Math.max(0, biz.level - 1) : 0);
 const branchPlotsOf = (board, biz) =>
   Object.keys(board.branches || {}).filter((k) => board.branches[k].bizId === biz.id);
 const branchDistricts = (board, biz) =>
@@ -877,14 +881,15 @@ function utBlock(state, biz, home) {
   state.utBlocks[biz.id] = { quarter: state.quarter, level: biz.level, cells };
   return cells;
 }
-/* How many districts BEYOND its own a Retail company may sell into: one per level, plus
-   one while its owner's Supply Chain Expert bump is live. This is the single number the
-   delivery picker, the server and the reach calculation all read, so a human and a bot
-   holding the same persona get the same reach. */
+/* How many districts BEYOND its own a Retail company may sell into: its branches -
+   one fewer than its level - plus one while its owner's Supply Chain Expert bump is
+   live. This is the single number the delivery picker, the server and the reach
+   calculation all read, so a human and a bot holding the same persona get the same
+   reach. */
 function reAllowance(state, biz, owner) {
   const p = owner || ownerOf(state, biz);
   const bonus = (p && state.reExtraDistrict && state.reExtraDistrict[p.id]) ? 1 : 0;
-  return biz.level + bonus;
+  return branchesWanted(biz) + bonus;
 }
 function reachableDistricts(state, biz, chosenExtra) {
   const board = state.board;
@@ -912,7 +917,7 @@ function reachableDistricts(state, biz, chosenExtra) {
        moment this company fills the icons it was picked for - which is the exact
        bug the old per-delivery pin on reChoices existed to stop, and which
        test_re_reach_stable caught coming back through this one line. */
-    const bonus = reAllowance(state, biz) - biz.level;
+    const bonus = reAllowance(state, biz) - branchesWanted(biz);
     if (bonus > 0) {
       state.reBonusPick = state.reBonusPick || {};
       if (!state.reBonusPick[biz.id]) {
@@ -1760,7 +1765,7 @@ function landEPWeight(state, p) {
    Measured in audit_price_track.js. The final-scoring line used to hardcode 10 rather
    than read this constant, so the two could have drifted apart unnoticed; it reads the
    constant now. */
-const CASH_PER_EP = 50;
+const CASH_PER_EP = 100;
 
 /* What will this industry pay ME, once my own company is standing in it?
 
@@ -2131,7 +2136,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "505470e8";
+const ENGINE_VERSION = "43bb8d1c";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the

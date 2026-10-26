@@ -426,7 +426,7 @@ const CONSUME = `  markSlotUsed(state.demand, biz.id, tileKey, rowIdx, levelIdx)
   return cross ? 1 : exchangeRate(state, biz);`;
 need(CONSUME, "the delivery rule");
 /* --flow SHIPPED in v22 - the engine plays the rate rule; the flag is accepted and does nothing. */
-if (has("--tuned")) { need("const CASH_PER_EP = 50;", "the cash-to-EP rate"); logic = logic.replace("const CASH_PER_EP = 50;", "const CASH_PER_EP = 65;"); }
+if (has("--tuned")) { need("const CASH_PER_EP = 100;", "the cash-to-EP rate"); logic = logic.replace("const CASH_PER_EP = 100;", "const CASH_PER_EP = 50;"); }   // the pre-v22 rate
 {
   const cards = JSON.parse(logic.match(CARDS_RE)[1]);
   let touched = false;

@@ -57,7 +57,7 @@ const NEEDLES = [
   ["one shared allowance feeds both the picker and the engine",
    "function reAllowance(state, biz, owner) {"],
   ["the persona bonus is what the allowance adds ON TOP of the branches",
-   "const bonus = reAllowance(state, biz) - biz.level;"],
+   "const bonus = reAllowance(state, biz) - branchesWanted(biz);"],
   ["humans are queued rather than auto-picked for",
    "function humansNeedingSupplyChain(state) {"],
   ["the bump loop skips humans",
@@ -166,8 +166,8 @@ check("a HUMAN with the persona reaches further than the baseline",
   beyond(humanPath) > beyond(plain), `${beyond(plain)} -> ${beyond(humanPath)}`);
 check("human and bot get the same reach from the same persona",
   beyond(humanPath) === beyond(botPath), `human ${beyond(humanPath)} vs bot ${beyond(botPath)}`);
-check("the allowance is level + 1 while the bump is live",
-  allow === reBiz.level + 1, `level ${reBiz.level}, allowance ${allow}`);
+check("the allowance is its branches plus one - which is its level - while the bump is live",
+  allow === reBiz.level, `level ${reBiz.level}, allowance ${allow}`);
 check("there is no district list on the wire left to over-send",
   typeof st.reChoices === "undefined" || !st.reChoices[reBiz.id],
   "reachableDistricts reads the branches, not a client payload");
