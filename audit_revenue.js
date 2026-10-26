@@ -257,6 +257,15 @@ const PERSIST = !STOCK, ONEUNIT = !STOCK;   // --persist and --flow are what shi
 /* --ranged is the designer's own band: thresholds and multipliers per industry and
    level, in UNITS of demand reached, read from ranged_table.json beside this file
    when it exists and from the provisional table below when it does not. */
+/* --rowsOld swaps in the v20 demand table - the one before v21 redrew the rows - so
+   the reach and income of every industry can be read under it on today's rules. */
+const ROWS_OLD = has("--rowsOld");
+const ROWS_OLD_TABLE = `const DEMAND_ROWS = {
+  R: ["UT", "RE", "HO", "UT"], C: ["RE", "UT", "MA", "RE"],
+  A: ["HO", "UT", "TE", "HO"], I: ["MA", "RE", "HC", "MA"],
+  FC: ["TE", "UT", "HC", "TE"], IA: ["MA", "RE", "TE", "MA"],
+  CC: ["HC", "HO", "TE", "HC"], LM: ["HO", "MA", "HC", "HO"],
+};`;
 const RANGED_FILE = path.join(__dirname, "ranged_table.json");
 const RANGED = fs.existsSync(RANGED_FILE) ? JSON.parse(fs.readFileSync(RANGED_FILE, "utf8")) : (() => {
   /* Retail is the designer's: level 1 pays 1/2/3 x price at 0/1/2 units, level 3
@@ -365,6 +374,11 @@ const LAND_PROBE = `    __probe.land(label, share, (() => {
 
 function engine(arm) {
   let L = BASE;
+  if (ROWS_OLD) {
+    const now = (L.match(/const DEMAND_ROWS = \{[\s\S]*?\};/) || [null])[0];
+    if (!now) { console.error("the demand table moved - update this probe"); process.exit(2); }
+    L = L.replace(now, ROWS_OLD_TABLE);
+  }
   const PAY = arm === "ranged"
     ? `const __R = ${JSON.stringify(RANGED)};
        const __pay = (px, lvl, u, ind) => { const r = (__R[ind] || {})[Math.min(4, lvl)]; if (!r) return 0;
@@ -539,7 +553,8 @@ const money = (x) => "$" + x.toFixed(x < 10 ? 1 : 0);
 
 console.log(`\n${GAMES} games an arm a table size, seeds 1..${GAMES}, all-bot tables.  ` +
   (SHIFT ? "Band SHIFTS the column read: triangle 0.5/1/3/6/10/15 at level + band - 2." : `Band K = ${K.join("/")}${TRI ? ", paid by the triangle of the level (1/3/6/10)" : ", paid by the level"}.`) +
-  (STOCK ? "  --stock: icons consumed and absorbing their column, as the engine played before v22." : "  Demand is a rate, as the engine ships since v22: never consumed, one unit an icon."));
+  (STOCK ? "  --stock: icons consumed and absorbing their column, as the engine played before v22." : "  Demand is a rate, as the engine ships since v22: never consumed, one unit an icon.") +
+  (ROWS_OLD ? "  DEMAND TABLE: the v20 rows (before the redraw)." : ""));
 if (ARMS.includes("ranged")) console.log("  ranged table " + (fs.existsSync(RANGED_FILE) ? "from ranged_table.json" : "PROVISIONAL, built in") + ": " +
   Object.entries(RANGED).map(([i, t]) => i + " " + [1, 2, 3, 4].map((L) => `${t[L].a}/${t[L].b}:${t[L].m.join("-")}`).join(" ")).join("  "));
 console.log("  " + ["current  as it ships", "flat1    an icon takes one unit", "norecycle  unsold production pays nothing",

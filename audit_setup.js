@@ -303,7 +303,13 @@ const ROWS2 = `const DEMAND_ROWS = {
   FC: ["TE", "HC", "RE", "TE"], IA: ["HC", "TE", "UT", "HC"],
   CC: ["MA", "RE", "HC", "MA"], LM: ["HO", "UT", "TE", "HO"],
 };`;
-const ROWS_NOW = `const DEMAND_ROWS = {
+/* The shipped table is READ OUT OF THE ENGINE rather than typed here: this constant
+   used to be the v20 table and quietly went stale when v21 redrew the rows, and
+   nothing noticed because it is only checked when a rows arm is run. The v20 table
+   is kept as ROWS_OLD, so --rowsOld measures switching back to it. */
+const ROWS_NOW = (SRC.match(/const DEMAND_ROWS = \{[\s\S]*?\};/) || [null])[0];
+if (!ROWS_NOW) { console.error("the demand table moved - update this probe"); process.exit(2); }
+const ROWS_OLD = `const DEMAND_ROWS = {
   R: ["UT", "RE", "HO", "UT"], C: ["RE", "UT", "MA", "RE"],
   A: ["HO", "UT", "TE", "HO"], I: ["MA", "RE", "HC", "MA"],
   FC: ["TE", "UT", "HC", "TE"], IA: ["MA", "RE", "TE", "MA"],
@@ -586,6 +592,7 @@ const v3 = (f) => process.argv.includes(f) || process.argv.includes("--v3") ||
   ((V4 || V5) && ["--rows8", "--strat", "--sheet3", "--deps3"].includes(f));
 function applySheet3(logicIn) {
   let out = logicIn;
+  if (has("--rowsOld")) out = out.replace(ROWS_NOW, ROWS_OLD);   // the v20 table, on today's rules
   if (v3("--rows8")) {
     if (!out.includes(ROWS_NOW)) { console.error("the demand table moved - update this probe"); process.exit(2); }
     out = out.replace(ROWS_NOW, (V4 || V5) ? ROWS9 : ROWS8);
@@ -860,7 +867,7 @@ function run(seats) {
 
 const EPV = E.CASH_PER_EP;
 console.log(`\n${GAMES} games a table size, seeds from ${(() => { const i = process.argv.indexOf("--off"); return i > 0 ? parseInt(process.argv[i + 1], 10) + 1 : 1; })()}.` +
-  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--v5", "--v5b", "--v6", "--lvlkeep", "--double", "--tails", "--ownedland", "--branchbuy", "--branchrent", "--branchpay"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
+  `  arms: ${["--flow", "--tuned", "--flip", "--flat", "--roomA", "--roomMax", "--sheet", "--sheetFix", "--cliff3", "--sheet2", "--sheet2pay", "--sheet3", "--rows8", "--deps3", "--deps3b", "--strat", "--v3", "--sheet4", "--rows9", "--deps4", "--v4", "--v5", "--v5b", "--v6", "--lvlkeep", "--double", "--tails", "--ownedland", "--branchbuy", "--branchrent", "--branchpay", "--rowsOld"].filter(has).join(" ") || "as it ships"}.  EP valued at $${EPV}.`);
 console.log(`setup printed:  ${IND.map((i) => `${i} ${ladderOf(CARDS, i).join("/")}`).join("   ")}`);
 for (const seats of SIZES) {
   const { T, games, perGame, bareEP, landTotal, branches } = run(seats);
