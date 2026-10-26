@@ -2136,7 +2136,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "43bb8d1c";
+const ENGINE_VERSION = "047357d1";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2996,6 +2996,10 @@ function claimMegacorp(state, p, log, hqChoice) {
   match.have.forEach((b) => {
     if (b === hq) return;
     b.distressed = true;
+    /* The shopfronts come down with the chain, exactly as a sale takes them down. A
+       merged chain used to leave them standing in the bank's name - blocking plots
+       and counting districts for an owner who no longer had the company. */
+    removeBranches(state, b);
   });
   hq.isHQ = true;
   hq.distressed = false;
@@ -3017,15 +3021,23 @@ function claimMegacorp(state, p, log, hqChoice) {
 }
 
 /* ---------------- Renovation & plot market ---------------- */
-/* A renovation has to fit the structure that is already standing there, so the card
-   must match its level, and from level 2 up its scaling type as well: a distressed
-   horizontal shell occupies several plots and a vertical one occupies a single stacked
-   plot, and neither can be rebuilt as the other. At level 1 both occupy exactly one
-   plot, so a level-1 shell is open to any level-1 Blueprint. */
+/* A renovation has to fit the shell's LEVEL, and nothing else (v22). Any card of the
+   level renovates any distressed structure, whatever industry it was and whatever
+   shape it stands in: the company keeps the shell's footprint and per-plot levels
+   exactly as they are, pays rent and counts for the land awards on every plot of it,
+   and grows from there in its own industry's direction - so a stacked shell becomes
+   a one-plot Manufacturing and a row of plots a spread Healthcare. The engine already
+   carried hybrid footprints for the two personas that bend growth, so nothing new has
+   to stand up.
+
+   It used to require the same scaling type from level 2 up. Measured in
+   audit_renovation.js that rule blocked six offers a game at three players, and
+   dropping it is the best balance move of the v22 cycle: renovations rise 43%, about
+   one hybrid a game is formed, and the gain lands on the horizontal industries -
+   renovations into Utilities nearly double - because the common shell is a stacked
+   plot and a horizontal card may now take it without finding adjacent plots. */
 function renovationEligible(distressedBiz, bp) {
-  if (distressedBiz.level !== bp.lvl) return false;
-  if (distressedBiz.level === 1) return true;            // one plot either way: anything fits
-  return SCALING[bizInd(distressedBiz)] === SCALING[bp.ind];
+  return distressedBiz.level === bp.lvl;
 }
 function findDistressedTargets(state) {
   const out = [];
@@ -5380,7 +5392,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
             <b>{t("Buy it as it stands")}</b>{" "}
             {t("for what the bank paid for it, keeping its Blueprint and level, or")}{" "}
             <b>{t("renovate it")}</b>{" "}
-            {t("with a card from your hand for half that card’s setup. Location matters, since renovating changes industry. A renovation card must match the shell’s level, and from level 2 up its scaling type too; a level-1 shell takes any level-1 card:")}
+            {t("with a card from your hand for half that card’s setup. Location matters, since renovating changes industry. A renovation card must match the shell’s level - any industry, any shape - and the company keeps the shell’s footprint:")}
           </div>
           <div className="text-[9px] text-gray-500">
             {t("Buying as it stands scores no EP and moves no prices — it is the same company, already scored and already in the market. A renovation is a new business: it scores its levels, moves the market, and sends the old Blueprint to the bottom of its own deck. Either way, a first company in an industry still pays the entry bonus.")}

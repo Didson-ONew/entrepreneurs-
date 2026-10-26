@@ -832,7 +832,7 @@ export default {
   "what a planned sale through Raise Capital would fetch. Sell hand BPs, businesses or plots below until the bill is covered, then continue.": "do que uma venda planejada por Captar Recursos renderia. Venda Projetos da mão, empresas ou lotes abaixo até cobrir a conta, e siga.",
   "where does the new wing go?": "onde vai a ala nova?",
   "which plot gets the new storey?": "qual lote recebe o novo andar?",
-  "with a card from your hand for half that card’s setup. Location matters, since renovating changes industry. A renovation card must match the shell’s level, and from level 2 up its scaling type too; a level-1 shell takes any level-1 card:": "com uma carta da sua mão por metade do custo inicial dela. A localização importa, já que reformar muda o setor. A carta de reforma tem de bater com o nível da estrutura e, do nível 2 em diante, também com o tipo de expansão; uma estrutura de nível 1 aceita qualquer carta de nível 1:",
+  "with a card from your hand for half that card’s setup. Location matters, since renovating changes industry. A renovation card must match the shell’s level - any industry, any shape - and the company keeps the shell’s footprint:": "com uma carta da sua mão por metade do custo inicial dela. A localização importa, já que reformar muda o setor. A carta de reforma tem de bater com o nível da estrutura - qualquer setor, qualquer forma - e a empresa fica com a área da carcaça:",
   "you build Retail": "você constrói Varejo",
   "you have no active companies to merge": "você não tem empresas ativas para fundir",
   "your turn": "sua vez",

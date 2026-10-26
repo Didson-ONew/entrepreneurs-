@@ -834,7 +834,7 @@ export default {
   "what a planned sale through Raise Capital would fetch. Sell hand BPs, businesses or plots below until the bill is covered, then continue.": "相当于通过融资正常出售所得的价格。在下面卖掉手牌蓝图、公司或地块，直到账单被填上，然后继续。",
   "where does the new wing go?": "新的一翼加在哪里？",
   "which plot gets the new storey?": "新的一层加在哪个地块上？",
-  "with a card from your hand for half that card’s setup. Location matters, since renovating changes industry. A renovation card must match the shell’s level, and from level 2 up its scaling type too; a level-1 shell takes any level-1 card:": "用手牌中的一张卡翻新，费用为该卡建设成本的一半。位置很重要，因为翻新会改变产业。翻新用的卡必须与壳子的等级一致，从等级 2 起还要匹配扩张类型；等级 1 的壳子接受任何等级 1 的卡：",
+  "with a card from your hand for half that card’s setup. Location matters, since renovating changes industry. A renovation card must match the shell’s level - any industry, any shape - and the company keeps the shell’s footprint:": "用手牌中的一张卡翻新，费用为该卡建设成本的一半。位置很重要，因为翻新会改变产业。翻新用的卡必须与壳子的等级一致——任何产业、任何形状都可以——公司保留壳子的占地：",
   "you build Retail": "你建设零售",
   "you have no active companies to merge": "你没有可以合并的运营中公司",
   "your turn": "轮到你了",

@@ -171,7 +171,9 @@ Reclaiming costs what the bank paid, so read that price off how the building got
 
 You may build on plots owned by another player. They collect the rent every quarter, but the company is yours.
 
-A renovation has to fit the shell that is already standing. The card must match the distressed structure's level, and from level 2 upwards its scaling type as well: a level-2 or level-3 horizontal structure spreads across several plots and cannot be rebuilt as a vertical one, nor the other way round. At level 1 both kinds occupy a single plot, so a level-1 shell is open to any level-1 Blueprint.
+A renovation has to fit the shell's LEVEL, and nothing else. Any Blueprint of the same level renovates any distressed structure, whatever industry it was and whatever shape it stands in - a stacked plot can become a spread industry's company, and a row of plots a stacked industry's. The company keeps the shell's footprint exactly as it stands, pays rent and counts for the land awards on every plot of it, and grows from there in its own industry's direction.
+
+> **Designer's note.** Measured over 300 games a table size: renovations rise 43%, about one hybrid a game is formed, and the gain lands on the horizontal industries - renovations into Utilities nearly double and into Technology likewise - because the common shell is a stacked plot, and a horizontal card may now take it without finding two or three adjacent plots. Vertical industries bank most EP in 66.7% of three-player games against 69.8%.
 
 Renovating moves the price markers exactly as launching does - the industry you build goes DOWN $1 and every supplier the new card names goes UP $1 - because a renovation puts a genuinely new business into the city, and it scores its levels like any new company does. The Blueprint it displaces is not spent: it goes back to the BOTTOM of its own industry deck. Reclaiming a shell as it stands moves nothing and scores nothing. The building never changed, and neither did what the city can supply or needs to buy.
 
@@ -352,7 +354,7 @@ Retail does not reach further by declaring it. It OPENS SHOPFRONTS: a chain is i
 - A branch on somebody else's plot pays them $2 of ground rent every quarter, exactly as a building standing on their land would.
 - Each branch must open in a district orthogonally beside one the chain already covers, counting the company's own plot and its existing branches. The chain joins up; it does not jump.
 - A branch takes a disc, like anything else you put on the board, and nobody can build on its plot while it stands.
-- Sell or lose the company and its shopfronts come down. The ground stays with whoever owned it.
+- Sell, merge or lose the company and its shopfronts come down. The ground stays with whoever owned it.
 
 > **Designer's note.** The branch used to take free land for nothing - it looked only at plots nobody held, then wrote itself in as the owner, so the whole price was a disc while the same plot bought outright costs cash AND a disc. Retail was scaling its reach for free while every other industry paid for its ground, and it showed: Retail decided 26% of games at three players and took the largest share of the land awards once those were paid for built ground. Requiring the ground to be owned first drops that to 21.4% and brings its land award into line with Utilities and Manufacturing, while branches still open at 1.68 a game so the mechanic survives. Pricing the plot instead of restricting it was measured too and does almost nothing - plotValue is a rounding error against a Retail chain's cash flow. It is WHERE a branch may go that matters, not what it costs. See audit_setup.js --branchrent, --branchbuy and --branchpay.
 
@@ -410,7 +412,7 @@ Whoever forms the first Megacorp of the game also takes the IPO tile: a sixth co
 ### What a merger does
 
 - You choose one of the merged companies to become the Megacorp HQ. It keeps its building and returns its Blueprint to its industry deck.
-- All the others go to the bank as Distressed Assets - anyone may take them over later.
+- All the others go to the bank as Distressed Assets - their shopfronts come down - and anyone may take them over later.
 - The HQ stops trading: with no Blueprint it produces nothing and pays no OPEX. It still draws its equal share of its industry's pot every B2B - a headquarters that has stopped building has not stopped collecting.
 - Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry DIVIDED BY THE TILE'S TIER, rounded down. A tier 1 headquarters in an industry at $3 banks 3 EP a quarter; a tier 4 headquarters in the same industry banks nothing at all until that industry reaches $4. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for eight more quarters than one formed in Year 3.
 - It has no supplier bill, but it still stands on the ground, so its owner pays ground rent every quarter like any other building - $2 for every level standing on a plot, to that plot's owner. On your own land nothing is owed.
@@ -635,7 +637,7 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Rent | $2 per company level, to the owners of the plots it stands on |
 | Unsold production | $1 per unit |
 | Industry pot | split evenly among that industry's active companies; the remainder rides forward, and a pot with nobody to pay waits in full |
-| Renovation | card must match the shell's level; from level 2 up, its scaling type too |
+| Renovation | any card of the shell's level, whatever its industry or shape; the company keeps the shell's footprint |
 | Final tie | most active companies, then most money, then fewest loan discs in the bank |
 | Demand rows 3-4 | closed until Quarter 5 |
 | Demand grid | icons are never used up: one unit a quarter from each company that reaches them, two from Technology |
@@ -724,6 +726,8 @@ THE NUMBER MOVES WHEN A RULE MOVES. An edition is reprinted whenever something c
 - A POT WITH NOBODY TO PAY WAITS, as it did under v20. v21 wrote it off; the carry is back by choice, and the prize it hands the late entrant is measured in the B2B note.
 - CASH SCORES AT $100 AN EP, from $50. With demand as a rate the same board absorbs more and cash piles higher; money is the means, not the score.
 - A RETAIL CHAIN IS ITS LEVEL IN SHOPFRONTS, the home included: a level-3 chain is its home and two branches, in three districts. v21 opened a branch per level on top of the home, one district more at every level than the chain was ever meant to have.
+- ANY DISTRESSED STRUCTURE TAKES ANY CARD OF ITS LEVEL, whatever industry it was and whatever shape it stands in; the company keeps the shell's footprint. v21 required the same scaling type from level 2 up. Measured, renovations rise by two fifths and the horizontal industries take most of them.
+- A MERGE TAKES A CHAIN'S SHOPFRONTS DOWN, as a sale always did. Under v21 a merged Retail chain left its branches standing on the board in the bank's name.
 
 > **Designer's note.** Measured over 200 games a table size on the v21 cards: the rate rule removes the race for icons - seat spread 8.0 at both three and four players against 18.5 and 12.5 - halves the share of level-1 quarters that see no demand at all (48% to 24%), and grows trade income by about a quarter. It was measured and left unshipped once before, in audit_demand_flow.js; the physical prototype had been playing it for weeks.
 

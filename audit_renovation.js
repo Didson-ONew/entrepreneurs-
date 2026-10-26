@@ -79,7 +79,9 @@ const vm = require("vm");
 const GAMES = parseInt(process.argv[2] || "300", 10);
 const SEATS = process.argv.slice(3).map(Number).filter(Boolean);
 const SIZES = SEATS.length ? SEATS : [3, 4];
-const ARMS = ["current", "mergeDrop", "anyShape", "branchShells"];
+/* v22 SHIPPED any-shape renovation and the merge fix. `current` is the shipped game;
+   `shapeRule` and `ghost` patch the v21 behaviours back in for comparison. */
+const ARMS = ["current", "shapeRule", "ghost", "branchShells"];
 
 const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
 const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
@@ -92,8 +94,8 @@ const splice = (src, from, to, what) => { need(src, from, what); return src.repl
 const N = {
   sale: "  p.cash += recv; b.distressed = true;",
   saleBranches: "  removeBranches(state, b);",
-  merge: "  match.have.forEach((b) => {\n    if (b === hq) return;\n    b.distressed = true;\n  });",
-  eligible: "  if (distressedBiz.level === 1) return true;            // one plot either way: anything fits\n  return SCALING[bizInd(distressedBiz)] === SCALING[bp.ind];",
+  merge: "    b.distressed = true;\n    /* The shopfronts come down with the chain, exactly as a sale takes them down. A\n       merged chain used to leave them standing in the bank's name - blocking plots\n       and counting districts for an owner who no longer had the company. */\n    removeBranches(state, b);",
+  eligible: "  return distressedBiz.level === bp.lvl;",
   renoLog: '  log(logMsg("{0} renovates a distressed structure{1} into {2} ({3} L{4}) (cash: ${5}).", p.name, from, bp.name, bp.ind, bp.lvl, Math.round(p.cash)), p.id);',
   reclaim: "  biz.distressed = false;",
   botLook: "    const distressed = findDistressedTargets(state);",
@@ -139,9 +141,9 @@ function engine(arm) {
   let L = PRELUDE + BASE;
   L = splice(L, N.sale, `  p.cash += recv; b.distressed = true;\n  __probe.shell(solvency ? "solvency" : "sale", b);`, "sale");
   if (arm === "branchShells") L = splice(L, N.saleBranches, "  __branchesToShells(state, b, p);", "sale branches");
-  const mergeBody = arm === "current" ? "" : arm === "branchShells" ? "\n    __branchesToShells(state, b, p);" : "\n    removeBranches(state, b);";
-  L = splice(L, N.merge, `  match.have.forEach((b) => {\n    if (b === hq) return;\n    __probe.shell("merge", b, branchPlotsOf(state.board, b).length);\n    b.distressed = true;${mergeBody}\n  });`, "merge");
-  if (arm === "anyShape") L = splice(L, N.eligible, "  return true;   // any shape: a shell of the level is open to any card of the level", "eligibility");
+  const mergeBody = arm === "ghost" ? "" : arm === "branchShells" ? "\n    __branchesToShells(state, b, p);" : "\n    removeBranches(state, b);";
+  L = splice(L, N.merge, `    __probe.shell("merge", b, branchPlotsOf(state.board, b).length);\n    b.distressed = true;${mergeBody}`, "merge");
+  if (arm === "shapeRule") L = splice(L, N.eligible, "  if (distressedBiz.level !== bp.lvl) return false;\n  if (distressedBiz.level === 1) return true;\n  return SCALING[bizInd(distressedBiz)] === SCALING[bp.ind];   // the v21 shape rule", "eligibility");
   L = splice(L, N.renoLog, `  __probe.reno(displaced, bp, distressedBiz);\n` + N.renoLog, "renovation");
   L = splice(L, N.reclaim, `  biz.distressed = false;\n  __probe.reclaim(biz);`, "reclaim");
   L = splice(L, N.botLook, N.botLook + `\n    __probe.blocked(distressed.reduce((n, db) => n + p.hand.filter((bp) => db.level === bp.lvl && db.level > 1 && SCALING[bizInd(db)] !== SCALING[bp.ind]).length, 0));`, "bot look");
@@ -216,7 +218,7 @@ const pad = (s, n) => String(s).padEnd(n);
 const rp = (s, n) => String(s).padStart(n);
 const pct = (x, t) => (t > 0 ? (100 * x / t).toFixed(1) + "%" : "-");
 console.log(`\n${GAMES} games an arm a table size, seeds 1..${GAMES}, all-bot tables.`);
-console.log("  current       as it ships - a merge leaves a chain's branches standing\n  mergeDrop     a merge takes branches down, as a sale does\n  anyShape      mergeDrop + any same-level card renovates any shell, whatever its shape\n  branchShells  mergeDrop + branches become level-1 distressed Retail shells");
+console.log("  current       as it ships since v22: any same-level card renovates any shell, a merge takes branches down\n  shapeRule     the v21 rule back: a shell needs a card of its shape from level 2 up\n  ghost         the v21 merge back: a merged chain's branches stay standing\n  branchShells  branches become level-1 distressed Retail shells instead of coming down");
 const R = {};
 for (const arm of ARMS) { const E = engine(arm); R[arm] = {}; for (const n of SIZES) R[arm][n] = run(E, arm, n); }
 for (const n of SIZES) {

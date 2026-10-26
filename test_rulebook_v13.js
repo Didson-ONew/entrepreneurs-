@@ -527,7 +527,7 @@ section("Personas - Concession Holder");
 }
 
 /* ------------------------------------------------------------- renovation */
-section("Renovation - level always, scaling type from level 2 up");
+section("Renovation - level always, any shape (v22)");
 {
   const shell = (ind, level) => ({ level, bp: E.BP_DATA.find((x) => x.ind === ind && x.lvl === level) });
   const card = (ind, lvl) => E.BP_DATA.find((x) => x.ind === ind && x.lvl === lvl);
@@ -536,12 +536,14 @@ section("Renovation - level always, scaling type from level 2 up");
     E.renovationEligible(shell("UT", 1), card("RE", 1)) === true);
   check("a level-1 vertical shell takes a level-1 horizontal card",
     E.renovationEligible(shell("HC", 1), card("TE", 1)) === true);
-  check("a level-2 horizontal shell REFUSES a level-2 vertical card",
-    E.renovationEligible(shell("UT", 2), card("RE", 2)) === false);
-  check("a level-2 vertical shell REFUSES a level-2 horizontal card",
-    E.renovationEligible(shell("HC", 2), card("MA", 2)) === false);
-  check("a level-3 horizontal shell REFUSES a level-3 vertical card",
-    E.renovationEligible(shell("MA", 3), card("HO", 3)) === false);
+  /* v22: a shell of the level takes any card of the level, whatever its shape - the
+     company keeps the shell's footprint. v21 refused these three. */
+  check("a level-2 horizontal shell takes a level-2 vertical card",
+    E.renovationEligible(shell("UT", 2), card("RE", 2)) === true);
+  check("a level-2 vertical shell takes a level-2 horizontal card",
+    E.renovationEligible(shell("HC", 2), card("MA", 2)) === true);
+  check("a level-3 horizontal shell takes a level-3 vertical card",
+    E.renovationEligible(shell("MA", 3), card("HO", 3)) === true);
   check("a level-2 horizontal shell accepts another horizontal level-2 card",
     E.renovationEligible(shell("UT", 2), card("TE", 2)) === true);
   check("a level-3 vertical shell accepts another vertical level-3 card",

@@ -310,7 +310,10 @@ export const RULEBOOK_PT = [
         "p": "Você pode construir em lotes de outro jogador. Ele recebe o aluguel todo trimestre, mas a empresa é sua."
       },
       {
-        "p": "Uma reforma tem que caber na carcaça que já está de pé. A carta precisa ter o mesmo nível da estrutura em dificuldade e, do nível 2 para cima, também o mesmo tipo de crescimento: uma estrutura horizontal de nível 2 ou 3 se espalha por vários lotes e não pode ser reconstruída como vertical, nem o contrário. No nível 1 os dois tipos ocupam um único lote, então uma carcaça de nível 1 aceita qualquer Projeto de nível 1."
+        "p": "Uma reforma tem que caber no NÍVEL da carcaça, e em mais nada. Qualquer Projeto do mesmo nível reforma qualquer estrutura em dificuldade, seja qual for o setor que ela era e a forma em que está de pé - um lote empilhado pode virar a empresa de um setor que se espalha, e uma fileira de lotes a de um setor que empilha. A empresa fica com a área da carcaça exatamente como está, paga aluguel e conta para os prêmios de terras em cada lote dela, e cresce dali na direção do próprio setor."
+      },
+      {
+        "note": "Medido em 300 partidas por número de jogadores: as reformas sobem 43%, cerca de um híbrido por partida se forma, e o ganho cai nos setores horizontais - as reformas para Serviços Públicos quase dobram, e para Tecnologia também - porque a carcaça comum é um lote empilhado, e uma carta horizontal agora pode ocupá-lo sem precisar achar dois ou três lotes vizinhos. Os setores verticais ficam com mais EP em 66.7% das partidas de três jogadores, contra 69.8%."
       },
       {
         "p": "Reformar move os marcadores de preço exatamente como fundar - o setor em que você constrói DESCE $1 e cada fornecedor citado na nova carta SOBE $1 - porque uma reforma coloca uma empresa genuinamente nova na cidade. Retomar uma carcaça como está não move nada. O prédio não mudou, e tampouco mudou o que a cidade consegue fornecer ou precisa comprar."
@@ -691,7 +694,7 @@ export const RULEBOOK_PT = [
           "Uma filial no lote de outra pessoa paga a ela $2 de aluguel de terreno por trimestre, exatamente como um prédio sobre o terreno dela.",
           "Cada filial deve abrir num distrito ortogonalmente vizinho a um que a rede já cobre, contando o lote da própria empresa e as filiais existentes. A rede se liga; ela não salta.",
           "Uma filial consome uma ficha, como tudo que você põe no tabuleiro, e ninguém pode construir no lote dela enquanto estiver de pé.",
-          "Venda ou perca a empresa e as lojas caem. O terreno fica com quem era dono."
+          "Venda, funda ou perca a empresa e as lojas caem. O terreno fica com quem era dono."
         ]
       },
       {
@@ -775,7 +778,7 @@ export const RULEBOOK_PT = [
       {
         "ul": [
           "Você escolhe uma das empresas fundidas para virar a sede da Megacorporação. Ela mantém o prédio e devolve o Projeto ao baralho do seu setor.",
-          "Todas as outras vão para o banco como Ativos em Dificuldade - qualquer um pode assumi-las depois.",
+          "Todas as outras vão para o banco como Ativos em Dificuldade - as lojas delas caem - e qualquer um pode assumi-las depois.",
           "A sede para de operar: sem Projeto, não produz nada e não paga OPEX. Ela ainda recebe sua parte igual do fundo do seu setor em todo B2B - uma sede que parou de construir não parou de receber.",
           "A cada trimestre em que estiver de pé, a sede embolsa EP igual ao PREÇO ATUAL do seu setor DIVIDIDO PELO PATAMAR DA FICHA, arredondado para baixo. Uma sede de patamar 1 em um setor a $3 embolsa 3 EP por trimestre; uma sede de patamar 4 no mesmo setor não embolsa nada até aquele setor chegar a $4. Uma sede em um setor que ninguém atende vai ganhando discretamente enquanto o preço sobe, e uma formada no Ano 1 arrecada por oito trimestres a mais do que uma formada no Ano 3.",
           "Ela não tem conta de fornecedores, mas continua ocupando o terreno, então o dono dela paga aluguel do terreno todo trimestre como qualquer outro prédio - $2 por nível instalado em um lote, ao proprietário daquele lote. Em terreno próprio, nada é devido.",
@@ -1358,7 +1361,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Reforma",
-              "a carta precisa ter o mesmo nível da estrutura; do nível 2 em diante, também o mesmo tipo de expansão"
+              "qualquer carta do nível da carcaça, seja qual for o setor ou a forma; a empresa fica com a área da carcaça"
             ],
             [
               "Empate final",
@@ -1599,7 +1602,9 @@ export const RULEBOOK_PT = [
           "A DEMANDA NÃO SE ESGOTA. Um ícone absorve uma unidade por trimestre de cada empresa que o alcança (duas de Tecnologia) e volta a ficar aberto no trimestre seguinte; nada é marcado na grade, nada é limpo no Trimestre 8, e ninguém disputa ícone com ninguém. Na v21 um ícone absorvia a própria coluna uma única vez, por ordem de chegada, e a mesa já tinha parado de jogar assim.",
           "UM POTE SEM NINGUÉM A QUEM PAGAR ESPERA, como na v20. A v21 o descartava; o acúmulo voltou por escolha, e o prêmio que ele dá a quem entra tarde está medido na nota de B2B.",
           "O DINHEIRO PONTUA A $100 POR EP, antes $50. Com a demanda como fluxo o mesmo tabuleiro absorve mais e o dinheiro se acumula mais alto; dinheiro é o meio, não a pontuação.",
-          "UMA REDE DE VAREJO É O SEU NÍVEL EM LOJAS, contando a sede: uma rede de nível 3 é a sua sede e duas filiais, em três distritos. A v21 abria uma filial por nível além da sede, um distrito a mais em todo nível do que a rede jamais deveria ter."
+          "UMA REDE DE VAREJO É O SEU NÍVEL EM LOJAS, contando a sede: uma rede de nível 3 é a sua sede e duas filiais, em três distritos. A v21 abria uma filial por nível além da sede, um distrito a mais em todo nível do que a rede jamais deveria ter.",
+          "QUALQUER ESTRUTURA EM DIFICULDADE ACEITA QUALQUER CARTA DO SEU NÍVEL, seja qual for o setor que ela era e a forma em que está de pé; a empresa fica com a área da carcaça. A v21 exigia o mesmo tipo de crescimento do nível 2 para cima. Medido, as reformas sobem dois quintos e os setores horizontais levam a maior parte delas.",
+          "UMA FUSÃO DERRUBA AS LOJAS DA REDE, como uma venda sempre fez. Na v21 uma rede de Varejo fundida deixava as filiais de pé no tabuleiro em nome do banco."
         ]
       },
       {
