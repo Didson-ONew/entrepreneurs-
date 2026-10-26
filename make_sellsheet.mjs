@@ -257,11 +257,13 @@ const doc = new Document({
 
       H("It already works, and it is measured"),
       /* Source: audit_tension.js, 250 complete games at EVERY table size on the
-         shipped ruleset, re-run for v19. Four-player figures quoted because it
-         is the count a publisher will test first; the numbers move the right way
-         as the table grows (3.8 lead changes and 1.6% wire-to-wire at six) and
-         the wrong way at two (1.8 and 15.6%), which is stated rather than hidden. */
-      P("Tuned on a simulation harness, not by feel. Across 250 complete games at every table size: at four players the lead changes hands 3.3 times, four players in five hold it at some point, under 3% of games are led wire to wire, and the winner takes the lead for the last time around Q9 of 12. Two players is the tightest count, and the likeliest to run wire to wire.",
+         shipped ruleset, re-run for v22 (demand as a rate, pots carrying). Four-
+         player figures quoted because it is the count a publisher will test first;
+         the numbers move the right way as the table grows (3.5 lead changes and
+         0.8% wire-to-wire at six) and the wrong way at two (1.1 and 45%), which is
+         stated rather than hidden - and is a known cost of the rate rule, which
+         took the two-player count from 16% wire-to-wire under v21. */
+      P("Tuned on a simulation harness, not by feel. Across 250 complete games at every table size: at four players the lead changes hands 2.6 times, three players in four hold it at some point, one game in twenty is led wire to wire, and the winner takes the lead for the last time around Q8 of 12. Two players is the tightest count, and the likeliest to run wire to wire.",
         { size: 18 }),
 
       /* The simulation says it is balanced. It cannot say anyone enjoyed it. */

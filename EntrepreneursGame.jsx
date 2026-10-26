@@ -541,7 +541,7 @@ function openIconsFor(state, ind, plotKeyStr) {
   t.rows.forEach((rowInd, rowIdx) => {
     if (rowInd !== ind) return;
     const openable = rowIdx >= 2 && state.quarter <= 4 ? 0 : 1;
-    for (let l = 0; l < 4; l++) if (openable && !t.filled[rowIdx][l]) n += 1;
+    for (let l = 0; l < 4; l++) if (openable) n += 1;
   });
   return n;
 }
@@ -613,11 +613,9 @@ function lhPlacementScore(state, p, plot) {
    measures. */
 function placeableFor(state, owner, biz) {
   const slots = eligibleSlotsFor(state, biz, owner);
-  /* Counted in UNITS, not icons: an icon absorbs its own level (see deliverToSlot),
-     so this has to sum the columns rather than count the cells. A bot judging a
-     Blueprint by the old icon count would systematically under-build. */
-  const direct = slots.filter((s) => !s.cross)
-    .reduce((n, s) => n + (s.levelIdx + 1), 0) * exchangeRate(state, biz);
+  /* One unit an icon (see deliverToSlot), so icons ARE units here - times the
+     Technology doubler. */
+  const direct = slots.filter((s) => !s.cross).length * exchangeRate(state, biz);
   const cross = bizInd(biz) === "MA"
     ? Math.min(biz.level, slots.filter((s) => s.cross).length) : 0;
   const neighbours = bizInd(biz) === "HO" ? hoBonusUnits(state, biz, owner) : 0;
@@ -755,19 +753,40 @@ function makeDemandPool(board, rng) {
   const tiles = {};
   Object.entries(board.tiles).forEach(([key, tname]) => {
     const fam = districtFamily(tname);
-    tiles[key] = { rows: DEMAND_ROWS[fam], filled: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] };
+    tiles[key] = { rows: DEMAND_ROWS[fam] };
   });
-  return { tiles, hcBonusTiles: [] };
+  return { tiles, hcBonusTiles: [], used: {} };
 }
+/* DEMAND IS A RATE, NOT A STOCK. An icon is never used up: it is open to every
+   company every quarter, absorbs one unit (two from Technology), and the only thing
+   that closes it is the quarter gate on rows 3-4. The table plays it with no cubes
+   on the grid, and measured in audit_demand_flow.js and audit_revenue.js it removes
+   the race for icons entirely - delivery order stops being worth anything - and
+   halves the share of small-company quarters that see no demand at all.
+
+   What IS tracked is that one company cannot sell into the same icon twice in one
+   quarter: `used` maps a company to the icons it has delivered to this quarter and
+   is cleared when the next Production begins. A game saved before this existed has
+   no `used` and reads as nobody having sold yet, which is right for a quarter that
+   has not started. */
 function unlockY2(pool) { /* rows 2-3 gate purely on quarter at read-time; nothing to mutate */ }
-function refreshY3(pool) {
-  Object.values(pool.tiles).forEach((t) => { t.filled = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]; });
+function resetDeliveries(pool) { pool.used = {}; }
+const slotKey = (tileKey, rowIdx, levelIdx) => `${tileKey}|${rowIdx}|${levelIdx}`;
+function slotUsedBy(pool, bizId, tileKey, rowIdx, levelIdx) {
+  const u = pool.used && pool.used[bizId];
+  return !!(u && u[slotKey(tileKey, rowIdx, levelIdx)]);
 }
-function slotOpen(pool, tileKey, rowIdx, levelIdx, quarter) {
+function markSlotUsed(pool, bizId, tileKey, rowIdx, levelIdx) {
+  if (!pool.used) pool.used = {};
+  (pool.used[bizId] = pool.used[bizId] || {})[slotKey(tileKey, rowIdx, levelIdx)] = 1;
+}
+/* Open to a given company this quarter: the row's year gate, and whether this
+   company has already sold there. A probe company (id -1) has sold nowhere. */
+function slotOpen(pool, tileKey, rowIdx, levelIdx, quarter, bizId) {
   const t = pool.tiles[tileKey];
   if (!t) return false;
   if (rowIdx >= 2 && quarter <= 4) return false;   // rows 3-4 open from Q5
-  return !t.filled[rowIdx][levelIdx];
+  return bizId === undefined || !slotUsedBy(pool, bizId, tileKey, rowIdx, levelIdx);
 }
 function slotIndustry(pool, tileKey, rowIdx) { return pool.tiles[tileKey]?.rows[rowIdx]; }
 
@@ -788,8 +807,7 @@ function bestExtraDistrictsForRE(state, biz, count, home) {
     let n = 0;
     t.rows.forEach((rowInd, rowIdx) => {
       if (rowInd !== "RE") return;
-      if (rowIdx >= 2 && state.quarter < 4) return;
-      for (let l = 0; l < Math.min(biz.level, 4); l++) if (!t.filled[rowIdx][l]) n++;
+      for (let l = 0; l < Math.min(biz.level, 4); l++) if (slotOpen(state.demand, d, rowIdx, l, state.quarter, biz.id)) n++;
     });
     return n;
   };
@@ -835,8 +853,7 @@ function bestUtBlock(state, biz, home) {
     let k = 0;
     t.rows.forEach((rowInd, ri) => {
       if (rowInd !== "UT") return;
-      if (ri >= 2 && state.quarter <= 4) return;
-      for (let l = 0; l < Math.min(biz.level, 4); l++) if (!t.filled[ri][l]) k++;
+      for (let l = 0; l < Math.min(biz.level, 4); l++) if (slotOpen(state.demand, d, ri, l, state.quarter, biz.id)) k++;
     });
     return acc + k;
   }, 0);
@@ -1008,7 +1025,7 @@ function eligibleSlotsFor(state, biz, owner) {
     t.rows.forEach((rowInd, rowIdx) => {
       if (rowInd !== ind) return;
       for (let levelIdx = 0; levelIdx < cap; levelIdx++) {
-        if (slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter)) out.push({ tileKey, rowIdx, levelIdx, cross: false });
+        if (slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter, biz.id)) out.push({ tileKey, rowIdx, levelIdx, cross: false });
       }
     });
   });
@@ -1020,7 +1037,7 @@ function eligibleSlotsFor(state, biz, owner) {
       t.rows.forEach((rowInd, rowIdx) => {
         if (rowInd === ind) return; // own-industry slots already covered above
         for (let levelIdx = 0; levelIdx < Math.min(lvl, 4); levelIdx++) {
-          if (slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter)) out.push({ tileKey, rowIdx, levelIdx, cross: true });
+          if (slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter, biz.id)) out.push({ tileKey, rowIdx, levelIdx, cross: true });
         }
       });
     });
@@ -1028,7 +1045,7 @@ function eligibleSlotsFor(state, biz, owner) {
   return out;
 }
 function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
-  if (!slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter)) return 0;
+  if (!slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter, biz.id)) return 0;
   const slotInd = slotIndustry(state.demand, tileKey, rowIdx);
   if (cross) {
     if (bizInd(biz) !== "MA" || slotInd === bizInd(biz)) return 0;
@@ -1042,24 +1059,21 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
      was enforced for anyone clicking the grid and for nobody reaching the endpoint
      another way. */
   if (!reachableDistricts(state, biz).has(tileKey)) return 0;
-  /* A demand icon absorbs ITS OWN LEVEL in goods: the level-1 icon takes one unit,
-     the level-4 icon takes four. A level-3 company reaches columns 1-3, so one clean
-     row of its industry takes 1 + 2 + 3 = 6 of its units rather than 3.
+  /* An icon absorbs ONE unit, every quarter, from every company that reaches it -
+     two from Technology, which is the only doubler. A level-3 company reaches columns
+     1-3, so one row of its industry takes three of its units a quarter, forever.
 
-     This is what makes a bigger company sell more of what it makes. Production
-     already scaled with level; the board's appetite did not, so two thirds of all
-     output was being recycled at $1 while the demand grid sat 80% empty - the icons
-     were open and the units could not reach them. Measured in audit_demand_depth.js:
-     waste falls from 65% to 49%, and it falls where it should - a level-3 company
-     goes from 61% wasted to 39% while a level-1 company is unchanged, because a
-     level-1 company still only reaches the level-1 icon. Companies covering their
-     OPEX do not move at all (91% either way).
+     It used to absorb its own column - 1 + 2 + 3 = 6 from that row, once, and then it
+     was gone for everybody until Year 3. That was the fix audit_demand_depth.js
+     shipped for two thirds of production being recycled; the rate rule gets the
+     waste lower still (45% to 31% in audit_revenue.js) by letting the same icons pay
+     every quarter instead of paying more once, and nobody is racing anybody for them.
 
-     Cross-selling still moves one unit per icon. It is Manufacturing reaching into
-     somebody else's row, and letting it scale here would make a level-3 Manufacturing
-     better at every industry than the industry is at itself. */
-  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
-  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);
+     Cross-selling moves one unit per icon too: Manufacturing reaching into somebody
+     else's row, and letting it scale would make a level-3 Manufacturing better at
+     every industry than the industry is at itself. */
+  markSlotUsed(state.demand, biz.id, tileKey, rowIdx, levelIdx);
+  return cross ? 1 : exchangeRate(state, biz);
 }
 /* What one unit of this company's output is actually worth to this owner, including
    any persona effect. `slotInd` is the row being sold into, which only differs from the
@@ -1126,10 +1140,9 @@ function autoDeliver(state, p, biz) {
   let crossAllowance = bizInd(biz) === "MA" ? biz.level : 0;
   let earned = 0;
 
-  /* Demand icons are contested and first come first served; the businesses around a
-     Hospitality company are not going anywhere. So fill icons first, best-paying first -
-     which is not a fixed order, because a White-Label Supplier is paid the price of the
-     row it cross-sells into, and that can beat its own industry. */
+  /* Icons first, best-paying first - which is not a fixed order, because a White-Label
+     Supplier is paid the price of the row it cross-sells into, and that can beat its
+     own industry. The businesses around a Hospitality company take whatever is left. */
   const slots = eligibleSlotsFor(state, biz).map((s) => ({ ...s, pay: slotPay(state, p, biz, s) }))
     .sort((a, b) => b.pay - a.pay);
   for (const s of slots) {
@@ -1343,9 +1356,9 @@ const hasVariant = (state, key) => !!(state && state.variants && state.variants[
 
    What goes: Megacorps, and one action from each track - SELL, BUY, UPGRADE and
    GO PUBLIC - leaving LOAN, LAUNCH, RESEARCH and REPOSITION. Board Meeting
-   keeps its one seat, because first in turn order decides who sells into a
-   contested demand icon first and who places the hub, and without REPOSITION
-   the starting order would be frozen for the whole game.
+   keeps its one seat, because first in turn order places workers first and
+   places the hub, and without REPOSITION the starting order would be frozen
+   for the whole game.
 
    Three rules make the rest work, and each is load-bearing:
 
@@ -2118,7 +2131,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "c30ab802";
+const ENGINE_VERSION = "505470e8";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2324,9 +2337,11 @@ function runProduction(state, log) {
 }
 /* Revenue - B2B. Each industry pot is split evenly among the active businesses of that
    industry - one equal share each, whatever their level - and whatever will not divide
-   cleanly rides forward. An industry with no active business has that quarter's pot
-   WRITTEN OFF - it used to ride forward and bank for whoever entered first, and
-   audit_supply.js --carry still measures that rule against this one. */
+   cleanly rides forward. An industry with no active business KEEPS ITS WHOLE POT,
+   growing until somebody enters, and the first company in takes all of it. v21
+   wrote that quarter's money off instead; v22 put the carry back, because the
+   designer prefers a market that visibly waits for someone to answer it. The
+   written-off rule is kept measurable in audit_supply.js --expire. */
 /* Supply Chain Expert: at the start of Revenue, push one industry you do not operate up
    one step. It costs you nothing directly but helps a rival's market, and in exchange
    your Retail reaches one more district this quarter.
@@ -2484,7 +2499,7 @@ function runB2B(state, log) {
        not by anything anyone played. Expiring it takes the lump away without making
        industries any emptier: measured, the quarters an industry sits unbuilt do not
        move, because the prize was never what drew anyone in. */
-    if (!recipients.length) { state.pots[ind] = 0; continue; }
+    if (!recipients.length) continue;   // nobody to pay: the pot stays and keeps growing
     /* One equal share each, whatever size the companies are, and whatever will not
        divide cleanly rides forward in the pot. A big company draws no more from the
        pot than a small one - it is the industry that is being paid, not the building. */
@@ -2526,7 +2541,6 @@ function runClosing(state, log, rng) {
   const { quarter, demand } = state;
   runConcessionErosion(state, log);
   if (quarter === 4) unlockY2(demand);
-  if (quarter === 8) refreshY3(demand);
   const firstPlayer = byId(state, state.turnOrder[0]);
   if (firstPlayer.isHuman) {
     state.phase = "placingLH";
@@ -3221,7 +3235,7 @@ const TRACK_HELP_BEGINNER = {
   raise_capital: "LOAN takes $20 from the bank for one of your discs. You have six discs, five of them needed for a full board of companies, so borrowing twice costs you a company bay.",
   ma: "LAUNCH builds a Blueprint from your hand onto any free plots nobody has taken \u2014 the ground comes with the company, free \u2014 and pays you 3 EP the first time you enter each industry.",
   rd: "RESEARCH draws the face-up top card of any industry deck. Decks are shuffled whole, so a level 2 or level 3 card can be drawn and built straight away: it is how you reach a bigger footprint here.",
-  board_meeting: "REPOSITION moves you to first in turn order. First sells into a contested demand icon before anybody else and places this quarter's Logistic Hub.",
+  board_meeting: "REPOSITION moves you to first in turn order. First places workers first next quarter, acts first on every track, and places this quarter's Logistic Hub.",
 };
 const trackHelp = (state, key) => (isBeginner(state) ? TRACK_HELP_BEGINNER[key] : TRACK_HELP[key]);
 /* Board Meeting asks for its help by name, and `t(boardMeetingHelp(state))`
@@ -3473,7 +3487,7 @@ function buildResolutionQueue(state) {
    likes, which is the same valuation the full game uses. RESEARCH the deck
    whose top card scores best, which is how a bot reaches a level-2 or level-3
    card - the only route to a big footprint here. REPOSITION to go first, which
-   decides who sells into a contested demand icon and who places the hub. */
+   decides who places workers first and who places the hub. */
 function botResolveBeginner(state, p, rng, log, track) {
   if (track === "ma") {
     const pick = bestLaunch(state, p, p.archetype, 0);
@@ -3834,10 +3848,10 @@ function continueProduction(state, log, rng) {
   state.crossSellRemaining = {};
   state.reBonusPick = {};  // the Supply Chain Expert's one extra district, re-picked each delivery
   state.hoBonusPaid = {};
-  /* Delivery runs in turn order, everybody in one sequence. Demand icons are first
-     come first served, so who sells before whom is the whole point of being first
-     player - and this used to run every bot first, whatever the seating, which meant
-     a human at the front of the order still arrived to a picked-over board. */
+  resetDeliveries(state.demand);   // every icon is open to everyone again
+  /* Delivery still walks the turn order, one player at a time, because a human has to
+     be handed the board somewhere in the sequence. Nothing hangs on the order any
+     more: an icon is not used up, so nobody arrives to a picked-over board. */
   state.deliveryOrder = [...state.turnOrder];
   state.deliveryCursor = 0;
   if (!advanceDelivery(state, log)) finishQuarter(state, log, rng);
@@ -3877,9 +3891,8 @@ function startDeliveryFor(state, playerId, log) {
   {
     state.phase = "delivering";
     state.awaitingPlayerId = playerId;
-    /* The Hospitality neighbour trade is no longer taken off the top. Icons are
-       contested and neighbours are not, so it is applied to whatever is left when the
-       player is done delivering - which is both the better play and their choice. */
+    /* The Hospitality neighbour trade is not taken off the top: it is applied to
+       whatever is left when the player is done delivering, which is their choice. */
     pending.forEach((b) => {
       state.deliveryRemaining[b.id] = bizProd(b);
       state.crossSellRemaining[b.id] = bizInd(b) === "MA" ? b.level : 0;
@@ -4274,7 +4287,9 @@ function DemandCenter({ tname, demand, quarter, tileKey, deliverInfo, onDeliver 
             title={locked ? t("Locked until Year 2 (opens at the end of Q4)") : undefined}>
             {locked && <span style={{ fontSize: 8, lineHeight: 1, marginRight: 1 }}>{"\uD83D\uDD12"}</span>}
             {[0, 1, 2, 3].map((levelIdx) => {
-              const filled = !!tile.filled[rowIdx][levelIdx];
+              /* An icon is never used up. The only one dimmed is one THIS company has
+                 already sold into this quarter, and only while it is delivering. */
+              const filled = !!(deliverInfo && deliverInfo.used && deliverInfo.used[`${tileKey}|${rowIdx}|${levelIdx}`]);
               const isNormalEligible = !locked && !filled && deliverInfo && deliverInfo.ind === ind && levelIdx < deliverInfo.cap && deliverInfo.reach.has(tileKey);
               const isCrossEligible = !locked && !filled && deliverInfo && deliverInfo.crossActive && ind !== deliverInfo.ind && levelIdx < deliverInfo.level && deliverInfo.crossHome.has(tileKey);
               const isEligible = isNormalEligible || isCrossEligible;
@@ -4283,7 +4298,7 @@ function DemandCenter({ tname, demand, quarter, tileKey, deliverInfo, onDeliver 
               return (
                 <div key={levelIdx}
                   onClick={() => { if (isEligible) onDeliver(tileKey, rowIdx, levelIdx, isCrossEligible); }}
-                  title={`${ind} \u00b7 Lvl ${levelIdx + 1}${filled ? " (met)" : ""}${isCrossEligible ? " (cross-sell)" : ""}${discounted ? " (above your level: pays $1 less)" : ""}`}
+                  title={`${ind} \u00b7 Lvl ${levelIdx + 1}${filled ? " (sold to this quarter)" : ""}${isCrossEligible ? " (cross-sell)" : ""}${discounted ? " (above your level: pays $1 less)" : ""}`}
                   className={isEligible ? "cursor-pointer" : ""}
                   style={{ width: 16, height: 13, borderRadius: 2, backgroundColor: bg,
                     border: isCrossEligible ? "2px solid #f5a623" : discounted ? "2px dashed #ffffff" : isNormalEligible ? "2px solid #ffffff" : "1px solid #00000044",
@@ -4944,10 +4959,10 @@ export const ordinal = (n) => n + (n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "
 
 /* The order the table will sell in, and how far through it the quarter is.
 
-   Delivery runs in turn order and demand icons are first come first served, so "does
-   that seat sell before me or after me" is a question every player has in front of
-   them - and nothing on screen answered it. You could usually infer the first player
-   from whoever sat on Board Meeting, and no further than that.
+   Delivery walks the turn order one player at a time, and the roster shows where the
+   quarter has got to. Icons are not used up, so the order no longer costs anybody
+   anything - it is a queue to be handed the board, not a race - but a player still
+   wants to know whose turn it is, and nothing on screen used to say.
 
    Which list is authoritative depends on the phase. Once delivery opens it is
    state.deliveryOrder, snapshotted from turnOrder as the phase begins; before then
@@ -5496,8 +5511,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
           <div className="flex gap-2 flex-wrap">
             {/* No Megacorps in the teaching game, so Board Meeting is
                 REPOSITION alone - which is why the track survives at all: first
-                in turn order sells into a contested demand icon first and
-                places the hub. */}
+                in turn order places workers first and places the hub. */}
             {!isBeginner(state) && (
             <button disabled={!!blocked}
               /* Always ask which company keeps the building. This used to be
@@ -6370,6 +6384,8 @@ function GameScreens({ online }) {
     discountFrom: bizInd(deliveringBiz) === "HC" && hasPersona(human, "preventive") ? deliveringBiz.level : null,
     crossActive: bizInd(deliveringBiz) === "MA" && (state.crossSellRemaining[deliveringBiz.id] || 0) > 0,
     crossHome: bizInd(deliveringBiz) === "MA" ? footprintDistricts(state.board, deliveringBiz.footprint) : new Set(),
+    // the icons this company has already sold into this quarter - the only ones the grid dims
+    used: (state.demand.used && state.demand.used[deliveringBiz.id]) || {},
   } : null;
 
   function handleSupplyChain(ind) {
@@ -7055,8 +7071,8 @@ function GameScreens({ online }) {
             </div>
 
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("The Bank")} <Help text={t("Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$35/$40. Distressed companies sit here until someone renovates them via M&amp;A - Buy. The players are listed in TURN ORDER: delivery runs in that sequence and demand icons are first come first served, so anyone above you sells before you do. Reposition moves a player to the front of it.")} /></div>
-              <div className="text-[9px] text-gray-500 mb-1.5">{t("Loan discs (−5 EP each at game end) ·")} <span title={t("Delivery runs in this order, and demand is first come first served")}>{t("in turn order")}</span>:</div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("The Bank")} <Help text={t("Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$35/$40. Distressed companies sit here until someone renovates them via M&amp;A - Buy. The players are listed in TURN ORDER: delivery is handed round in that sequence, and Reposition moves a player to the front of it.")} /></div>
+              <div className="text-[9px] text-gray-500 mb-1.5">{t("Loan discs (−5 EP each at game end) ·")} <span title={t("Delivery is handed round in this order")}>{t("in turn order")}</span>:</div>
               <div className="space-y-1 mb-2">
                 {/* Seat order until now, which is fixed for the whole game and tells
                     nobody anything. This list was the only per-player roster on screen

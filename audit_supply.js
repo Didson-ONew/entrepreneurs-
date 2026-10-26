@@ -6,8 +6,8 @@
    level) goes to whoever owns its land and the REST goes into its suppliers'
    pots, split in proportion to the `val` printed beside each one. At Revenue
    each pot is divided equally among that industry's active companies - one
-   share each whatever the level - and a pot with nobody to pay is written off at
-   the end of that quarter.
+   share each whatever the level - and a pot with nobody to pay stays, growing,
+   until somebody opens a company there.
 
    THE GRAPH IS PERFECTLY REGULAR AND THE MONEY IS NOT. Every industry buys from
    exactly three others and is listed by exactly seventeen cards, so the slot
@@ -28,7 +28,7 @@
         --rows6    the proposed demand table   --strat  the stratified draw
         --off N    start from seed N+1, for a same-rules control block
    And candidate repairs to the loop itself:
-        --carry    put back the old rule, where a pot with nobody to pay rode forward
+        --expire   write off a pot with nobody to pay at quarter end (the v21 rule)
         --bylevel  the pot splits in proportion to level, instead of one share each
         --nohq     a headquarters stops drawing a share it paid nothing into
         --graph N  re-point WHO supplies whom, holding every val and every template:
@@ -57,14 +57,16 @@
    real corrective on the setup ladder, but it is conditional on being ALONE: the second
    player in halves it. A first-mover prize, not a standing subsidy.
 
-   THE EMPTY POT WAS THE SHARPEST EDGE ON THE BOARD AND IS NOW WRITTEN OFF. Under the
-   old rule - still measurable with --carry - a pot with nobody to pay rode forward and
-   grew, so the industry nobody served became the best-paid thing on the board. Over 400
-   games a table size on the shipped cards, --carry banks a pot of up to $355, hands out a
-   single scoop of up to $342, and pays a mean scoop of $31-$67 to whoever happens to
-   enter first. Written off, the same seeds give a biggest pot of $76, a biggest scoop of
-   $66 and a mean of $8-$19. Both maxima grow with the number of games measured; the means
-   do not, and they are the number to quote.
+   THE EMPTY POT IS THE SHARPEST EDGE ON THE BOARD, AND v22 KEEPS IT BY CHOICE. A pot
+   with nobody to pay rides forward and grows, so the industry nobody serves becomes the
+   best-paid thing on the board. Over 400 games a table size the waiting pot reaches
+   $355, the first company in scoops up to $342, and the mean scoop is $31-$67 for
+   whoever happens to enter first. v21 wrote that quarter's money off instead - still
+   measurable with --expire - which cuts it to a biggest pot of $76, a biggest scoop of
+   $66 and a mean of $8-$19. The designer put the carry back: a market that visibly
+   waits for someone to answer it is the thematic reading, and the prize is now a
+   known, chosen one. Both maxima grow with the number of games measured; the means do
+   not, and they are the number to quote.
 
    WHAT THE RULE DOES NOT DO is change WHO the pot favours. Per-company return spreads
    1.86x written off against 1.89x carried at three players, 1.96x against 1.95x at four:
@@ -109,9 +111,9 @@
                                without shrinking it, and it cuts Retail's reliance on
                                growth from 83% to 63% as a side effect, by front-loading
                                the bill at level 1 (proposed MA opex is 12 against 4).
-     the empty-pot rule        SHIPPED, and the one change here that reached the
-                               rulebook. --carry puts the old rule back for comparison:
-                               worst scoop $66 -> $342 and every share up about 40%.
+     the empty-pot rule        shipped in v21, REVERTED in v22 by choice. --expire
+                               measures the v21 rule: worst scoop $342 -> $66 and every
+                               share down about 40%.
      --graph heavy             per-company 3.0x -> 2.1x. Nothing on the flow (inside noise).
      both together             collects 1.84x, per-company 1.57x, worst scoop $85.
 
@@ -218,10 +220,12 @@ if (GROW_OPEX !== null) {
   logic = logic.replace(OPEX_NOW, `const bizOpex = (b) => Math.round(b.bp.opex * (b.upgraded ? ${GROW_OPEX} : 1));`);
 }
 
-const CONSUME = `  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
-  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);`;
+/* v22 SHIPPED THE RATE RULE: an icon absorbs one unit from every company that reaches it,
+   every quarter, and is never used up. The needles below anchor on that shape. */
+const CONSUME = `  markSlotUsed(state.demand, biz.id, tileKey, rowIdx, levelIdx);
+  return cross ? 1 : exchangeRate(state, biz);`;
 need(CONSUME, "the delivery rule");
-if (has("--flow")) logic = logic.replace(CONSUME, "  return cross ? 1 : exchangeRate(state, biz);");
+/* --flow SHIPPED in v22 - the engine plays the rate rule; the flag is accepted and does nothing. */
 const SHEET2 = { UT: { setup: 20, opex: 6, prod: 3 }, RE: { setup: 10, opex: 8, prod: 4 },
                  HO: { setup: 15, opex: 6, prod: 2 }, MA: { setup: 15, opex: 12, prod: 4 },
                  HC: { setup: 20, opex: 12, prod: 3 }, TE: { setup: 10, opex: 8, prod: 2 } };
@@ -359,10 +363,10 @@ if (has("--nohq")) { need(HQ_SEAT, "the headquarters seat"); logic = logic.repla
 const HOOKS = [
   ["a pot credit", `        deps.forEach((d, i) => { state.pots[d.ind] += shares[i]; });`,
                    `        deps.forEach((d, i) => { __probe.pay(bizInd(b), d.ind, shares[i], b.level, !!b.upgraded); state.pots[d.ind] += shares[i]; });`],
-  /* The pot is written off now; --carry puts back the rule the game had before, where
+  /* The pot carries forward again (v22); --expire measures the v21 rule, where
      it rode forward and the first company into an empty industry scooped the lot. */
-  ["an unclaimed pot", `    if (!recipients.length) { state.pots[ind] = 0; continue; }`,
-                   `    if (!recipients.length) { __probe.orphan(ind, pot); ${has("--carry") ? "" : "state.pots[ind] = 0; "}continue; }`],
+  ["an unclaimed pot", `    if (!recipients.length) continue;   // nobody to pay: the pot stays and keeps growing`,
+                   `    if (!recipients.length) { __probe.orphan(ind, pot); ${has("--expire") ? "state.pots[ind] = 0; " : ""}continue; }`],
   ["a pot payout", `    recipients.forEach((r) => { r.p.cash += share; });`,
                    `    __probe.payout(ind, share, recipients.length, pot);\n    recipients.forEach((r) => { r.p.cash += share; });`],
   ["a company launching", `function onLaunch(pm, ind, depInds) {`,
@@ -446,7 +450,7 @@ function run(seats) {
 }
 
 const ARMS = ["--flow", "--sheet2", "--sheet2pay", "--sheet3", "--sheet4", "--rows6", "--rows8",
-              "--rows9", "--sheet5", "--v3", "--v4", "--v5", "--strat", "--carry", "--bylevel", "--nohq"];
+              "--rows9", "--sheet5", "--v3", "--v4", "--v5", "--strat", "--expire", "--bylevel", "--nohq"];
 console.log(`\n${GAMES} games a table size.  arms: ${[...ARMS.filter(has), GRAPH ? "--graph " + GRAPH : "",
   GROW_OPEX !== null ? "--grow " + GROW_OPEX : ""].filter(Boolean).join(" ") || "as it ships"}.`);
 for (const seats of SIZES) {

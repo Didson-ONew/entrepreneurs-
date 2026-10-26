@@ -1,9 +1,11 @@
-/* A human is paid only for the units they actually have, exactly as a bot is.
+/* A human is paid for exactly one unit an icon, exactly as a bot is - and cannot
+   sell into the same icon twice in a quarter.
 
-   An icon in column k takes k units and is filled whole. A bot with fewer units left
-   than that is paid for what it had (autoDeliver caps at `remaining`); a human clicking
-   the same icon used to be paid for the icon's full intake - one unit left, three
-   units' pay.
+   An icon takes ONE unit from each company that reaches it, every quarter (v22; it
+   used to take its column, once). A bot delivers one unit per icon (autoDeliver);
+   a human clicking an icon is paid for one, whatever they have left, and the icon
+   is then closed to THAT company until the next quarter while staying open to
+   everybody else.
 
    Run: node test_deliver_pay_cap.js */
 const fs = require("fs");
@@ -18,7 +20,7 @@ function loadEngine() {
   const sandbox = { console, Math, Set, Object, Array, JSON, box };
   vm.createContext(sandbox);
   vm.runInContext(logic + `
-    box.exports = { initGame, byId, humanDeliver, unitPrice, BP_DATA, eligibleSlotsFor };
+    box.exports = { initGame, byId, humanDeliver, unitPrice, BP_DATA, eligibleSlotsFor, slotUsedBy };
   `, sandbox);
   return box.exports;
 }
@@ -57,20 +59,25 @@ console.log("\nOne unit left, a column-3 icon clicked");
   const cash = me.cash;
   const ok = E.humanDeliver(st, me, tileKey, reRow, 2, false, () => {});
   check("the delivery went through", ok);
-  check("the icon is filled whole", st.demand.tiles[tileKey].filled[reRow][2] === 1);
-  check(`paid for 1 unit ($${price}), not for the icon's 3 (got $${me.cash - cash})`, me.cash - cash === price);
+  check("the icon is marked sold-to for this company", E.slotUsedBy(st.demand, biz.id, tileKey, reRow, 2));
+  check(`paid for 1 unit ($${price}) (got $${me.cash - cash})`, me.cash - cash === price);
   check("nothing is left to deliver", (st.deliveryRemaining[biz.id] || 0) === 0);
 }
 
-console.log("\nPlenty left: the icon's whole intake is paid, as before");
+console.log("\nPlenty left: an icon still takes one unit, not its column");
 {
   const { st, me, biz, tileKey, reRow } = scenario();
   st.deliveryRemaining = { [biz.id]: 16 };
   const price = E.unitPrice(st, me, biz);
   const cash = me.cash;
   E.humanDeliver(st, me, tileKey, reRow, 2, false, () => {});
-  check(`paid for 3 units ($${3 * price}) (got $${me.cash - cash})`, me.cash - cash === 3 * price);
-  check("13 units remain", st.deliveryRemaining[biz.id] === 13);
+  check(`paid for 1 unit ($${price}) (got $${me.cash - cash})`, me.cash - cash === price);
+  check("15 units remain", st.deliveryRemaining[biz.id] === 15);
+  const again = E.humanDeliver(st, me, tileKey, reRow, 2, false, () => {});
+  check("the same icon cannot be sold into twice in one quarter", again === false && st.deliveryRemaining[biz.id] === 15);
+  check("but the icon is not closed to anybody else", !E.slotUsedBy(st.demand, 9002, tileKey, reRow, 2));
+  const other = E.humanDeliver(st, me, tileKey, reRow, 1, false, () => {});
+  check("and the next column is still open to this company", other === true && st.deliveryRemaining[biz.id] === 14);
 }
 
 console.log(failures ? `\n${failures} check(s) failed\n` : "\nall checks passed\n");

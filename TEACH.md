@@ -190,7 +190,7 @@ Say this list exists. Don't read it out.
 | The six industry abilities | the first time a player builds that industry — one sentence, to that player only |
 | Logistic Hubs and reach | the first time somebody wants a district they can't reach |
 | UPGRADE | end of quarter 1, or the first time somebody asks how to get bigger |
-| Rows 3–4 opening at Q5, grid wiped after Q8 | at quarter 5, and at quarter 8 |
+| Rows 3–4 opening at Q5 | at quarter 5 |
 | Solvency and distressed companies | the first time somebody can't pay a bill |
 | Exact land award numbers | the first year end |
 | Ground rent to other players | the first time somebody builds on a plot they don't own |

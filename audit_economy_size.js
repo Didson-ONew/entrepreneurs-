@@ -191,11 +191,15 @@ for (const seats of SIZES) {
     const sample = () => {
       T.samples++;
       /* demand: a slot counts as OPEN only if the quarter has unlocked its row */
-      const tiles = st.demand && st.demand.tiles ? Object.values(st.demand.tiles) : [];
-      for (const t of tiles) {
+      /* An icon is never used up (v22): "filled" here means sold into this quarter by
+         at least one company, which is what the per-company sales record holds. */
+      const sold = new Set();
+      Object.values((st.demand && st.demand.used) || {}).forEach((u) => Object.keys(u).forEach((k) => sold.add(k)));
+      const tiles = st.demand && st.demand.tiles ? Object.entries(st.demand.tiles) : [];
+      for (const [key, t] of tiles) {
         t.rows.forEach((ind, r) => {
           if (r >= 2 && st.quarter <= 4) return;      // rows 3-4 open from Q5
-          for (let l = 0; l < 4; l++) { T.slotsOpen++; if (t.filled[r][l]) T.slotsFilled++; }
+          for (let l = 0; l < 4; l++) { T.slotsOpen++; if (sold.has(`${key}|${r}|${l}`)) T.slotsFilled++; }
         });
       }
       /* land */

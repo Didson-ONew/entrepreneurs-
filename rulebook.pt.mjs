@@ -15,7 +15,7 @@
    brasileira e isso que estaria impresso no componente.
    ========================================================================== */
 
-export const EDITION_PT = "Manual v19";
+export const EDITION_PT = "Manual v22";
 
 export const RULEBOOK_PT = [
   {
@@ -609,10 +609,10 @@ export const RULEBOOK_PT = [
         "p": "Cada empresa produz um número de unidades impresso em seu Projeto, dobrado se ela tiver sido expandida. Esse número é tudo o que ela tem: toda habilidade abaixo é um caminho para essas unidades, nunca uma fonte de mais unidades. Você as entrega a ícones de demanda que sua empresa consegue alcançar, e cada unidade que um ícone recebe é paga pelo preço de mercado atual do seu setor."
       },
       {
-        "p": "Os ícones de demanda são por ordem de chegada; os negócios para os quais uma empresa de Hotelaria vende, não - então em geral vale pegar primeiro os ícones disputados e mandar o que sobrar para os vizinhos. Tudo o que ainda assim você não conseguir colocar é reciclado por $1 a unidade."
+        "p": "Um ícone não se esgota quando você vende para ele. Todo ícone fica aberto para toda empresa em todo trimestre, e uma empresa vende uma unidade em cada ícone que alcança - então o que você vende depende de onde você está e do seu tamanho, nunca de quem chegou primeiro. Tudo o que você não conseguir colocar é reciclado por $1 a unidade."
       },
       {
-        "p": "A entrega segue a ordem de turno. Todo ícone é por ordem de chegada, então estar no início da ordem vale dinheiro de verdade num distrito disputado - e é a principal coisa que REPOSICIONAR compra para você."
+        "p": "A entrega passa pela mesa na ordem de turno, mas nada depende da ordem: ninguém pode tirar um ícone de você. Todas as empresas podem resolver suas vendas ao mesmo tempo, se a mesa preferir."
       },
       {
         "h": "Quais ícones você pode usar"
@@ -623,9 +623,9 @@ export const RULEBOOK_PT = [
       {
         "ul": [
           "As linhas 3 e 4 de todo distrito ficam fechadas até o Trimestre 5.",
-          "No fim do Trimestre 8, toda a grade de demanda é limpa e todos os ícones reabrem para o Ano 3.",
-          "UM ÍCONE RECEBE A PRÓPRIA COLUNA EM MERCADORIAS: o ícone de nível 1 recebe uma unidade, o de nível 2 duas, o de nível 3 três, o de nível 4 quatro. Uma empresa de nível 3 que alcança as colunas 1, 2 e 3 vende, portanto, 1 + 2 + 3 = 6 unidades em uma única linha limpa do seu setor.",
-          "Cada ícone pode receber uma venda só, de quem chegar primeiro - e é preenchido por inteiro, não importa quantas unidades tenha exigido, embora você só receba pelas unidades que de fato tinha.",
+          "Um ícone volta a ficar aberto no trimestre seguinte, para todos. Nada é limpo e nada precisa ser marcado entre um trimestre e outro.",
+          "UM ÍCONE RECEBE UMA UNIDADE por trimestre de cada empresa que o alcança. Uma empresa de nível 3 que alcança as colunas 1, 2 e 3 vende, portanto, 3 unidades numa linha do seu setor, todo trimestre - Tecnologia vende duas por coluna, 6 na mesma linha.",
+          "Uma empresa pode vender em cada ícone que alcança uma vez por trimestre; duas empresas que alcançam o mesmo ícone vendem as duas nele. Um setor lotado é precificado pela trilha de preços, não racionado pela grade.",
           "Tudo o que você não conseguir vender é reciclado por $1 a unidade."
         ]
       },
@@ -674,7 +674,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Tecnologia",
-              "Todo ícone que ela preenche recebe o dobro da sua coluna em unidades - 2, 4, 6 ou 8 - e paga por todas elas."
+              "Todo ícone em que ela vende recebe 2 unidades em vez de 1, e paga pelas duas."
             ]
           ]
         }
@@ -707,13 +707,13 @@ export const RULEBOOK_PT = [
         "p": "O que não dividir certinho fica no fundo e passa adiante. Um fundo de $10 dividido entre três empresas de Saúde paga $3 a cada uma e leva $1 para o trimestre seguinte."
       },
       {
-        "p": "UM POTE SEM NINGUÉM A QUEM PAGAR É DESCARTADO. Se um setor não tem nenhuma empresa ativa quando seu pote é distribuído, o dinheiro daquele trimestre simplesmente some. Abastecer um setor em que ninguém opera é dinheiro que sai do seu bolso e não entra no de ninguém."
+        "p": "UM POTE SEM NINGUÉM A QUEM PAGAR FICA. Se um setor não tem nenhuma empresa ativa quando seu pote é distribuído, o pote inteiro espera - e continua crescendo - até alguém abrir uma empresa ali. A primeira empresa a entrar leva tudo o que acumulou, sozinha."
       },
       {
-        "note": "Antes ele acumulava por inteiro, e isso fazia de um setor vazio a coisa mais lucrativa do tabuleiro. Medido nestas cartas, o maior pote à espera foi $448 e a maior abocanhada $271 - uma empresa de graça e troco, pelo preço de uma, decidido por quem por acaso estava posicionado e não por algo que alguém jogou. Descartá-lo corta isso para $78 e $78, e a abocanhada média de $31-$63 para $8-$16. ISTO É UMA TROCA, NÃO UM CONSERTO DE GRAÇA, e a medição anterior que dizia o contrário foi feita antes do reequilíbrio das cartas. O pote acumulado era parte do que atraía um jogador para um setor vazio, e sem ele os setores ficam vazios por mais tempo: o pior caso sobe de 23.9% das partidas para 26.1% com três jogadores e de 10.7% para 11.9% com quatro, com cada setor um pouco mais vazio. A divisão entre setores anda nos dois sentidos - um pouco pior com três assentos, de 70.0% para 71.5% para os três verticais, e um pouco melhor com quatro, de 76.5% para 74.6%. Mantenha pela abocanhada ou descarte pela ocupação; audit_supply.js --carry devolve a regra antiga e audit_setup.js --tails lê o custo."
+        "note": "A v21 descartava o dinheiro daquele trimestre; a v22 trouxe o acúmulo de volta por escolha do designer, porque um mercado que visivelmente espera alguém atendê-lo é a leitura temática. O preço é conhecido e medido: em 400 partidas por número de jogadores o pote à espera chega a $355, e a primeira empresa a entrar já abocanhou até $342, numa média de $31 a $67 por abocanhada. Descartar, em vez disso, reduz isso a $76 e $66, e faz um setor que ninguém quer ser aberto um pouco menos vezes."
       },
       {
-        "p": "Vale reler isso ao planejar uma construção. O setor em que você está prestes a entrar não lhe paga nada pelos trimestres anteriores à sua chegada."
+        "p": "Vale ler isso duas vezes ao planejar uma construção. Um setor em que ninguém está pode estar sentado sobre um pote que paga a empresa que você abrir ali."
       },
       {
         "note": "O dobrador da Tecnologia e o bônus de vizinhança da Hotelaria são as duas habilidades que escalam com o tabuleiro, e não com a carta, e são o motivo de esses dois setores parecerem fracos no papel e jogarem forte. Serviços Públicos era originalmente 'distância menor que o nível a partir de qualquer distrito de origem', o que discretamente deixava uma empresa de Serviços Públicos de nível 3 enxergar a cidade inteira; agora ela lê um bloco N x N honesto."
@@ -1354,7 +1354,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Fundo do setor",
-              "dividido igualmente entre as empresas ativas daquele setor; a sobra fica para o trimestre seguinte"
+              "dividido igualmente entre as empresas ativas daquele setor; a sobra fica para o trimestre seguinte, e um pote sem ninguém a quem pagar espera por inteiro"
             ],
             [
               "Reforma",
@@ -1370,7 +1370,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Grade de demanda",
-              "zerada no fim do Trimestre 8"
+              "os ícones nunca se esgotam: uma unidade por trimestre de cada empresa que os alcança, duas de Tecnologia"
             ],
             [
               "Pontuação de empresas",
@@ -1531,7 +1531,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Demanda",
-              "O que o mercado vai de fato comprar, a certo preço, agora. No jogo: os quadrados coloridos de cada distrito. Quem chega primeiro leva."
+              "O que o mercado vai de fato comprar, a certo preço, agora. No jogo: os quadrados coloridos de cada distrito. Abertos a todos, todo trimestre."
             ],
             [
               "Integração vertical",
@@ -1592,7 +1592,19 @@ export const RULEBOOK_PT = [
         "p": "O NÚMERO MUDA QUANDO UMA REGRA MUDA. Uma edição é reimpressa sempre que algo muda a ponto de tornar um manual mais antigo errado na mesa - não por uma frase mais clara, um erro de digitação corrigido ou um anexo novo sozinho. Se você tem uma edição anterior, é isto que está faltando."
       },
       {
-        "h": "v21 - esta edição"
+        "h": "v22 - esta edição"
+      },
+      {
+        "ul": [
+          "A DEMANDA NÃO SE ESGOTA. Um ícone absorve uma unidade por trimestre de cada empresa que o alcança (duas de Tecnologia) e volta a ficar aberto no trimestre seguinte; nada é marcado na grade, nada é limpo no Trimestre 8, e ninguém disputa ícone com ninguém. Na v21 um ícone absorvia a própria coluna uma única vez, por ordem de chegada, e a mesa já tinha parado de jogar assim.",
+          "UM POTE SEM NINGUÉM A QUEM PAGAR ESPERA, como na v20. A v21 o descartava; o acúmulo voltou por escolha, e o prêmio que ele dá a quem entra tarde está medido na nota de B2B."
+        ]
+      },
+      {
+        "note": "Medido em 200 partidas por número de jogadores com as cartas da v21: a regra de fluxo elimina a disputa por ícones - dispersão entre assentos de 8.0 tanto com três quanto com quatro jogadores, contra 18.5 e 12.5 - reduz pela metade a parcela de trimestres de nível 1 sem demanda nenhuma (de 48% para 24%) e aumenta a receita de vendas em cerca de um quarto. Já tinha sido medida e deixada de fora uma vez, em audit_demand_flow.js; o protótipo físico vinha jogando assim há semanas."
+      },
+      {
+        "h": "v21"
       },
       {
         "ul": [

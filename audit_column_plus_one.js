@@ -97,9 +97,10 @@ const CUT = SRC.indexOf("/* ============================== REACT UI ============
 if (CUT < 0) { console.error("the engine marker moved - update this probe"); process.exit(2); }
 const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
 
-const DELIVER_NEEDLE = `  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);`;
-const PLACEABLE_NEEDLE = `  const direct = slots.filter((s) => !s.cross)
-    .reduce((n, s) => n + (s.levelIdx + 1), 0) * exchangeRate(state, biz);`;
+/* v22 SHIPPED THE RATE RULE: an icon absorbs one unit from every company that reaches it,
+   every quarter, and is never used up. The needles below anchor on that shape. */
+const DELIVER_NEEDLE = `  return cross ? 1 : exchangeRate(state, biz);`;
+const PLACEABLE_NEEDLE = `  const direct = slots.filter((s) => !s.cross).length * exchangeRate(state, biz);`;
 const SORT_NEEDLE = "    .sort((a, b) => b.pay - a.pay);";
 const SALE_NEEDLE = "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;";
 for (const [n, w] of [[DELIVER_NEEDLE, "deliverToSlot"], [PLACEABLE_NEEDLE, "placeableFor"],
@@ -114,10 +115,9 @@ function loadEngine(opt) {
 
   if (opt.plusOne) {
     logic = logic.replace(DELIVER_NEEDLE,
-      "  return cross ? 1 : (levelIdx + 2) * exchangeRate(state, biz);");
+      "  return cross ? 1 : 2 * exchangeRate(state, biz);");   // one more unit an icon, on the rate rule
     logic = logic.replace(PLACEABLE_NEEDLE,
-      `  const direct = slots.filter((s) => !s.cross)
-    .reduce((n, s) => n + (s.levelIdx + 2), 0) * exchangeRate(state, biz);`);
+      `  const direct = slots.filter((s) => !s.cross).length * 2 * exchangeRate(state, biz);`);
   }
   if (opt.deepest) {
     logic = logic.replace(SORT_NEEDLE,

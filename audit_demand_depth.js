@@ -94,14 +94,15 @@ const CUT = SRC.indexOf("/* ============================== REACT UI ============
 if (CUT < 0) { console.error("the engine marker moved - update this probe"); process.exit(2); }
 const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
 
-/* The "mul" arm below SHIPPED - deliverToSlot and placeableFor now read the way this
-   probe used to patch them - so the needles anchor on the shipped shape and the arms
-   patch BACKWARDS to the one-unit rule this replaced. The comparison is the same one;
-   only which side of it the repo sits on has changed. */
-const DELIVER_NEEDLE = `  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
-  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);`;
-const PLACEABLE_NEEDLE = `  const direct = slots.filter((s) => !s.cross)
-    .reduce((n, s) => n + (s.levelIdx + 1), 0) * exchangeRate(state, biz);`;
+/* The "mul" arm below shipped in v13 and was UN-shipped in v22, when demand became a
+   rate: an icon absorbs one unit from every company that reaches it, every quarter,
+   and is never used up - the "off" arm, in this probe's terms, plus persistence. So
+   the needles anchor on the rate rule and "mul" and "add" patch the column rule back
+   in on top of it. The comparison this header reports was made on consumed icons and
+   is kept as the record of why the column rule was chosen then. */
+const DELIVER_NEEDLE = `  markSlotUsed(state.demand, biz.id, tileKey, rowIdx, levelIdx);
+  return cross ? 1 : exchangeRate(state, biz);`;
+const PLACEABLE_NEEDLE = `  const direct = slots.filter((s) => !s.cross).length * exchangeRate(state, biz);`;
 const SALE_NEEDLE = "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;";
 for (const [n, w] of [[DELIVER_NEEDLE, "deliverToSlot"], [PLACEABLE_NEEDLE, "placeableFor"], [SALE_NEEDLE, "autoDeliver"]]) {
   if (!BASE.includes(n)) { console.error(`the engine changed shape around ${w} - update this probe`); process.exit(2); }
@@ -109,18 +110,19 @@ for (const [n, w] of [[DELIVER_NEEDLE, "deliverToSlot"], [PLACEABLE_NEEDLE, "pla
 
 const econ = { prod: 0, left: 0, earned: 0, byInd: {}, byLevel: {} };
 
-/* mode: "mul" (what ships) | "off" (one unit an icon) | "add" (level + doubler) */
+/* mode: "off" (one unit an icon - what ships since v22) | "mul" (an icon absorbs its
+   column) | "add" (level + doubler) */
 function loadEngine(mode) {
   let logic = BASE;
-  if (mode !== "mul") {
-    const absorb = mode === "off"
-      ? "exchangeRate(state, biz)"
+  if (mode !== "off") {
+    const absorb = mode === "mul"
+      ? "(levelIdx + 1) * exchangeRate(state, biz)"
       : "((levelIdx + 1) + (exchangeRate(state, biz) - 1))";
     logic = logic.replace(DELIVER_NEEDLE,
-      `  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
+      `  markSlotUsed(state.demand, biz.id, tileKey, rowIdx, levelIdx);
   return cross ? 1 : ${absorb};`);
-    const est = mode === "off"
-      ? "slots.filter((s) => !s.cross).length * exchangeRate(state, biz)"
+    const est = mode === "mul"
+      ? "slots.filter((s) => !s.cross).reduce((n, s) => n + (s.levelIdx + 1), 0) * exchangeRate(state, biz)"
       : "slots.filter((s) => !s.cross).reduce((n, s) => n + (s.levelIdx + 1) + (exchangeRate(state, biz) - 1), 0)";
     logic = logic.replace(PLACEABLE_NEEDLE, `  const direct = ${est};`);
   }
@@ -173,11 +175,15 @@ for (const [mode, label] of MODES) {
       st.players[0].isHuman = false;
       if (st.phase === "drafting") { E.advanceDraft(st, () => {}); E.startPlanning(st); }
       const sample = () => {
-        const tiles = st.demand && st.demand.tiles ? Object.values(st.demand.tiles) : [];
-        for (const t of tiles) {
+        /* An icon is never used up (v22): "filled" here means sold into this quarter by
+           at least one company, which is what the per-company sales record holds. */
+        const sold = new Set();
+        Object.values((st.demand && st.demand.used) || {}).forEach((u) => Object.keys(u).forEach((k) => sold.add(k)));
+        const tiles = st.demand && st.demand.tiles ? Object.entries(st.demand.tiles) : [];
+        for (const [key, t] of tiles) {
           t.rows.forEach((ind, r) => {
             if (r >= 2 && st.quarter <= 4) return;
-            for (let l = 0; l < 4; l++) { T.slotsOpen++; if (t.filled[r][l]) T.slotsFilled++; }
+            for (let l = 0; l < 4; l++) { T.slotsOpen++; if (sold.has(`${key}|${r}|${l}`)) T.slotsFilled++; }
           });
         }
       };

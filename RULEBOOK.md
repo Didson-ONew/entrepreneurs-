@@ -1,6 +1,6 @@
 # Entrepreneurs - Rulebook
 
-*Rulebook v21. The complete rules, with the designer's notes on why each one exists.*
+*Rulebook v22. The complete rules, with the designer's notes on why each one exists.*
 
 1. [The game in one minute](#overview)
 2. [Setup](#setup)
@@ -311,18 +311,18 @@ If you close the window with the bill still short, the bank sells for you at tho
 
 Each company produces a number of units printed on its Blueprint, doubled if it has been upgraded. That number is all it has: every ability below is a route for those units, never a source of more. You deliver them to demand icons your company can reach, and every unit an icon takes is paid at the current market price for your industry.
 
-Demand icons are first come, first served, and the businesses a Hospitality company sells to are not - so it is usually right to take the contested icons first and send whatever is left to the neighbours. Anything you still cannot place is recycled for $1 a unit.
+An icon is not used up when you sell to it. Every icon is open to every company every quarter, and a company sells one unit into each icon it can reach - so what you sell depends on where you stand and how big you are, never on who got there first. Anything you cannot place is recycled for $1 a unit.
 
-Delivery goes in turn order. Every icon is first come, first served, so being early in the order is worth real money on a contested district - and it is the main thing REPOSITION buys you.
+Delivery is handed round the table in turn order, but nothing hangs on the order: nobody can take an icon away from you. Every company can resolve its sales at once if the table prefers.
 
 ### Which icons you may use
 
 Every district shows a 4x4 grid of demand. Each row is an industry; the four columns are levels 1 to 4. You may deliver to an icon if the row's industry is yours and the column is no higher than your company's level - so a bigger company reaches deeper into the same district, and the deeper icons are hungrier.
 
 - Rows 3 and 4 of every district stay closed until Quarter 5.
-- At the end of Quarter 8 the entire demand grid is wiped clean and every icon reopens for Year 3.
-- AN ICON TAKES ITS OWN COLUMN IN GOODS: the level-1 icon takes one unit, the level-2 icon two, the level-3 icon three, the level-4 icon four. A level-3 company reaching columns 1, 2 and 3 therefore sells 1 + 2 + 3 = 6 units into a single clean row of its industry.
-- Each icon can be sold to once, by whoever gets there first - and it is filled whole, however many units it took, though you are only paid for units you actually had.
+- An icon is open again next quarter, for everyone. Nothing is ever wiped and nothing is ever tracked between quarters.
+- AN ICON TAKES ONE UNIT a quarter from each company that reaches it. A level-3 company reaching columns 1, 2 and 3 therefore sells 3 units into a row of its industry, every quarter - Technology sells two a column, 6 from the same row.
+- A company may sell into each icon it reaches once a quarter; two companies reaching the same icon both sell into it. A crowded industry is priced by the price track, not rationed by the grid.
 - Anything you cannot sell is recycled for $1 a unit.
 
 ### How far a company reaches
@@ -342,7 +342,7 @@ A company can always sell into the district or districts its own plots sit in. B
 | Hospitality | May sell to the businesses and hubs around it instead of to demand icons - one unit at market price for each business or hub within its level in plots, no icon needed. Those units come out of its production like any other. |
 | Manufacturing | May route up to its level in units into OTHER industries' rows in its own district. Those units come out of its production - cross-selling is a place to send goods, not extra goods. |
 | Healthcare | Reaches every district on the hub network without touching a hub. |
-| Technology | Every icon it fills takes twice its column in units - 2, 4, 6 or 8 - and pays for all of them. |
+| Technology | Every icon it sells into takes 2 units instead of 1, and pays for both. |
 
 ### Retail branches
 
@@ -362,11 +362,11 @@ Each pot is split evenly among the companies of that industry - one equal share 
 
 Whatever will not divide cleanly stays in the pot and rides forward. A pot of $10 shared between three Healthcare companies pays $3 to each and carries $1 into next quarter.
 
-A POT WITH NOBODY TO PAY IS WRITTEN OFF. If an industry has no active company when its pot is shared out, that quarter's money is simply gone. Supplying an industry nobody operates in is money out of your pocket and into nobody's.
+A POT WITH NOBODY TO PAY STAYS. If an industry has no active company when its pot is shared out, the whole pot waits - and keeps growing - until somebody opens a company there. The first company in takes everything that accumulated, alone.
 
-> **Designer's note.** It used to carry over in full, and that made an empty industry the most profitable thing on the board. Measured on these cards, the biggest pot left waiting was $448 and the biggest single scoop $271 - a free company and change, for the price of one, decided by who happened to be positioned rather than by anything anyone played. Writing it off cuts that to $78 and $78, and the mean scoop from $31-$63 to $8-$16. THIS IS A TRADE, NOT A FREE FIX, and the earlier measurement that said otherwise was taken before the cards were rebalanced. The banked pot was part of what drew a player into an empty industry, and without it industries sit empty more: the worst case rises from 23.9% of games to 26.1% at three players and from 10.7% to 11.9% at four, with every industry a little emptier. The industry split moves both ways - slightly worse at three seats, 70.0% to 71.5% for the vertical three, and slightly better at four, 76.5% to 74.6%. Keep it for the windfall or drop it for the occupancy; audit_supply.js --carry puts the old rule back and audit_setup.js --tails reads the cost.
+> **Designer's note.** v21 wrote that quarter's money off instead; v22 put the carry back by the designer's choice, because a market that visibly waits for someone to answer it is the thematic reading. The price is known and measured: over 400 games a table size the waiting pot reaches $355, and the first company in has scooped up to $342, a mean of $31 to $67 a scoop. Writing it off instead cuts that to $76 and $66, and leaves an industry nobody wants entered a little less often.
 
-That is worth reading twice when you plan a build. The industry you are about to enter pays you nothing for the quarters before you arrive.
+That is worth reading twice when you plan a build. An industry nobody is in may be sitting on a pot that pays for the company you open there.
 
 > **Designer's note.** Technology's doubler and Hospitality's neighbour bonus are the two abilities that scale with the board rather than with the card, and they are the reason those two industries look weak on paper and play strong. Utilities was originally 'distance less than level from any home district', which quietly let a level-3 utility see the entire city; it now reads an honest N x N block.
 
@@ -634,11 +634,11 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Upgrade | pay the setup cost again; production and OPEX double; level +1 |
 | Rent | $2 per company level, to the owners of the plots it stands on |
 | Unsold production | $1 per unit |
-| Industry pot | split evenly among that industry's active companies; the remainder rides forward |
+| Industry pot | split evenly among that industry's active companies; the remainder rides forward, and a pot with nobody to pay waits in full |
 | Renovation | card must match the shell's level; from level 2 up, its scaling type too |
 | Final tie | most active companies, then most money, then fewest loan discs in the bank |
 | Demand rows 3-4 | closed until Quarter 5 |
-| Demand grid | wiped clean at the end of Quarter 8 |
+| Demand grid | icons are never used up: one unit a quarter from each company that reaches them, two from Technology |
 | Company scoring | 2 EP per level, the moment it is built - and again when it is upgraded |
 | Industry debut | 3 EP the first time you build in each industry, banked at once |
 | Land awards | 5 EP to the outright leader in plots, and in districts, at every year end - 10 at 4+ players |
@@ -691,7 +691,7 @@ Almost every term in this game is a real one, used the way a real business uses 
 | Supply chain | The line of firms each buying from the one before it, all the way to the customer. In the game: printed on every Blueprint. Your OPEX is your place in somebody else's chain. |
 | B2B | Business to business - selling to other firms rather than to the public. In the game: the Revenue step where the industry pots are shared out. That money came from other players' bills, not from the districts. |
 | Industry pot | A sector's total spend, which the firms in it divide between them. In the game: every company in an industry draws one equal share, whatever its size. Supplying an industry nobody has built in is very lucrative. |
-| Demand | What the market will actually buy, at a price, right now. In the game: the coloured squares in each district. First come, first served. |
+| Demand | What the market will actually buy, at a price, right now. In the game: the coloured squares in each district. Open to everyone, every quarter. |
 | Vertical integration | Growing by owning more of your own supply chain - upward, on one site. In the game: how Retail, Hospitality and Healthcare upgrade, stacking the new level on a plot the company already holds. |
 | Horizontal integration | Growing by taking more ground at the same stage - outward, across sites. In the game: how Utilities, Manufacturing and Technology upgrade, each new level needing an empty owned plot beside the building. |
 | Logistic Hub | A distribution centre - it moves goods rather than making them. In the game: opens on an empty unowned plot each quarter and extends what the companies beside it can reach. |
@@ -718,7 +718,14 @@ Almost every term in this game is a real one, used the way a real business uses 
 
 THE NUMBER MOVES WHEN A RULE MOVES. An edition is reprinted whenever something changes that would make an older book wrong at the table - not for a clearer sentence, a corrected typo or a new annex on its own. If you are holding an earlier edition, this is what you are missing.
 
-### v21 - this edition
+### v22 - this edition
+
+- DEMAND IS NOT USED UP. An icon absorbs one unit a quarter from every company that reaches it (two from Technology) and is open again next quarter; nothing is tracked on the grid, nothing is wiped at Quarter 8, and nobody races anybody for an icon. v21 had an icon absorb its own column once, first come first served, and the table had already stopped playing it that way.
+- A POT WITH NOBODY TO PAY WAITS, as it did under v20. v21 wrote it off; the carry is back by choice, and the prize it hands the late entrant is measured in the B2B note.
+
+> **Designer's note.** Measured over 200 games a table size on the v21 cards: the rate rule removes the race for icons - seat spread 8.0 at both three and four players against 18.5 and 12.5 - halves the share of level-1 quarters that see no demand at all (48% to 24%), and grows trade income by about a quarter. It was measured and left unshipped once before, in audit_demand_flow.js; the physical prototype had been playing it for weeks.
+
+### v21
 
 - THE LAND AWARDS PAY FOR BUILT GROUND. The Real-Estate Mogul counts plots with one of your companies standing on them, and The Omnipresent counts districts you have a company or a Retail branch in. A plot you hold the deed to and have not built on counts for nothing. Under v20 both counted ownership, and 78% of all land-award points were going to empty ground.
 - A RETAIL BRANCH STANDS ON GROUND SOMEBODY OWNS. It may only open on a plot you or a rival already holds, it does not take the deed, and on a rival's plot it pays them $2 of rent every quarter. Under v20 a branch took free land for the price of a disc, while every other industry paid cash for its ground.

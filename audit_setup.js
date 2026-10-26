@@ -420,10 +420,12 @@ if (has("--rows7")) {
 
 
 
-const CONSUME = `  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
-  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);`;
+/* v22 SHIPPED THE RATE RULE: an icon absorbs one unit from every company that reaches it,
+   every quarter, and is never used up. The needles below anchor on that shape. */
+const CONSUME = `  markSlotUsed(state.demand, biz.id, tileKey, rowIdx, levelIdx);
+  return cross ? 1 : exchangeRate(state, biz);`;
 need(CONSUME, "the delivery rule");
-if (has("--flow")) logic = logic.replace(CONSUME, "  return cross ? 1 : exchangeRate(state, biz);");
+/* --flow SHIPPED in v22 - the engine plays the rate rule; the flag is accepted and does nothing. */
 if (has("--tuned")) { need("const CASH_PER_EP = 50;", "the cash-to-EP rate"); logic = logic.replace("const CASH_PER_EP = 50;", "const CASH_PER_EP = 65;"); }
 {
   const cards = JSON.parse(logic.match(CARDS_RE)[1]);

@@ -158,11 +158,12 @@ Nothing has been applied. The shape of the fix now depends on game length, which
 is a bigger decision than picking a column of numbers: a one-year teaching game
 and a twelve-quarter game want opposite openings.
 
-What the simulation enforces but the bots do not fight over is **delivery
-order**. Turn order decides who sells first and demand icons are first come
-first served; bots build without asking who will reach an icon before them. A
-table that says player 1 ran away is pointing at that, and it is the one part of
-seat 1's privilege the numbers above cannot price.
+Delivery order is no longer part of it. v22 made demand a rate — an icon is
+never used up, so there is no race to it and turn order costs nobody a sale —
+and re-measured on that engine over 1000 games the shape barely moved: 29.5 /
+41.0 / 29.4 at three players, 22.6 / 30.8 / 25.6 / 21.1 at four. The seat effect
+was never the race; it is capital and cards. (Hanna's and Chris's table had
+already been playing without a race: the physical prototype used no cubes.)
 
 **The Megacorp reads as a punishment — Fábio and Abner, same table, independently.**
 "Frustrado com perder pontos com mega corporações" and "When I did my megacorp,

@@ -45,11 +45,12 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
 
     if (st.phase === "delivering" && st.awaitingPlayerId === 0) {
       const biz = me.businesses.find((b) => b.id === st.deliveringBizId);
-      // wait for a clinic that still has an open Healthcare row to sell into
-      const openBeyond = biz && biz.bp.ind === "HC" && [...HOME(st, biz)].some((tk) => {
+      // wait for a clinic with a Healthcare row in reach that has columns beyond its level
+      // (icons are never used up, so any open row qualifies - as long as the clinic is
+      // under level 4 and so has columns above it to reach)
+      const openBeyond = biz && biz.bp.ind === "HC" && biz.level < 4 && [...HOME(st, biz)].some((tk) => {
         const t = st.demand.tiles[tk];
-        return t && t.rows.some((ind, ri) => ind === "HC" && (ri < 2 || st.quarter > 4)
-          && t.filled[ri].some((f, li) => !f && li >= biz.level));
+        return t && t.rows.some((ind, ri) => ind === "HC" && (ri < 2 || st.quarter > 4));
       });
       if (openBeyond) return { st, biz, reached: true };
       await act("skipDelivery", {});
@@ -174,7 +175,7 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
     let k = 0;
     t.rows.forEach((ind, ri) => {
       if (ind !== "HC" || (ri >= 2 && st.quarter <= 4)) return;
-      for (let li = 0; li < biz.level; li++) if (!t.filled[ri][li]) k++;
+      k += biz.level;   // every column within its level is open: icons are never used up
     });
     return acc + k;
   }, 0);

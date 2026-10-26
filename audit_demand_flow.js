@@ -133,9 +133,17 @@ const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
 
 /* Every arm is a splice on an exact fragment, and a fragment that has moved stops
    the probe rather than letting it quietly measure the shipped game six times. */
+/* v22 SHIPPED THE RATE RULE. The "flow" arm IS the engine now, and "stock" patches the
+   consumed-icon rule back in: an icon used by anybody stays used, nothing resets at
+   Production, the grid wipes at Quarter 8, and an icon absorbs its column. The header
+   above is the record of the comparison as it was made; the direction is unchanged. */
 const N = {
-  consume: `  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
-  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);`,
+  consume: `  markSlotUsed(state.demand, biz.id, tileKey, rowIdx, levelIdx);
+  return cross ? 1 : exchangeRate(state, biz);`,
+  placeable: `  const direct = slots.filter((s) => !s.cross).length * exchangeRate(state, biz);`,
+  slotOpen: "  return bizId === undefined || !slotUsedBy(pool, bizId, tileKey, rowIdx, levelIdx);",
+  reset: "  resetDeliveries(state.demand);   // every icon is open to everyone again",
+  closing: "  if (quarter === 4) unlockY2(demand);",
   cashRate: "const CASH_PER_EP = 50;",
   teDouble: `function exchangeRate(state, biz) {
   if (bizInd(biz) === "TE") return 2;   // Technology is the only doubler`,
@@ -158,7 +166,14 @@ const ARMS = [
 
 function engine(key) {
   let L = BASE;
-  if (key !== "stock") L = L.replace(N.consume, "  return cross ? 1 : exchangeRate(state, biz);");
+  if (key === "stock") {
+    L = L.replace(N.consume, "  markSlotUsed(state.demand, biz.id, tileKey, rowIdx, levelIdx);\n" + "  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);");
+    L = L.replace(N.placeable, `  const direct = slots.filter((s) => !s.cross)
+    .reduce((n, s) => n + (s.levelIdx + 1), 0) * exchangeRate(state, biz);`);
+    L = L.replace(N.slotOpen, `  return !Object.values(pool.used || {}).some((u) => u[slotKey(tileKey, rowIdx, levelIdx)]);`);
+    L = L.replace(N.reset, "");
+    L = L.replace(N.closing, "  if (quarter === 4) unlockY2(demand);\n  if (quarter === 8) resetDeliveries(demand);");
+  }
   if (key !== "stock" && key !== "flow") L = L.replace(N.cashRate, "const CASH_PER_EP = 65;");
   /* NOTE: every arm here now also carries Retail's branches, which went into the
      engine after the findings below were written. The figures in this header are

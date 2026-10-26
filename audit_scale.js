@@ -52,9 +52,9 @@
      ends through yearEndsOf(state), because the beginner mode plays eight
      quarters - so this probe splices those two helpers rather than the literals
      that used to be here. "quarters left" is still `13 - quarter` in four,
-     loan buy-back prices are a table of three, and the demand board is refreshed
-     once, at Q8. A fourth year with no fourth refresh plays its last four
-     quarters on a board that is already full.
+     loan buy-back prices are a table of three, and (before v22) the demand board
+     was refreshed once, at Q8 - since v22 an icon is never used up, so a fourth
+     year needs no refresh at all.
 
    Everything below is patched into the engine inside a sandbox; the repo file is
    never touched, and none of this is a rule the game plays by.
@@ -90,9 +90,9 @@
       win at four players against 90, and 130 at six against 101, with the lead
       over last going 45.2 to 57.8. Everything scales with it because everything
       in the scoring is per-quarter. The one thing that needs a decision rather
-      than a constant is the demand board, which is only refreshed once, at Q8 - a
-      fourth year needs a second refresh or it is played out on a board with
-      nothing left on it. NOT IMPLEMENTED; the game plays three years.
+      than a constant WAS the demand board, which was only refreshed once, at Q8;
+      since v22 an icon is never used up and that decision has gone away.
+      NOT IMPLEMENTED; the game plays three years.
 
    5. TWO THIRDS OF EVERY GAME IS THE DELIVERY PHASE. At six seats, 38.0 of a
       player's 59.2 decisions are single delivery clicks. If a table ever
@@ -127,11 +127,11 @@ const N = {
   yearEndsRepay: "  if (yearEndsOf(state).includes(state.quarter)) {",
   landPayouts: "  return yearEndsOf(state).filter((q) => q >= state.quarter).length || 1;",
   repayRates: "const LOAN_REPAY_RATE = { 4: 30, 8: 35, 12: 40 };",
-  refresh: "  if (quarter === 8) refreshY3(demand);",
+  refresh: "  if (quarter === 4) unlockY2(demand);",
   botLast: "  if (quarter === finalQuarterOf(state)) {",
   /* counters */
   meeple: "function placeMeeple(state, playerId, track) {",
-  deliver: "  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;",
+  deliver: "  markSlotUsed(state.demand, biz.id, tileKey, rowIdx, levelIdx);",
 };
 for (const [k, v] of Object.entries(N)) {
   if (!BASE.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
@@ -156,10 +156,9 @@ function engineFor({ quarters = 12 } = {}) {
     /* Prices rise a little each year, as they already do. */
     const rates = ends.map((q, i) => `${q}: ${30 + i * 5}`).join(", ");
     logic = logic.replace(N.repayRates, `const LOAN_REPAY_RATE = { ${rates} };`);
-    /* The demand board is wiped once, at Q8. A fourth year needs another wipe or
-       it plays out on a board with nothing left on it. */
-    logic = logic.replace(N.refresh,
-      `  if (quarter === 8) refreshY3(demand);\n  if (quarter === 12 && ${last} > 12) refreshY3(demand);`);
+    /* Since v22 an icon is never used up, so a fourth year needs no second wipe: the
+       anchor is kept so the probe still notices if the closing step changes shape. */
+    logic = logic.replace(N.refresh, "  if (quarter === 4) unlockY2(demand);");
     logic = logic.replace(/13 - \(state\.quarter \|\| 1\)/g, `${last + 1} - (state.quarter || 1)`);
     logic = logic.replace(/13 - state\.quarter/g, `${last + 1} - state.quarter`);
   }
@@ -226,10 +225,13 @@ function run(cfg) {
       T.loans += p.discsInBank;
     }
     T.unowned += Object.keys(st.board.graph).filter((k) => !(k in st.board.owner)).length;
-    /* How much of the demand board actually got used. */
+    /* How much of the demand board got used in the last quarter: an icon is never used
+       up (v22), so "used" means sold into by at least one company that quarter. */
+    const sold = new Set();
+    Object.values(st.demand.used || {}).forEach((u) => Object.keys(u).forEach((key) => sold.add(key)));
     for (const k of Object.keys(st.demand.tiles)) {
       const t = st.demand.tiles[k];
-      t.filled.forEach((row) => row.forEach((v) => { T.demandTotal++; if (v) T.demandUsed++; }));
+      t.rows.forEach((ind, r) => { for (let l = 0; l < 4; l++) { T.demandTotal++; if (sold.has(`${k}|${r}|${l}`)) T.demandUsed++; } });
     }
   }
   T.place = counts.place; T.deliver = counts.deliver;

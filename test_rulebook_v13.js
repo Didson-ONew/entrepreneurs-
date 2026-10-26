@@ -188,10 +188,10 @@ section("B2B - one equal share each, remainder rides forward");
   st2.pots = Object.fromEntries(E.INDUSTRIES.map((i) => [i, 0]));
   st2.pots.TE = 40;
   E.runB2B(st2, () => {});
-  /* It used to carry over in full, and the first company into an empty industry
-     scooped the lot - measured at up to $262 banked and a ~$50 windfall in three
-     games out of four, decided by positioning rather than play. Written off now. */
-  check("a pot with nobody to pay is written off", st2.pots.TE === 0, `pot $${st2.pots.TE}`);
+  /* v21 wrote it off; v22 put the carry back by the designer's choice. The first
+     company into an empty industry scoops the lot, and that is a measured, chosen
+     prize for the late entrant (audit_supply.js --expire measures the other rule). */
+  check("a pot with nobody to pay carries over in full", st2.pots.TE === 40, `pot $${st2.pots.TE}`);
 }
 
 /* ------------------------------------------------------- going public / IPO */

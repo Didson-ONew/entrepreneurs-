@@ -1,6 +1,11 @@
 /* ============================================================================
    REVENUE, SIMPLIFIED: what each way of cutting the arithmetic does to the game.
 
+   READ THIS FIRST. Every figure in this header was measured on the engine as it
+   played before v22, where an icon absorbed its column and was used up. v22 ships
+   the rate rule (--flow below, now the default); --stock reproduces the engine the
+   findings were taken on, so they can still be checked.
+
    The table says Revenue is where the game stalls. Abner's one wish was "The
    Revenue, the most complex part of the game"; Tiago found it "a bit difficult to
    understand at first"; the designer watched players "calculating the demand
@@ -217,7 +222,7 @@
    multipliers is too low, and that is the designer's number to set, not this
    probe's.
 
-   Run: node audit_revenue.js [games a table size] [seats...] [arms...] [--k a,b,c,d] [--tri | --shift]
+   Run: node audit_revenue.js [games a table size] [seats...] [arms...] [--k a,b,c,d] [--tri | --shift] [--stock]
         arms: --current --flat1 --norecycle --count --band --all   (default: current band)
    ========================================================================== */
 const fs = require("fs");
@@ -247,8 +252,8 @@ const SHIFT = has("--shift");
    icon is open to everyone every quarter. --persist stops consuming; --flow stops
    consuming AND makes every icon absorb one unit, which is the rule
    audit_demand_flow.js measured. Either applies to whichever arms are run. */
-const PERSIST = has("--persist") || has("--flow");
-const ONEUNIT = has("--flow");
+const STOCK = has("--stock");
+const PERSIST = !STOCK, ONEUNIT = !STOCK;   // --persist and --flow are what ships now; accepted, no-ops
 /* --ranged is the designer's own band: thresholds and multipliers per industry and
    level, in UNITS of demand reached, read from ranged_table.json beside this file
    when it exists and from the provisional table below when it does not. */
@@ -293,8 +298,11 @@ const need = (src, s, what) => { if (!src.includes(s)) { console.error(`the engi
 const splice = (src, from, to, what) => { need(src, from, what); return src.replace(from, to); };
 
 const N = {
-  absorb: "  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);",
-  placeable: "    .reduce((n, s) => n + (s.levelIdx + 1), 0) * exchangeRate(state, biz);",
+  absorb: "  return cross ? 1 : exchangeRate(state, biz);",
+  placeable: "  const direct = slots.filter((s) => !s.cross).length * exchangeRate(state, biz);",
+  slotOpen: "  return bizId === undefined || !slotUsedBy(pool, bizId, tileKey, rowIdx, levelIdx);",
+  reset: "  resetDeliveries(state.demand);   // every icon is open to everyone again",
+  closing: "  if (quarter === 4) unlockY2(demand);",
   deliverHead: "  let remaining = bizProd(biz);\n  let crossAllowance = bizInd(biz) === \"MA\" ? biz.level : 0;\n  let earned = 0;",
   deliverTail: "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;\n}",
   cardValue: "  let perQuarter = sellable * px + waste * 1 - effOpex;",
@@ -302,11 +310,10 @@ const N = {
   upGrown: "  const grownUnits = Math.min(grownProd, sellableForBiz(state, p, grown));\n  const grownNet = grownUnits * px + Math.max(0, grownProd - grownUnits) * 1\n    - bizOpex(grown) - 3 * grown.level;",
   mcTrade: "    const units = Math.min(bizProd(b), sellableForBiz(state, p, b));\n    const trade = units * price(state.pm, bizInd(b))\n      + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - RENT_PER_LEVEL * b.level;",
   land: "    addEP(p, share, label, state.quarter);",
-  consume: "  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;",
 };
 /* Demand reached, in UNITS - what the designer's ranges are written in. Under the
    shipped rule an icon is worth its column; under --flow it is worth one. */
-const UNITS_EXPR = `(a.filter((s) => !s.cross).reduce((x, s) => x + ${ONEUNIT ? "1" : "(s.levelIdx + 1)"}, 0) * exchangeRate(state, biz)
+const UNITS_EXPR = `(a.filter((s) => !s.cross).reduce((x, s) => x + ${STOCK ? "(s.levelIdx + 1)" : "1"}, 0) * exchangeRate(state, biz)
       + (bizInd(biz) === "MA" ? Math.min(biz.level, a.filter((s) => s.cross).length) : 0)
       + (bizInd(biz) === "HO" ? hoBonusUnits(state, biz, p) : 0))`;
 for (const [k, v] of Object.entries(N)) need(BASE, v, k);
@@ -370,11 +377,19 @@ function engine(arm) {
        const __T = ${TRI ? "[0, 1, 3, 6, 10]" : "[0, 1, 2, 3, 4]"};
        const __pay = (px, lvl, n) => { const b = n <= 0 ? 0 : n < lvl ? 1 : n < 2 * lvl ? 2 : 3; return Math.round(px * __T[Math.min(4, lvl)] * __K[b]); };`;
   L = PAY + `\nconst __RANGED_BY_UNITS = ${arm === "ranged"};\n` + L;
-  if (PERSIST) L = splice(L, N.consume, "  /* persistent demand: an icon is never used up */", "icon consumption");
-  const flatIcons = arm === "flat1" || arm === "count" || arm === "band" || ONEUNIT;
-  if (flatIcons) {
-    L = splice(L, N.absorb, "  return cross ? 1 : 1 * exchangeRate(state, biz);", "icon absorption");
-    L = splice(L, N.placeable, "    .reduce((n, s) => n + 1, 0) * exchangeRate(state, biz);", "placeableFor");
+  /* The engine ships the rate rule (v22). --stock puts the consumed-icon engine back,
+     which is what every figure in this header was measured on: an icon used by anybody
+     stays used, nothing resets at Production, the grid wipes at Quarter 8, and an icon
+     absorbs its column - unless the arm is one of the one-unit ones. */
+  const flatIcons = arm === "flat1" || arm === "count" || arm === "band";
+  if (STOCK) {
+    L = splice(L, N.slotOpen, "  return !Object.values(pool.used || {}).some((u) => u[slotKey(tileKey, rowIdx, levelIdx)]);", "slotOpen");
+    L = splice(L, N.reset, "", "delivery reset");
+    L = splice(L, N.closing, "  if (quarter === 4) unlockY2(demand);\n  if (quarter === 8) resetDeliveries(demand);", "closing");
+    if (!flatIcons) {
+      L = splice(L, N.absorb, "  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);", "icon absorption");
+      L = splice(L, N.placeable, "  const direct = slots.filter((s) => !s.cross)\n    .reduce((n, s) => n + (s.levelIdx + 1), 0) * exchangeRate(state, biz);", "placeableFor");
+    }
   }
   if (arm === "count" || arm === "band" || arm === "ranged") {
     /* The whole delivery is the band rule; nothing in the old body survives. */
@@ -524,7 +539,7 @@ const money = (x) => "$" + x.toFixed(x < 10 ? 1 : 0);
 
 console.log(`\n${GAMES} games an arm a table size, seeds 1..${GAMES}, all-bot tables.  ` +
   (SHIFT ? "Band SHIFTS the column read: triangle 0.5/1/3/6/10/15 at level + band - 2." : `Band K = ${K.join("/")}${TRI ? ", paid by the triangle of the level (1/3/6/10)" : ", paid by the level"}.`) +
-  (ONEUNIT ? "  DEMAND IS A RATE: never consumed, one unit an icon." : PERSIST ? "  DEMAND IS PERSISTENT: never consumed, column absorption kept." : "  Demand is consumed, as the engine ships."));
+  (STOCK ? "  --stock: icons consumed and absorbing their column, as the engine played before v22." : "  Demand is a rate, as the engine ships since v22: never consumed, one unit an icon."));
 if (ARMS.includes("ranged")) console.log("  ranged table " + (fs.existsSync(RANGED_FILE) ? "from ranged_table.json" : "PROVISIONAL, built in") + ": " +
   Object.entries(RANGED).map(([i, t]) => i + " " + [1, 2, 3, 4].map((L) => `${t[L].a}/${t[L].b}:${t[L].m.join("-")}`).join(" ")).join("  "));
 console.log("  " + ["current  as it ships", "flat1    an icon takes one unit", "norecycle  unsold production pays nothing",
