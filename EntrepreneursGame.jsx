@@ -2324,7 +2324,9 @@ function runProduction(state, log) {
 }
 /* Revenue - B2B. Each industry pot is split evenly among the active businesses of that
    industry - one equal share each, whatever their level - and whatever will not divide
-   cleanly rides forward. An industry with no active business keeps its whole pot. */
+   cleanly rides forward. An industry with no active business has that quarter's pot
+   WRITTEN OFF - it used to ride forward and bank for whoever entered first, and
+   audit_supply.js --carry still measures that rule against this one. */
 /* Supply Chain Expert: at the start of Revenue, push one industry you do not operate up
    one step. It costs you nothing directly but helps a rival's market, and in exchange
    your Retail reaches one more district this quarter.

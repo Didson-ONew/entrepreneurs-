@@ -29,6 +29,8 @@
                 production is not a number any more. The band proposal without the
                 plateaus - a control, to separate "dropping production" from
                 "rounding into bands".
+     ranged     the designer's own ranges in UNITS reached, per industry and level,
+                with a floor - see THE DEMAND MODEL below, and ranged_table.json.
      band       the proposal. n = icons reached (own rows in columns up to level,
                 Technology's counted twice, plus Manufacturing's cross-sell icons up
                 to its level and Hospitality's neighbours). Band 1 if n < level,
@@ -150,6 +152,71 @@
    decision the shipped rule does not offer in that form, and this probe cannot
    price it either way.
 
+   ------------------------------------------------------------------------
+   THE DEMAND MODEL THE TABLE ACTUALLY PLAYS, found while measuring the above.
+
+   Everything up to here assumes an icon is used up when it is sold to, because
+   that is what the engine does and what Rulebook v21 says ("each icon can be
+   sold to once, by whoever gets there first"). The physical prototype does not:
+   it plays with no cubes on the grid, so an icon is open to everyone every
+   quarter. audit_demand_flow.js measured that rule in an earlier session, found
+   that it works and costs one constant, and it was never shipped. The designer
+   believed it had been. Two readings of it, 200 games a table size, on the
+   shipped Revenue arithmetic:
+
+                              consumed       persistent     flow
+                              (engine)       (no cubes)     (no cubes, 1 unit an icon)
+     trade income 3p / 4p     $915 / $1476   $1324 / $2202  $1150 / $1864
+     level 1 / 2 / 3 / 4      7 / 21 / 41 / 87   11 / 26 / 53 / 117   10 / 25 / 46 / 101
+     production recycled      45% / 46%      22% / 23%      31% / 30%
+     vertical bank most EP    70.5 / 72.8    73.0 / 78.0    74.0 / 74.5
+     seat spread              18.5 / 12.5    22.5 / 8.0     8.0 / 8.0
+     one more icon pays       63% / 64%      42% / 43%      50% / 49%
+     level-1 quarters at 0    48%            23%            24%
+
+   FLOW IS THE ONE TO SHIP IF THE TABLE'S RULE IS TO BE THE ENGINE'S. It removes
+   the race (seat spread 8.0 at both sizes, against 18.5 and 12.5 with consumed
+   icons - delivery order stops being worth anything), halves the share of
+   small-company quarters that see no demand at all, and grows the economy by a
+   quarter rather than a half. Persistent demand WITH column absorption is too
+   rich - a level-4 company at $117 a quarter - and makes three-player seats
+   worse, because the big absorbing icons are now permanent income for whoever
+   stands nearest them.
+
+   DEMAND REACHED IN UNITS UNDER FLOW, by industry and level - median, 90th
+   percentile and max over 200 three-player games, which is what any range
+   written in units has to be read against:
+
+                level 1          level 2          level 3          level 4
+     UT         1 /  2 /  2      8 / 10 / 14     21 / 27 / 30     44 / 52 / 52
+     RE         1 /  3 /  6      4 /  8 / 14      6 / 15 / 21     12 / 24 / 24
+     HO         2 /  8 / 13      4 / 16 / 23      8 / 26 / 38     25 / 38 / 49
+     MA         4 /  8 / 11     10 / 18 / 24     21 / 30 / 33     28 / 28 / 28
+     HC         8 / 28 / 36     12 / 24 / 40     20 / 28 / 36     24 / 32 / 36
+     TE         2 / 10 / 16      8 / 24 / 32     24 / 42 / 48     40 / 56 / 56
+
+   Two things in that table matter for any ranged payout. The designer's Retail
+   maxima - 2, 8, 18, 32 - sit close to the engine's 90th percentiles of 3, 8, 15,
+   24. And PRODUCTION IS NOT THE ONLY AXIS: Healthcare makes 3 units at level 1
+   and reaches 28 at the 90th percentile, because it is on the hub network
+   natively; Utilities makes 3 and reaches 2, because its block is one district
+   wide. A range scaled from production alone would hand Healthcare the top band
+   for standing still and never let a level-1 Utility out of the bottom one.
+
+   THE DESIGNER'S OWN RANGE (--ranged) is a different band from the one above: it
+   is written in units reached, with thresholds and multipliers per industry and
+   level, and it has a floor - a company with no demand at all still earns its
+   lowest multiplier of the price. Retail is given: level 1 pays 1/2/3 x price at
+   0/1/2 units; level 3 pays 5/8/10 below 10, 10-14, above 14. The rest of the
+   table in this file is a provisional extrapolation and is labelled as such on
+   every run; ranged_table.json beside this file replaces it. Under flow, the
+   provisional table reproduces level 1 to the dollar ($10 against $10), caps
+   level 3 at $30 against $46 and level 4 at $49 against $101, cuts trade income
+   30%, lifts the revenue-price correlation to .58 and leaves the marginal unit
+   mattering in 26% of quarters. The floor is right; the top of the provisional
+   multipliers is too low, and that is the designer's number to set, not this
+   probe's.
+
    Run: node audit_revenue.js [games a table size] [seats...] [arms...] [--k a,b,c,d] [--tri | --shift]
         arms: --current --flat1 --norecycle --count --band --all   (default: current band)
    ========================================================================== */
@@ -175,12 +242,43 @@ const TRI = has("--tri");
    down, band 3 the cell one level up - so a level-3 company reads 3, 6 or 10 times
    the price, a level-1 company half, one or three times it. */
 const SHIFT = has("--shift");
+/* THE DEMAND MODEL, which the physical prototype and the engine disagree on. The
+   engine consumes an icon when it is sold to; the table plays with no cubes, so an
+   icon is open to everyone every quarter. --persist stops consuming; --flow stops
+   consuming AND makes every icon absorb one unit, which is the rule
+   audit_demand_flow.js measured. Either applies to whichever arms are run. */
+const PERSIST = has("--persist") || has("--flow");
+const ONEUNIT = has("--flow");
+/* --ranged is the designer's own band: thresholds and multipliers per industry and
+   level, in UNITS of demand reached, read from ranged_table.json beside this file
+   when it exists and from the provisional table below when it does not. */
+const RANGED_FILE = path.join(__dirname, "ranged_table.json");
+const RANGED = fs.existsSync(RANGED_FILE) ? JSON.parse(fs.readFileSync(RANGED_FILE, "utf8")) : (() => {
+  /* Retail is the designer's: level 1 pays 1/2/3 x price at 0/1/2 units, level 3
+     pays 5/8/10 below 10, 10-14, above 14. Levels 2 and 4 interpolate. Every other
+     industry scales Retail's thresholds and multipliers by its production relative
+     to Retail's, which is the stated principle - the more a company makes, the more
+     demand it has to find before the top band pays. PROVISIONAL until replaced. */
+  const RE = { 1: { a: 1, b: 2, m: [1, 2, 3] }, 2: { a: 4, b: 7, m: [3, 5, 6] },
+               3: { a: 10, b: 15, m: [5, 8, 10] }, 4: { a: 18, b: 27, m: [8, 12, 16] } };
+  const scale = { UT: 0.75, RE: 1, HO: 0.5, MA: 1, HC: 0.75, TE: 0.5 };
+  const out = {};
+  for (const [ind, k] of Object.entries(scale)) {
+    out[ind] = {};
+    for (const L of [1, 2, 3, 4]) {
+      const r = RE[L];
+      const a = Math.max(1, Math.round(r.a * k)), b = Math.max(a + 1, Math.round(r.b * k));
+      out[ind][L] = { a, b, m: r.m.map((x) => Math.max(1, Math.round(x * k))) };
+    }
+  }
+  return out;
+})();
 if (K.length !== 4 || K.some((x) => !isFinite(x))) { console.error("--k wants four numbers, K for bands 0..3"); process.exit(2); }
 const positional = ARGV.filter((a, i) => !a.startsWith("--") && ARGV[i - 1] !== "--k");
 const GAMES = parseInt(positional[0] || "300", 10);
 const SEATS = positional.slice(1).map(Number).filter(Boolean);
 const SIZES = SEATS.length ? SEATS : [3, 4];
-const ALL = ["current", "flat1", "norecycle", "count", "band"];
+const ALL = ["current", "flat1", "norecycle", "count", "band", "ranged"];
 let ARMS = ALL.filter((a) => has("--" + a));
 if (has("--all")) ARMS = ALL;
 if (!ARMS.length) ARMS = ["current", "band"];
@@ -204,7 +302,13 @@ const N = {
   upGrown: "  const grownUnits = Math.min(grownProd, sellableForBiz(state, p, grown));\n  const grownNet = grownUnits * px + Math.max(0, grownProd - grownUnits) * 1\n    - bizOpex(grown) - 3 * grown.level;",
   mcTrade: "    const units = Math.min(bizProd(b), sellableForBiz(state, p, b));\n    const trade = units * price(state.pm, bizInd(b))\n      + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - RENT_PER_LEVEL * b.level;",
   land: "    addEP(p, share, label, state.quarter);",
+  consume: "  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;",
 };
+/* Demand reached, in UNITS - what the designer's ranges are written in. Under the
+   shipped rule an icon is worth its column; under --flow it is worth one. */
+const UNITS_EXPR = `(a.filter((s) => !s.cross).reduce((x, s) => x + ${ONEUNIT ? "1" : "(s.levelIdx + 1)"}, 0) * exchangeRate(state, biz)
+      + (bizInd(biz) === "MA" ? Math.min(biz.level, a.filter((s) => s.cross).length) : 0)
+      + (bizInd(biz) === "HO" ? hoBonusUnits(state, biz, p) : 0))`;
 for (const [k, v] of Object.entries(N)) need(BASE, v, k);
 
 /* What the probe needs to know about a sale: who sold, how big, how much demand it
@@ -212,7 +316,8 @@ for (const [k, v] of Object.entries(N)) need(BASE, v, k);
 const N_PROBE = `  const __n = (() => { const a = eligibleSlotsFor(state, biz);
     return a.filter((s) => !s.cross).length * exchangeRate(state, biz)
       + (bizInd(biz) === "MA" ? Math.min(biz.level, a.filter((s) => s.cross).length) : 0)
-      + (bizInd(biz) === "HO" ? hoBonusUnits(state, biz, p) : 0); })();`;
+      + (bizInd(biz) === "HO" ? hoBonusUnits(state, biz, p) : 0); })();
+  const __u = (() => { const a = eligibleSlotsFor(state, biz); return ${UNITS_EXPR}; })();`;
 
 const BAND_BODY = `  const __all = eligibleSlotsFor(state, biz);
   const __own = __all.filter((s) => !s.cross);
@@ -227,9 +332,10 @@ const BAND_BODY = `  const __all = eligibleSlotsFor(state, biz);
   for (const s of __own) { if (__filled * __rate >= __need) break; if (deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, false) > 0) __filled++; }
   for (const s of __cross) { if (__filled >= __need) break; if (deliverToSlot(state, biz, s.tileKey, s.rowIdx, s.levelIdx, true) > 0) __filled++; }
   const __px = unitPrice(state, p, biz);
-  const __earned = __pay(__px, biz.level, __n);
+  const __u = (() => { const a = __all; return ${UNITS_EXPR}; })();
+  const __earned = __pay(__px, biz.level, __RANGED_BY_UNITS ? __u : __n, bizInd(biz));
   noteConcessionSale(state, p, biz, __earned > 0 ? 1 : 0);
-  __probe.sale(bizInd(biz), biz.level, __n, __earned, 0, __px, bizProd(biz));
+  __probe.sale(bizInd(biz), biz.level, __n, __earned, 0, __px, bizProd(biz), __u);
   p.cash += __earned;
 }`;
 
@@ -252,33 +358,38 @@ const LAND_PROBE = `    __probe.land(label, share, (() => {
 
 function engine(arm) {
   let L = BASE;
-  const PAY = arm === "count"
+  const PAY = arm === "ranged"
+    ? `const __R = ${JSON.stringify(RANGED)};
+       const __pay = (px, lvl, u, ind) => { const r = (__R[ind] || {})[Math.min(4, lvl)]; if (!r) return 0;
+         const m = u < r.a ? r.m[0] : u >= r.b ? r.m[2] : r.m[1]; return Math.round(px * m); };`
+    : arm === "count"
     ? `const __pay = (px, lvl, n) => px * Math.min(n, 2 * lvl);`
     : SHIFT ? `const __S = [0.5, 1, 3, 6, 10, 15];
        const __pay = (px, lvl, n) => { const b = n < lvl ? 1 : n < 2 * lvl ? 2 : 3; return Math.round(px * __S[Math.max(0, Math.min(5, lvl + b - 2))]); };`
     : `const __K = ${JSON.stringify(K)};
        const __T = ${TRI ? "[0, 1, 3, 6, 10]" : "[0, 1, 2, 3, 4]"};
        const __pay = (px, lvl, n) => { const b = n <= 0 ? 0 : n < lvl ? 1 : n < 2 * lvl ? 2 : 3; return Math.round(px * __T[Math.min(4, lvl)] * __K[b]); };`;
-  L = PAY + "\n" + L;
-  const flatIcons = arm === "flat1" || arm === "count" || arm === "band";
+  L = PAY + `\nconst __RANGED_BY_UNITS = ${arm === "ranged"};\n` + L;
+  if (PERSIST) L = splice(L, N.consume, "  /* persistent demand: an icon is never used up */", "icon consumption");
+  const flatIcons = arm === "flat1" || arm === "count" || arm === "band" || ONEUNIT;
   if (flatIcons) {
     L = splice(L, N.absorb, "  return cross ? 1 : 1 * exchangeRate(state, biz);", "icon absorption");
     L = splice(L, N.placeable, "    .reduce((n, s) => n + 1, 0) * exchangeRate(state, biz);", "placeableFor");
   }
-  if (arm === "count" || arm === "band") {
+  if (arm === "count" || arm === "band" || arm === "ranged") {
     /* The whole delivery is the band rule; nothing in the old body survives. */
     const from = L.indexOf(N.deliverHead), to = L.indexOf(N.deliverTail) + N.deliverTail.length;
     if (from < 0 || to < from) { console.error("autoDeliver changed shape - update this probe"); process.exit(2); }
     L = L.slice(0, from) + BAND_BODY + L.slice(to);
-    L = splice(L, N.cardValue, "  let perQuarter = __pay(px, bp.lvl, reach === null ? 2 * bp.lvl : reach) - effOpex;", "card valuation");
-    L = splice(L, N.upNow, "  const nowNet = __pay(px, b.level, sellableForBiz(state, p, b)) - bizOpex(b) - RENT_PER_LEVEL * b.level;", "upgrade valuation (now)");
-    L = splice(L, N.upGrown, "  const grownNet = __pay(px, grown.level, sellableForBiz(state, p, grown)) - bizOpex(grown) - 3 * grown.level;", "upgrade valuation (grown)");
-    L = splice(L, N.mcTrade, "    const trade = __pay(price(state.pm, bizInd(b)), b.level, sellableForBiz(state, p, b)) - bizOpex(b) - RENT_PER_LEVEL * b.level;", "megacorp trade");
+    L = splice(L, N.cardValue, "  let perQuarter = __pay(px, bp.lvl, reach === null ? 2 * bp.lvl : reach, bp.ind) - effOpex;", "card valuation");
+    L = splice(L, N.upNow, "  const nowNet = __pay(px, b.level, sellableForBiz(state, p, b), bizInd(b)) - bizOpex(b) - RENT_PER_LEVEL * b.level;", "upgrade valuation (now)");
+    L = splice(L, N.upGrown, "  const grownNet = __pay(px, grown.level, sellableForBiz(state, p, grown), bizInd(grown)) - bizOpex(grown) - 3 * grown.level;", "upgrade valuation (grown)");
+    L = splice(L, N.mcTrade, "    const trade = __pay(price(state.pm, bizInd(b)), b.level, sellableForBiz(state, p, b), bizInd(b)) - bizOpex(b) - RENT_PER_LEVEL * b.level;", "megacorp trade");
   } else {
     const recycle = arm === "norecycle" ? 0 : 1;
     L = splice(L, N.deliverHead, N.deliverHead + "\n" + N_PROBE, "autoDeliver head");
     L = splice(L, N.deliverTail,
-      `  const leftover = Math.max(0, remaining);\n  __probe.sale(bizInd(biz), biz.level, __n, earned, leftover, unitPrice(state, p, biz), bizProd(biz));\n  p.cash += earned + leftover * ${recycle};\n}`, "autoDeliver tail");
+      `  const leftover = Math.max(0, remaining);\n  __probe.sale(bizInd(biz), biz.level, __n, earned, leftover, unitPrice(state, p, biz), bizProd(biz), __u);\n  p.cash += earned + leftover * ${recycle};\n}`, "autoDeliver tail");
     if (arm === "norecycle") {
       L = splice(L, N.cardValue, "  let perQuarter = sellable * px - effOpex;", "card valuation");
       L = splice(L, N.upNow, N.upNow.replace("* 1\n", "* 0\n"), "upgrade valuation (now)");
@@ -300,7 +411,7 @@ function engine(arm) {
 /* ---------------------------------------------------------------- the probe */
 let CUR = null;                 // the per-game accumulator the engine writes into
 const PROBE = {
-  sale: (ind, lvl, n, earned, leftover, px, prod) => { if (CUR) CUR.sales.push({ ind, lvl, n, rev: earned + leftover * (CUR.recycle ? 1 : 0), leftover, px, prod, earned }); },
+  sale: (ind, lvl, n, earned, leftover, px, prod, u) => { if (CUR) CUR.sales.push({ ind, lvl, n, u, rev: earned + leftover * (CUR.recycle ? 1 : 0), leftover, px, prod, earned }); },
   land: (label, share, split) => { if (CUR) CUR.land.push({ share, split }); },
 };
 
@@ -335,6 +446,7 @@ function run(E, arm, seats) {
     byInd: Object.fromEntries(IND.map((i) => [i, { rev: 0, n: 0 }])),
     byLvl: { 1: { rev: 0, n: 0 }, 2: { rev: 0, n: 0 }, 3: { rev: 0, n: 0 }, 4: { rev: 0, n: 0 } },
     hist: { 1: {}, 2: {}, 3: {}, 4: {} },           // icons reached, by level
+    units: Object.fromEntries(IND.map((i) => [i, { 1: [], 2: [], 3: [], 4: [] }])),   // demand reached in units
     margin: 0, saleCount: 0, zero: 0,
     sx: 0, sy: 0, sxy: 0, sxx: 0, syy: 0,
     vTop: 0, hTop: 0, wins: new Array(seats).fill(0),
@@ -352,12 +464,14 @@ function run(E, arm, seats) {
       const L = Math.min(4, Math.max(1, s.lvl));
       T.byLvl[L].rev += s.rev; T.byLvl[L].n++;
       T.hist[L][s.n] = (T.hist[L][s.n] || 0) + 1;
+      T.units[s.ind][L].push(s.u);
       T.producedUnits += s.prod; T.recycledUnits += s.leftover;
       if (s.rev === 0) T.zero++;
       /* Would one more icon have paid? Under the shipped rule and flat1, yes whenever
          production outran the icons; under norecycle the same; under count whenever
          the company was under its cap; under band only one icon short of a step. */
-      const oneMore = (arm === "band") ? (s.n === s.lvl - 1 || s.n === 2 * s.lvl - 1)
+      const oneMore = (arm === "ranged") ? (() => { const r = (RANGED[s.ind] || {})[Math.min(4, s.lvl)]; return !!r && (s.u === r.a - 1 || s.u === r.b - 1); })()
+        : (arm === "band") ? (s.n === s.lvl - 1 || s.n === 2 * s.lvl - 1)
         : (arm === "count") ? (s.n < 2 * s.lvl)
         : (s.leftover > 0);
       if (oneMore) T.margin++;
@@ -409,9 +523,12 @@ const pct = (x, t) => (t > 0 ? (100 * x / t).toFixed(1) + "%" : "-");
 const money = (x) => "$" + x.toFixed(x < 10 ? 1 : 0);
 
 console.log(`\n${GAMES} games an arm a table size, seeds 1..${GAMES}, all-bot tables.  ` +
-  (SHIFT ? "Band SHIFTS the column read: triangle 0.5/1/3/6/10/15 at level + band - 2." : `Band K = ${K.join("/")}${TRI ? ", paid by the triangle of the level (1/3/6/10)" : ", paid by the level"}.`));
+  (SHIFT ? "Band SHIFTS the column read: triangle 0.5/1/3/6/10/15 at level + band - 2." : `Band K = ${K.join("/")}${TRI ? ", paid by the triangle of the level (1/3/6/10)" : ", paid by the level"}.`) +
+  (ONEUNIT ? "  DEMAND IS A RATE: never consumed, one unit an icon." : PERSIST ? "  DEMAND IS PERSISTENT: never consumed, column absorption kept." : "  Demand is consumed, as the engine ships."));
+if (ARMS.includes("ranged")) console.log("  ranged table " + (fs.existsSync(RANGED_FILE) ? "from ranged_table.json" : "PROVISIONAL, built in") + ": " +
+  Object.entries(RANGED).map(([i, t]) => i + " " + [1, 2, 3, 4].map((L) => `${t[L].a}/${t[L].b}:${t[L].m.join("-")}`).join(" ")).join("  "));
 console.log("  " + ["current  as it ships", "flat1    an icon takes one unit", "norecycle  unsold production pays nothing",
-  "count    price x icons filled, up to 2 x level", "band     price x level x K by band - the proposal"].filter((d) => ARMS.includes(d.split(/\s+/)[0])).join("\n  "));
+  "count    price x icons filled, up to 2 x level", "band     price x level x K by band", "ranged   the designer's ranges, by units of demand reached"].filter((d) => ARMS.includes(d.split(/\s+/)[0])).join("\n  "));
 
 const R = {};
 for (const arm of ARMS) {
@@ -454,9 +571,21 @@ for (const n of SIZES) {
     return vx > 0 && vy > 0 ? (cov / Math.sqrt(vx * vy)).toFixed(2) : "-";
   });
   line("one more icon would have paid", (T) => pct(T.margin, T.saleCount));
-  /* How much demand a company actually sees, by level - the figure the band
-     thresholds have to be read against. Printed for the first arm only. */
+  /* How much demand a company actually sees - the figure the band thresholds have
+     to be read against. Printed for the first arm only: icons by level, then UNITS by
+     industry and level, which is what the designer's ranges are written in. */
   const T0 = R[ARMS[0]][n].T;
+  console.log(`\n  DEMAND REACHED, IN UNITS, by industry and level (${ARMS[0]} arm) - share at zero, median, 90th percentile, max`);
+  console.log("  " + pad("", 8) + [1, 2, 3, 4].map((L) => rp("level " + L, 22)).join(""));
+  for (const i of IND) {
+    const cells = [1, 2, 3, 4].map((L) => {
+      const a = T0.units[i][L].slice().sort((x, y) => x - y); if (!a.length) return rp("-", 22);
+      const q = (f) => a[Math.min(a.length - 1, Math.floor(f * a.length))];
+      const zero = a.filter((x) => x === 0).length;
+      return rp(`${(100 * zero / a.length).toFixed(0)}%0 ${q(0.5)} ${q(0.9)} max${a[a.length - 1]} (${a.length})`, 22);
+    });
+    console.log("  " + pad(i, 8) + cells.join(""));
+  }
   console.log(`\n  ICONS REACHED BY A COMPANY, by level (${ARMS[0]} arm) - share of company-quarters`);
   console.log("  " + pad("", 12) + [0, 1, 2, 3, 4, 5, 6, 7, 8, "9+"].map((k) => rp(k, 6)).join(""));
   for (const L of [1, 2, 3, 4]) {
