@@ -74,7 +74,7 @@ Depth "Excellent", and against the 3 for Theme: **"miss flavor texts"**.
 
 - **Most satisfying:** "Gathering resources. Build an empire"
 - **Frustrated/confused:** "When I did my megacorp, I losted all my resources, without a good reward."
-- **Over/underpowered:** "Underpowered: megacorp, to continue generating resources and Persona, the winner of the match didn't ussert[?]"
+- **Over/underpowered:** "Underpowered: megacorp, to continue generating resources and Persona, the winner of the match didn't use it" — the winner was Fábio, playing the Resort Developer, and the designer confirms he never used the ability once
 - **The goal, in his words:** "Grow an enterprise empire"
 - **Magic wand:** "The Revenue, the most complex part of the game"
 - **Play again:** "Yes, of course. I want to try a new start route."
@@ -171,6 +171,16 @@ under *underpowered*. This is the first consistent negative on the endgame, and
 it reverses Rick's earlier form, where "MEGA CORP" was the single most satisfying
 moment of his game. The difference is version: Rick played before v21. Not yet
 measured against the current cards.
+
+**A Persona that is never used — Abner, with the designer's confirmation.**
+Fábio won the 25/10 table holding the Resort Developer and did not use the
+ability once. The six Personas are not the same shape: four act at Revenue, every
+quarter there is something to sell (White-Label Supplier, Supply Chain Expert,
+Concession Holder, Public Health Director), while two act only at the moment
+their holder upgrades their own industry, and only to change the direction of
+that upgrade (Systems Architect, Resort Developer). A power that waits for an
+upgrade that may never come is a power a player can win without noticing, which
+is what happened. Recorded; not yet measured.
 
 **Theme fell from 4.7 to 3.8 on v21, and Abner wrote the reason on the form:
 "miss flavor texts".** The cards carry a name, an image, and numbers, and no
