@@ -222,7 +222,12 @@
    multipliers is too low, and that is the designer's number to set, not this
    probe's.
 
-   Run: node audit_revenue.js [games a table size] [seats...] [arms...] [--k a,b,c,d] [--tri | --shift] [--stock]
+   --rowsOld swaps in the v20 demand table. Measured on v22 rules: Retail's reach
+   distribution is identical to the dollar at every level (the chain is bounded by
+   adjacency, not by the pool), HC and TE lose Year-1 demand, Hospitality gains.
+   See audit_setup.js --rowsOld for the balance figures.
+
+   Run: node audit_revenue.js [games a table size] [seats...] [arms...] [--k a,b,c,d] [--tri | --shift] [--stock] [--rowsOld]
         arms: --current --flat1 --norecycle --count --band --all   (default: current band)
    ========================================================================== */
 const fs = require("fs");

@@ -157,6 +157,17 @@
         --flip     the re-assignment above
         --flat     the searched optimum, 30/35/40 25/30/35 15/20/25
         --flow     demand as a rate (see audit_demand_flow.js)
+        --rowsOld  the v20 demand table, on today's rules - asked for when the
+                   L-shopfront Retail chain looked like a nerf. MEASURED, 400 games
+                   a table size: Retail's reach does not change at all (identical
+                   median / 90th / max at every level - the chain is bounded by
+                   where a branch may open, not by how many two-row tiles exist),
+                   its revenue rises 5-10%, and its most-EP share FALLS a point or
+                   two because Hospitality rises more: HO banks most EP in 38.5%
+                   of three-player games against 32.5%, the most dominant figure
+                   on v22. Vertical share 68.1% -> 72.3% at three players; HC and
+                   TE lose Year-1 demand (TE level-1 quarters at zero 37% -> 54%);
+                   Manufacturing is entered more (dead 28.8% -> 23.0%). Not applied.
         --tuned    + $65 an EP and the P1 ladders, to measure against the retune
         --off N    start from seed N+1, for a same-rules control block
         --paper    print the arithmetic and the ladder search, then stop
