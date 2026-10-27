@@ -271,6 +271,10 @@ const ROWS_OLD_TABLE = `const DEMAND_ROWS = {
   FC: ["TE", "UT", "HC", "TE"], IA: ["MA", "RE", "TE", "MA"],
   CC: ["HC", "HO", "TE", "HC"], LM: ["HO", "MA", "HC", "HO"],
 };`;
+/* --dump <file> writes every sale of the first arm - units reached, price, production,
+   revenue, by industry and level - so a payout table can be drafted from the real
+   distribution rather than from a formula. */
+const DUMP = opt("--dump", null);
 const RANGED_FILE = path.join(__dirname, "ranged_table.json");
 const RANGED = fs.existsSync(RANGED_FILE) ? JSON.parse(fs.readFileSync(RANGED_FILE, "utf8")) : (() => {
   /* Retail is the designer's: level 1 pays 1/2/3 x price at 0/1/2 units, level 3
@@ -481,6 +485,7 @@ function run(E, arm, seats) {
     byLvl: { 1: { rev: 0, n: 0 }, 2: { rev: 0, n: 0 }, 3: { rev: 0, n: 0 }, 4: { rev: 0, n: 0 } },
     hist: { 1: {}, 2: {}, 3: {}, 4: {} },           // icons reached, by level
     units: Object.fromEntries(IND.map((i) => [i, { 1: [], 2: [], 3: [], 4: [] }])),   // demand reached in units
+    sales: Object.fromEntries(IND.map((i) => [i, { 1: [], 2: [], 3: [], 4: [] }])),   // [units, price, production, revenue] a sale
     margin: 0, saleCount: 0, zero: 0,
     sx: 0, sy: 0, sxy: 0, sxx: 0, syy: 0,
     vTop: 0, hTop: 0, wins: new Array(seats).fill(0),
@@ -499,6 +504,7 @@ function run(E, arm, seats) {
       T.byLvl[L].rev += s.rev; T.byLvl[L].n++;
       T.hist[L][s.n] = (T.hist[L][s.n] || 0) + 1;
       T.units[s.ind][L].push(s.u);
+      T.sales[s.ind][L].push([s.u, s.px, s.prod, s.rev]);
       T.producedUnits += s.prod; T.recycledUnits += s.leftover;
       if (s.rev === 0) T.zero++;
       /* Would one more icon have paid? Under the shipped rule and flat1, yes whenever
@@ -571,7 +577,14 @@ for (const arm of ARMS) {
   R[arm] = {};
   for (const n of SIZES) R[arm][n] = { T: run(E, arm, n), IND: E.INDUSTRIES };
 }
-QUARTERS.assert();   // the lead-change columns are read off the log; silence there is a bug, not a result
+QUARTERS.assert();
+if (DUMP) {
+  const out = {};
+  for (const n of SIZES) for (const [i, byL] of Object.entries(R[ARMS[0]][n].T.sales))
+    for (const [L, arr] of Object.entries(byL)) ((out[i] = out[i] || {})[L] = out[i][L] || []).push(...arr);
+  fs.writeFileSync(DUMP, JSON.stringify(out));
+  console.log(`\nsales of the ${ARMS[0]} arm written to ${DUMP}`);
+}   // the lead-change columns are read off the log; silence there is a bug, not a result
 
 for (const n of SIZES) {
   console.log("\n" + "=".repeat(78));
