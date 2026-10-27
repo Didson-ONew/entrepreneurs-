@@ -390,8 +390,10 @@ function engine(arm) {
   }
   const PAY = arm === "ranged"
     ? `const __R = ${JSON.stringify(RANGED)};
+       /* a row marked "icons" is read against icons: Technology's units are its icons doubled */
        const __pay = (px, lvl, u, ind) => { const r = (__R[ind] || {})[Math.min(4, lvl)]; if (!r) return 0;
-         const m = u < r.a ? r.m[0] : u >= r.b ? r.m[2] : r.m[1]; return Math.round(px * m); };`
+         const x = r.unit === "icons" && ind === "TE" ? u / 2 : u;
+         const m = x < r.a ? r.m[0] : x >= r.b ? r.m[2] : r.m[1]; return Math.round(px * m); };`
     : arm === "count"
     ? `const __pay = (px, lvl, n) => px * Math.min(n, 2 * lvl);`
     : SHIFT ? `const __S = [0.5, 1, 3, 6, 10, 15];
@@ -510,7 +512,8 @@ function run(E, arm, seats) {
       /* Would one more icon have paid? Under the shipped rule and flat1, yes whenever
          production outran the icons; under norecycle the same; under count whenever
          the company was under its cap; under band only one icon short of a step. */
-      const oneMore = (arm === "ranged") ? (() => { const r = (RANGED[s.ind] || {})[Math.min(4, s.lvl)]; return !!r && (s.u === r.a - 1 || s.u === r.b - 1); })()
+      const oneMore = (arm === "ranged") ? (() => { const r = (RANGED[s.ind] || {})[Math.min(4, s.lvl)]; if (!r) return false;
+          const x = r.unit === "icons" && s.ind === "TE" ? s.u / 2 : s.u; return x === r.a - 1 || x === r.b - 1; })()
         : (arm === "band") ? (s.n === s.lvl - 1 || s.n === 2 * s.lvl - 1)
         : (arm === "count") ? (s.n < 2 * s.lvl)
         : (s.leftover > 0);
@@ -567,7 +570,7 @@ console.log(`\n${GAMES} games an arm a table size, seeds 1..${GAMES}, all-bot ta
   (STOCK ? "  --stock: icons consumed and absorbing their column, as the engine played before v22." : "  Demand is a rate, as the engine ships since v22: never consumed, one unit an icon.") +
   (ROWS_OLD ? "  DEMAND TABLE: the v20 rows (before the redraw)." : ""));
 if (ARMS.includes("ranged")) console.log("  ranged table " + (fs.existsSync(RANGED_FILE) ? "from ranged_table.json" : "PROVISIONAL, built in") + ": " +
-  Object.entries(RANGED).map(([i, t]) => i + " " + [1, 2, 3, 4].map((L) => `${t[L].a}/${t[L].b}:${t[L].m.join("-")}`).join(" ")).join("  "));
+  Object.entries(RANGED).map(([i, t]) => i + (t[1] && t[1].unit === "icons" ? "(icons)" : "") + " " + [1, 2, 3, 4].map((L) => t[L] ? `${t[L].a}/${t[L].b}:${t[L].m.join("-")}` : "-").join(" ")).join("  "));
 console.log("  " + ["current  as it ships", "flat1    an icon takes one unit", "norecycle  unsold production pays nothing",
   "count    price x icons filled, up to 2 x level", "band     price x level x K by band", "ranged   the designer's ranges, by units of demand reached"].filter((d) => ARMS.includes(d.split(/\s+/)[0])).join("\n  "));
 

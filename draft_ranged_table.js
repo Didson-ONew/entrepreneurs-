@@ -21,6 +21,11 @@
    every industry and level; what the bots then do with it is measured separately,
    with audit_revenue.js --ranged, which reads ranged_table.json.
 
+   TECHNOLOGY'S THRESHOLDS ARE IN ICONS, not units: its icons take two units each,
+   so a count in units only ever lands on even numbers and a band between two of
+   them can be empty. Its rows carry "unit": "icons", and the audit halves its units
+   before reading the band. The multipliers are of the price either way.
+
    Run: node audit_revenue.js 300 3 4 --current --dump reach_sales.json
         node draft_ranged_table.js reach_sales.json ranged_table.json
    ========================================================================== */
@@ -39,12 +44,14 @@ for (const i of IND) {
     const n = sales.length;
     let a, b, m, note = "";
     if (n >= 30) {
-      const u = sales.map((s) => s[0]), prod = mode(sales.map((s) => s[2]));
+      const icons = i === "TE";                                  // reach in icons, not doubled units
+      const u = sales.map((s) => (icons ? s[0] / 2 : s[0])), prod = mode(sales.map((s) => s[2])) / (icons ? 2 : 1);
       b = Math.max(2, Math.min(prod, q(u, 0.9)));
       a = Math.max(1, Math.min(b - 1, Math.round(0.6 * b)));
+      const reach = (s) => (icons ? s[0] / 2 : s[0]);
       const band = (x) => (x < a ? 0 : x >= b ? 2 : 1);
       m = [0, 1, 2].map((k) => {
-        const inBand = sales.filter((s) => band(s[0]) === k);
+        const inBand = sales.filter((s) => band(reach(s)) === k);
         if (!inBand.length) return null;
         return Math.max(1, Math.round(mean(inBand.map((s) => s[3])) / mean(inBand.map((s) => s[1]))));
       });
@@ -53,26 +60,26 @@ for (const i of IND) {
       if (m[0] === null) m[0] = Math.max(1, m[1] - 1);
       if (m[2] === null) m[2] = m[1] + 1;
       for (let k = 1; k < 3; k++) if (m[k] < m[k - 1]) m[k] = m[k - 1];
-      const share = [0, 1, 2].map((k) => (100 * sales.filter((s) => band(s[0]) === k).length / n).toFixed(0) + "%");
+      const share = [0, 1, 2].map((k) => (100 * sales.filter((s) => band(reach(s)) === k).length / n).toFixed(0) + "%");
       const nowRev = mean(sales.map((s) => s[3]));
-      const draftRev = mean(sales.map((s) => m[band(s[0])] * s[1]));
-      rows.push({ i, L, n, prod, p: [q(u, .25), q(u, .5), q(u, .75), q(u, .9)], a, b, m, share, nowRev, draftRev, note });
+      const draftRev = mean(sales.map((s) => m[band(reach(s))] * s[1]));
+      rows.push({ i, L, n, prod, p: [q(u, .25), q(u, .5), q(u, .75), q(u, .9)], a, b, m, share, nowRev, draftRev, note: icons ? "thresholds in icons" : note });
     } else {
       /* too few to read: double the level below, which is what production does */
       const below = table[i][L - 1];
       if (!below) continue;
-      const prod = n ? mode(sales.map((s) => s[2])) : 2 * (rows.find((r) => r.i === i && r.L === L - 1) || { prod: 0 }).prod;
+      const prod = (n ? mode(sales.map((s) => s[2])) : 2 * (rows.find((r) => r.i === i && r.L === L - 1) || { prod: 0 }).prod) / (i === "TE" && n ? 2 : 1);
       b = Math.min(prod, 2 * below.b); a = Math.max(1, Math.min(b - 1, Math.round(0.6 * b)));
       m = below.m.map((x) => 2 * x);
       note = `extrapolated from level ${L - 1} (${n} sales)`;
       rows.push({ i, L, n, prod, p: ["-", "-", "-", "-"], a, b, m, share: ["-", "-", "-"], nowRev: n ? mean(sales.map((s) => s[3])) : NaN, draftRev: NaN, note });
     }
-    table[i][L] = { a, b, m };
+    table[i][L] = i === "TE" ? { a, b, m, unit: "icons" } : { a, b, m };
   }
 }
 fs.writeFileSync(OUT, JSON.stringify(table, null, 1));
 const pad = (s, n) => String(s).padEnd(n), rp = (s, n) => String(s).padStart(n);
 console.log("\nDRAFT RANGED PAYOUT TABLE - thresholds in units reached, multipliers of the price");
-console.log(pad("", 8) + rp("sales", 6) + rp("prod", 5) + rp("p25/50/75/90", 16) + rp("a", 4) + rp("b", 4) + rp("$ / $$ / $$$", 14) + rp("share in bands", 18) + rp("now", 7) + rp("draft", 7) + "  note");
+console.log(pad("", 8) + rp("sales", 6) + rp("prod", 5) + rp("p25/50/75/90", 16) + rp("a", 4) + rp("b", 4) + rp("$ / $$ / $$$", 14) + rp("share in bands", 18) + rp("now", 7) + rp("draft", 7) + "  note   (TE: reach and production in icons)");
 for (const r of rows) console.log(pad(r.i + " L" + r.L, 8) + rp(r.n, 6) + rp(r.prod, 5) + rp(r.p.join("/"), 16) + rp(r.a, 4) + rp(r.b, 4) + rp(r.m.join(" / "), 14) + rp(r.share.join(" "), 18) + rp(isFinite(r.nowRev) ? "$" + r.nowRev.toFixed(0) : "-", 7) + rp(isFinite(r.draftRev) ? "$" + r.draftRev.toFixed(0) : "-", 7) + "  " + r.note);
 console.log("\nwritten to " + OUT);
