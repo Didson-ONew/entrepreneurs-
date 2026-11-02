@@ -296,7 +296,7 @@ const doc = new Document({
       H("Where it stands today"),
       grid(null, [
         [{ t: "Rules", bold: true }, `Complete. ${EDITION} is generated from the data the game runs on, so it cannot drift.`],
-        [{ t: "Prototype", bold: true }, "Built and played at the table."],
+        [{ t: "Prototype", bold: true }, "Built and played at the table. A complete print-and-play set is generated from the rules engine - cards, tiles, boards and aids - so the table always matches the current edition."],
         [{ t: "Digital build", bold: true }, "Playable now: solo against AI, or online with up to six."],
         [{ t: "Testing", bold: true }, `Balanced by measurement. The three industries that grow vertically used to decide 90.9% of three-player games; they now decide about 69.5%, and no industry decides fewer than one game in ten. ${AUDITS} balance audits and ${TESTS} automated tests, all in the repository.`],
         [{ t: "Teaching mode", bold: true }, "A built-in beginner game: 8 quarters, four actions, no Megacorps. Measured over 150 games a table size."],

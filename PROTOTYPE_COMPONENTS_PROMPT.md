@@ -1,12 +1,14 @@
 # Prompt for Claude Design — physical prototype components
 
-Copy everything below the line into Claude Design. Every number in it is read
-from the shipped engine (`EntrepreneursGame.jsx`) as of Rulebook v19 with the
-$2–$12 economy, so the components it produces will match the game that is
-actually playable at entrepreneurs.boardgame.
+THE PRINT-AND-PLAY SET IS GENERATED NOW. `node make_components.mjs --pdf` writes
+`Entrepreneurs_Components_v23.html` and the PDF from the engine's own data, and
+`test_components.js` checks the file against the engine. This prompt is kept for
+a designer who wants to restyle the set in an external tool: the brief below
+describes the v23 components, and the generated file is the reference layout.
 
-Regenerate this file after any rules change — or at minimum re-check the
-constants block, which is the part that goes stale.
+Every number in it is read from the shipped engine (`EntrepreneursGame.jsx`) as
+of Rulebook v23: revenue by band, three phases, an eight-quarter game, rows
+open from the first quarter. Re-check the constants block after any rules change.
 
 ---
 
@@ -24,8 +26,11 @@ artboards I can print one per sheet.
 operating costs each quarter to companies in *other* industries — its suppliers
 — and those payments are the heart of the game. Building a company pushes its
 own industry's price down and each of its suppliers' prices up, so the market is
-the sum of what everyone at the table has built. It runs 12 quarters over 3
-fiscal years; a second Megacorp calls the following quarter as the last one.
+the sum of what everyone at the table has built. It runs 8 quarters over 2
+fiscal years (a three-year variant plays 12); a second Megacorp calls the
+following quarter as the last one. Every company is paid once a quarter by the
+BAND of demand icons it reaches - count the icons, read the band on the card,
+multiply the industry's price - so nothing is delivered and nothing is recycled.
 
 The tone should be **corporate-modern, not sci-fi and not cute**: think an
 annual report or an architect's site plan rather than a cartoon city. Clean,
@@ -41,12 +46,16 @@ level up; Vertical ones stack on one plot):
 
 | Code | Name | Colour | Base price | Scaling |
 |---|---|---|---|---|
-| UT | Utilities | `#E8B330` | $4 | Horizontal |
-| RE | Retail | `#3FAE6A` | $4 | Vertical |
-| HO | Hospitality | `#D65B4A` | $5 | Vertical |
-| MA | Manufacturing | `#9066C8` | $5 | Horizontal |
-| HC | Healthcare | `#3E8FD0` | $6 | Vertical |
-| TE | Technology | `#D6428B` | $6 | Horizontal |
+| UT | Utilities | `#D9C70D` | $4 | Horizontal |
+| RE | Retail | `#5DD067` | $4 | Vertical |
+| HO | Hospitality | `#DA421D` | $5 | Vertical |
+| MA | Manufacturing | `#744BAA` | $5 | Horizontal |
+| HC | Healthcare | `#324DE1` | $6 | Vertical |
+| TE | Technology | `#DD61B0` | $6 | Horizontal |
+
+These six are checked in CIE Lab against the three dichromacies (audit_palette.js);
+the generated set pairs each with a glyph: UT triangle, RE square, HO circle, MA
+hexagon, HC cross, TE diamond.
 
 **Critical accessibility requirement:** these six hues are not distinguishable
 by every player, and two of them (HO and TE, RE and UT) are close in value. Give
@@ -56,9 +65,9 @@ appears. A player must be able to play the whole game in greyscale. This is the
 single most important constraint in the brief.
 
 **Price track:** $2 to $12, one marker per industry, one cell per whole dollar
-(11 cells). No blank cells. $1 is *not* a price — it's what the bank pays for
-goods that couldn't be sold, so the track's floor deliberately sits a dollar
-above it.
+(11 cells). No blank cells. Beside each industry's row sits its BAND LADDER: for
+levels 1-4, the icon count at which the $$ and $$$ bands begin and the three
+multipliers the price is multiplied by. Price x band is the whole revenue rule.
 
 **Player colours** (up to 6): `#22D3EE` `#FB923C` `#A78BFA` `#FB7185` `#4ADE80`
 `#FACC15`. These must not be confusable with the six industry colours — that
@@ -66,8 +75,19 @@ distinction carries real information on the board, since a disc shows *who* and 
 block shows *what*.
 
 **Other values:** 12 discs per player · max 5 active companies (6 with the IPO
-tile) · rent $2 per company level · cash scores 1 EP per full $50 · 2 Megacorps
-ends the game · a Megacorp HQ banks its industry's price ÷ tier every quarter and pays 1 EP a quarter to each rival company beside it.
+tile) · rent $2 per company level · cash scores 1 EP per full $100 · 2 Megacorps
+ends the game · a Megacorp HQ banks its industry's price ÷ tier every quarter and pays 1 EP a quarter to each rival company beside it · loans $20 for a disc, bought back for $30 at the end of Year 1 and $40 at Year 2 ($50 at Year 3 in the three-year game).
+
+**The band table** (icons at which $$ and $$$ begin, then the three multipliers):
+
+| | L1 | L2 | L3 | L4 |
+|---|---|---|---|---|
+| UT | 1 / 2 → 1·1·2 | 4 / 6 → 2·4·6 | 7 / 12 → 7·10·12 | 14 / 24 → 23·24·24 |
+| RE | 2 / 3 → 1·2·4 | 5 / 8 → 4·6·8 | 7 / 12 → 6·10·14 | 12 / 20 → 10·17·24 |
+| HO | 1 / 2 → 1·1·2 | 2 / 4 → 1·3·4 | 5 / 8 → 3·6·8 | 10 / 16 → 7·13·16 |
+| MA | 2 / 4 → 2·3·4 | 5 / 8 → 4·7·8 | 10 / 16 → 7·14·16 | 19 / 32 → 10·25·32 |
+| HC | 2 / 3 → 1·2·3 | 4 / 6 → 2·4·6 | 7 / 12 → 5·9·12 | 14 / 24 → 13·20·24 |
+| TE | 1 / 2 → 1·2·2 | 2 / 4 → 1·4·4 | 3 / 6 → 1·6·8 | 4 / 8 → 2·9·16 |
 
 ## The components I need
 
@@ -86,23 +106,27 @@ regardless of which district they sit in. Don't draw districts as tidy 2×2 bloc
 District names are two characters (examples: CC, IA, LM, FC, C4, A1, R5, R1, I3,
 A3). Plots need to be big enough to hold a stack of blocks plus a disc underneath.
 
-### 2. Demand board — 16 district demand tiles
-One per district. Each tile is a **4×4 grid of demand icons**: 4 rows, each row
-labelled with one industry (fixed per district family - see the row table), and 4 columns per row.
-**Rows 3 and 4 are locked until Quarter 5** — show that visually, e.g. a printed
-band or a different ground, so players can see at a glance what's open.
-
-Players deliver production into these icons for cash. Design the icon cells so a
-small token or cube sits in them clearly and a filled row reads instantly.
+### 2. The demand grid, on the district tile
+Each district tile carries its **4×4 grid of demand icons** in its middle cell:
+4 rows, each labelled with one industry (fixed per district family - the first
+and last rows are always the same industry), and 4 columns per row, numbered 1
+to 4 - the company level that counts that column. **All four rows are open from
+the first quarter.** Nothing is ever placed on an icon: a company COUNTS the
+icons it reaches, so the grid only has to be legible across the table. Twenty
+tiles exist (16 suburbs, of which 12 are drawn, and 4 centres).
 
 ### 3. Sixty Blueprint cards
 Standard poker size (63×88 mm) so they fit sleeves. Ten per industry: five level
 1, three level 2, two level 3.
 
 Each card shows: company name, industry (colour + glyph), **level**, **setup
-cost**, **production**, **OPEX**, and its **suppliers** (1 supplier at L1, 2 at
-L2, 3 at L3 — each is another industry, and this is the single most-consulted
-number on the card because OPEX is paid *to those industries' pots*).
+cost**, **OPEX** (split into $2-a-level rent and the supplier bill), its
+**suppliers** (1 at L1, 2 at L2, 3 at L3 — each is another industry, and the
+bill is paid *into those industries' pots*), its **size** (the printed
+production, now only the number the top band is cut to), and — the most consulted
+thing on the card — **its band row**: the icon counts at which $$ and $$$ begin
+and the three multipliers, with the whole four-level ladder in small type below
+so an upgraded company reads its new row off the same card.
 
 The full data table follows at the end of this brief. Give me a card template
 plus the six industry variants, and a sheet layout of 9 cards per A4 page with
@@ -139,11 +163,11 @@ number; a player choosing between two tiles cannot decide without it.
 Dealt one per player; the rest sit out, so which powers exist changes per game.
 
 - **Systems Architect** (TE) — Your Technology companies may upgrade vertically, stacking on one plot instead of needing a free neighbour - or spread as Technology usually does. You choose at each upgrade.
-- **Public Health Director** (HC) — Your Healthcare companies may serve any column of a Healthcare row whatever their level - but a unit sold above your company's level pays $1 less than the price.
-- **White-Label Supplier** (MA) — When your Manufacturing cross-sells into another industry's row, it may be paid that industry's price instead of its own - whichever is higher.
+- **Public Health Director** (HC) — Your Healthcare companies reach every column of a Healthcare row whatever their level - they may count all four icons where a level-1 company counts one.
+- **White-Label Supplier** (MA) — Your Manufacturing may be paid the best price among the rows of its own district, its own row included: that price is what its band multiplies.
 - **Resort Developer** (HO) — Your Hospitality companies may upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them - or stack as Hospitality usually does. You choose at each upgrade.
-- **Supply Chain Expert** (RE) — At the start of Production, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline.
-- **Concession Holder** (UT) — At the start of Production you may switch your concession on: your Utilities production then sells for $1 above the current price this quarter. Every quarter you sell at that premium, the Utilities price falls one step at the end of the quarter.
+- **Supply Chain Expert** (RE) — At the start of Closing, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline.
+- **Concession Holder** (UT) — At the start of Closing you may switch your concession on: your Utilities are then paid $1 over the current price this quarter - their band multiplies the higher price. Every quarter you are paid at that premium, the Utilities price falls one step at the end of the quarter.
 
 ### 6. Money
 Printed notes, not chips — I measured it and the chip equivalent weighs 2.6 kg,
@@ -153,9 +177,9 @@ Six denominations: **$1, $2, $5, $10, $20, $50**. The bank needs about $8,000 in
 total; a working split is roughly 60 × $1, 40 × $2, 50 × $5, 40 × $10, 30 × $20,
 130 × $50. Design them at about 44 × 88 mm, 8 or 12 to an A4 sheet.
 
-The $1 and $2 get used constantly — recycling pays $1 a unit and the price floor
-is $2 — so make the small denominations the *easiest* to tell apart at a glance,
-not an afterthought. Differentiate by colour, size and number position together.
+The small denominations are change for rents and bills, the $20 and $50 are what
+a band pays out — make the six easy to tell apart at a glance, by colour, size and
+number position together.
 
 ### 7. Player pieces (design the printed parts; I 3D-print the rest)
 - **12 discs per player** in their colour. A disc under a building marks who owns
@@ -178,8 +202,9 @@ of resolution should be visible on the board itself, not just in the rulebook.
 - **Board Meeting** — always exactly 2 seats, whatever the player count.
 
 ### 9. Player aid card (double-sided, one per player)
-Front: the five phases of a quarter — Planning, Action, Production, Revenue,
-Closing — with what happens in each and which two the player actually decides in.
+Front: the three phases of a quarter — Planning, Action, Closing — with the
+Closing written as a checklist (bills, count-band-multiply, HQs, pots, hub, year
+end), since nobody is handed the board any more.
 Back: the supply web (who buys from whom), the price track rules, and the scoring
 summary.
 
@@ -196,9 +221,9 @@ Every industry buys from exactly three others and sells to exactly three others 
 this as a real graph, not a ring; a ring would be wrong and a player would notice.
 
 ### 10. Small bits
-A **quarter/year tracker** (3 years × 4 quarters, with Q5 marked as when demand
-rows 3–4 unlock, Q8 as when the demand grid is wiped and refilled, and Q12 as the
-last), an **EP scoring track**, **loan tokens**, and the **IPO tile** (to the first
+A **quarter/year tracker** (2 years × 4 quarters, Q4 and Q8 marked as year ends
+with the land awards and the loan buy-back, and Q9–Q12 shown dashed for the
+three-year variant), an **EP scoring track**, **loan tokens**, and the **IPO tile** (to the first
 player to form a Megacorp; it grants a sixth company bay and opens Board Meeting's
 second seat - no EP).
 

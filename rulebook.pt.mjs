@@ -920,7 +920,7 @@ export const RULEBOOK_PT = [
       {
         "ul": [
           "O Magnata Imobiliário e O Onipresente são concedidos - 4 EP mais o número de jogadores, só ao líder isolado, ou seja 6 EP com duas cadeiras subindo até 10 com seis. Eles também são pagos no trimestre final se a partida for encerrada antes do Q8.",
-          "Você pode recomprar discos de empréstimo: $30 no fim do Ano 1 e $35 no Ano 2 - e $40 no Ano 3, no jogo de três anos."
+          "Você pode recomprar discos de empréstimo: $30 no fim do Ano 1 e $40 no Ano 2 - e $50 no Ano 3, no jogo de três anos."
         ]
       },
       {
@@ -1328,7 +1328,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Jogo de três anos",
-              "Doze trimestres em vez de oito: um terceiro ano, com os prêmios de terra pagos três vezes e uma recompra de empréstimo a $40 no fim dele."
+              "Doze trimestres em vez de oito: um terceiro ano, com os prêmios de terra pagos três vezes e uma recompra de empréstimo a $50 no fim dele."
             ],
             [
               "Linhas 3-4 abrem no Ano 2",
@@ -1525,7 +1525,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Empréstimo",
-              "+$20 e um disco; recompre por $30 / $35 nos fins de ano ($40 no terceiro, no jogo de três anos); -5 EP se não for quitado"
+              "+$20 e um disco; recompre por $30 / $40 nos fins de ano ($50 no terceiro, no jogo de três anos); -5 EP se não for quitado"
             ],
             [
               "Vender um Projeto",
@@ -1797,13 +1797,13 @@ export const RULEBOOK_PT = [
         "ul": [
           "A RECEITA É PAGA POR FAIXA. Uma empresa conta os ícones de demanda do seu setor que alcança, lê a faixa em que essa contagem cai na linha dela da tabela de faixas - $, $$ ou $$$ - e recebe o preço atual vezes o número daquela faixa, de uma só vez. Nada é entregue, nada é contado unidade por unidade e nada é reciclado. A v22 entregava uma unidade por ícone e reciclava o resto a $1; 'Receita por unidade' ainda joga desse jeito.",
           "TRÊS FASES, NÃO CINCO. Planejamento e Ação como antes; Produção, Receita e Encerramento são um único Encerramento que resolve tudo de uma vez - as contas, a faixa de cada empresa, os fundos, o centro logístico - e não passa o tabuleiro para ninguém.",
-          "O JOGO PADRÃO TEM DOIS ANOS: oito trimestres, dois fins de ano, a recompra de empréstimo a $30 e $35. A v22 jogava três; 'Jogo de três anos' joga doze trimestres com um terceiro fim de ano e a recompra a $40.",
+          "O JOGO PADRÃO TEM DOIS ANOS: oito trimestres, dois fins de ano, a recompra de empréstimo a $30 e $40. A v22 jogava três, com a recompra a $30, $35 e $40; 'Jogo de três anos' joga doze trimestres com um terceiro fim de ano e a recompra a $50.",
           "AS LINHAS 3 E 4 ESTÃO ABERTAS DESDE O PRIMEIRO TRIMESTRE. A v22 as trancava até o Trimestre 5; 'Linhas 3-4 abrem no Ano 2' tranca de novo.",
           "AS PERSONAS SÃO LIDAS EM ÍCONES. O Diretor de Saúde Pública conta todas as colunas de uma linha de Saúde sem desconto; a Manufatura do Fornecedor White-Label é paga pelo melhor preço entre as linhas do seu distrito; o ágio do Concessionário é um dólar sobre o preço que a faixa dele multiplica."
         ]
       },
       {
-        "note": "Medido em 1000 partidas com três e com quatro jogadores, cada regra contra a sua reversão nas mesmas sementes (audit_v23.js). A FAIXA PAGA A MESMA ECONOMIA: um trimestre de empresa rende $10.3 / $25.2 / $43.9 nos níveis 1 a 3 pela faixa contra $9.5 / $24.6 / $43.5 por unidade com três jogadores, a pontuação vencedora é 48.9 contra 48.0, a pontuação do vencedor é feita das mesmas partes com diferença de até um ponto, e os assentos e os setores vencem nas mesmas proporções - com 25 entregas por partida (37 com quatro jogadores) substituídas por um pagamento sobre o qual ninguém é consultado. DOIS ANOS SÃO O MESMO JOGO, MAIS CURTO: contra o jogo de três anos a pontuação vencedora cai de 81 para 49, a liderança ainda muda de mãos 1.7 vezes por partida e muda pela última vez no trimestre 4.6 de 8 (6.6 de 12), as terras são 35% da pontuação do vencedor em vez de 29% e as Megacorporações 7% em vez de 15%, e uma partida pede 46 colocações de trabalhadores em vez de 68. AS LINHAS ABERTAS DESDE O Q1 elevam a receita de comércio em 22% (de $499 para $611 por partida) e a parcela de trimestres de empresas de nível 1 pagos na faixa de cima de 30% para 40%. Contra a v22 inteira - as três reversões de uma vez - a mesa faz 46 colocações e nenhuma entrega onde fazia 68 e 45: três decisões em cinco se foram, e o que fica pontua do mesmo jeito."
+        "note": "Medido em 1000 partidas com três e com quatro jogadores, cada regra contra a sua reversão nas mesmas sementes (audit_v23.js). A FAIXA PAGA A MESMA ECONOMIA: um trimestre de empresa rende $10.3 / $25.2 / $43.9 nos níveis 1 a 3 pela faixa contra $9.5 / $24.6 / $43.5 por unidade com três jogadores, a pontuação vencedora é 48.6 contra 47.6, a pontuação do vencedor é feita das mesmas partes com diferença de até um ponto, e os assentos e os setores vencem nas mesmas proporções - com 25 entregas por partida (37 com quatro jogadores) substituídas por um pagamento sobre o qual ninguém é consultado. DOIS ANOS SÃO O MESMO JOGO, MAIS CURTO: contra o jogo de três anos a pontuação vencedora cai de 81 para 49, a liderança ainda muda de mãos 1.7 vezes por partida e muda pela última vez no trimestre 4.6 de 8 (6.5 de 12), as terras são 35% da pontuação do vencedor em vez de 29% e as Megacorporações 7% em vez de 15%, e uma partida pede 46 colocações de trabalhadores em vez de 68. AS LINHAS ABERTAS DESDE O Q1 elevam a receita de comércio em 22% (de $499 para $611 por partida) e a parcela de trimestres de empresas de nível 1 pagos na faixa de cima de 30% para 40%. Contra a v22 inteira - as três reversões de uma vez - a mesa faz 46 colocações e nenhuma entrega onde fazia 68 e 45: três decisões em cinco se foram, e o que fica pontua do mesmo jeito."
       },
       {
         "h": "v22"

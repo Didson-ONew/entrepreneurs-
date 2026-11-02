@@ -129,7 +129,7 @@ const N = {
   yearEndsClosing: "  if (yearEndsOf(state).includes(quarter)) {",
   yearEndsRepay: "  if (yearEndsOf(state).includes(state.quarter)) {",
   landPayouts: "  return yearEndsOf(state).filter((q) => q >= state.quarter).length || 1;",
-  repayRates: "const LOAN_REPAY_RATE = { 4: 30, 8: 35, 12: 40 };",
+  repayRates: "const LOAN_REPAY_RATE = { 4: 30, 8: 40, 12: 50 };",
   refresh: "  if (quarter === 4) unlockY2(demand);",
   botLast: "  if (quarter === finalQuarterOf(state)) {",
   /* counters */
@@ -152,7 +152,7 @@ function engineFor({ quarters = 8 } = {}) {
        yearEndsOf, so moving the two constants moves the whole game. */
     logic = logic.replace(N.calendar, `const STANDARD_QUARTERS = ${last}, LONG_GAME_QUARTERS = ${last};`);
     /* Prices rise a little each year, as they already do. */
-    const rates = ends.map((q, i) => `${q}: ${30 + i * 5}`).join(", ");
+    const rates = ends.map((q, i) => `${q}: ${30 + i * 10}`).join(", ");
     logic = logic.replace(N.repayRates, `const LOAN_REPAY_RATE = { ${rates} };`);
     /* Since v22 an icon is never used up, so a longer game needs no second wipe: the
        anchor is kept so the probe still notices if the closing step changes shape. */

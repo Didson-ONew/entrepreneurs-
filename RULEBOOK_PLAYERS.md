@@ -375,7 +375,7 @@ Every quarter ends with a new Logistic Hub being built on an empty plot that nob
 ### At the end of Quarter 4 and 8
 
 - The Real-Estate Mogul and The Omnipresent are awarded - 4 EP plus the number of players, to the outright leader alone, so 6 EP at two seats rising to 10 at six. They are also paid at the final quarter if the game is called before Q8.
-- You may buy back loan discs: $30 at the end of Year 1 and $35 at Year 2 - and $40 at Year 3, in the three-year game.
+- You may buy back loan discs: $30 at the end of Year 1 and $40 at Year 2 - and $50 at Year 3, in the three-year game.
 
 Companies do not wait for the year end. A company scores the moment it is finished - see below - so by the time a year ends its EP are already banked. What a year end decides is who is holding the city.
 
@@ -512,7 +512,7 @@ The first six read as playing it the older way, because that is what they are: t
 | Ordered decks | Each industry deck runs level 1 on top down to level 3 at the bottom, instead of being shuffled whole. No level 3 can be drafted, and the early game holds no surprises. |
 | Land awards at the end only | The Real-Estate Mogul and The Omnipresent are paid once, after the final quarter, instead of at every year end. Land becomes a late-game race rather than something to hold all game. |
 | Revenue by the unit | Every company delivers its printed production one unit an icon and recycles the rest at $1, the way the game sold up to v22, instead of being paid by the band of icons it reaches. |
-| Three-year game | Twelve quarters instead of eight: a third year, with the land awards paid three times and a $40 loan buy-back at the end of it. |
+| Three-year game | Twelve quarters instead of eight: a third year, with the land awards paid three times and a $50 loan buy-back at the end of it. |
 | Rows 3-4 open in Year 2 | Rows 3 and 4 of every district stay closed until Quarter 5, as they did up to v22. |
 
 Whichever are on is shown in the waiting room before the game starts, and recorded with the finished game, so a variant table is never mistaken for a standard one in the records.
@@ -590,7 +590,7 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 | Discs | 12, covering plots owned + active companies + unpaid loans |
 | Company slots | 5, counting Megacorp headquarters |
 | Hand limit | 5 Blueprints |
-| Loan | +$20 and one disc; buy back for $30 / $35 at the year ends ($40 at the third, in the three-year game); -5 EP if unpaid |
+| Loan | +$20 and one disc; buy back for $30 / $40 at the year ends ($50 at the third, in the three-year game); -5 EP if unpaid |
 | Sell a Blueprint | $4 / $8 / $12 by level; $2 / $4 / $6 in a forced sale |
 | Sell a company | half its setup, or the full setup if upgraded; halved again in a forced sale |
 | Plot value | road price (1-6) + $3 per structure on it or orthogonally touching (a hub is a structure) |
@@ -679,7 +679,7 @@ THE NUMBER MOVES WHEN A RULE MOVES. An edition is reprinted whenever something c
 
 - REVENUE IS PAID BY BAND. A company counts the demand icons of its industry it reaches, reads the band that count falls in on its row of the band table - $, $$ or $$$ - and is paid the current price times that band's number, in one go. Nothing is delivered, nothing is counted unit by unit and nothing is recycled. v22 delivered one unit an icon and recycled the rest at $1; 'Revenue by the unit' still plays it that way.
 - THREE PHASES, NOT FIVE. Planning and Action as before; Production, Revenue and Closing are one Closing that settles at once - the bills, every company's band, the pots, the hub - and hands nobody the board.
-- THE STANDARD GAME IS TWO YEARS: eight quarters, two year ends, the loan buy-back at $30 and $35. v22 played three; 'Three-year game' plays twelve quarters with a third year end and the $40 buy-back.
+- THE STANDARD GAME IS TWO YEARS: eight quarters, two year ends, the loan buy-back at $30 and $40. v22 played three, with the buy-back at $30, $35 and $40; 'Three-year game' plays twelve quarters with a third year end and the $50 buy-back.
 - ROWS 3 AND 4 ARE OPEN FROM THE FIRST QUARTER. v22 locked them until Quarter 5; 'Rows 3-4 open in Year 2' locks them again.
 - THE PERSONAS ARE READ IN ICONS. The Public Health Director counts every column of a Healthcare row with no discount; the White-Label Supplier's Manufacturing is paid the best price among the rows of its district; the Concession Holder's premium is a dollar on the price its band multiplies.
 

@@ -567,8 +567,8 @@ section("Scoring - tiebreak");
 section("Other constants");
 check("12 discs each", E.DISCS_PER_PLAYER === 12);
 check("5 company slots", E.COMPANY_SLOTS === 5);
-check("loan buy-back $30 / $35 / $40 at year ends",
-  E.LOAN_REPAY_RATE[4] === 30 && E.LOAN_REPAY_RATE[8] === 35 && E.LOAN_REPAY_RATE[12] === 40);
+check("loan buy-back $30 / $40 at the two year ends, $50 at the third of the three-year game",
+  E.LOAN_REPAY_RATE[4] === 30 && E.LOAN_REPAY_RATE[8] === 40 && E.LOAN_REPAY_RATE[12] === 50);
 check("Blueprint sale $4 / $8 / $12", E.BP_SELL_PRICE[1] === 4 && E.BP_SELL_PRICE[2] === 8 && E.BP_SELL_PRICE[3] === 12);
 check("16 Megacorp tiles, 8 to 22 EP",
   E.MEGACORP_TILES.length === 16 && Math.min(...E.MEGACORP_TILES.map((t) => t[2])) === 8

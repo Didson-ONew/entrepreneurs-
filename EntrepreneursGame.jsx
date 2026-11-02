@@ -20,12 +20,12 @@ const SCALING = { UT: "H", MA: "H", TE: "H", RE: "V", HO: "V", HC: "V" };
 const IND_COLOR = { UT: "#D9C70D", RE: "#5DD067", HO: "#DA421D", MA: "#744BAA", HC: "#324DE1", TE: "#DD61B0" };
 const IND_NAME = { UT: "Utilities", RE: "Retail", HO: "Hospitality", MA: "Manufacturing", HC: "Healthcare", TE: "Technology" };
 const IND_ABILITY = {
-  UT: "Reaches a level\u00d7level block of districts around it. Never uses hubs.",
-  RE: "Reaches 1 extra district per level, of its choice. Never uses hubs.",
-  HO: "Sells one unit to each business or hub within [level] plots of it, at full price, once the icons are full.",
-  MA: "May route up to [level] units into other industries' rows in its home district.",
+  UT: "Counts demand across a level\u00d7level block of districts around it. Never uses hubs.",
+  RE: "A chain of its level in shopfronts: one branch per level above the first, each in a reachable district on ground somebody owns. Never uses hubs.",
+  HO: "Counts each business or hub within [level] plots of it as an icon, on top of the grid.",
+  MA: "Counts up to [level] icons from other industries' rows in its home district, on top of its own.",
   HC: "Reaches every district on the hub network, not just its own.",
-  TE: "Every icon it fills takes twice its column in units - 2, 4, 6, 8.",
+  TE: "Its row of the band table is its own: the two units an icon used to take from it are built into its multipliers.",
 };
 
 const PLAYER_COLORS = ["#22D3EE", "#FB923C", "#A78BFA", "#FB7185", "#4ADE80", "#FACC15"];
@@ -1338,7 +1338,7 @@ const VARIANTS = [
   { key: "unitRevenue", name: "Revenue by the unit",
     blurb: "Every company delivers its printed production one unit an icon and recycles the rest at $1, the way the game sold up to v22, instead of being paid by the band of icons it reaches." },
   { key: "longGame", name: "Three-year game",
-    blurb: "Twelve quarters instead of eight: a third year, with the land awards paid three times and a $40 loan buy-back at the end of it." },
+    blurb: "Twelve quarters instead of eight: a third year, with the land awards paid three times and a $50 loan buy-back at the end of it." },
   { key: "lateRows", name: "Rows 3-4 open in Year 2",
     blurb: "Rows 3 and 4 of every district stay closed until Quarter 5, as they did up to v22." },
   { key: "beginner", name: "Beginner game",
@@ -2237,7 +2237,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "10a66732";
+const ENGINE_VERSION = "19a5a461";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2733,7 +2733,7 @@ function botBuyEP(state, p, quarter, log) {
   const n = Math.floor(Math.max(0, p.cash - reserve) / price);
   if (n > 0) doBuyEP(state, p, quarter, n, log);
 }
-const LOAN_REPAY_RATE = { 4: 30, 8: 35, 12: 40 };
+const LOAN_REPAY_RATE = { 4: 30, 8: 40, 12: 50 };
 function doRepayLoan(p, quarter, log) {
   const rate = LOAN_REPAY_RATE[quarter];
   if (!rate || p.discsInBank <= 0 || p.cash < rate) return false;
@@ -7196,7 +7196,7 @@ function GameScreens({ online }) {
             </div>
 
             <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("The Bank")} <Help text={t("Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$35/$40. Distressed companies sit here until someone renovates them via M&amp;A - Buy. The players are listed in TURN ORDER: delivery is handed round in that sequence, and Reposition moves a player to the front of it.")} /></div>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("The Bank")} <Help text={t("Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$40, and for $50 at the third year end of the three-year game. Distressed companies sit here until someone renovates them via M&amp;A - Buy. The players are listed in TURN ORDER: delivery is handed round in that sequence, and Reposition moves a player to the front of it.")} /></div>
               <div className="text-[9px] text-gray-500 mb-1.5">{t("Loan discs (−5 EP each at game end) ·")} <span title={t("Delivery is handed round in this order")}>{t("in turn order")}</span>:</div>
               <div className="space-y-1 mb-2">
                 {/* Seat order until now, which is fixed for the whole game and tells

@@ -385,7 +385,7 @@ export const RULEBOOK = [
     { h: "At the end of Quarter 4 and 8" },
     { ul: [
       "The Real-Estate Mogul and The Omnipresent are awarded - 4 EP plus the number of players, to the outright leader alone, so 6 EP at two seats rising to 10 at six. They are also paid at the final quarter if the game is called before Q8.",
-      "You may buy back loan discs: $30 at the end of Year 1 and $35 at Year 2 - and $40 at Year 3, in the three-year game.",
+      "You may buy back loan discs: $30 at the end of Year 1 and $40 at Year 2 - and $50 at Year 3, in the three-year game.",
     ] },
     { p: "Companies do not wait for the year end. A company scores the moment it is finished - see below - so by the time a year ends its EP are already banked. What a year end decides is who is holding the city." },
     { h: "Companies score on completion" },
@@ -530,7 +530,7 @@ export const RULEBOOK = [
         ["Ordered decks", "Each industry deck runs level 1 on top down to level 3 at the bottom, instead of being shuffled whole. No level 3 can be drafted, and the early game holds no surprises."],
         ["Land awards at the end only", "The Real-Estate Mogul and The Omnipresent are paid once, after the final quarter, instead of at every year end. Land becomes a late-game race rather than something to hold all game."],
         ["Revenue by the unit", "Every company delivers its printed production one unit an icon and recycles the rest at $1, the way the game sold up to v22, instead of being paid by the band of icons it reaches."],
-        ["Three-year game", "Twelve quarters instead of eight: a third year, with the land awards paid three times and a $40 loan buy-back at the end of it."],
+        ["Three-year game", "Twelve quarters instead of eight: a third year, with the land awards paid three times and a $50 loan buy-back at the end of it."],
         ["Rows 3-4 open in Year 2", "Rows 3 and 4 of every district stay closed until Quarter 5, as they did up to v22."],
       ],
     } },
@@ -610,7 +610,7 @@ export const RULEBOOK = [
         ["Discs", "12, covering plots owned + active companies + unpaid loans"],
         ["Company slots", "5, counting Megacorp headquarters"],
         ["Hand limit", "5 Blueprints"],
-        ["Loan", "+$20 and one disc; buy back for $30 / $35 at the year ends ($40 at the third, in the three-year game); -5 EP if unpaid"],
+        ["Loan", "+$20 and one disc; buy back for $30 / $40 at the year ends ($50 at the third, in the three-year game); -5 EP if unpaid"],
         ["Sell a Blueprint", "$4 / $8 / $12 by level; $2 / $4 / $6 in a forced sale"],
         ["Sell a company", "half its setup, or the full setup if upgraded; halved again in a forced sale"],
         ["Plot value", "road price (1-6) + $3 per structure on it or orthogonally touching (a hub is a structure)"],
@@ -719,11 +719,11 @@ export const RULEBOOK = [
     { ul: [
       "REVENUE IS PAID BY BAND. A company counts the demand icons of its industry it reaches, reads the band that count falls in on its row of the band table - $, $$ or $$$ - and is paid the current price times that band's number, in one go. Nothing is delivered, nothing is counted unit by unit and nothing is recycled. v22 delivered one unit an icon and recycled the rest at $1; 'Revenue by the unit' still plays it that way.",
       "THREE PHASES, NOT FIVE. Planning and Action as before; Production, Revenue and Closing are one Closing that settles at once - the bills, every company's band, the pots, the hub - and hands nobody the board.",
-      "THE STANDARD GAME IS TWO YEARS: eight quarters, two year ends, the loan buy-back at $30 and $35. v22 played three; 'Three-year game' plays twelve quarters with a third year end and the $40 buy-back.",
+      "THE STANDARD GAME IS TWO YEARS: eight quarters, two year ends, the loan buy-back at $30 and $40. v22 played three, with the buy-back at $30, $35 and $40; 'Three-year game' plays twelve quarters with a third year end and the $50 buy-back.",
       "ROWS 3 AND 4 ARE OPEN FROM THE FIRST QUARTER. v22 locked them until Quarter 5; 'Rows 3-4 open in Year 2' locks them again.",
       "THE PERSONAS ARE READ IN ICONS. The Public Health Director counts every column of a Healthcare row with no discount; the White-Label Supplier's Manufacturing is paid the best price among the rows of its district; the Concession Holder's premium is a dollar on the price its band multiplies.",
     ] },
-    { note: "Measured over 1000 games at three and at four players, every rule against its revert on the same seeds (audit_v23.js). THE BAND PAYS THE SAME ECONOMY: a company-quarter earns $10.3 / $25.2 / $43.9 at levels 1 to 3 under the band against $9.5 / $24.6 / $43.5 by the unit at three players, the winning score is 48.9 against 48.0, the winner's score is made of the same parts to within a point, and the seats and the industries win in the same proportions - with 25 deliveries a game (37 at four players) replaced by a payout nobody is asked about. TWO YEARS IS THE SAME GAME, SHORTER: against the three-year game the winning score falls from 81 to 49, the lead still changes hands 1.7 times a game and last changes at quarter 4.6 of 8 (6.6 of 12), land is 35% of a winner's score instead of 29% and Megacorps 7% instead of 15%, and a game asks for 46 worker placements instead of 68. ROWS OPEN FROM Q1 lift trade income by 22% (from $499 to $611 a game) and the share of level-1 company-quarters paid in the top band from 30% to 40%. Against v22 as a whole - all three reverts at once - the table makes 46 placements and no deliveries where it made 68 and 45: three decisions in five are gone, and what is left scores the same way." },
+    { note: "Measured over 1000 games at three and at four players, every rule against its revert on the same seeds (audit_v23.js). THE BAND PAYS THE SAME ECONOMY: a company-quarter earns $10.3 / $25.2 / $43.9 at levels 1 to 3 under the band against $9.5 / $24.6 / $43.5 by the unit at three players, the winning score is 48.6 against 47.6, the winner's score is made of the same parts to within a point, and the seats and the industries win in the same proportions - with 25 deliveries a game (37 at four players) replaced by a payout nobody is asked about. TWO YEARS IS THE SAME GAME, SHORTER: against the three-year game the winning score falls from 81 to 49, the lead still changes hands 1.7 times a game and last changes at quarter 4.6 of 8 (6.5 of 12), land is 35% of a winner's score instead of 29% and Megacorps 7% instead of 15%, and a game asks for 46 worker placements instead of 68. ROWS OPEN FROM Q1 lift trade income by 22% (from $499 to $611 a game) and the share of level-1 company-quarters paid in the top band from 30% to 40%. Against v22 as a whole - all three reverts at once - the table makes 46 placements and no deliveries where it made 68 and 45: three decisions in five are gone, and what is left scores the same way." },
 
     { h: "v22" },
     { ul: [
