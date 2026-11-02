@@ -26,7 +26,10 @@ async function roomWithPreventive(maxTries = 40) {
   for (let i = 0; i < maxTries; i++) {
     const c = await post("/api/create", { name: "Doc", bots: 2 });
     const { code, token } = c.body;
-    await post("/api/options", { code, token, personas: true });
+    /* "Revenue by the unit": the delivery screen this test counts cells on only exists
+       under that variant - as the game ships since v23, every company is paid its band
+       at the close of the quarter and nobody is handed the board. */
+    await post("/api/options", { code, token, personas: true, variants: { unitRevenue: true } });
     await post("/api/start", { code, token });
     const st = await getState(code, token);
     if (st && st.players[0].persona === "preventive") return { code, token, tries: i + 1 };
@@ -120,16 +123,17 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
      or the seat never gets a Healthcare card - and that is the seed's doing, not the
      persona's. It failed a full-suite run that way once, in under a second. So a
      room that never reaches the delivery is put back and another is dealt, a few
-     times, before this counts as a failure. */
+     times, before this counts as a failure. Ten rooms since v23: the standard game is
+     eight quarters, so a seat that dawdles over its first build runs out of game more often. */
   let room = null, out = { reached: false, why: "not tried" };
-  for (let attempt = 1; attempt <= 4 && !out.reached; attempt++) {
+  for (let attempt = 1; attempt <= 10 && !out.reached; attempt++) {
     room = await roomWithPreventive();
     if (!room) { console.log("could not deal the Public Health Director in 40 rooms - giving up"); process.exit(1); }
     console.log(`room ${room.code}: seat 0 is the Public Health Director (after ${room.tries} deal${room.tries === 1 ? "" : "s"})`);
     out = await driveToHcDelivery(room.code, room.token);
     if (!out.reached) console.log(`  that game never reached a Healthcare delivery (${out.why}) - dealing another`);
   }
-  if (!out.reached) { console.log(`could not reach a Healthcare delivery in 4 rooms: ${out.why}`); process.exit(1); }
+  if (!out.reached) { console.log(`could not reach a Healthcare delivery in 10 rooms: ${out.why}`); process.exit(1); }
   const { st, biz } = out;
   console.log(`delivering ${biz.bp.name} (HC level ${biz.level}) in Q${st.quarter}`);
   check("the clinic really is below level 4 - so the persona has something to give", biz.level < 4);

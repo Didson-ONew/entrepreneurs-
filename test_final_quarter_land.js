@@ -33,7 +33,10 @@ const check = (label, cond) => { console.log(`${cond ? "  ok  " : " FAIL "} ${la
    the leader needs a company standing on it. It is already scored, so the year end
    banks the land awards and nothing else, which is what these checks count. */
 function table(quarter, finalQuarter) {
-  const st = E.initGame(2, 99, ["Leader", "Other"], undefined, false);
+  /* The three-year game: Q8 is an ordinary year end there, and the final quarter only
+     when called. In the standard two-year game Q8 is the final quarter outright, which
+     test_band_revenue covers. */
+  const st = E.initGame(2, 99, ["Leader", "Other"], undefined, false, { longGame: true });
   const me = E.byId(st, 0);
   const plot = Object.keys(st.board.graph).find((k) => !(k in st.board.owner));
   st.board.owner[plot] = me.id;

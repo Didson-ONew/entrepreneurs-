@@ -139,7 +139,7 @@ const gap = (h = 120) => new Paragraph({ spacing: { after: h }, children: [] });
    not estimated. */
 const FACTS = [
   ["PLAYERS", "2 – 6"],
-  ["PLAY TIME", "120 – 180 min"],
+  ["PLAY TIME", "90 – 150 min"],
   ["AGE", "14+"],
   ["WEIGHT", "Heavy"],
   ["CATEGORY", "Economic Euro"],
@@ -247,6 +247,10 @@ const doc = new Document({
         { t: "A plot costs its road price plus $3 for every structure standing on it or orthogonally touching it, so the most expensive ground on the board is the ground under a working company — and a company needs its ground owned by somebody, not necessarily its owner. Sell the plot under your own factory for cash and it stops producing until anyone buys it back — then you pay them rent to stand on what used to be yours." },
       ]),
       Prun([
+        { t: "A quarter that settles itself. ", bold: true },
+        { t: "Every company is paid by the band of demand it can reach — count the icons, read the band on the card, multiply the market price — so the revenue step asks nobody anything, and a full game is two years of four quarters. Measured over a thousand games, the band pays the same economy as counting units did, with three decisions in five taken off the table." },
+      ]),
+      Prun([
         { t: "It teaches itself, and that is measured too. ", bold: true },
         { t: "A built-in beginner game runs eight quarters with one action per track and no Megacorps, while leaving the supply chain exactly as it is \u2014 so a first-time player learns the engine and nothing else. Over 150 games a table size it holds up as a game rather than a demo: the last two quarters still carry a third of the winning score, and no seat was ever wiped out." },
       ]),
@@ -257,13 +261,14 @@ const doc = new Document({
 
       H("It already works, and it is measured"),
       /* Source: audit_tension.js, 250 complete games at EVERY table size on the
-         shipped ruleset, re-run for v22 (demand as a rate, pots carrying). Four-
-         player figures quoted because it is the count a publisher will test first;
-         the numbers move the right way as the table grows (3.5 lead changes and
-         0.8% wire-to-wire at six) and the wrong way at two (1.1 and 45%), which is
-         stated rather than hidden - and is a known cost of the rate rule, which
-         took the two-player count from 16% wire-to-wire under v21. */
-      P("Tuned on a simulation harness, not by feel. Across 250 complete games at every table size: at four players the lead changes hands 2.6 times, three players in four hold it at some point, one game in twenty is led wire to wire, and the winner takes the lead for the last time around Q8 of 12. Two players is the tightest count, and the likeliest to run wire to wire.",
+         shipped ruleset, re-run for v23 (revenue by band, eight quarters, rows
+         open). Four-player figures quoted because it is the count a publisher will
+         test first; the numbers move the right way as the table grows (2.7 lead
+         changes and 1.6% wire-to-wire at six) and the wrong way at two (0.9 and
+         43%), which is stated rather than hidden. The shorter game keeps the
+         four-player shape of v22 - 2.6 changes, one in twenty wire to wire - a
+         third shorter. */
+      P("Tuned on a simulation harness, not by feel. Across 250 complete games at every table size: at four players the lead changes hands 2.1 times, three players in four hold it at some point, one game in sixteen is led wire to wire, and the winner takes the lead for the last time around Q7 of 8. Two players is the tightest count, and the likeliest to run wire to wire.",
         { size: 18 }),
 
       /* The simulation says it is balanced. It cannot say anyone enjoyed it. */

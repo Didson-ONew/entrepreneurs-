@@ -130,7 +130,8 @@ section("Upgrading scores again, on the spot");
 /* ------------------------------------------------- the older way, as a variant */
 section("Score at the year end - the same one score, only later");
 {
-  const st = game({ classicScoring: true });
+  /* The three-year game, so an upgrade in Q9 still has a year end to wait for. */
+  const st = game({ classicScoring: true, longGame: true });
   const p = st.players[0];
   giveLand(st, p);
   const biz = plant(st, p, "HC", freePlot(st, p), 2);

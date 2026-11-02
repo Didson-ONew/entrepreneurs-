@@ -653,7 +653,7 @@ section("v13: the rules that used to be variants");
     me.epBank - bankBefore === 4 && biz.scored === true, `banked ${me.epBank - bankBefore} EP`);
 
   // "The Real-Estate Mogul and The Omnipresent are awarded [at every year end]"
-  check("the land awards pay at every year end", E.landPayouts(st) === 3, `${E.landPayouts(st)} payouts`);
+  check("the land awards pay at every year end - two in the two-year game", E.landPayouts(st) === 2, `${E.landPayouts(st)} payouts`);
 
   // "Each industry deck is shuffled whole, so any level can be sitting on top"
   let sawHigh = false;

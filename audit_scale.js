@@ -122,7 +122,10 @@ const N = {
      game-over test reads the deadline as well as Q12, and the deadline itself caps
      at 12. A longer game has to move both or the extra year is unreachable. */
   over: "  if (state.quarter >= finalQuarterOf(state) || (state.finalQuarter && state.quarter >= state.finalQuarter)) {",
-  deadlineCap: "    state.finalQuarter = Math.min(12, state.quarter + 1);",
+  deadlineCap: "    state.finalQuarter = Math.min(finalQuarterOf(state), state.quarter + 1);",
+  /* Since v23 the calendar is one pair of constants: the standard game is eight
+     quarters and the three-year variant twelve. A longer game moves both. */
+  calendar: "const STANDARD_QUARTERS = 8, LONG_GAME_QUARTERS = 12;",
   yearEndsClosing: "  if (yearEndsOf(state).includes(quarter)) {",
   yearEndsRepay: "  if (yearEndsOf(state).includes(state.quarter)) {",
   landPayouts: "  return yearEndsOf(state).filter((q) => q >= state.quarter).length || 1;",
@@ -137,30 +140,23 @@ for (const [k, v] of Object.entries(N)) {
   if (!BASE.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
 }
 
-function engineFor({ quarters = 12 } = {}) {
+function engineFor({ quarters = 8 } = {}) {
   let logic = BASE;
   const last = quarters;
 
-  if (quarters !== 12) {
+  if (quarters !== 8) {
     const ends = [];
     for (let q = 4; q <= last; q += 4) ends.push(q);
-    const endsSrc = `[${ends.join(", ")}]`;
-    /* keep the second-Megacorp deadline; only the year count moves */
-    logic = logic.replace(N.over,
-      `  if (state.quarter >= ${last} || (state.finalQuarter && state.quarter >= state.finalQuarter)) {`);
-    logic = logic.replace(N.deadlineCap, `    state.finalQuarter = Math.min(${last}, state.quarter + 1);`);
-    logic = logic.replace(N.yearEndsClosing, `  if (${endsSrc}.includes(quarter)) {`);
-    logic = logic.replace(N.yearEndsRepay, `  if (${endsSrc}.includes(state.quarter)) {`);
-    logic = logic.replace(N.landPayouts, `  return ${endsSrc}.filter((q) => q >= state.quarter).length || 1;`);
-    logic = logic.replace(N.botLast, `  if (quarter === ${last}) {`);
+    /* Everything that reads the calendar - the game-over test, the deadline's cap, the
+       year ends, the land payouts, the bots' horizon - goes through finalQuarterOf and
+       yearEndsOf, so moving the two constants moves the whole game. */
+    logic = logic.replace(N.calendar, `const STANDARD_QUARTERS = ${last}, LONG_GAME_QUARTERS = ${last};`);
     /* Prices rise a little each year, as they already do. */
     const rates = ends.map((q, i) => `${q}: ${30 + i * 5}`).join(", ");
     logic = logic.replace(N.repayRates, `const LOAN_REPAY_RATE = { ${rates} };`);
-    /* Since v22 an icon is never used up, so a fourth year needs no second wipe: the
+    /* Since v22 an icon is never used up, so a longer game needs no second wipe: the
        anchor is kept so the probe still notices if the closing step changes shape. */
     logic = logic.replace(N.refresh, "  if (quarter === 4) unlockY2(demand);");
-    logic = logic.replace(/13 - \(state\.quarter \|\| 1\)/g, `${last + 1} - (state.quarter || 1)`);
-    logic = logic.replace(/13 - state\.quarter/g, `${last + 1} - state.quarter`);
   }
 
   /* Count the moments a person would be asked to do something. */
@@ -196,7 +192,7 @@ const rp = (s, n) => String(s).padStart(n);
 function run(cfg) {
   const { E, counts } = engineFor(cfg);
   const seats = cfg.seats || 4;
-  const T = { seats, quarters: cfg.quarters || 12, games: 0, players: 0, threw: null,
+  const T = { seats, quarters: cfg.quarters || 8, games: 0, players: 0, threw: null,
     winnerEP: 0, lastEP: 0, spread: 0, plots: 0, companies: 0, hqs: 0, tiles: 0,
     demandUsed: 0, demandTotal: 0, place: 0, deliver: 0, unowned: 0, loans: 0 };
   for (let seed = 1; seed <= SEEDS; seed++) {
@@ -265,6 +261,8 @@ console.log("Does it run at all, as the code stands?");
    Both table sizes are kept in the table because the fourth year inflates the
    score differently at each. */
 const CASES = [
+  { label: "4 players, 2 years (as shipped)", seats: 4, quarters: 8 },
+  { label: "6 players, 2 years (as shipped)", seats: 6, quarters: 8 },
   { label: "4 players, 3 years", seats: 4, quarters: 12 },
   { label: "6 players, 3 years", seats: 6, quarters: 12 },
   { label: "4 players, 4 years", seats: 4, quarters: 16 },

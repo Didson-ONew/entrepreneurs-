@@ -85,7 +85,7 @@ let rec;
   rec = matchlog.buildRecord(E, fakeRoom(st, ["Ana"], true));
   check("one entry per seat", rec.players.length === st.players.length);
   check("it stamps the rules build it was played under", rec.engine === E.ENGINE_VERSION);
-  check("it records the quarter it ended on", rec.quarters === 12, `Q${rec.quarters}`);
+  check("it records the quarter it ended on", rec.quarters === 8, `Q${rec.quarters}`);
   check("ranks run 1..n with no gaps",
     JSON.stringify(rec.players.map((p) => p.rank).sort((a, b) => a - b)) === JSON.stringify(rec.players.map((_, i) => i + 1)));
   const win = rec.players.find((p) => p.rank === 1);

@@ -35,7 +35,10 @@ const check = (label, cond) => {
 /* A holder with a producing level-1 Utilities company on a plot in a district that
    carries a Utilities row, so its delivery can actually sell something. */
 function scenario(isHuman) {
-  const st = E.initGame(2, 777, ["Holder", "Other"], undefined, false);
+  /* Under "Revenue by the unit": these checks follow the premium through a delivery,
+     unit by unit, which is how the rule was written. The band path - a dollar on the
+     price the band multiplies, and the same bill - is pinned in test_band_revenue.js. */
+  const st = E.initGame(2, 777, ["Holder", "Other"], undefined, false, { unitRevenue: true });
   const me = E.byId(st, 0);
   me.persona = "gov_rel";
   me.isHuman = isHuman;

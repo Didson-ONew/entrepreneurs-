@@ -149,7 +149,7 @@ logic = logic.replace(NEEDLE,
 for (const [what, needle] of [
   ["EP is labelled as it is banked", "{ label, amount, quarter });"],
   ["the land awards are named", 'awardRanked(state, (p) => plotCount(state, p), "The Real-Estate Mogul", log);'],
-  ["the deadline names a final quarter", "state.finalQuarter = Math.min(12, state.quarter + 1);"],
+  ["the deadline names a final quarter", "state.finalQuarter = Math.min(finalQuarterOf(state), state.quarter + 1);"],
 ]) {
   if (!SRC.includes(needle)) { console.error(`the engine changed shape - ${what}`); process.exit(2); }
 }

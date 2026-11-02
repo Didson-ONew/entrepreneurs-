@@ -12,6 +12,10 @@ with the things to leave out named explicitly so you can trust leaving them out.
 turn without help, and they know what they are trying to do.* Everything else is
 taught in play, at the moment it comes up, to the one player it affects.
 
+Since v23 the quarter has three phases, not five, and nobody delivers anything:
+every company is paid by the band of demand it reaches. The teach got shorter
+with it. The script below is the v23 one.
+
 ---
 
 ## Four rules for the teacher
@@ -21,15 +25,15 @@ taught in play, at the moment it comes up, to the one player it affects.
    picture people take three rounds to see is the money loop. Lead with it.
 2. **Build one company and run it through one quarter.** Concrete, on the real
    board, with real cards. Three minutes of this is worth ten of abstraction.
-3. **Never teach a rule they cannot use this quarter.** If it comes up in Year 2,
-   teach it in Year 2.
+3. **Never teach a rule they cannot use this quarter.** If it comes up at the
+   first year end, teach it at the first year end.
 4. **Say the deferred list out loud.** "There are four more things, I'll teach
    each one the first time it matters." People relax when they know the
    omissions are deliberate rather than a trap.
 
-**If this is their first heavy euro, play the beginner game instead** — two
-years, four actions, no Megacorps. Turn it on under Rule variants. The script
-below still works; skip anything marked *(full game only)*.
+**If this is their first heavy euro, play the beginner game instead** — the
+same two years, four actions, no Megacorps. Turn it on under Rule variants. The
+script below still works; skip anything marked *(full game only)*.
 
 ---
 
@@ -43,7 +47,7 @@ below still works; skip anything marked *(full game only)*.
 > does not go to the bank. It goes to the other players — to whoever owns
 > companies in the industries your company buys from."
 
-> "Most points after three years wins. Twelve rounds."
+> "Most points after two years wins. Eight rounds."
 
 Do not elaborate yet. They will not believe it until they see it, which is the
 next three minutes.
@@ -54,7 +58,8 @@ Point at each thing as you say it. Do not describe anything you are not pointing
 
 - "Sixteen districts, four plots each."
 - "This 4×4 grid of coloured squares inside each district is **demand** — what
-  this district will buy. Each row is an industry. The four columns are sizes 1 to 4."
+  this district will buy. Each row is an industry. The four columns are sizes 1 to 4.
+  All four rows are open from the first quarter."
 - "The price track. One marker per industry. That is what everybody sells at —
   there is one price per industry for the whole table."
 - "You get **twelve discs**. That is your entire footprint: one on every plot you
@@ -67,36 +72,39 @@ Point at each thing as you say it. Do not describe anything you are not pointing
 
 > "Let me build one company and run it through a quarter. This is the whole game."
 
-Take a **level-1 Retail** Blueprint. Do it physically, on the board.
+Take a **level-1 Healthcare** Blueprint — a clinic — and a district whose first
+row is Healthcare (the Financial Centre or the City Centre). Do it physically,
+on the board.
 
 1. **"I buy this plot. Disc on it."**
-2. **"I build this. $10. Disc on it."**
-   > "Points land right now: **+3** for being the first into Retail this game,
-   > and **+2** because it is a level 1. Banked immediately — I never have to
-   > keep this company to keep those points."
+2. **"I build this. $20. Disc on it."**
+   > "Points land right now: **+3** for being the first into Healthcare this
+   > game, and **+2** because it is a level 1. Banked immediately — I never have
+   > to keep this company to keep those points."
 3. **"Building moved two prices."** Move both markers while they watch.
-   > "Retail goes **down** a dollar — there is more Retail in the world now. And
-   > this card says its supplier is Technology, so Technology goes **up** a
+   > "Healthcare goes **down** a dollar — there is more Healthcare in the world
+   > now. And this card says its supplier is Retail, so Retail goes **up** a
    > dollar, because I am about to start buying from them."
 4. **"Now, every quarter, forever: this company pays its bill."**
-   > "Five dollars printed. Two of that is ground rent, which goes to whoever
-   > owns the plot — that's me, so it comes straight back. The other **three
-   > dollars go into the Technology pot.** Not the bank. The pot."
-5. **"Then it produces. Four units."**
-   > "I look at the Retail row in this district. The level-1 icon takes 1 unit,
-   > the level-2 icon takes 2, the level-3 takes 3. **An icon absorbs its own
-   > column in goods.** My company is level 1, so I only reach column 1 — one
-   > unit, at whatever Retail costs right now."
+   > "Ten dollars printed. Two of that is ground rent, which goes to whoever
+   > owns the plot — that's me, so it comes straight back. The other **eight
+   > dollars go into the Retail pot.** Not the bank. The pot."
+5. **"Then it is paid — by how much demand it can reach."**
+   > "I look at the Healthcare rows in this district. My company is level 1, so
+   > I count **column 1** of every Healthcare row I can reach. The first row of
+   > this district is Healthcare, and so is the last one — that is always true,
+   > whatever opens a district closes it — so I count **two icons**."
    >
-   > "If I had built a level 3, I'd reach columns 1, 2 and 3 — that's 1+2+3 = six
-   > units into one district."
+   > "Two icons on a level-1 Healthcare card is the middle band, **$$**. The band
+   > table says $$ pays **2 × the Healthcare price**. Healthcare is at $6, so I
+   > am paid $12. Nothing is delivered, nothing is recycled, nobody counts units."
    >
-   > "Units I can't place anywhere are recycled for $1 each. The price floor is
-   > $2, so selling always beats scrapping."
+   > "Reach more icons — a bigger company counts deeper columns, a hub beside you
+   > reaches other districts — and you climb a band. That is the whole revenue step."
 6. **"Then the pots pay out."**
-   > "Everyone who owns a Technology company splits the Technology pot evenly —
-   > equal shares, regardless of company size. If nobody has built Technology,
-   > that money just sits there and grows."
+   > "Everyone who owns a Retail company splits the Retail pot evenly — equal
+   > shares, regardless of company size. If nobody has built Retail, that money
+   > just sits there and grows, and the first one in takes it all."
 
 Now land it:
 
@@ -108,17 +116,16 @@ If you only have time for one thing in the whole teach, it is this step.
 
 ### 5:00 · The quarter, now that they know why — 1 min
 
-Write these five where everyone can see them:
+Write these three where everyone can see them:
 
 | | Phase | What happens |
 |---|---|---|
 | 1 | **Plan** | Everyone places workers. |
 | 2 | **Act** | The tracks resolve; you take your actions. |
-| 3 | **Pay** | Every company pays its bill into the supplier pots. |
-| 4 | **Sell** | Deliver production to demand icons, then the pots split. |
-| 5 | **Close** | A new Logistic Hub opens. Every fourth quarter, land awards. |
+| 3 | **Close** | Every company pays its bill, is paid its band, the pots split, a hub opens. Every fourth quarter, land awards. |
 
-> "Only 1 and 2 need you to decide anything. Three, four and five mostly just happen."
+> "Only 1 and 2 need you to decide anything. Three just happens — it stops only
+> to ask where the hub goes, or whether you want to pay a loan back."
 
 ### 6:00 · Placing workers, and the one rule that catches everyone — 2 min
 
@@ -154,13 +161,13 @@ Then the rule, slowly:
 > - **+3** the first time you build in each industry. Once per industry per game.
 >   Six industries — that's 18 points just sitting there for going wide.
 > - **+2 per level** every time you build or upgrade. Banked the moment it happens.
-> - **Land awards** at every year end: most plots, and most districts you are in.
->   Outright leader only, and ties pay badly.
+> - **Land awards** at both year ends: most plots built on, and most districts
+>   you stand in. Outright leader only, and ties pay badly.
 > - **Cash** at the end — $100 is 1 point. *(In the beginner game cash only scores
 >   if you spend it on points at a year end.)*
 > - **−5** for every loan disc you never repaid.
 
-> "Breadth pays early, size pays late."
+> "Breadth pays early, size pays late — and late is only eight quarters away."
 
 ### 9:00 · Their first turn — 1 min
 
@@ -169,8 +176,9 @@ Then the rule, slowly:
 > "You start with money and some Blueprints. In quarter one, nearly everybody
 > should **buy a plot and build on it.** Put a worker on M&A and LAUNCH."
 
-> "Pick where by looking at the demand grid — build where your industry's row has
-> open icons."
+> "Pick where by looking at the demand grid — build where your industry's row is
+> the first row of the district, because then it is the last row too, and you
+> count two icons a column instead of one."
 
 > "Don't take a loan in the first quarter. Don't go to the Board Meeting."
 
@@ -190,7 +198,7 @@ Say this list exists. Don't read it out.
 | The six industry abilities | the first time a player builds that industry — one sentence, to that player only |
 | Logistic Hubs and reach | the first time somebody wants a district they can't reach |
 | UPGRADE | end of quarter 1, or the first time somebody asks how to get bigger |
-| Rows 3–4 opening at Q5 | at quarter 5 |
+| The band table's thresholds | the first time somebody asks why they were paid what they were paid — show them their row |
 | Solvency and distressed companies | the first time somebody can't pay a bill |
 | Exact land award numbers | the first year end |
 | Ground rent to other players | the first time somebody builds on a plot they don't own |
@@ -205,10 +213,12 @@ In the order the playtest sheets raised them.
 1. **"It took me 3–4 rounds to see the big picture."** That is why this script
    spends three of its ten minutes on one company's quarter instead of on the
    phase list. Do not trim that part to save time; trim the phase list instead.
-2. **The Revenue phase.** Tiago: *"Revenue phase was a bit difficult to
-   understand at first."* The sentence people miss is **an icon absorbs its own
-   column in goods** — the level-2 icon takes two units, not one. Teach it with
-   actual units on an actual icon, once, and it sticks.
+2. **The revenue step.** Tiago: *"Revenue phase was a bit difficult to
+   understand at first."* That was the unit-by-unit delivery, and v23 removed it.
+   What is left is three words — **count, band, multiply** — said once with the
+   real card over the real district. The thing people still miss is that the
+   first and last rows of a district are the same industry, so a company there
+   counts two icons a column, not one.
 3. **Turn order feels unfair.** Amy's frustration was "being 4th player." Pre-empt
    it: *"Later seats start with less money but more Blueprints, and the placement
    order changes every single quarter."* Said up front it reads as a design;
@@ -219,6 +229,7 @@ In the order the playtest sheets raised them.
 ## If you only have three minutes
 
 Goal → step 4 of the walkthrough (the bill goes to the other players, not the
-bank) → last in, first out → "buy a plot and build." Teach the rest inside
-quarter 1 as it comes up. A table that starts playing in three minutes and asks
-questions for twenty beats a table that listens for twenty and then starts.
+bank) → step 5 (count, band, multiply) → last in, first out → "buy a plot and
+build." Teach the rest inside quarter 1 as it comes up. A table that starts
+playing in three minutes and asks questions for twenty beats a table that listens
+for twenty and then starts.

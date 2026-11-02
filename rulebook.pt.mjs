@@ -15,7 +15,7 @@
    brasileira e isso que estaria impresso no componente.
    ========================================================================== */
 
-export const EDITION_PT = "Manual v22";
+export const EDITION_PT = "Manual v23";
 
 export const RULEBOOK_PT = [
   {
@@ -23,12 +23,12 @@ export const RULEBOOK_PT = [
     "title": "O jogo em um minuto",
     "blocks": [
       {
-        "p": "Você é um fundador construindo a economia de uma cidade. Você compra terrenos, ergue empresas neles e vende o que elas produzem aos distritos ao redor. Vence o jogador com mais Pontos de Empreendedorismo (EP) no fim do Ano 3."
+        "p": "Você é um fundador construindo a economia de uma cidade. Você compra terrenos, ergue empresas neles e vende o que elas produzem aos distritos ao redor. Vence o jogador com mais Pontos de Empreendedorismo (EP) no fim do Ano 2."
       },
       {
         "ul": [
           "2 a 6 jogadores.",
-          "3 anos de 4 trimestres - no máximo 12 rodadas. Uma segunda Megacorporação encerra antes.",
+          "2 anos de 4 trimestres - no máximo 8 rodadas. Uma segunda Megacorporação encerra antes, e uma variante de três anos joga 12.",
           "O tabuleiro tem 16 distritos de 4 lotes cada.",
           "Os quadrados coloridos dentro de um distrito são a demanda dele: o que ele vai comprar."
         ]
@@ -40,7 +40,7 @@ export const RULEBOOK_PT = [
         "p": "Toda empresa paga uma conta de fornecedores a cada trimestre, e esse dinheiro não desaparece - ele vai para os setores impressos como fornecedores no Projeto dela. Ou seja, o setor em que ninguém está construindo recolhe em silêncio o dinheiro de todos os outros, e o preço dele sobe enquanto os setores lotados afundam rumo a $2. Ler essa pressão é o jogo."
       },
       {
-        "note": "A economia é um circuito fechado de propósito. O banco paga pelo que os ícones de demanda levam e $1 por unidade reciclada, e empresta $20 por disco, e são essas todas as torneiras que existem - então uma mesa em que todos constroem a mesma coisa de fato empobrece a si mesma. Toda partida de teste que pareceu sem graça era uma mesa que ainda não tinha percebido isso."
+        "note": "A economia é um circuito fechado de propósito. O banco paga cada empresa pela faixa de demanda que ela alcança, e empresta $20 por disco, e são essas todas as torneiras que existem - então uma mesa em que todos constroem a mesma coisa de fato empobrece a si mesma. Toda partida de teste que pareceu sem graça era uma mesa que ainda não tinha percebido isso."
       }
     ]
   },
@@ -174,7 +174,7 @@ export const RULEBOOK_PT = [
     "title": "Um trimestre, passo a passo",
     "blocks": [
       {
-        "p": "Todos os doze trimestres seguem as mesmas cinco fases. Planejamento e Ação são onde você age; as fases seguintes se resolvem ao seu redor e só param quando há uma escolha a fazer - onde entregar, o que vender incompleto, onde vai o Centro Logístico, se quita ou não um empréstimo."
+        "p": "Todos os oito trimestres seguem as mesmas três fases. Planejamento e Ação são onde você age; o Encerramento resolve o trimestre ao seu redor - as contas, a receita de cada empresa, os fundos, o centro logístico - e só para quando há uma escolha a fazer: o que vender incompleto, onde vai o Centro Logístico, se quita ou não um empréstimo."
       },
       {
         "table": {
@@ -192,16 +192,8 @@ export const RULEBOOK_PT = [
               "As trilhas se resolvem e cada trabalhador executa suas ações."
             ],
             [
-              "3. Produção",
-              "Toda empresa ativa paga sua conta de fornecedores aos fundos dos setores e seu aluguel do terreno aos proprietários dos lotes em que está."
-            ],
-            [
-              "4. Receita",
-              "Você entrega produção aos ícones de demanda em troca de dinheiro; depois, os fundos dos setores são repartidos."
-            ],
-            [
-              "5. Encerramento",
-              "Um novo Centro Logístico abre. No fim de cada ano, os dois prêmios de terras são pagos."
+              "3. Encerramento",
+              "Toda empresa ativa paga sua conta de fornecedores aos fundos dos setores e seu aluguel do terreno aos proprietários; toda empresa recebe sua faixa de receita; os fundos são repartidos; um novo Centro Logístico abre. No fim de cada ano, os dois prêmios de terras são pagos."
             ]
           ]
         }
@@ -450,7 +442,7 @@ export const RULEBOOK_PT = [
         "note": "As extremidades serem barreiras rígidas é a razão de isto ser um marcador em uma trilha, e não uma contagem corrente. Contar oferta e demanda separadamente permitia que um setor que 'deveria' estar em $14 ficasse em $10 carregando um excesso invisível, de modo que quatro empresas precisavam ser construídas antes que o preço se movesse um centavo. Um marcador não consegue esconder nada: o que você vê na trilha é o estado inteiro."
       },
       {
-        "p": "Um setor lotado pode afundar até $2. Isso ainda é o dobro do $1 que você recebe por reciclar mercadorias que não conseguiu vender, então vender sempre é melhor do que sucatear - o que não era verdade quando a trilha terminava na taxa de reciclagem. Um setor negligenciado do qual metade da mesa depende sobe rápido, e $12 é genuinamente alcançável."
+        "p": "Um setor lotado pode afundar até $2 e não mais que isso, e toda faixa de toda empresa ali multiplica esses $2 - um setor lotado é barato de entrar e pobre de ficar, as duas coisas ao mesmo tempo. Um negligenciado do qual metade da mesa depende sobe rápido, e $12 é genuinamente alcançável."
       },
       {
         "note": "O dólar inteiro por evento já tinha sido testado e abandonado uma vez, e vale saber por que ele funciona agora. Sozinho, ele inflava a cidade: a pontuação vencedora com seis assentos foi de 111 para 173, o dinheiro guardado por assento mais que dobrou, e a vantagem do vencedor sobre o segundo colocado praticamente dobrou. Mas o diagnóstico estava errado. O problema nunca foi o passo - era pontuar uma economia dobrada a uma taxa definida para a economia antiga. O passo está de volta, desta vez com cada preço base $2 mais alto, a trilha indo de $2..$12 para que as bases elevadas tenham para onde ir, e o dinheiro convertendo a $50 por EP em vez de $20. Medido ao longo de 2250 partidas: o faturamento sobe 83% e a pontuação vencedora fica a menos de 2% de onde estava. Passos de meio dólar compravam uma pontuação estável deixando o mercado quieto demais para ser lido - agora todo setor é negociado abaixo do próprio preço base com frequência suficiente para importar, a Tecnologia em 17% das partidas contra 3%, e as duas pontas da trilha são alcançáveis sem que nenhuma delas seja um muro. Veja audit_full_dollar_step.js, audit_price_floor.js e audit_base_plus_two.js."
@@ -573,10 +565,10 @@ export const RULEBOOK_PT = [
   },
   {
     "id": "production",
-    "title": "Produção: pagar as contas",
+    "title": "Encerramento, primeiro: pagar as contas",
     "blocks": [
       {
-        "p": "Toda empresa ativa paga duas contas a cada trimestre, automaticamente, venda ela alguma coisa depois ou não:"
+        "p": "Toda empresa ativa paga duas contas no início de cada Encerramento, automaticamente, seja qual for a faixa que ela receba depois:"
       },
       {
         "ul": [
@@ -606,37 +598,229 @@ export const RULEBOOK_PT = [
   },
   {
     "id": "revenue",
-    "title": "Receita: vender o que você produz",
+    "title": "Receita: o que a demanda paga",
     "blocks": [
       {
-        "p": "Cada empresa produz um número de unidades impresso em seu Projeto, dobrado se ela tiver sido expandida. Esse número é tudo o que ela tem: toda habilidade abaixo é um caminho para essas unidades, nunca uma fonte de mais unidades. Você as entrega a ícones de demanda que sua empresa consegue alcançar, e cada unidade que um ícone recebe é paga pelo preço de mercado atual do seu setor."
+        "p": "Toda empresa é paga uma vez por trimestre, de uma só vez, pela demanda que consegue alcançar: CONTE os ícones de demanda do seu setor que ela alcança, encontre a FAIXA em que essa contagem cai na linha dela da tabela de faixas abaixo, e MULTIPLIQUE o preço de mercado atual do seu setor pelo número daquela faixa. Essa é a receita dela. Nada é entregue, nada é contado unidade por unidade e nada é reciclado."
       },
       {
-        "p": "Um ícone não se esgota quando você vende para ele. Todo ícone fica aberto para toda empresa em todo trimestre, e uma empresa vende uma unidade em cada ícone que alcança - então o que você vende depende de onde você está e do seu tamanho, nunca de quem chegou primeiro. Tudo o que você não conseguir colocar é reciclado por $1 a unidade."
+        "p": "Um ícone nunca se esgota. Todo ícone fica aberto para toda empresa em todo trimestre - duas empresas que alcançam o mesmo ícone contam as duas - então o que você recebe depende de onde você está e do seu tamanho, nunca de quem chegou primeiro."
       },
       {
-        "p": "A entrega passa pela mesa na ordem de turno, mas nada depende da ordem: ninguém pode tirar um ícone de você. Todas as empresas podem resolver suas vendas ao mesmo tempo, se a mesa preferir."
+        "p": "Todas as empresas da mesa são pagas ao mesmo tempo; não há nada a passar de mão em mão. A produção impressa num Projeto é o tamanho da empresa - o que faz uma empresa maior precisar de mais ícones para a mesma faixa - e a variante 'Receita por unidade' ainda a vende unidade por unidade, do jeito que o jogo jogava até a v22."
       },
       {
-        "h": "Quais ícones você pode usar"
+        "h": "Quais ícones você conta"
       },
       {
-        "p": "Todo distrito mostra uma grade de demanda 4x4. Cada linha é um setor; as quatro colunas são os níveis 1 a 4. Você pode entregar a um ícone se o setor da linha for o seu e a coluna não for maior que o nível da sua empresa - então uma empresa maior alcança mais fundo no mesmo distrito, e os ícones mais fundos são mais famintos."
+        "p": "Todo distrito mostra uma grade de demanda 4x4. Cada linha é um setor; as quatro colunas são os níveis 1 a 4. Um ícone conta para a sua empresa se o setor da linha for o seu, a coluna não for maior que o nível da sua empresa e o distrito for um que a sua empresa alcança - então uma empresa maior conta mais fundo no mesmo distrito."
       },
       {
         "ul": [
-          "As linhas 3 e 4 de todo distrito ficam fechadas até o Trimestre 5.",
-          "Um ícone volta a ficar aberto no trimestre seguinte, para todos. Nada é limpo e nada precisa ser marcado entre um trimestre e outro.",
-          "UM ÍCONE RECEBE UMA UNIDADE por trimestre de cada empresa que o alcança. Uma empresa de nível 3 que alcança as colunas 1, 2 e 3 vende, portanto, 3 unidades numa linha do seu setor, todo trimestre - Tecnologia vende duas por coluna, 6 na mesma linha.",
-          "Uma empresa pode vender em cada ícone que alcança uma vez por trimestre; duas empresas que alcançam o mesmo ícone vendem as duas nele. Um setor lotado é precificado pela trilha de preços, não racionado pela grade.",
-          "Tudo o que você não conseguir vender é reciclado por $1 a unidade."
+          "As linhas 3 e 4 de todo distrito estão abertas desde o primeiro trimestre, como as linhas 1 e 2.",
+          "Um ícone conta para toda empresa que o alcança, todo trimestre. Nada é limpo e nada precisa ser marcado entre um trimestre e outro.",
+          "Uma empresa de nível 3 que alcança as colunas 1, 2 e 3 conta, portanto, 3 ícones em cada linha do seu setor que alcança. A primeira e a última linha de um distrito são sempre do mesmo setor, então uma empresa daquele setor conta dois ícones por coluna ali.",
+          "Um setor lotado é precificado pela trilha de preços, não racionado pela grade."
         ]
+      },
+      {
+        "h": "A tabela de faixas"
+      },
+      {
+        "p": "Três faixas - $, $$ e $$$ - para cada setor e nível. Os dois limiares são as contagens de ícones em que começam a faixa do meio e a faixa de cima; os três números depois deles são por quanto o preço é multiplicado em cada faixa. Uma empresa que não alcança ícone nenhum ainda recebe a faixa de baixo. O dobrador da Tecnologia está embutido na linha dela, então ela é lida pela mesma contagem de ícones que todo mundo."
+      },
+      {
+        "table": {
+          "head": [
+            "Setor",
+            "Nível",
+            "$$ a partir de",
+            "$$$ a partir de",
+            "Paga preço x ($ / $$ / $$$)"
+          ],
+          "rows": [
+            [
+              "Serviços Públicos",
+              "1",
+              "1",
+              "2",
+              "1 / 1 / 2"
+            ],
+            [
+              "Serviços Públicos",
+              "2",
+              "4",
+              "6",
+              "2 / 4 / 6"
+            ],
+            [
+              "Serviços Públicos",
+              "3",
+              "7",
+              "12",
+              "7 / 10 / 12"
+            ],
+            [
+              "Serviços Públicos",
+              "4",
+              "14",
+              "24",
+              "23 / 24 / 24"
+            ],
+            [
+              "Varejo",
+              "1",
+              "2",
+              "3",
+              "1 / 2 / 4"
+            ],
+            [
+              "Varejo",
+              "2",
+              "5",
+              "8",
+              "4 / 6 / 8"
+            ],
+            [
+              "Varejo",
+              "3",
+              "7",
+              "12",
+              "6 / 10 / 14"
+            ],
+            [
+              "Varejo",
+              "4",
+              "12",
+              "20",
+              "10 / 17 / 24"
+            ],
+            [
+              "Hotelaria",
+              "1",
+              "1",
+              "2",
+              "1 / 1 / 2"
+            ],
+            [
+              "Hotelaria",
+              "2",
+              "2",
+              "4",
+              "1 / 3 / 4"
+            ],
+            [
+              "Hotelaria",
+              "3",
+              "5",
+              "8",
+              "3 / 6 / 8"
+            ],
+            [
+              "Hotelaria",
+              "4",
+              "10",
+              "16",
+              "7 / 13 / 16"
+            ],
+            [
+              "Manufatura",
+              "1",
+              "2",
+              "4",
+              "2 / 3 / 4"
+            ],
+            [
+              "Manufatura",
+              "2",
+              "5",
+              "8",
+              "4 / 7 / 8"
+            ],
+            [
+              "Manufatura",
+              "3",
+              "10",
+              "16",
+              "7 / 14 / 16"
+            ],
+            [
+              "Manufatura",
+              "4",
+              "19",
+              "32",
+              "10 / 25 / 32"
+            ],
+            [
+              "Saúde",
+              "1",
+              "2",
+              "3",
+              "1 / 2 / 3"
+            ],
+            [
+              "Saúde",
+              "2",
+              "4",
+              "6",
+              "2 / 4 / 6"
+            ],
+            [
+              "Saúde",
+              "3",
+              "7",
+              "12",
+              "5 / 9 / 12"
+            ],
+            [
+              "Saúde",
+              "4",
+              "14",
+              "24",
+              "13 / 20 / 24"
+            ],
+            [
+              "Tecnologia",
+              "1",
+              "1",
+              "2",
+              "1 / 2 / 2"
+            ],
+            [
+              "Tecnologia",
+              "2",
+              "2",
+              "4",
+              "1 / 4 / 4"
+            ],
+            [
+              "Tecnologia",
+              "3",
+              "3",
+              "6",
+              "1 / 6 / 8"
+            ],
+            [
+              "Tecnologia",
+              "4",
+              "4",
+              "8",
+              "2 / 9 / 16"
+            ]
+          ]
+        }
+      },
+      {
+        "p": "Então uma empresa de Saúde de nível 1 num distrito cuja primeira e última linhas são Saúde conta 2 ícones, fica na faixa do meio e recebe 2 x o preço de Saúde - $12 ao preço-base. Expanda-a ao nível 2 e ela passa a contar também a segunda coluna, 4 ícones, que é a nova faixa do meio dela, a 4 x o preço."
+      },
+      {
+        "note": "As faixas foram cortadas a partir de mil partidas medidas da regra por unidade: para cada setor e nível, a faixa de cima começa na contagem de ícones em que uma empresa daquele tamanho conseguia de fato vender, e cada multiplicador é a receita média que aquela faixa rendia dividida pelo preço médio. Medido de volta, o jogo por faixas paga um trimestre de empresa a um ou dois dólares do jogo por unidade em todo nível, e o trimestre fecha sem ninguém contar unidades. O que a tabela não consegue fazer é recompensar um jogador por mais uma unidade de produção; o que ela faz, em vez disso, é recompensar mais um ícone ao alcance, que é a decisão que o tabuleiro mostra. Veja audit_revenue.js para o rascunho e audit_v23.js para a medição."
       },
       {
         "h": "Até onde uma empresa alcança"
       },
       {
-        "p": "Uma empresa sempre pode vender no distrito ou nos distritos onde estão seus próprios lotes. Além disso:"
+        "p": "Uma empresa sempre pode contar o distrito ou os distritos onde estão seus próprios lotes. Além disso:"
       },
       {
         "ul": [
@@ -657,19 +841,19 @@ export const RULEBOOK_PT = [
           "rows": [
             [
               "Serviços Públicos",
-              "Lê a demanda em um bloco de distritos tão largo quanto o seu nível, posicionado em qualquer lugar que ainda cubra a própria área ocupada. Nunca usa centros."
+              "Conta a demanda em um bloco de distritos tão largo quanto o seu nível, posicionado em qualquer lugar que ainda cubra a própria área ocupada. Nunca usa centros."
             ],
             [
               "Varejo",
-              "Uma rede é o seu nível em lojas: o próprio lote e uma FILIAL para cada nível acima do primeiro, cada uma num lote que alguém já possui, cada uma num distrito que a rede alcança. Ela vende em todo distrito onde está. Nunca usa centros."
+              "Uma rede é o seu nível em lojas: o próprio lote e uma FILIAL para cada nível acima do primeiro, cada uma num lote que alguém já possui, cada uma num distrito que a rede alcança. Ela conta os ícones de todo distrito onde está. Nunca usa centros."
             ],
             [
               "Hotelaria",
-              "Pode vender aos negócios e centros ao seu redor em vez de vender a ícones de demanda - uma unidade a preço de mercado para cada negócio ou centro dentro do seu nível em lotes, sem precisar de ícone. Essas unidades saem da produção dela como quaisquer outras."
+              "Conta os negócios e centros ao seu redor como ícones, além da grade - um ícone para cada negócio ou centro dentro do seu nível em lotes."
             ],
             [
               "Manufatura",
-              "Pode direcionar até o seu nível em unidades para as linhas de OUTROS setores no próprio distrito. Essas unidades saem da produção dela - a venda cruzada é um lugar para mandar mercadorias, não mercadorias a mais."
+              "Conta até o seu nível em ícones das linhas de OUTROS setores no próprio distrito, além das linhas do seu."
             ],
             [
               "Saúde",
@@ -677,7 +861,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Tecnologia",
-              "Todo ícone em que ela vende recebe 2 unidades em vez de 1, e paga pelas duas."
+              "A linha dela na tabela de faixas é só dela: as duas unidades que um ícone costumava levar dela estão embutidas nos multiplicadores, então os mesmos ícones a erguem mais rápido."
             ]
           ]
         }
@@ -686,7 +870,7 @@ export const RULEBOOK_PT = [
         "h": "Filiais do Varejo"
       },
       {
-        "p": "O Varejo não alcança mais longe por declaração. Ele ABRE LOJAS: uma rede é o seu nível em lojas, contando o lote de origem, então uma rede de nível 3 é a sua sede e duas filiais, em três distritos. Cada filial ocupa um lote próprio, e a empresa vende em todos os distritos onde está como se estivesse ali."
+        "p": "O Varejo não alcança mais longe por declaração. Ele ABRE LOJAS: uma rede é o seu nível em lojas, contando o lote de origem, então uma rede de nível 3 é a sua sede e duas filiais, em três distritos. Cada filial ocupa um lote próprio, e a empresa conta os ícones de todos os distritos onde está como se estivesse ali."
       },
       {
         "ul": [
@@ -731,12 +915,12 @@ export const RULEBOOK_PT = [
         "p": "Todo trimestre termina com a construção de um novo Centro Logístico em um lote vazio que não pertence a ninguém. O primeiro jogador na ordem de turno escolhe qual. Aquele lote fica ocupado para sempre - nada mais pode ser construído ali - e o centro acrescenta o próprio distrito à rede logística."
       },
       {
-        "h": "No fim dos Trimestres 4, 8 e 12"
+        "h": "No fim dos Trimestres 4 e 8"
       },
       {
         "ul": [
-          "O Magnata Imobiliário e O Onipresente são concedidos - 4 EP mais o número de jogadores, só ao líder isolado, ou seja 6 EP com duas cadeiras subindo até 10 com seis. Eles também são pagos no trimestre final se a partida for encerrada antes do Q12.",
-          "Você pode recomprar discos de empréstimo: $30 no fim do Ano 1, $35 no Ano 2, $40 no Ano 3."
+          "O Magnata Imobiliário e O Onipresente são concedidos - 4 EP mais o número de jogadores, só ao líder isolado, ou seja 6 EP com duas cadeiras subindo até 10 com seis. Eles também são pagos no trimestre final se a partida for encerrada antes do Q8.",
+          "Você pode recomprar discos de empréstimo: $30 no fim do Ano 1 e $35 no Ano 2 - e $40 no Ano 3, no jogo de três anos."
         ]
       },
       {
@@ -780,7 +964,7 @@ export const RULEBOOK_PT = [
           "Você escolhe uma das empresas fundidas para virar a sede da Megacorporação. Ela mantém o prédio e devolve o Projeto ao baralho do seu setor.",
           "Todas as outras vão para o banco como Ativos em Dificuldade - as lojas delas caem - e qualquer um pode assumi-las depois.",
           "A sede para de operar: sem Projeto, não produz nada e não paga OPEX. Ela ainda recebe sua parte igual do fundo do seu setor em todo B2B - uma sede que parou de construir não parou de receber.",
-          "A cada trimestre em que estiver de pé, a sede embolsa EP igual ao PREÇO ATUAL do seu setor DIVIDIDO PELO PATAMAR DA FICHA, arredondado para baixo. Uma sede de patamar 1 em um setor a $3 embolsa 3 EP por trimestre; uma sede de patamar 4 no mesmo setor não embolsa nada até aquele setor chegar a $4. Uma sede em um setor que ninguém atende vai ganhando discretamente enquanto o preço sobe, e uma formada no Ano 1 arrecada por oito trimestres a mais do que uma formada no Ano 3.",
+          "A cada trimestre em que estiver de pé, a sede embolsa EP igual ao PREÇO ATUAL do seu setor DIVIDIDO PELO PATAMAR DA FICHA, arredondado para baixo. Uma sede de patamar 1 em um setor a $3 embolsa 3 EP por trimestre; uma sede de patamar 4 no mesmo setor não embolsa nada até aquele setor chegar a $4. Uma sede em um setor que ninguém atende vai ganhando discretamente enquanto o preço sobe, e uma formada no Ano 1 arrecada por quatro trimestres a mais do que uma formada no Ano 2.",
           "Ela não tem conta de fornecedores, mas continua ocupando o terreno, então o dono dela paga aluguel do terreno todo trimestre como qualquer outro prédio - $2 por nível instalado em um lote, ao proprietário daquele lote. Em terreno próprio, nada é devido.",
           "Uma sede é infraestrutura pública: conta como Centro Logístico. Qualquer empresa construída ortogonalmente ao lado de uma entra na rede logística por meio dela, seja de quem for. Um monumento que só arrecadasse seria um monumento ao lado do qual ninguém ia querer construir - e as empresas que se juntam em volta dele são exatamente aquelas a quem ele paga um dízimo.",
           "Venda um lote debaixo de uma sede e ela não arrecada mais nada - sem parte do fundo, sem pontos, e deixa de ser um centro. Um monumento ainda precisa do seu terreno.",
@@ -956,7 +1140,7 @@ export const RULEBOOK_PT = [
         "p": "As fichas são sorteadas de todos os patamares que estiverem em jogo, e quantas depende da mesa: DUAS de cada patamar com dois, três ou quatro jogadores, TRÊS com cinco, e com seis jogadores toda ficha do jogo fica disponível. Então a caixa tem quatro fichas com dois jogadores, seis com três, oito com quatro, doze com cinco e todas as dezesseis com seis."
       },
       {
-        "note": "O sorteio mais amplo com cinco e seis jogadores não é variedade por variedade. Uma segunda Megacorporação convoca o trimestre final, e as mesas maiores são as que têm mais motivo para querer essa porta aberta - doze trimestres com seis pessoas deliberando é uma noite longa. Com a caixa cheia em jogo, uma segunda fusão passa a ser algo que se pode procurar, em vez de uma questão de as duas fichas que você poderia usar terem sido sorteadas ou não: as partidas que terminam cedo vão de 8% com quatro jogadores para 21% com cinco e 36% com seis, e a partida média de seis jogadores acaba cerca de dois terços de trimestre mais cedo. O prazo é CONVOCADO com muito mais frequência do que morde - 82% das partidas de seis jogadores contra 25% das de quatro - porque uma segunda Megacorporação que cai no Q11 ou no Q12 nomeia um trimestre final que a partida ia jogar de qualquer jeito."
+        "note": "O sorteio mais amplo com cinco e seis jogadores não é variedade por variedade. Uma segunda Megacorporação convoca o trimestre final, e as mesas maiores são as que têm mais motivo para querer essa porta aberta - oito trimestres com seis pessoas deliberando é uma noite longa. Com a caixa cheia em jogo, uma segunda fusão passa a ser algo que se pode procurar, em vez de uma questão de as duas fichas que você poderia usar terem sido sorteadas ou não: as partidas que terminam cedo vão de 8% com quatro jogadores para 21% com cinco e 36% com seis, e a partida média de seis jogadores acaba cerca de dois terços de trimestre mais cedo. O prazo é CONVOCADO com muito mais frequência do que morde - 82% das partidas de seis jogadores contra 25% das de quatro - porque uma segunda Megacorporação que cai no Q7 ou no Q8 nomeia um trimestre final que a partida ia jogar de qualquer jeito."
       },
       {
         "note": "Antes dos patamares, um Consórcio Local montado com três empresas de nível 1 ganhava por trimestre exatamente o mesmo que um Omnicorp montado com quatro de nível 3, e a Megacorporação havia crescido até 33% de uma pontuação vencedora - o maior bloco isolado do jogo, à frente das empresas. Dividir o EP de marca pelo patamar cortou isso pela metade, para 17%, e baixou a vantagem do vencedor sobre o último de 58.6 EP para 48.7, sem tornar a fusão em si mais rara. A regra de sorteio quase não pesa com quatro jogadores, onde oito fichas aleatórias de dezesseis já dão em média duas por patamar; ela se paga com dois, onde tirou da caixa as fichas impossíveis de reivindicar e as Megacorporações formadas subiram de 1.00 por partida para 1.26."
@@ -1047,7 +1231,7 @@ export const RULEBOOK_PT = [
         "h": "Quando a partida termina"
       },
       {
-        "p": "A partida termina no encerramento do Trimestre 12, OU no encerramento do trimestre SEGUINTE a qualquer jogador fundar sua SEGUNDA Megacorporação - o que vier primeiro. A segunda Megacorporação não encerra a partida; ela CONVOCA o trimestre final, e todos têm esse trimestre para responder. Se ela for fundada no Q11 ou depois, a partida simplesmente termina no Q12, como de costume."
+        "p": "A partida termina no encerramento do Trimestre 8, OU no encerramento do trimestre SEGUINTE a qualquer jogador fundar sua SEGUNDA Megacorporação - o que vier primeiro. A segunda Megacorporação não encerra a partida; ela CONVOCA o trimestre final, e todos ganham aquele trimestre para responder. Se ela for fundada no Q7 ou depois, a partida simplesmente termina no Q8, como de costume. A variante de três anos vai até o Trimestre 12 do mesmo jeito."
       },
       {
         "p": "Quem tiver mais EP vence. Se as pontuações finais empatarem, vence o jogador que ainda mantém mais EMPRESAS ATIVAS - sedes não contam, porque uma sede parou de operar. Se isso também estiver igual, vence quem tiver mais dinheiro; e, se ainda houver empate, quem tiver menos discos de empréstimo no banco."
@@ -1083,11 +1267,11 @@ export const RULEBOOK_PT = [
             ],
             [
               "Diretor de Saúde Pública (HC)",
-              "Suas empresas de Saúde podem atender qualquer coluna de uma linha de Saúde, seja qual for o nível delas - mas uma unidade vendida acima do nível da sua empresa paga $1 a menos que o preço."
+              "Suas empresas de Saúde contam todas as colunas de uma linha de Saúde, seja qual for o nível delas - os quatro ícones onde uma empresa de nível 1 contaria um."
             ],
             [
               "Fornecedor White-Label (MA)",
-              "Quando sua Manufatura faz venda cruzada na linha de outro setor, ela pode ser paga pelo preço daquele setor em vez do próprio - o que for maior."
+              "Sua Manufatura é paga pelo melhor preço entre as linhas do próprio distrito, a linha dela incluída: é esse preço que a faixa dela multiplica."
             ],
             [
               "Incorporador de Resorts (HO)",
@@ -1095,11 +1279,11 @@ export const RULEBOOK_PT = [
             ],
             [
               "Especialista em Cadeia de Suprimentos (RE)",
-              "No início da Produção, você pode elevar em um passo um setor que você NÃO opera; seu Varejo então alcança um distrito extra neste trimestre. Você também pode recusar."
+              "No início do Encerramento, você pode elevar em um passo um setor que você NÃO opera; seu Varejo então alcança um distrito extra neste trimestre. Você também pode recusar."
             ],
             [
               "Concessionário (UT)",
-              "No início da Produção você pode ligar sua concessão: sua produção de Serviços Públicos então vende por $1 acima do preço atual neste trimestre. A cada trimestre em que você vender com esse ágio, o preço de Serviços Públicos cai um passo no fim do trimestre."
+              "No início do Encerramento você pode ligar sua concessão: seus Serviços Públicos então são pagos $1 acima do preço atual neste trimestre - a faixa deles multiplica o preço maior. A cada trimestre em que você for pago com esse ágio, o preço de Serviços Públicos cai um passo no fim do trimestre."
             ]
           ]
         }
@@ -1117,7 +1301,7 @@ export const RULEBOOK_PT = [
         "p": "Todas elas vêm desligadas por padrão, e uma mesa que não mexer em nenhuma joga exatamente as regras deste livro. Podem ser combinadas livremente."
       },
       {
-        "p": "As três primeiras soam como jogar do jeito antigo, porque é isso que elas são: regras que eram opcionais na v12 e viraram padrão na v13. O jogo para iniciantes é o oposto - não é uma versão antiga deste jogo, e sim um caminho mais curto para entrar nele, e tem uma seção própria mais abaixo."
+        "p": "As seis primeiras soam como jogar do jeito antigo, porque é isso que elas são: três regras que eram opcionais na v12 e viraram padrão na v13, e as três regras que a v23 mudou, mantidas alternáveis para que a v22 e a v23 possam ser jogadas lado a lado com as mesmas sementes. O jogo para iniciantes é o oposto - não é uma versão antiga deste jogo, e sim um caminho mais curto para entrar nele, e tem uma seção própria mais abaixo."
       },
       {
         "table": {
@@ -1136,7 +1320,19 @@ export const RULEBOOK_PT = [
             ],
             [
               "Prêmios de terras só no fim",
-              "O Magnata Imobiliário e O Onipresente são pagos uma única vez, depois do Trimestre 12, em vez de a cada fim de ano. As terras viram uma corrida de fim de partida, em vez de algo para manter a partida inteira."
+              "O Magnata Imobiliário e O Onipresente são pagos uma única vez, depois do trimestre final, em vez de a cada fim de ano. As terras viram uma corrida de fim de partida, em vez de algo para manter a partida inteira."
+            ],
+            [
+              "Receita por unidade",
+              "Toda empresa entrega a produção impressa, uma unidade por ícone, e recicla o resto a $1, do jeito que o jogo vendia até a v22, em vez de ser paga pela faixa de ícones que alcança."
+            ],
+            [
+              "Jogo de três anos",
+              "Doze trimestres em vez de oito: um terceiro ano, com os prêmios de terra pagos três vezes e uma recompra de empréstimo a $40 no fim dele."
+            ],
+            [
+              "Linhas 3-4 abrem no Ano 2",
+              "As linhas 3 e 4 de todo distrito ficam fechadas até o Trimestre 5, como ficavam até a v22."
             ]
           ]
         }
@@ -1150,7 +1346,7 @@ export const RULEBOOK_PT = [
         "only": "digital"
       },
       {
-        "note": "As três regras antigas continuam alternáveis para que as duas versões possam ser jogadas lado a lado, não porque estejam equilibradas em relação às novas. Outras duas foram removidas na v20 depois de vinte e seis partidas registradas em que ninguém ligou nenhuma das duas: centros logísticos na estrada, que obrigava toda regra de centro do jogo a responder por dois formatos, e níveis pontuam pesado, que pela própria descrição empurrava terras, dinheiro e os bônus de entrada para segundo plano."
+        "note": "As regras antigas continuam alternáveis para que as versões possam ser jogadas lado a lado, não porque estejam equilibradas em relação às novas. Outras duas foram removidas na v20 depois de vinte e seis partidas registradas em que ninguém ligou nenhuma das duas: centros logísticos na estrada, que obrigava toda regra de centro do jogo a responder por dois formatos, e níveis pontuam pesado, que pela própria descrição empurrava terras, dinheiro e os bônus de entrada para segundo plano."
       },
       {
         "note": "Centros logísticos em lotes são uma restrição de verdade: um quarto dos lotes do tabuleiro não tem nenhum vizinho ortogonal, então um centro mal colocado não conecta ninguém. É a regra funcionando como planejado - é por isso que o seletor de centros diz quantos lotes um ponto conectaria antes de você se comprometer com ele - mas é também a regra com maior chance de precisar de uma nova olhada depois de algumas mesas."
@@ -1162,10 +1358,10 @@ export const RULEBOOK_PT = [
     "title": "O jogo para iniciantes",
     "blocks": [
       {
-        "p": "Um caminho mais curto para entrar, para uma mesa em que alguém nunca jogou. São dois anos em vez de três, e cada trilha fica com uma ação em vez de duas, então há quatro coisas a fazer em vez de oito. Tudo o que foi cortado é um subsistema que exige uma segunda explicação; nada do que foi cortado é o motor do jogo."
+        "p": "Um caminho mais curto para entrar, para uma mesa em que alguém nunca jogou. São os mesmos dois anos do jogo padrão, mas cada trilha fica com uma ação em vez de duas, então há quatro coisas a fazer em vez de oito. Tudo o que foi cortado é um subsistema que exige uma segunda explicação; nada do que foi cortado é o motor do jogo."
       },
       {
-        "p": "O que fica é a parte que vale a pena aprender. Sua produção continua vendendo para os ícones de demanda, seus custos operacionais continuam caindo nos potes dos setores de que seu Projeto compra e sendo divididos entre quem tiver empresas lá, e toda construção continua empurrando o preço do próprio setor um dólar para baixo e o de cada fornecedor um para cima. Seu cliente continua sendo seu concorrente."
+        "p": "O que fica é a parte que vale a pena aprender. Suas empresas continuam sendo pagas pelos ícones de demanda que alcançam, seus custos operacionais continuam caindo nos potes dos setores de que seu Projeto compra e sendo divididos entre quem tiver empresas lá, e toda construção continua empurrando o preço do próprio setor um dólar para baixo e o de cada fornecedor um para cima. Seu cliente continua sendo seu concorrente."
       },
       {
         "table": {
@@ -1177,7 +1373,7 @@ export const RULEBOOK_PT = [
           "rows": [
             [
               "Duração",
-              "12 trimestres, 3 anos",
+              "8 trimestres, 2 anos (12 com a variante de três anos)",
               "8 trimestres, 2 anos"
             ],
             [
@@ -1305,7 +1501,7 @@ export const RULEBOOK_PT = [
           "rows": [
             [
               "Duração da partida",
-              "12 trimestres (3 anos de 4), ou até alguém fundar uma 2ª Megacorporação"
+              "8 trimestres (2 anos de 4), ou até alguém fundar uma 2ª Megacorporação; 12 com a variante de três anos"
             ],
             [
               "Jogadores",
@@ -1329,7 +1525,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Empréstimo",
-              "+$20 e um disco; recompre por $30 / $35 / $40 nos fins de ano; -5 EP se não for quitado"
+              "+$20 e um disco; recompre por $30 / $35 nos fins de ano ($40 no terceiro, no jogo de três anos); -5 EP se não for quitado"
             ],
             [
               "Vender um Projeto",
@@ -1352,8 +1548,8 @@ export const RULEBOOK_PT = [
               "$2 por nível da empresa, para os donos dos lotes que ela ocupa"
             ],
             [
-              "Produção não vendida",
-              "$1 por unidade"
+              "Receita",
+              "o preço atual x a faixa em que cai a sua contagem de ícones - veja a tabela de faixas; nada é entregue nem reciclado"
             ],
             [
               "Fundo do setor",
@@ -1369,11 +1565,11 @@ export const RULEBOOK_PT = [
             ],
             [
               "Linhas 3-4 da demanda",
-              "fechadas até o Trimestre 5"
+              "abertas desde o Trimestre 1, como as linhas 1-2"
             ],
             [
               "Grade de demanda",
-              "os ícones nunca se esgotam: uma unidade por trimestre de cada empresa que os alcança, duas de Tecnologia"
+              "os ícones nunca se esgotam: toda empresa que alcança um ícone o conta, todo trimestre"
             ],
             [
               "Pontuação de empresas",
@@ -1385,7 +1581,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Prêmios de terras",
-              "5 EP para quem liderar isoladamente em lotes, e em distritos, a cada fim de ano - 10 com 4+ jogadores"
+              "4 EP mais o número de jogadores, para quem liderar isoladamente em lotes, e em distritos, a cada fim de ano"
             ],
             [
               "Centro Logístico",
@@ -1526,7 +1722,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "B2B",
-              "Business to business - vender para outras empresas, e não para o público. No jogo: a etapa de Receita em que os fundos dos setores são repartidos. Esse dinheiro veio das contas dos outros jogadores, não dos distritos."
+              "Business to business - vender para outras empresas, e não para o público. No jogo: a etapa do Encerramento em que os fundos dos setores são repartidos. Esse dinheiro veio das contas dos outros jogadores, não dos distritos."
             ],
             [
               "Fundo do setor",
@@ -1563,11 +1759,11 @@ export const RULEBOOK_PT = [
           "rows": [
             [
               "Ano fiscal",
-              "Os doze meses sobre os quais uma empresa presta contas, que não precisam coincidir com o calendário. No jogo: são três, de quatro trimestres cada. As contas são acertadas no fim de cada ano."
+              "Os doze meses sobre os quais uma empresa presta contas, que não precisam coincidir com o calendário. No jogo: dois deles, de quatro trimestres cada - três no jogo de três anos. As contas são acertadas no fim de cada ano."
             ],
             [
               "Trimestre",
-              "Um período de três meses de prestação de contas; empresas de capital aberto divulgam resultados quatro vezes por ano. No jogo: uma rodada - planejar, agir, produzir, vender, encerrar."
+              "Um período de três meses de prestação de contas; empresas de capital aberto divulgam resultados quatro vezes por ano. No jogo: uma rodada - planejar, agir, encerrar."
             ],
             [
               "EP",
@@ -1595,7 +1791,22 @@ export const RULEBOOK_PT = [
         "p": "O NÚMERO MUDA QUANDO UMA REGRA MUDA. Uma edição é reimpressa sempre que algo muda a ponto de tornar um manual mais antigo errado na mesa - não por uma frase mais clara, um erro de digitação corrigido ou um anexo novo sozinho. Se você tem uma edição anterior, é isto que está faltando."
       },
       {
-        "h": "v22 - esta edição"
+        "h": "v23 - esta edição"
+      },
+      {
+        "ul": [
+          "A RECEITA É PAGA POR FAIXA. Uma empresa conta os ícones de demanda do seu setor que alcança, lê a faixa em que essa contagem cai na linha dela da tabela de faixas - $, $$ ou $$$ - e recebe o preço atual vezes o número daquela faixa, de uma só vez. Nada é entregue, nada é contado unidade por unidade e nada é reciclado. A v22 entregava uma unidade por ícone e reciclava o resto a $1; 'Receita por unidade' ainda joga desse jeito.",
+          "TRÊS FASES, NÃO CINCO. Planejamento e Ação como antes; Produção, Receita e Encerramento são um único Encerramento que resolve tudo de uma vez - as contas, a faixa de cada empresa, os fundos, o centro logístico - e não passa o tabuleiro para ninguém.",
+          "O JOGO PADRÃO TEM DOIS ANOS: oito trimestres, dois fins de ano, a recompra de empréstimo a $30 e $35. A v22 jogava três; 'Jogo de três anos' joga doze trimestres com um terceiro fim de ano e a recompra a $40.",
+          "AS LINHAS 3 E 4 ESTÃO ABERTAS DESDE O PRIMEIRO TRIMESTRE. A v22 as trancava até o Trimestre 5; 'Linhas 3-4 abrem no Ano 2' tranca de novo.",
+          "AS PERSONAS SÃO LIDAS EM ÍCONES. O Diretor de Saúde Pública conta todas as colunas de uma linha de Saúde sem desconto; a Manufatura do Fornecedor White-Label é paga pelo melhor preço entre as linhas do seu distrito; o ágio do Concessionário é um dólar sobre o preço que a faixa dele multiplica."
+        ]
+      },
+      {
+        "note": "Medido em 1000 partidas com três e com quatro jogadores, cada regra contra a sua reversão nas mesmas sementes (audit_v23.js). A FAIXA PAGA A MESMA ECONOMIA: um trimestre de empresa rende $10.3 / $25.2 / $43.9 nos níveis 1 a 3 pela faixa contra $9.5 / $24.6 / $43.5 por unidade com três jogadores, a pontuação vencedora é 48.9 contra 48.0, a pontuação do vencedor é feita das mesmas partes com diferença de até um ponto, e os assentos e os setores vencem nas mesmas proporções - com 25 entregas por partida (37 com quatro jogadores) substituídas por um pagamento sobre o qual ninguém é consultado. DOIS ANOS SÃO O MESMO JOGO, MAIS CURTO: contra o jogo de três anos a pontuação vencedora cai de 81 para 49, a liderança ainda muda de mãos 1.7 vezes por partida e muda pela última vez no trimestre 4.6 de 8 (6.6 de 12), as terras são 35% da pontuação do vencedor em vez de 29% e as Megacorporações 7% em vez de 15%, e uma partida pede 46 colocações de trabalhadores em vez de 68. AS LINHAS ABERTAS DESDE O Q1 elevam a receita de comércio em 22% (de $499 para $611 por partida) e a parcela de trimestres de empresas de nível 1 pagos na faixa de cima de 30% para 40%. Contra a v22 inteira - as três reversões de uma vez - a mesa faz 46 colocações e nenhuma entrega onde fazia 68 e 45: três decisões em cinco se foram, e o que fica pontua do mesmo jeito."
+      },
+      {
+        "h": "v22"
       },
       {
         "ul": [
@@ -1753,7 +1964,7 @@ export const RULEBOOK_PT = [
         "h": "Que demanda está impressa em cada distrito"
       },
       {
-        "p": "Cada distrito traz uma grade 4x4: quatro LINHAS, um setor em cada, e quatro COLUNAS de valor crescente. As linhas 1 e 2 estão abertas desde o início; AS LINHAS 3 E 4 ABREM NO TRIMESTRE 5, quando começa o Ano 2. A primeira linha de um distrito e a última são SEMPRE O MESMO SETOR, então quem abre um distrito também o fecha."
+        "p": "Cada distrito traz uma grade 4x4: quatro LINHAS, um setor em cada, e quatro COLUNAS de valor crescente. AS QUATRO LINHAS ESTÃO ABERTAS DESDE O PRIMEIRO TRIMESTRE. A primeira linha de um distrito e a última são SEMPRE DO MESMO SETOR, então o setor que abre um distrito também o fecha - e uma empresa daquele setor conta dois ícones por coluna ali."
       },
       {
         "table": {
@@ -1761,8 +1972,8 @@ export const RULEBOOK_PT = [
             "Distrito",
             "Linha 1",
             "Linha 2",
-            "Linha 3 (A2)",
-            "Linha 4 (A2)"
+            "Linha 3",
+            "Linha 4"
           ],
           "rows": [
             [
@@ -1833,8 +2044,8 @@ export const RULEBOOK_PT = [
             "Setor",
             "Linhas no tabuleiro",
             "Distritos em que aparece",
-            "Linhas abertas no Ano 1",
-            "Linhas que abrem no Ano 2"
+            "Nas linhas 1-2",
+            "Nas linhas 3-4"
           ],
           "rows": [
             [
@@ -1883,7 +2094,7 @@ export const RULEBOOK_PT = [
         }
       },
       {
-        "note": "Amplitude igual em 8 e uma inclinação de ano deliberada: Indústria e Serviços Públicos são setores do início, Saúde e Tecnologia do fim, e Hotelaria é o único plano nos dois anos. A amplitude ser igual nos seis é o que impede a tabela de demanda de carregar parte do equilíbrio entre setores - o que sobra está nas cartas, onde pode ser lido. Varejo e Indústria são os únicos setores impressos em NENHUM distrito central, então a demanda deles oscila com o sorteio mais do que a de qualquer outro; Saúde, presente nos quatro centrais, oscila menos."
+        "note": "Amplitude igual em 8. A inclinação de ano deliberada que as linhas carregavam até a v22 - Manufatura e Serviços Públicos cedo, Saúde e Tecnologia tarde - foi embora com a trava do Ano 2: toda linha está aberta desde o primeiro trimestre, e a tabela é mantida como impressa porque a primeira e a última linha continuam formando par. A amplitude ser igual nos seis é o que impede a tabela de demanda de carregar parte do equilíbrio entre setores - o que sobra está nas cartas, onde pode ser lido. Varejo e Indústria são os únicos setores impressos em NENHUM distrito central, então a demanda deles oscila com o sorteio mais do que a de qualquer outro; Saúde, presente nos quatro centrais, oscila menos."
       },
       {
         "h": "Fichas, dinheiro e o empréstimo"
@@ -1975,7 +2186,7 @@ export const RULEBOOK_PT = [
         "h": "Quanto vale uma empresa em cada nível"
       },
       {
-        "p": "O Setup é pago para construir e de novo para melhorar. O OPEX é cobrado todo trimestre - $2 por nível dele é aluguel de terreno, o resto é a conta dos fornecedores. A Produção é em unidades por trimestre. Crescer uma empresa adiciona um nível e DOBRA tanto o OPEX quanto a produção."
+        "p": "O custo inicial é pago para construir e de novo para expandir. O OPEX é cobrado todo trimestre - $2 por nível dele são aluguel do terreno, o resto é a conta de fornecedores. A produção é o tamanho da empresa: nas regras padrão ela não é vendida unidade por unidade, e a faixa de cima da tabela de faixas começa mais ou menos nessa quantidade de ícones, nunca acima dela. Crescer uma empresa acrescenta um nível e DOBRA tanto o OPEX quanto a produção."
       },
       {
         "table": {
@@ -1984,7 +2195,7 @@ export const RULEBOOK_PT = [
             "Nível 1",
             "Nível 2",
             "Nível 3",
-            "Trimestres para se pagar ao preço base"
+            "Trimestres para se pagar ao preço base, por unidade"
           ],
           "rows": [
             [
@@ -2033,65 +2244,65 @@ export const RULEBOOK_PT = [
         }
       },
       {
-        "p": "A entrada é pareada - Hotelaria e Tecnologia a $10, Serviços Públicos e Varejo a $15, Indústria e Saúde a $20 - e cinco dos seis se pagam nos mesmos 2.50 trimestres ao preço base. O que difere é QUANTO O PREÇO PODE CAIR antes de uma empresa parar de dar lucro."
+        "p": "A entrada é pareada - Hotelaria e Tecnologia a $10, Serviços Públicos e Varejo a $15, Manufatura e Saúde a $20 - e o que difere é DE QUAL FAIXA UMA EMPRESA PRECISA para pagar as próprias contas. Ao preço-base, uma Manufatura de nível 1 já dá lucro na faixa de baixo, Saúde e Tecnologia na do meio, e Serviços Públicos, Varejo e Hotelaria só na de cima."
       },
       {
         "table": {
           "head": [
-            "Setor",
-            "Lucro ao preço base",
-            "A base -$1",
-            "A base -$2",
-            "Dólares de preço que pode perder"
+            "Setor no nível 1, preço-base",
+            "Faixa de baixo $",
+            "Faixa do meio $$",
+            "Faixa de cima $$$",
+            "Paga as contas a partir de"
           ],
           "rows": [
             [
-              "Varejo",
-              "$6",
-              "$2",
-              "-$2",
-              "1.5"
-            ],
-            [
-              "Serviços Públicos",
-              "$6",
-              "$3",
-              "$0",
-              "2.0"
-            ],
-            [
-              "Hotelaria",
-              "$4",
-              "$2",
-              "$0",
-              "2.0"
-            ],
-            [
-              "Tecnologia",
-              "$4",
-              "$2",
-              "$0",
-              "2.0"
+              "Manufatura",
+              "+$2",
+              "+$7",
+              "+$12",
+              "$"
             ],
             [
               "Saúde",
-              "$8",
-              "$5",
-              "$2",
-              "2.67"
+              "-$4",
+              "+$2",
+              "+$8",
+              "$$"
             ],
             [
-              "Indústria",
-              "$12",
-              "$8",
-              "$4",
-              "3.0"
+              "Tecnologia",
+              "-$2",
+              "+$4",
+              "+$4",
+              "$$"
+            ],
+            [
+              "Serviços Públicos",
+              "-$2",
+              "-$2",
+              "+$2",
+              "$$$"
+            ],
+            [
+              "Varejo",
+              "-$6",
+              "-$2",
+              "+$6",
+              "$$$"
+            ],
+            [
+              "Hotelaria",
+              "-$1",
+              "-$1",
+              "+$4",
+              "$$$"
             ]
           ]
         }
       },
       {
-        "note": "Isso é o caráter inteiro de cada setor numa tabela só. O Varejo gira mais mercadoria e morre primeiro quando seu mercado azeda; a Indústria custa mais para entrar e aguenta cair até o piso. Retorno e folga de preço não são independentes - a folga é o lucro dividido pela produção, e o retorno é o setup dividido pelo lucro - então retorno nivelado com folga graduada só é possível quando o setup sobe junto com produção vezes folga, que é o que o pareamento acima faz."
+        "note": "Esse é o caráter inteiro dos setores em uma tabela. A Manufatura custa mais para entrar e ganha desde o primeiro ícone; o Varejo é o que mais gira e o que não consegue viver de um distrito parado - uma rede de nível 1 num distrito com duas linhas de Varejo conta dois ícones, que é a faixa do meio dela, e ainda perde $2 por trimestre ao preço-base até o preço se mexer ou a rede abrir uma filial. As faixas foram cortadas a partir de mil partidas medidas da regra por unidade, então a economia que elas pagam é aquela para a qual as cartas foram ajustadas; o que mudou foi onde o dinheiro é lido: da produção impressa na carta para a demanda em volta dela."
       },
       {
         "note": "ONDE ISSO DEIXA O JOGO, medido ao longo de 1500 partidas por número de jogadores, com um bloco separado das mesmas regras como controle. Com três jogadores, os três setores verticais levavam 90.9% das partidas antes deste reequilíbrio e agora levam cerca de 69.5%; o setor mais dominante caiu de 43.6% para 34.8% e o mais silencioso subiu de 1.9% para 9.1%, então nenhum fica abaixo de uma partida em dez. O pior caso de um setor ausente do tabuleiro é 23.9% das partidas, contra 35.1%. A amplitude de retorno é 1.50x contra 3.14x, e o circuito de fornecimento roda 1.68x contra 3.46x. Três mudanças fizeram isso e nenhuma vale muito sozinha: os prêmios de terras pagarem por terreno construído vale 8.8 pontos da divisão entre setores, a regra das filiais vale 1.8, e juntas valem 15.4 - elas se compõem porque terreno construído é o que torna uma filial valiosa, e a regra das filiais é o que impede o setor que mais ganha com isso de disparar. Arredondar as escadas de melhoria de Varejo e Tecnologia para o múltiplo de cinco do baralho, pensado como arrumação, acabou valendo mais um ponto e meio, porque as duas cartas que precisavam disso estavam em pontas opostas da tabela. SOBRA UMA ESTRUTURA QUE AS CARTAS NÃO ALCANÇAM: os setores horizontais vão melhor com dois jogadores e pior com seis, 31.1% das partidas contra 22.6%, porque os prêmios de terras que os sustentam são 37% de uma pontuação vencedora com dois assentos e 22% com seis. É monotônico, é medido, e tem cerca de metade do tamanho que tinha."
@@ -2103,7 +2314,7 @@ export const RULEBOOK_PT = [
     "title": "Anexo: os sessenta Projetos",
     "blocks": [
       {
-        "p": "Todas as cartas do jogo, por setor. CUSTO INICIAL é o que custa construir, e de novo para expandir. OPEX é o custo de operação impresso na carta: $2 por nível vão como aluguel do terreno para quem for dono do terreno, e o resto é a conta de fornecedores, dividida entre os fornecedores na proporção das partes indicadas abaixo. PRODUÇÃO é quantas unidades ela produz por trimestre, e dobra na expansão junto com o OPEX."
+        "p": "Todas as cartas do jogo, por setor. CUSTO INICIAL é o que custa construir, e de novo para expandir. OPEX é o custo de operação impresso na carta: $2 por nível vão como aluguel do terreno para quem for dono do terreno, e o resto é a conta de fornecedores, dividida entre os fornecedores na proporção das partes indicadas abaixo. PRODUÇÃO é o tamanho da empresa - quantas unidades ela faria por trimestre em 'Receita por unidade', e mais ou menos a contagem de ícones em que começa a faixa de cima dela - e dobra na expansão junto com o OPEX."
       },
       {
         "note": "Este anexo é gerado a partir dos próprios dados das cartas e conferido contra eles célula a célula em check_rulebook.mjs, de modo que nenhuma carta pode ser rebalanceada sem que o livro acompanhe. É a única parte do livro que ninguém deveria jamais editar à mão."

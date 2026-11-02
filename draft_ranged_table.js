@@ -48,6 +48,10 @@ for (const i of IND) {
       const u = sales.map((s) => (icons ? s[0] / 2 : s[0])), prod = mode(sales.map((s) => s[2])) / (icons ? 2 : 1);
       b = Math.max(2, Math.min(prod, q(u, 0.9)));
       a = Math.max(1, Math.min(b - 1, Math.round(0.6 * b)));
+      /* Technology's icons come in multiples of its level - a level-2 company reaches two
+         columns of every row it sees - so a threshold between two multiples catches
+         nothing and the middle band sits empty. Snap both to the level's grid. */
+      if (icons) { a = Math.max(L, L * Math.round(a / L)); b = Math.max(a + L, L * Math.round(b / L)); }
       const reach = (s) => (icons ? s[0] / 2 : s[0]);
       const band = (x) => (x < a ? 0 : x >= b ? 2 : 1);
       m = [0, 1, 2].map((k) => {

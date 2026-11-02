@@ -73,7 +73,7 @@ if (found) {
   /* The Supply Chain Expert adds one district on top of the branches, and it is a
      choice rather than a shop, so it is allowed for by name rather than by
      slackening the equality - that equality is the point of the check. */
-  const persona = Math.max(0, E.reAllowance(st, biz, E.ownerOf(st, biz)) - biz.level);
+  const persona = Math.max(0, E.reAllowance(st, biz, E.ownerOf(st, biz)) - E.branchesWanted(biz));
   check("its reach is exactly home + branches + any persona district",
     before.size === home.size + branches.size + persona,
     `${before.size} reached, ${home.size} home + ${branches.size} branch + ${persona} persona`);

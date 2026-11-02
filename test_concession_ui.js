@@ -14,8 +14,9 @@ const post = async (p, b) => {
   const r = await fetch(BASE + p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
   return { status: r.status, body: await r.json().catch(() => ({})) };
 };
-const getState = async (code, token) =>
-  (await (await fetch(`${BASE}/api/state?code=${code}&token=${token}&since=-1`, { cache: "no-store" })).json()).state;
+const getView = async (code, token) =>
+  (await (await fetch(`${BASE}/api/state?code=${code}&token=${token}&since=-1`, { cache: "no-store" })).json());
+const getState = async (code, token) => (await getView(code, token)).state;
 
 async function roomWithHolder(maxTries = 40) {
   for (let i = 0; i < maxTries; i++) {
@@ -86,14 +87,14 @@ async function driveToPrompt(code, token, maxSteps = 4000) {
   const check = (label, cond) => { console.log(`${cond ? "  ok  " : " FAIL "} ${label}`); if (!cond) failures++; };
 
   let room = null, out = { reached: false, why: "not tried" };
-  for (let attempt = 0; attempt < 4 && !out.reached; attempt++) {
+  for (let attempt = 0; attempt < 10 && !out.reached; attempt++) {
     room = await roomWithHolder();
     if (!room) { console.log("could not deal the Concession Holder in 40 rooms - giving up"); process.exit(1); }
     console.log(`room ${room.code}: seat 0 is the Concession Holder (after ${room.tries} deal${room.tries === 1 ? "" : "s"})`);
     out = await driveToPrompt(room.code, room.token);
     if (!out.reached) console.log(`  that game never asked (${out.why}) - dealing another`);
   }
-  if (!out.reached) { console.log(`never reached the Concession prompt in 4 rooms: ${out.why}`); process.exit(1); }
+  if (!out.reached) { console.log(`never reached the Concession prompt in 10 rooms: ${out.why}`); process.exit(1); }
   const { st } = out;
   console.log(`Q${st.quarter}: the server is waiting on seat 0 in the supplyChain phase`);
   check("seat 0 has a Utilities company", st.players[0].businesses.some((b) => b.bp.ind === "UT"));
@@ -125,8 +126,15 @@ async function driveToPrompt(code, token, maxSteps = 4000) {
   check("and a 'Leave it off' button", (await offBtn.count()) > 0);
   if (await btn.count()) await btn.click({ timeout: 5000 }).catch((e) => errs.push("click: " + e.message));
   await sleep(1200);
-  const after = await getState(room.code, room.token);
-  check("the server recorded the concession as on for seat 0", !!(after.concessionOn && after.concessionOn[0]));
+  /* The answer closes the quarter: since v23 every company is paid its band the moment
+     the supply-chain prompts are answered, and the concession switch is reset at the
+     quarter's end once its bill is charged. What the server keeps of the answer is the
+     log line it wrote when seat 0 switched it on - and, if the quarter is somehow still
+     open, the switch itself. */
+  const view = await getView(room.code, room.token);
+  const after = view.state;
+  const logged = (view.logs || []).some((l) => /switches the concession on/.test(String(l.msg || "")));
+  check("the server recorded the concession as on for seat 0", logged || !!(after.concessionOn && after.concessionOn[0]));
   check("and moved on from the prompt", !(after.phase === "supplyChain" && after.awaitingPlayerId === 0));
   check("no page errors", errs.length === 0);
   if (errs.length) console.log(errs.slice(0, 3));

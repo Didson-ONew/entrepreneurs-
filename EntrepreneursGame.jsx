@@ -544,7 +544,7 @@ function openIconsFor(state, ind, plotKeyStr) {
   let n = 0;
   t.rows.forEach((rowInd, rowIdx) => {
     if (rowInd !== ind) return;
-    const openable = rowIdx >= 2 && state.quarter <= 4 ? 0 : 1;
+    const openable = rowIdx >= 2 && state.quarter <= 4 && state.demand.lateRows ? 0 : 1;
     for (let l = 0; l < 4; l++) if (openable) n += 1;
   });
   return n;
@@ -789,7 +789,7 @@ function markSlotUsed(pool, bizId, tileKey, rowIdx, levelIdx) {
 function slotOpen(pool, tileKey, rowIdx, levelIdx, quarter, bizId) {
   const t = pool.tiles[tileKey];
   if (!t) return false;
-  if (rowIdx >= 2 && quarter <= 4) return false;   // rows 3-4 open from Q5
+  if (rowIdx >= 2 && quarter <= 4 && pool.lateRows) return false;   // rows 3-4 wait for Year 2 only under the lateRows variant
   return bizId === undefined || !slotUsedBy(pool, bizId, tileKey, rowIdx, levelIdx);
 }
 function slotIndustry(pool, tileKey, rowIdx) { return pool.tiles[tileKey]?.rows[rowIdx]; }
@@ -1303,15 +1303,15 @@ const PERSONAS = {
   tech_savvy:  { ind: "TE", name: "Systems Architect",
     blurb: "Your Technology companies may upgrade vertically, stacking on one plot instead of needing a free neighbour - or spread as Technology usually does. You choose at each upgrade." },
   preventive:  { ind: "HC", name: "Public Health Director",
-    blurb: "Your Healthcare companies may serve any column of a Healthcare row whatever their level - but a unit sold above your company's level pays $1 less than the price." },
+    blurb: "Your Healthcare companies reach every column of a Healthcare row whatever their level - they may count all four icons where a level-1 company counts one." },
   product_mgr: { ind: "MA", name: "White-Label Supplier",
-    blurb: "When your Manufacturing cross-sells into another industry's row, it may be paid that industry's price instead of its own - whichever is higher." },
+    blurb: "Your Manufacturing may be paid the best price among the rows of its own district, its own row included: that price is what its band multiplies." },
   customer_or: { ind: "HO", name: "Resort Developer",
     blurb: "Your Hospitality companies may upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them - or stack as Hospitality usually does. You choose at each upgrade." },
   supply_chain:{ ind: "RE", name: "Supply Chain Expert",
-    blurb: "At the start of Production, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline." },
+    blurb: "At the start of Closing, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline." },
   gov_rel:     { ind: "UT", name: "Concession Holder",
-    blurb: "At the start of Production you may switch your concession on: your Utilities production then sells for $1 above the current price this quarter. Every quarter you sell at that premium, the Utilities price falls one step at the end of the quarter." },
+    blurb: "At the start of Closing you may switch your concession on: your Utilities are then paid $1 over the current price this quarter - their band multiplies the higher price. Every quarter you are paid at that premium, the Utilities price falls one step at the end of the quarter." },
 };
 /* ============================== VARIANTS ==============================
    Optional rule changes the host turns on before a game starts. Every one is off
@@ -1334,7 +1334,13 @@ const VARIANTS = [
   { key: "orderedDecks", name: "Ordered decks",
     blurb: "Each industry deck runs level 1 down to level 3, instead of being shuffled whole. The early game holds no surprises and no level 3 can be drafted." },
   { key: "endgameLandAwards", name: "Land awards at the end only",
-    blurb: "The Real-Estate Mogul and The Omnipresent are paid once, after Quarter 12, instead of at every year end." },
+    blurb: "The Real-Estate Mogul and The Omnipresent are paid once, after the final quarter, instead of at every year end." },
+  { key: "unitRevenue", name: "Revenue by the unit",
+    blurb: "Every company delivers its printed production one unit an icon and recycles the rest at $1, the way the game sold up to v22, instead of being paid by the band of icons it reaches." },
+  { key: "longGame", name: "Three-year game",
+    blurb: "Twelve quarters instead of eight: a third year, with the land awards paid three times and a $40 loan buy-back at the end of it." },
+  { key: "lateRows", name: "Rows 3-4 open in Year 2",
+    blurb: "Rows 3 and 4 of every district stay closed until Quarter 5, as they did up to v22." },
   { key: "beginner", name: "Beginner game",
     blurb: "Two years instead of three, no Megacorps, and one action per track: LOAN, LAUNCH, RESEARCH and REPOSITION. Building claims its ground free, six discs instead of twelve, land scores districts only, and a company reaches one demand column above its level." },
 ];
@@ -1389,10 +1395,16 @@ const hasVariant = (state, key) => !!(state && state.variants && state.variants[
 const isBeginner = (state) => hasVariant(state, "beginner");
 const BEGINNER_QUARTERS = 8;
 const BEGINNER_DISCS = 6;
+/* Two years is the standard game since v23 - eight quarters - and the third year is the
+   "Three-year game" variant. The 01/11/26 table played two years in five hours; measured,
+   the third year was the dearest third of the game to play and not the one that decided
+   it: 64% of all deliveries fell in it, while the share of the score earned in the last
+   two quarters is the same at eight quarters as at twelve. */
+const STANDARD_QUARTERS = 8, LONG_GAME_QUARTERS = 12;
 /* The last quarter of the game, before any Megacorp calls it early. */
-const finalQuarterOf = (state) => (isBeginner(state) ? BEGINNER_QUARTERS : 12);
+const finalQuarterOf = (state) => (isBeginner(state) ? BEGINNER_QUARTERS : hasVariant(state, "longGame") ? LONG_GAME_QUARTERS : STANDARD_QUARTERS);
 /* The quarters that close a year, and so pay the land award. */
-const yearEndsOf = (state) => (isBeginner(state) ? [4, 8] : [4, 8, 12]);
+const yearEndsOf = (state) => { const out = []; for (let q = 4; q <= finalQuarterOf(state); q += 4) out.push(q); return out; };
 /* The two dials the whole scoreboard hangs off, kept together because they are only
    meaningful against each other.
 
@@ -1716,10 +1728,11 @@ function sellBpFromHand(state, p, bp, solvency = false) {
   p.hand = p.hand.filter((x) => x !== bp);
   if (state.decks[bp.ind]) state.decks[bp.ind].push(bp); // returns to bottom of its industry deck, recyclable
 }
-function worstRoiBusiness(p, pm, quarter, minAge = 1) {
+function worstRoiBusiness(p, pm, quarter, minAge = 1, state = null) {
   const cands = activeBiz(p).filter((b) => quarter - b.quarterBuilt >= minAge);
   if (!cands.length) return null;
-  const roi = (b) => bizProd(b) * price(pm, bizInd(b)) - bizOpex(b) - RENT_PER_LEVEL * b.level;
+  const take = (b) => (state && !unitRevenueOn(state) ? bandRevenue(state, p, b).revenue : bizProd(b) * price(pm, bizInd(b)));
+  const roi = (b) => take(b) - bizOpex(b) - RENT_PER_LEVEL * b.level;
   return cands.reduce((worst, b) => (roi(b) < roi(worst) ? b : worst), cands[0]);
 }
 /* Score a Blueprint for launching. Price is the dominant term: an industry everyone
@@ -1797,7 +1810,7 @@ function priceAfterMyBuild(pm, ind) {
 function launchScore(state, p, bp, archetype) {
   const pm = state.pm;
   const px = priceAfterMyBuild(pm, bp.ind);
-  const qLeft = Math.max(1, 13 - (state.quarter || 1));
+  const qLeft = Math.max(1, finalQuarterOf(state) + 1 - (state.quarter || 1));
 
   // --- what it costs to get standing ---
   // Horizontal industries (UT/MA/TE) need one plot per level, and upgrading needs yet
@@ -1823,7 +1836,10 @@ function launchScore(state, p, bp, archetype) {
   const reach = bestSellableFor(state, p, bp);
   const sellable = reach === null ? bp.prod : Math.min(bp.prod, reach);
   const waste = Math.max(0, bp.prod - sellable);
-  let perQuarter = sellable * px + waste * 1 - effOpex;
+  /* Under the band rule the company is paid price x multiplier for the icons it would
+     reach from the best plot its owner holds. */
+  const bandTake = unitRevenueOn(state) ? null : bestBandRevenueFor(state, p, bp, px);
+  let perQuarter = (bandTake === null ? sellable * px + waste * 1 : bandTake) - effOpex;
 
   /* Two things say the good years will not last, and both belong on the revenue, not
      on the finished score. Other companies in your industry compete for the same demand
@@ -1907,6 +1923,91 @@ function launchScore(state, p, bp, archetype) {
    rule itself, asked a question - not a copy of it. */
 const sellableForBiz = (state, owner, biz) => placeableFor(state, owner, biz);
 
+/* ============================== REVENUE BY BAND (v23) ==============================
+   A company is paid its industry's PRICE times a MULTIPLIER, and the multiplier is read
+   off how many demand icons the company reaches: under `a` icons the first multiplier,
+   from `b` icons the third, in between the second. Nothing is delivered, nothing is
+   recycled, nothing is counted unit by unit - which is what four playtest forms asked
+   for. The thresholds and multipliers were derived from the shipped unit rule over a
+   thousand all-bot games a table size (draft_ranged_table.js, ranged_table.json), so
+   the band pays what the unit rule paid within $3 an industry and level, and the audit
+   that measured it (audit_revenue.js --ranged) found vertical strategies four points
+   less dominant and the "one more icon would have paid" quarters halved.
+
+   Icons are counted the way the bots always counted what they could sell: own-industry
+   icons within reach up to the company's level in columns, plus Manufacturing's
+   cross-sell icons up to its level, plus the businesses and hubs around a Hospitality
+   company. Technology's thresholds are in icons too, so its doubler is folded into its
+   multipliers rather than counted twice. The printed production stays on the card as the
+   industry's size, and the "Revenue by the unit" variant still sells it the old way. */
+const BAND_TABLE = {
+  UT: { 1: { a: 1, b: 2, m: [1, 1, 2] }, 2: { a: 4, b: 6, m: [2, 4, 6] }, 3: { a: 7, b: 12, m: [7, 10, 12] }, 4: { a: 14, b: 24, m: [23, 24, 24] } },
+  RE: { 1: { a: 2, b: 3, m: [1, 2, 4] }, 2: { a: 5, b: 8, m: [4, 6, 8] }, 3: { a: 7, b: 12, m: [6, 10, 14] }, 4: { a: 12, b: 20, m: [10, 17, 24] } },
+  HO: { 1: { a: 1, b: 2, m: [1, 1, 2] }, 2: { a: 2, b: 4, m: [1, 3, 4] }, 3: { a: 5, b: 8, m: [3, 6, 8] }, 4: { a: 10, b: 16, m: [7, 13, 16] } },
+  MA: { 1: { a: 2, b: 4, m: [2, 3, 4] }, 2: { a: 5, b: 8, m: [4, 7, 8] }, 3: { a: 10, b: 16, m: [7, 14, 16] }, 4: { a: 19, b: 32, m: [10, 25, 32] } },
+  HC: { 1: { a: 2, b: 3, m: [1, 2, 3] }, 2: { a: 4, b: 6, m: [2, 4, 6] }, 3: { a: 7, b: 12, m: [5, 9, 12] }, 4: { a: 14, b: 24, m: [13, 20, 24] } },
+  TE: { 1: { a: 1, b: 2, m: [1, 2, 2] }, 2: { a: 2, b: 4, m: [1, 4, 4] }, 3: { a: 3, b: 6, m: [1, 6, 8] }, 4: { a: 4, b: 8, m: [2, 9, 16] } },
+};
+const BAND_LABEL = ["$", "$$", "$$$"];
+const unitRevenueOn = (state) => hasVariant(state, "unitRevenue");
+/* How many icons a company reaches, in the unit the band table is written in. */
+function bandIcons(state, owner, biz) {
+  return Math.round(placeableFor(state, owner, biz) / exchangeRate(state, biz));
+}
+function bandFor(ind, level, icons) {
+  const r = (BAND_TABLE[ind] || {})[Math.min(4, Math.max(1, level))];
+  if (!r) return { band: 0, mult: 0, a: 0, b: 0 };
+  const band = icons < r.a ? 0 : icons >= r.b ? 2 : 1;
+  return { band, mult: r.m[band], a: r.a, b: r.b };
+}
+/* The price the band multiplies. A Concession Holder's Utilities sell a dollar over the
+   market in a quarter the concession is on; a White-Label Supplier's Manufacturing is
+   paid the best price among the rows of its own district, its own included. */
+function bandPrice(state, p, biz) {
+  const ind = bizInd(biz);
+  let px = price(state.pm, ind);
+  if (ind === "UT" && p && concessionOn(state, p)) px += 1;
+  if (ind === "MA" && p && hasPersona(p, "product_mgr")) {
+    footprintDistricts(state.board, biz.footprint).forEach((tk) => {
+      const t = state.demand.tiles[tk];
+      if (t) t.rows.forEach((ri) => { px = Math.max(px, price(state.pm, ri)); });
+    });
+  }
+  return px;
+}
+function bandRevenue(state, owner, biz) {
+  const p = owner || ownerOf(state, biz);
+  const icons = bandIcons(state, p, biz);
+  const { band, mult, a, b } = bandFor(bizInd(biz), biz.level, icons);
+  const px = bandPrice(state, p, biz);
+  return { icons, band, mult, a, b, px, revenue: px * mult };
+}
+/* What a Blueprint would be paid from the best plot its owner already holds; with no
+   plot to stand on yet, the middle band at the price it would sell at. */
+function bestBandRevenueFor(state, p, bp, px) {
+  const mine = Object.keys(state.board.owner).filter((k) => state.board.owner[k] === p.id && plotFree(state.board, k));
+  const row = (BAND_TABLE[bp.ind] || {})[Math.min(4, Math.max(1, bp.lvl))];
+  if (!mine.length) return row ? px * row.m[1] : 0;
+  let best = 0;
+  for (const plot of mine) {
+    const probe = { id: -1, bp, footprint: [plot], level: bp.lvl, upgraded: false, distressed: false, isHQ: false, scored: false, quarterBuilt: state.quarter };
+    best = Math.max(best, px * bandFor(bp.ind, bp.lvl, bandIcons(state, p, probe)).mult);
+  }
+  return best;
+}
+/* Every company that can trade is paid at once; there is nothing to hand round. */
+function runBandRevenue(state, log) {
+  for (const p of state.players) {
+    for (const b of activeBiz(p)) {
+      if (!businessCanProduce(state, b)) continue;
+      const r = bandRevenue(state, p, b);
+      p.cash += r.revenue;
+      noteConcessionSale(state, p, b, r.revenue > 0 ? 1 : 0);
+      if (log) log(logMsg(r.icons === 1 ? "{0} reaches {1} icon: band {2} pays {3} x ${4} = ${5}." : "{0} reaches {1} icons: band {2} pays {3} x ${4} = ${5}.", b.bp.name, r.icons, BAND_LABEL[r.band], r.mult, r.px, r.revenue), p.id);
+    }
+  }
+}
+
 /* What is upgrading worth, in the same points a build is measured in?
 
    Only two of the five archetypes ever upgraded, and they took the first upgradable
@@ -1929,12 +2030,12 @@ function upgradeScore(state, p, b, assumePlot) {
   /* The reason is a key and its values now, not a sentence. The KEY is the
      stable thing to test - the sentence is whatever language the reader has. */
   if (blocked && !(assumePlot && blocked.k.startsWith("no owned"))) return -Infinity;
-  const qLeft = Math.max(1, 13 - (state.quarter || 1));
+  const qLeft = Math.max(1, finalQuarterOf(state) + 1 - (state.quarter || 1));
   const px = price(state.pm, bizInd(b));   // upgrading adds no new supply to the market
   const spreads = upgradeScaling(p, b) === "H";
 
   const nowUnits = Math.min(bizProd(b), sellableForBiz(state, p, b));
-  const nowNet = nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1
+  const nowNet = (unitRevenueOn(state) ? nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1 : bandRevenue(state, p, b).revenue)
     - bizOpex(b) - RENT_PER_LEVEL * b.level;
 
   /* Where it would grow to. A sideways step reaches from a new plot, so ask the
@@ -1955,7 +2056,7 @@ function upgradeScore(state, p, b, assumePlot) {
   const grown = { ...b, level: b.level + 1, upgraded: true, footprint: grownFootprint };
   const grownProd = bizProd(grown);
   const grownUnits = Math.min(grownProd, sellableForBiz(state, p, grown));
-  const grownNet = grownUnits * px + Math.max(0, grownProd - grownUnits) * 1
+  const grownNet = (unitRevenueOn(state) ? grownUnits * px + Math.max(0, grownProd - grownUnits) * 1 : bandRevenue(state, p, grown).revenue)
     - bizOpex(grown) - 3 * grown.level;
 
   const cashEP = (grownNet - nowNet) * qLeft / cashToEpRate(state);
@@ -2136,7 +2237,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "047357d1";
+const ENGINE_VERSION = "10a66732";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2273,7 +2374,7 @@ function runProduction(state, log) {
       bill = quarterBill(state, p);
     }
     while (p.cash < bill) {
-      const worst = worstRoiBusiness(p, pm, state.quarter, 0);
+      const worst = worstRoiBusiness(p, pm, state.quarter, 0, state);
       if (!worst) break;
       sellCompany(state, p, worst, true);
       bill = quarterBill(state, p);
@@ -2525,6 +2626,7 @@ function potRecipients(state, ind) {
 /* Kept for the balance harnesses, which run all-bot tables and never enter the
    delivery phase. Real games go through advanceDelivery, in turn order. */
 function runBotRevenue(state) {
+  if (!unitRevenueOn(state)) { runBandRevenue(state, null); return; }
   for (const p of state.players) {
     if (p.isHuman) continue;
     for (const b of activeBiz(p)) if (businessCanProduce(state, b)) autoDeliver(state, p, b);
@@ -3300,13 +3402,13 @@ function megacorpWorthIt(state, p, match) {
      is right, not because it did anything, and if the tile EP or the level EP ever
      move it is the line that stops the bot buying quarters that do not exist. */
   const ends = megacorpHQs(p).length + 1 >= MEGACORPS_TO_END;
-  const qLeft = ends ? 1 : Math.max(1, 13 - (state.quarter || 1));
+  const qLeft = ends ? 1 : Math.max(1, finalQuarterOf(state) + 1 - (state.quarter || 1));
   const hq = pickHQ(state, p, match.have, tierOfTile(match.tile));
   let lostPerQuarter = 0;
   for (const b of match.have) {
     const units = Math.min(bizProd(b), sellableForBiz(state, p, b));
-    const trade = units * price(state.pm, bizInd(b))
-      + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - RENT_PER_LEVEL * b.level;
+    const trade = (unitRevenueOn(state) ? units * price(state.pm, bizInd(b)) + Math.max(0, bizProd(b) - units) * 1 : bandRevenue(state, p, b).revenue)
+      - bizOpex(b) - RENT_PER_LEVEL * b.level;
     lostPerQuarter += Math.max(0, trade);
   }
   /* This was a bonus and is now a bill: every rival building already standing beside
@@ -3335,7 +3437,7 @@ function hqGroundRent(state, p, b) {
    - the reverse of the rule this heuristic was written for, and the reverse again of
    the plain "keep the biggest" that preceded that. */
 function pickHQ(state, p, have, tier = 1) {
-  const qLeft = Math.max(1, 13 - (state.quarter || 1));
+  const qLeft = Math.max(1, finalQuarterOf(state) + 1 - (state.quarter || 1));
   /* Two things decide which building to keep: the industry it sits in, because the
      headquarters banks that industry's price DIVIDED BY THE TILE'S TIER every quarter,
      and what stands around it, because every rival building beside it collects the
@@ -3569,7 +3671,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     // the moment the track stopped going that low.
     const collapsed = activeBiz(p).find((b) => {
       if (price(state.pm, bizInd(b)) > PRICE_MIN) return false;
-      const net = bizProd(b) * PRICE_MIN - bizOpex(b) - RENT_PER_LEVEL * b.level;
+      const net = (unitRevenueOn(state) ? bizProd(b) * PRICE_MIN : bandRevenue(state, p, b).revenue) - bizOpex(b) - RENT_PER_LEVEL * b.level;
       return net < 0;
     });
     // ...but only when there is something better to put in its place: the company still
@@ -3588,7 +3690,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     if (genuineNeed && p.discsInBank >= 3 && activeBiz(p).length) {
       // already carrying real debt just to keep the lights on - cut the worst offender loose
       // instead of financing it forever with more loans
-      const worst = worstRoiBusiness(p, state.pm, state.quarter, 0);
+      const worst = worstRoiBusiness(p, state.pm, state.quarter, 0, state);
       if (worst) { sellCompany(state, p, worst, false); log(logMsg("{0} cuts loose {1} rather than take another loan to cover it (cash: ${2}).", p.name, worst.bp.name, Math.round(p.cash)), p.id); }
       else doLoan(state, p, log);
     } else if (genuineNeed) doLoan(state, p, log);
@@ -3620,7 +3722,7 @@ function botResolveOneAction(state, p, track, rng, log) {
       .filter((db) => canReclaim(state, p, db))
       .map((db) => {
         const px = price(state.pm, bizInd(db));
-        const value = bizProd(db) * px - bizOpex(db) - RENT_PER_LEVEL * db.level;
+        const value = (unitRevenueOn(state) ? bizProd(db) * px : bandRevenue(state, p, db).revenue) - bizOpex(db) - RENT_PER_LEVEL * db.level;
         const fresh = missingIndustries(p).has(bizInd(db)) ? INDUSTRY_DEBUT_EP : 0;
         return { db, score: value + fresh - reclaimCost(db) * 0.25 };
       })
@@ -3866,11 +3968,16 @@ function continueProduction(state, log, rng) {
   state.reBonusPick = {};  // the Supply Chain Expert's one extra district, re-picked each delivery
   state.hoBonusPaid = {};
   resetDeliveries(state.demand);   // every icon is open to everyone again
+  state.demand.lateRows = hasVariant(state, "lateRows");
   /* Delivery still walks the turn order, one player at a time, because a human has to
      be handed the board somewhere in the sequence. Nothing hangs on the order any
      more: an icon is not used up, so nobody arrives to a picked-over board. */
   state.deliveryOrder = [...state.turnOrder];
   state.deliveryCursor = 0;
+  /* Revenue by band needs nobody's hand: every company is paid for the icons it reaches and
+     the quarter closes. The unit-by-unit delivery below is the "Revenue by the unit"
+     variant, the way the game sold up to v22. */
+  if (!unitRevenueOn(state)) { runBandRevenue(state, log); finishQuarter(state, log, rng); return; }
   if (!advanceDelivery(state, log)) finishQuarter(state, log, rng);
 }
 /* Walk the delivery order: a bot sells where it stands, a human is handed the board.
@@ -3998,7 +4105,7 @@ function finishQuarterAfterRepay(state, log, rng) {
      playability choice - a deadline you can respond to - not as a balance fix. */
   const rushers = endgameRushers(state);
   if (rushers.length && !state.finalQuarter) {
-    state.finalQuarter = Math.min(12, state.quarter + 1);
+    state.finalQuarter = Math.min(finalQuarterOf(state), state.quarter + 1);
     const who = rushers.map((p) => p.name).join(" and ");
     log(logMsg("\u23f9 {0} {1} launched {2} Megacorps \u2014 Q{3} is the FINAL QUARTER.", who, rushers.length === 1 ? "has" : "have", MEGACORPS_TO_END, state.finalQuarter), null);
   }
@@ -4160,6 +4267,7 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
   numBots = Math.max(0, nPlayers - nHumans);
   const board = buildBoard(rng);
   const demand = makeDemandPool(board, rng);
+  demand.lateRows = !!V.lateRows;   // rows 3-4 wait for Year 2 only under the variant; since v23 they are open from Q1
   const pm = makePriceMatrix();
 
   const bpByInd = {};
@@ -4293,7 +4401,7 @@ function DemandCenter({ tname, demand, quarter, tileKey, deliverInfo, onDeliver 
      screen it breaks is the whole board. */
   const tile = demand.tiles[tileKey];
   const rows = tile.rows;
-  const y2Open = quarter > 4;   // rows 3-4 open from Q5 (end of Year 1)
+  const y2Open = quarter > 4 || !demand.lateRows;   // rows 3-4 wait for Year 2 only under the lateRows variant
   return (
     <div className="flex flex-col items-center justify-center h-full w-full select-none" style={{ gap: 2, padding: 3 }}>
       <div className="font-bold text-white/70 tracking-wide" style={{ fontSize: 9, lineHeight: 1 }}>{tname}</div>
@@ -5042,6 +5150,8 @@ function BizTooltip({ state, hover }) {
         <div>{t("Setup: ${0} · Suppliers: ${1} · Ground rent: ${2} (none on your own land)", bizSetup(b), bizPotBill(b), RENT_PER_LEVEL * b.level)}</div>
         <div>{t("Split: {0}", b.bp.deps.map((d, i) => `${d.ind} $${potShares(b)[i]}`).join(", ") || "\u2014")}</div>
         <div>{t("Production: {0}/qtr", bizProd(b))}</div>
+        {!unitRevenueOn(state) && canProduce && (() => { const r = bandRevenue(state, ownerOf(state, b), b);
+          return <div>{t("Reaches {0} icons: band {1} pays {2} x ${3} = ${4}", r.icons, BAND_LABEL[r.band], r.mult, r.px, r.revenue)}</div>; })()}
         {!canProduce && <div className="text-red-400">{t("Land unowned — not producing")}</div>}
       </div>
     </div></Floating>
@@ -5907,8 +6017,8 @@ const TUTORIAL = [
 
   { title: "Prices move as the city is built", target: "prices", art: ArtPrices,
     body: "Build a company and you push your own industry's price DOWN \u2014 more supply. Every supplier you now pay gets pushed UP \u2014 more demand. Each of those is a whole dollar.",
-    points: [`A crowded industry can fall to $${PRICE_MIN}, still twice what recycling pays`,
-             `A neglected one can climb to $${PRICE_MAX} per unit`,
+    points: [`A crowded industry can fall to $${PRICE_MIN}, and that is what its bands multiply`,
+             `A neglected one can climb to $${PRICE_MAX}`,
              "Reading this strip is the main skill in the game"] },
 
   { title: "Placing workers: last in, first out", target: "tracks", art: ArtFilo,
@@ -5918,18 +6028,16 @@ const TUTORIAL = [
              "Placing last means acting first, with only one action"] },
 
   { title: "A quarter, step by step", target: "tracks", art: null,
-    body: "Each of the 12 quarters runs the same five phases. Planning and Action are where you act; the rest ask you only when there is a choice to make - where to deliver, what to sell short, where the hub goes.",
+    body: "Each of the 8 quarters runs the same three phases. Planning and Action are where you act; Closing settles everything at once and asks you only when there is a choice to make - what to sell short, where the hub goes, whether to repay a loan.",
     points: ["PLANNING \u2014 place your workers",
              "ACTION \u2014 tracks resolve and you act",
-             "PRODUCTION \u2014 supplier bills and ground rent are paid automatically",
-             "REVENUE \u2014 deliver production to demand icons for cash",
-             "CLOSING \u2014 a Logistic Hub is placed; years end with scoring"] },
+             "CLOSING \u2014 bills are paid, every company is paid its band, the pots are shared, a Logistic Hub is placed; years end with the land awards"] },
 
   { title: "Selling what you produce", target: "board", art: null,
-    body: "In Revenue you deliver to demand icons your company can reach. Every unit sold pays the current market price; an icon in column 1 takes one unit, column 2 two, and so on.",
+    body: "At the close of every quarter each company is paid in one go: count the demand icons of its industry it can reach, read the band that count falls in on its card - $, $$ or $$$ - and multiply the current market price by the band's number. Nothing is delivered and nothing is recycled.",
     points: ["A company reaches its own district, plus whatever its ability grants",
              "Logistic Hubs link districts \u2014 but Utilities and Retail can never use them",
-             "Anything you cannot sell recycles for just $1 a unit"] },
+             "More icons in reach lifts the band: where you stand and how big you are decide what you are paid"] },
 
   { title: "Your ledger", target: "ledger", art: null,
     body: "Everything you own lives here: cash, running costs, your twelve discs, your hand and your companies.",
@@ -7705,18 +7813,18 @@ function LevelBadge({ level }) {
 function MatchTracker({ state, elapsed, lastActive, idleLimit }) {
   const year = Math.ceil(state.quarter / 4);
   const qInYear = ((state.quarter - 1) % 4) + 1;
+  /* Three phases since v23: the two where you act, and one where the quarter closes
+     around you - bills, revenue by band, the pots, the hub, the year end. */
   const PHASES = [
-    ["planning", "Planning"], ["resolving", "Action"], ["production", "Production"],
-    ["delivering", "Revenue"], ["closing", "Closing"],
+    ["planning", "Planning"], ["resolving", "Action"], ["closing", "Closing"],
   ];
   const phaseNow =
     state.phase === "planning" ? "planning"
     : state.phase === "resolving" ? "resolving"
-    : state.phase === "production" || state.phase === "supplyChain" ? "production"
-    : state.phase === "delivering" || state.phase === "liquidating" ? "delivering"
-    : ["placingLH", "repayingLoans"].includes(state.phase) ? "closing"
+    : ["production", "supplyChain", "delivering", "liquidating", "placingLH", "repayingLoans"].includes(state.phase) ? "closing"
     : null;
   const detail =
+    state.phase === "production" ? t("bills and revenue") :
     state.phase === "delivering" ? "B2C" :
     state.phase === "liquidating" ? t("cash shortfall") :
     state.phase === "supplyChain" ? t("supply chain") :
@@ -7734,7 +7842,7 @@ function MatchTracker({ state, elapsed, lastActive, idleLimit }) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono" style={{ fontSize: 10.5 }}>
       <span className="flex items-center gap-1">
-        {[1, 2, 3].map((y) => pill(`Y${y}`, y === year, y < year))}
+        {Array.from({ length: Math.max(1, Math.ceil(finalQuarterOf(state) / 4)) }, (_, i) => i + 1).map((y) => pill(`Y${y}`, y === year, y < year))}
       </span>
       <span style={{ color: "#3a4152" }}>|</span>
       <span className="flex items-center gap-1">

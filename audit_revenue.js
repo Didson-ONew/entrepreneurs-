@@ -1,6 +1,13 @@
 /* ============================================================================
    REVENUE, SIMPLIFIED: what each way of cutting the arithmetic does to the game.
 
+   V23 SHIPPED THE BAND. The "ranged" arm below - the designer's ranges in icons, from
+   ranged_table.json - is the rule the game plays since v23, natively, as BAND_TABLE in
+   the engine. This probe still runs every arm, the shipped one included, on the
+   unit-by-unit engine it was written against (the "Revenue by the unit" variant), so
+   its figures stay comparable with the ones in this header. audit_v23.js measures the
+   shipped band rule against the unit rule on the engine as it ships.
+
    READ THIS FIRST. Every figure in this header was measured on the engine as it
    played before v22, where an icon absorbed its column and was used up. v22 ships
    the rate rule (--flow below, now the default); --stock reproduces the engine the
@@ -323,10 +330,10 @@ const N = {
   closing: "  if (quarter === 4) unlockY2(demand);",
   deliverHead: "  let remaining = bizProd(biz);\n  let crossAllowance = bizInd(biz) === \"MA\" ? biz.level : 0;\n  let earned = 0;",
   deliverTail: "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;\n}",
-  cardValue: "  let perQuarter = sellable * px + waste * 1 - effOpex;",
-  upNow: "  const nowUnits = Math.min(bizProd(b), sellableForBiz(state, p, b));\n  const nowNet = nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1\n    - bizOpex(b) - RENT_PER_LEVEL * b.level;",
-  upGrown: "  const grownUnits = Math.min(grownProd, sellableForBiz(state, p, grown));\n  const grownNet = grownUnits * px + Math.max(0, grownProd - grownUnits) * 1\n    - bizOpex(grown) - 3 * grown.level;",
-  mcTrade: "    const units = Math.min(bizProd(b), sellableForBiz(state, p, b));\n    const trade = units * price(state.pm, bizInd(b))\n      + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - RENT_PER_LEVEL * b.level;",
+  cardValue: "  let perQuarter = (bandTake === null ? sellable * px + waste * 1 : bandTake) - effOpex;",
+  upNow: "  const nowUnits = Math.min(bizProd(b), sellableForBiz(state, p, b));\n  const nowNet = (unitRevenueOn(state) ? nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1 : bandRevenue(state, p, b).revenue)\n    - bizOpex(b) - RENT_PER_LEVEL * b.level;",
+  upGrown: "  const grownUnits = Math.min(grownProd, sellableForBiz(state, p, grown));\n  const grownNet = (unitRevenueOn(state) ? grownUnits * px + Math.max(0, grownProd - grownUnits) * 1 : bandRevenue(state, p, grown).revenue)\n    - bizOpex(grown) - 3 * grown.level;",
+  mcTrade: "    const units = Math.min(bizProd(b), sellableForBiz(state, p, b));\n    const trade = (unitRevenueOn(state) ? units * price(state.pm, bizInd(b)) + Math.max(0, bizProd(b) - units) * 1 : bandRevenue(state, p, b).revenue)\n      - bizOpex(b) - RENT_PER_LEVEL * b.level;",
   land: "    addEP(p, share, label, state.quarter);",
 };
 /* Demand reached, in UNITS - what the designer's ranges are written in. Under the
@@ -432,9 +439,9 @@ function engine(arm) {
       `  const leftover = Math.max(0, remaining);\n  __probe.sale(bizInd(biz), biz.level, __n, earned, leftover, unitPrice(state, p, biz), bizProd(biz), __u);\n  p.cash += earned + leftover * ${recycle};\n}`, "autoDeliver tail");
     if (arm === "norecycle") {
       L = splice(L, N.cardValue, "  let perQuarter = sellable * px - effOpex;", "card valuation");
-      L = splice(L, N.upNow, N.upNow.replace("* 1\n", "* 0\n"), "upgrade valuation (now)");
-      L = splice(L, N.upGrown, N.upGrown.replace("* 1\n", "* 0\n"), "upgrade valuation (grown)");
-      L = splice(L, N.mcTrade, N.mcTrade.replace("* 1 -", "* 0 -"), "megacorp trade");
+      L = splice(L, N.upNow, N.upNow.replace("* 1 :", "* 0 :"), "upgrade valuation (now)");
+      L = splice(L, N.upGrown, N.upGrown.replace("* 1 :", "* 0 :"), "upgrade valuation (grown)");
+      L = splice(L, N.mcTrade, N.mcTrade.replace("* 1 :", "* 0 :"), "megacorp trade");
     }
   }
   L = splice(L, N.land, LAND_PROBE, "land award");
@@ -462,7 +469,10 @@ function play(E, arm, seats, seed) {
   let st, seating;
   const marks = [];
   try {
-    st = E.initGame(seats - 1, seed, ["Seat"], undefined, true, undefined);
+    /* Every arm plays on the unit-by-unit engine this probe was written against: v23
+       ships the band rule natively, so the shipped game is now the thing the "ranged"
+       arm below proposed, and audit_v23.js is where it is measured against the reverts. */
+    st = E.initGame(seats - 1, seed, ["Seat"], undefined, true, { unitRevenue: true });
     st.players[0].isHuman = false;
     if (st.phase === "drafting") { E.advanceDraft(st, quiet); E.startPlanning(st); }
     seating = [...st.turnOrder];

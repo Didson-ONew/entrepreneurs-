@@ -25,15 +25,15 @@
      { note }   designer's note - PLAYERS NEVER SEE THIS
    ========================================================================== */
 
-/* v21 rather than a corrected v20. Three rules changed, and a v20 book gets all
-   three wrong at the table: the two land awards now pay for ground you have BUILT
-   on rather than ground you merely own, a Retail branch must stand on a plot
-   somebody already owns and pays that owner rent, and every Blueprint has a
-   new price. A reader has to be able to tell the two apart, so the number moves.
+/* v23 rather than a corrected v22. Three rules changed, and a v22 book gets all
+   three wrong at the table: a company is paid by the band of demand icons it
+   reaches instead of delivering units, the standard game is two years, and rows
+   3 and 4 of every district are open from the first quarter. Each is kept behind
+   a variant that puts the v22 rule back, so the two can be played side by side.
 
-   The full history, and what each earlier edition changed, is the last annex in
-   this book. The v19 and v17 notes that used to sit here have moved there. */
-export const EDITION = "Rulebook v22";
+   The full history, and what each earlier edition changed, is in the history
+   annex at the end of this book. */
+export const EDITION = "Rulebook v23";
 
 /* Filter the book down to one edition. `edition` is "digital" (the app, which has a
    host, bots and a waiting room) or "table" (a physical game, which has none of them).
@@ -51,16 +51,16 @@ export const RULEBOOK = [
   id: "overview",
   title: "The game in one minute",
   blocks: [
-    { p: "You are a founder building a city's economy. You buy land, build companies on it, and sell what they produce to the districts around them. The player with the most Entrepreneurial Points (EP) at the end of Year 3 wins." },
+    { p: "You are a founder building a city's economy. You buy land, build companies on it, and sell what they produce to the districts around them. The player with the most Entrepreneurial Points (EP) at the end of Year 2 wins." },
     { ul: [
       "2 to 6 players.",
-      "3 years of 4 quarters - 12 rounds at most. A second Megacorp ends it sooner.",
+      "2 years of 4 quarters - 8 rounds at most. A second Megacorp ends it sooner, and a three-year variant plays 12.",
       "The board is 16 districts of 4 plots each.",
       "The coloured squares inside a district are its demand: what it will buy.",
     ] },
     { h: "The one idea underneath everything" },
     { p: "Every company pays a supplier bill each quarter, and that money does not vanish - it goes to the industries printed on its Blueprint as suppliers. So the industry nobody is building is quietly collecting everyone else's money, and its price is climbing while the crowded industries sink toward $2. Reading that pressure is the game." },
-    { note: "The economy is a closed loop on purpose. The bank pays for what the demand icons take and $1 a unit for recycling, and lends $20 a disc, and that is every faucet there is - so a table that all builds the same thing genuinely impoverishes itself. Every playtest that felt flat was a table that had not noticed this yet." },
+    { note: "The economy is a closed loop on purpose. The bank pays every company by the band of demand it reaches, and lends $20 a disc, and that is every faucet there is - so a table that all builds the same thing genuinely impoverishes itself. Every playtest that felt flat was a table that had not noticed this yet." },
   ],
 },
 
@@ -118,15 +118,13 @@ export const RULEBOOK = [
   id: "quarter",
   title: "A quarter, step by step",
   blocks: [
-    { p: "All twelve quarters run the same five phases. Planning and Action are where you act; the later phases resolve around you and stop only when there is a choice to make - where to deliver, what to sell short, where the hub goes, whether to repay a loan." },
+    { p: "All eight quarters run the same three phases. Planning and Action are where you act; Closing settles the quarter around you - the bills, every company's revenue, the pots, the hub - and stops only when there is a choice to make: what to sell short, where the hub goes, whether to repay a loan." },
     { table: {
       head: ["Phase", "What happens"],
       rows: [
         ["1. Planning", "Everyone places their workers on the action tracks."],
         ["2. Action", "The tracks resolve and each worker takes its actions."],
-        ["3. Production", "Every active company pays its supplier bill into the industry pots, and its ground rent to the landlords it stands on."],
-        ["4. Revenue", "You deliver production to demand icons for cash, then the industry pots are shared out."],
-        ["5. Closing", "A new Logistic Hub opens. At the end of each year, the two land awards are paid."],
+        ["3. Closing", "Every active company pays its supplier bill into the industry pots and its ground rent to its landlords; every company is paid its band of revenue; the pots are shared out; a new Logistic Hub opens. At the end of each year, the two land awards are paid."],
       ],
     } },
   ],
@@ -238,7 +236,7 @@ export const RULEBOOK = [
     { p: "There is nothing to remember between events and nothing hidden: one company built, one dollar off its own industry; one supplier named, one dollar onto that supplier. The rate is the same in both directions, and the marker always lands on a printed number." },
     { p: "A marker stops at the ends. On $12 it will not climb further, and on $2 it will not fall further, but it moves the other way the moment something pushes it - a marker sitting on $12 comes off $12 as soon as one company is built there." },
     { note: "The ends being hard stops is why this is a marker on a track rather than a running tally. Counting supply and demand separately let an industry that 'should' have been $14 sit at $10 while carrying an invisible overshoot, so four companies had to be built before the price moved at all. A marker cannot hide anything: what you see on the track is the whole state." },
-    { p: "A crowded industry can sink to $2. That is still twice the $1 you get for recycling goods you could not sell, so selling always beats scrapping - which was not true when the track bottomed out at the recycling rate. A neglected one that half the table depends on climbs fast, and $12 is genuinely reachable." },
+    { p: "A crowded industry can sink to $2 and no lower, and every band of every company there multiplies that $2 - a crowded industry is cheap to enter and poor to be in, both at once. A neglected one that half the table depends on climbs fast, and $12 is genuinely reachable." },
     { note: "A whole dollar per event was tried once before and abandoned, and it is worth knowing why it works now. On its own it inflated the city: the winning score at six seats went from 111 to 173, cash a seat held more than doubled, and the winner's margin over second roughly doubled. But the diagnosis was wrong. The problem was never the step - it was scoring a doubled economy at a rate set for the old one. The step is back, this time with every base $2 higher, the track running $2..$12 so the raised bases have somewhere to go, and cash converting at $50 per EP instead of $20. Measured over 2250 games: takings rise 83% and the winning score lands within 2% of where it was. Half-dollar steps bought a stable score by making the market too quiet to read - every industry now trades below its own base often enough to matter, Technology in 17% of games against 3%, and both ends of the track are reachable without either being a wall. See audit_full_dollar_step.js, audit_price_floor.js and audit_base_plus_two.js." },
     { h: "What each company costs and produces" },
     { p: "Setup / OPEX / Production, by level." },
@@ -274,9 +272,9 @@ export const RULEBOOK = [
 /* ------------------------------------------------------------------ */
 {
   id: "production",
-  title: "Production: paying the bills",
+  title: "Closing, first: paying the bills",
   blocks: [
-    { p: "Every active company pays two bills each quarter, automatically, whether or not it sells anything afterwards:" },
+    { p: "Every active company pays two bills at the start of every Closing, automatically, whatever its band pays it afterwards:" },
     { ul: [
       "Its SUPPLIER BILL goes into the industry pots of the suppliers printed on its Blueprint, divided in proportion to the dependency values.",
       "Its GROUND RENT - $2 for every level standing on a plot - goes to whoever owns that plot. A vertical company stacks all its levels on one plot, so its whole rent goes to one landlord; a horizontal one puts a level on each plot it covers, so each landlord collects $2. You pay nothing for standing on your own land.",
@@ -293,22 +291,54 @@ export const RULEBOOK = [
 /* ------------------------------------------------------------------ */
 {
   id: "revenue",
-  title: "Revenue: selling what you produce",
+  title: "Revenue: what the demand pays",
   blocks: [
-    { p: "Each company produces a number of units printed on its Blueprint, doubled if it has been upgraded. That number is all it has: every ability below is a route for those units, never a source of more. You deliver them to demand icons your company can reach, and every unit an icon takes is paid at the current market price for your industry." },
-    { p: "An icon is not used up when you sell to it. Every icon is open to every company every quarter, and a company sells one unit into each icon it can reach - so what you sell depends on where you stand and how big you are, never on who got there first. Anything you cannot place is recycled for $1 a unit." },
-    { p: "Delivery is handed round the table in turn order, but nothing hangs on the order: nobody can take an icon away from you. Every company can resolve its sales at once if the table prefers." },
-    { h: "Which icons you may use" },
-    { p: "Every district shows a 4x4 grid of demand. Each row is an industry; the four columns are levels 1 to 4. You may deliver to an icon if the row's industry is yours and the column is no higher than your company's level - so a bigger company reaches deeper into the same district, and the deeper icons are hungrier." },
+    { p: "Every company is paid once a quarter, in one go, for the demand it can reach: COUNT the demand icons of its industry it reaches, find the BAND that count falls in on its row of the band table below, and MULTIPLY the current market price of its industry by that band's number. That is its revenue. Nothing is delivered, nothing is counted unit by unit and nothing is recycled." },
+    { p: "An icon is never used up. Every icon is open to every company every quarter - two companies reaching the same icon both count it - so what you are paid depends on where you stand and how big you are, never on who got there first." },
+    { p: "Every company at the table is paid at the same time; there is nothing to hand round. The production printed on a Blueprint is the size of the company - what makes a bigger company need more icons for the same band - and the 'Revenue by the unit' variant still sells it unit by unit, the way the game played up to v22." },
+    { h: "Which icons you count" },
+    { p: "Every district shows a 4x4 grid of demand. Each row is an industry; the four columns are levels 1 to 4. An icon counts for your company if the row's industry is yours, the column is no higher than your company's level, and the district is one your company reaches - so a bigger company counts deeper into the same district." },
     { ul: [
-      "Rows 3 and 4 of every district stay closed until Quarter 5.",
-      "An icon is open again next quarter, for everyone. Nothing is ever wiped and nothing is ever tracked between quarters.",
-      "AN ICON TAKES ONE UNIT a quarter from each company that reaches it. A level-3 company reaching columns 1, 2 and 3 therefore sells 3 units into a row of its industry, every quarter - Technology sells two a column, 6 from the same row.",
-      "A company may sell into each icon it reaches once a quarter; two companies reaching the same icon both sell into it. A crowded industry is priced by the price track, not rationed by the grid.",
-      "Anything you cannot sell is recycled for $1 a unit.",
+      "Rows 3 and 4 of every district are open from the first quarter, like rows 1 and 2.",
+      "An icon counts for every company that reaches it, every quarter. Nothing is ever wiped and nothing is ever tracked between quarters.",
+      "A level-3 company reaching columns 1, 2 and 3 therefore counts 3 icons in each row of its industry it reaches. The first and last rows of a district are always the same industry, so a company of that industry counts two icons a column there.",
+      "A crowded industry is priced by the price track, not rationed by the grid.",
     ] },
+    { h: "The band table" },
+    { p: "Three bands - $, $$ and $$$ - for every industry and level. The two thresholds are the icon counts at which the middle and the top band begin; the three numbers after them are what the price is multiplied by in each band. A company that reaches no icon at all is still paid its bottom band. Technology's doubler is folded into its own row, so it is read off the same icon count as everyone else." },
+    { table: {
+      head: ["Industry", "Level", "$$ from", "$$$ from", "Pays price x ($ / $$ / $$$)"],
+      rows: [
+        ["Utilities", "1", "1", "2", "1 / 1 / 2"],
+        ["Utilities", "2", "4", "6", "2 / 4 / 6"],
+        ["Utilities", "3", "7", "12", "7 / 10 / 12"],
+        ["Utilities", "4", "14", "24", "23 / 24 / 24"],
+        ["Retail", "1", "2", "3", "1 / 2 / 4"],
+        ["Retail", "2", "5", "8", "4 / 6 / 8"],
+        ["Retail", "3", "7", "12", "6 / 10 / 14"],
+        ["Retail", "4", "12", "20", "10 / 17 / 24"],
+        ["Hospitality", "1", "1", "2", "1 / 1 / 2"],
+        ["Hospitality", "2", "2", "4", "1 / 3 / 4"],
+        ["Hospitality", "3", "5", "8", "3 / 6 / 8"],
+        ["Hospitality", "4", "10", "16", "7 / 13 / 16"],
+        ["Manufacturing", "1", "2", "4", "2 / 3 / 4"],
+        ["Manufacturing", "2", "5", "8", "4 / 7 / 8"],
+        ["Manufacturing", "3", "10", "16", "7 / 14 / 16"],
+        ["Manufacturing", "4", "19", "32", "10 / 25 / 32"],
+        ["Healthcare", "1", "2", "3", "1 / 2 / 3"],
+        ["Healthcare", "2", "4", "6", "2 / 4 / 6"],
+        ["Healthcare", "3", "7", "12", "5 / 9 / 12"],
+        ["Healthcare", "4", "14", "24", "13 / 20 / 24"],
+        ["Technology", "1", "1", "2", "1 / 2 / 2"],
+        ["Technology", "2", "2", "4", "1 / 4 / 4"],
+        ["Technology", "3", "3", "6", "1 / 6 / 8"],
+        ["Technology", "4", "4", "8", "2 / 9 / 16"],
+      ],
+    } },
+    { p: "So a level-1 Healthcare company standing in a district whose first and last rows are Healthcare counts 2 icons, sits in its middle band, and is paid 2 x the Healthcare price - $12 at the base price. Upgrade it to level 2 and it counts the second column too, 4 icons, which is its new middle band at 4 x the price." },
+    { note: "The bands were cut from a thousand measured games of the unit rule: for every industry and level, the top band begins at the icon count a company of that size could actually sell into, and each multiplier is the mean revenue that band earned divided by the mean price. Measured back, the band game pays a company-quarter within a dollar or two of the unit game at every level, and the quarter closes with nobody counting units. What the table cannot do is reward a player for one more unit of production; what it does instead is reward one more icon in reach, which is the decision the board shows. See audit_revenue.js for the drafting and audit_v23.js for the measurement." },
     { h: "How far a company reaches" },
-    { p: "A company can always sell into the district or districts its own plots sit in. Beyond that:" },
+    { p: "A company can always count the district or districts its own plots sit in. Beyond that:" },
     { ul: [
       "Logistic Hubs stand on plots. If any plot of your footprint is orthogonally beside a hub - up to four plots can be, since corners do not count - your company joins the network and reaches every district that any hub on the board stands in. A Megacorp headquarters counts as a hub for this, so building beside somebody else's monument puts you on the network too.",
       "Utilities and Retail can never use hubs at all.",
@@ -318,16 +348,16 @@ export const RULEBOOK = [
     { table: {
       head: ["Industry", "Ability"],
       rows: [
-        ["Utilities", "Reads demand across a block of districts as wide as its level, positioned anywhere that still covers its own footprint. Never uses hubs."],
-        ["Retail", "A chain is its level in shopfronts: its own plot and one BRANCH for every level above the first, each on a plot somebody already owns, each in a district the chain can reach. It sells into every district it stands in. Never uses hubs."],
-        ["Hospitality", "May sell to the businesses and hubs around it instead of to demand icons - one unit at market price for each business or hub within its level in plots, no icon needed. Those units come out of its production like any other."],
-        ["Manufacturing", "May route up to its level in units into OTHER industries' rows in its own district. Those units come out of its production - cross-selling is a place to send goods, not extra goods."],
+        ["Utilities", "Counts demand across a block of districts as wide as its level, positioned anywhere that still covers its own footprint. Never uses hubs."],
+        ["Retail", "A chain is its level in shopfronts: its own plot and one BRANCH for every level above the first, each on a plot somebody already owns, each in a district the chain can reach. It counts the icons of every district it stands in. Never uses hubs."],
+        ["Hospitality", "Counts the businesses and hubs around it as icons on top of the grid - one icon for each business or hub within its level in plots."],
+        ["Manufacturing", "Counts up to its level in icons from OTHER industries' rows in its own district, on top of its own rows."],
         ["Healthcare", "Reaches every district on the hub network without touching a hub."],
-        ["Technology", "Every icon it sells into takes 2 units instead of 1, and pays for both."],
+        ["Technology", "Its row of the band table is its own: the two units an icon used to take from it are built into its multipliers, so the same icons lift it faster."],
       ],
     } },
     { h: "Retail branches" },
-    { p: "Retail does not reach further by declaring it. It OPENS SHOPFRONTS: a chain is its level in shops, the home plot included, so a level-3 chain is its home and two branches, standing in three districts. Each branch takes a plot of its own, and the company sells into every district it stands in as if it stood there." },
+    { p: "Retail does not reach further by declaring it. It OPENS SHOPFRONTS: a chain is its level in shops, the home plot included, so a level-3 chain is its home and two branches, standing in three districts. Each branch takes a plot of its own, and the company counts the icons of every district it stands in as if it stood there." },
     { ul: [
       "A branch may only open on a plot SOMEBODY ALREADY OWNS - you or a rival - and the plot must be empty. It does not take the ground: the deed stays with its owner.",
       "A branch on somebody else's plot pays them $2 of ground rent every quarter, exactly as a building standing on their land would.",
@@ -352,10 +382,10 @@ export const RULEBOOK = [
   title: "Closing and the year end",
   blocks: [
     { p: "Every quarter ends with a new Logistic Hub being built on an empty plot that nobody owns. The first player in turn order chooses which one. That plot is filled for good - nothing can be built there afterwards - and the hub adds its own district to the network." },
-    { h: "At the end of Quarter 4, 8 and 12" },
+    { h: "At the end of Quarter 4 and 8" },
     { ul: [
-      "The Real-Estate Mogul and The Omnipresent are awarded - 4 EP plus the number of players, to the outright leader alone, so 6 EP at two seats rising to 10 at six. They are also paid at the final quarter if the game is called before Q12.",
-      "You may buy back loan discs: $30 at the end of Year 1, $35 at Year 2, $40 at Year 3.",
+      "The Real-Estate Mogul and The Omnipresent are awarded - 4 EP plus the number of players, to the outright leader alone, so 6 EP at two seats rising to 10 at six. They are also paid at the final quarter if the game is called before Q8.",
+      "You may buy back loan discs: $30 at the end of Year 1 and $35 at Year 2 - and $40 at Year 3, in the three-year game.",
     ] },
     { p: "Companies do not wait for the year end. A company scores the moment it is finished - see below - so by the time a year ends its EP are already banked. What a year end decides is who is holding the city." },
     { h: "Companies score on completion" },
@@ -379,7 +409,7 @@ export const RULEBOOK = [
       "You choose one of the merged companies to become the Megacorp HQ. It keeps its building and returns its Blueprint to its industry deck.",
       "All the others go to the bank as Distressed Assets - their shopfronts come down - and anyone may take them over later.",
       "The HQ stops trading: with no Blueprint it produces nothing and pays no OPEX. It still draws its equal share of its industry's pot every B2B - a headquarters that has stopped building has not stopped collecting.",
-      "Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry DIVIDED BY THE TILE'S TIER, rounded down. A tier 1 headquarters in an industry at $3 banks 3 EP a quarter; a tier 4 headquarters in the same industry banks nothing at all until that industry reaches $4. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for eight more quarters than one formed in Year 3.",
+      "Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry DIVIDED BY THE TILE'S TIER, rounded down. A tier 1 headquarters in an industry at $3 banks 3 EP a quarter; a tier 4 headquarters in the same industry banks nothing at all until that industry reaches $4. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for four more quarters than one formed in Year 2.",
       "It has no supplier bill, but it still stands on the ground, so its owner pays ground rent every quarter like any other building - $2 for every level standing on a plot, to that plot's owner. On your own land nothing is owed.",
       "A headquarters is public infrastructure: it counts as a Logistic Hub. Any company built orthogonally beside one joins the network through it, whoever owns them. A monument that only collected would be a monument nobody wanted to build near - and the companies that gather round it are exactly the ones it pays a tithe to.",
       "Sell a plot out from under a headquarters and it collects nothing at all - no pot share, no points, and it stops being a hub. A monument still needs its ground.",
@@ -422,7 +452,7 @@ export const RULEBOOK = [
       ],
     } },
     { p: "Tiles are drawn from every tier that is in play, and how many depends on the table: TWO from each tier at two, three or four players, THREE at five, and at six players every tile in the game is available. So the box holds four tiles at two players, six at three, eight at four, twelve at five and all sixteen at six." },
-    { note: "The wider draw at five and six is not variety for its own sake. A second Megacorp calls the final quarter, and the biggest tables are the ones with most reason to want that door open - twelve quarters with six people deliberating is a long evening. With the full box in play a second merger becomes findable rather than a matter of whether the two tiles you could use happened to be drawn: games ending early go from 8% at four players to 21% at five and 36% at six, and the average six-player game ends about two thirds of a quarter sooner. The deadline is CALLED far more often than it bites - 82% of six-player games against 25% of four-player ones - because a second Megacorp landing in Q11 or Q12 names a final quarter the game was going to play anyway." },
+    { note: "The wider draw at five and six is not variety for its own sake. A second Megacorp calls the final quarter, and the biggest tables are the ones with most reason to want that door open - eight quarters with six people deliberating is still a long evening. With the full box in play a second merger becomes findable rather than a matter of whether the two tiles you could use happened to be drawn: games ending early go from 8% at four players to 21% at five and 36% at six, and the average six-player game ends about two thirds of a quarter sooner. The deadline is CALLED far more often than it bites - 82% of six-player games against 25% of four-player ones - because a second Megacorp landing in Q7 or Q8 names a final quarter the game was going to play anyway." },
     { note: "Before the tiers, a Local Syndicate built out of three level-1 companies earned exactly as much every quarter as an Omnicorp built out of four level-3s, and the Megacorp had grown to 33% of a winning score - the largest single bucket in the game, ahead of companies. Dividing the brand by the tier halved that to 17% and took the winner\u2019s lead over last from 58.6 EP to 48.7, without making the merger itself any rarer. The draw rule barely registers at four players, where eight random tiles out of sixteen already average two per tier; it earns its keep at two, where it took the unclaimable tiles out of the box and Megacorps formed rose from 1.00 a game to 1.26." },
     { note: "A merger is meant to be a real decision, not a free bonus: you are trading away the companies' production and their remaining upgrades for a lump sum now, a headquarters that collects without trading, and a tithe to whoever builds beside it. Every EP those companies already scored is banked and stays banked. It is strongest in Year 3 and usually a mistake in Year 1." },
   ],
@@ -457,7 +487,7 @@ export const RULEBOOK = [
         { note: "Both awards pay out a fixed number of times a game - about seven payouts across the three year ends whatever the head count - so their weight in a winning score is that pot divided by a score that grows with the table. A flat rate therefore collapsed as seats were added: land was 17% of a winning score at two players and 3.5% at six, and at 5 EP the player holding the most ground won BELOW what an indifferent seat would take. Chasing land was a trap. Doubling the rate from four players up fixed that, and bought a cliff with it: 13% of a winning score at three players and 27% at four, which made four seats the most land-heavy game there was - the first count on the doubled pot, with the fewest rivals to split it. Scaling the award with the head count removes the cliff instead of moving it: 22% at two seats, 21% at three, 19% at four, 18% at five, 17% at six, declining smoothly the way it should. Measured against four other schedules on the same seeds, it keeps the land leader at or above the chance line at every count and SETTLES THE GAME LESS than the step did - the halfway leader's win rate falls from 64% to 46% at four seats. Paying a runner-up is worse than paying nobody: half again the EP, and the land leader wins less often. See audit_land_threshold.js." },
     { note: "The awards used to pay 10 and 5 and split between ties, which meant almost everybody collected something and holding land was never really a contest - it was 21% of an average seat's score for very little decision-making. Paying only the leader, and paying badly for a draw, drops it to about 9% and turns it back into a race." },
     { h: "When the game ends" },
-    { p: "The game ends at the close of Quarter 12, OR at the close of the quarter AFTER any player launches their SECOND Megacorp - whichever comes first. The second Megacorp does not end the game; it CALLS the final quarter, and everyone gets that quarter to answer it. If it is launched in Q11 or later the game simply ends at Q12 as usual." },
+    { p: "The game ends at the close of Quarter 8, OR at the close of the quarter AFTER any player launches their SECOND Megacorp - whichever comes first. The second Megacorp does not end the game; it CALLS the final quarter, and everyone gets that quarter to answer it. If it is launched in Q7 or later the game simply ends at Q8 as usual. The three-year variant plays to Quarter 12 the same way." },
     { p: "Most EP wins. If the final scores tie, the player still running more ACTIVE COMPANIES wins - headquarters do not count, because a headquarters has stopped trading. If that is level too, the player with more money; and if they are still tied, the player with fewer loan discs left in the bank." },
     { note: "The second Megacorp is a deadline rather than a shortcut. A player who can assemble two of them has spent the game merging, and the rest of the table would otherwise have four more quarters to be run away from. In practice how often it bites depends entirely on the table: it ends the game early in 10% of two-player games, 1% of three-player, 8% of four-player, 21% of five-player and 36% of six-player ones. At the biggest tables - the ones with the most reason to want a shorter evening - it is doing real work; at three seats the game essentially always runs the full twelve quarters. What it really does is put a clock on the leader\u2019s last merger." },
     { note: "The two dials were set together against 300 games a case. At 3 EP a level, companies were 32% of an average seat's score and everything else faded behind them; at 1 EP an upgrade stopped being worth paying the setup cost twice and upgraded companies fell from 5.1 a game to 3.1, while the 5 EP entry bonus swelled to 27% of a score for a decision that is barely one. Two and three put nothing over a third, and building is still the biggest single thing. Re-measured over 150 games a table size on the rules as they stand - the table-scaled land award and the Megacorp tithe - across every seat: companies and upgrades 38-43%, entering an industry 13-14%, land awards 20% at two seats, 14% at three, 18% at four, 14% at five and 12% at six, forming a Megacorp 7-14%, the brand dividend 5-12%, the tithe about 1-2% each way, cash on hand 11-14%, and unpaid loans about -1%. Land no longer collapses with the head count: it was 6% at six seats before the award scaled. See audit_state_of_play.js." },
@@ -475,11 +505,11 @@ export const RULEBOOK = [
       head: ["Persona", "Power"],
       rows: [
         ["Systems Architect (TE)", "Your Technology companies may upgrade vertically, stacking on one plot instead of needing a free neighbour - or spread as Technology usually does. You choose at each upgrade."],
-        ["Public Health Director (HC)", "Your Healthcare companies may serve any column of a Healthcare row whatever their level - but a unit sold above your company's level pays $1 less than the price."],
-        ["White-Label Supplier (MA)", "When your Manufacturing cross-sells into another industry's row, it may be paid that industry's price instead of its own - whichever is higher."],
+        ["Public Health Director (HC)", "Your Healthcare companies reach every column of a Healthcare row whatever their level - they may count all four icons where a level-1 company counts one."],
+        ["White-Label Supplier (MA)", "Your Manufacturing may be paid the best price among the rows of its own district, its own row included: that price is what its band multiplies."],
         ["Resort Developer (HO)", "Your Hospitality companies may upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them - or stack as Hospitality usually does. You choose at each upgrade."],
-        ["Supply Chain Expert (RE)", "At the start of Production, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline."],
-        ["Concession Holder (UT)", "At the start of Production you may switch your concession on: your Utilities production then sells for $1 above the current price this quarter. Every quarter you sell at that premium, the Utilities price falls one step at the end of the quarter."],
+        ["Supply Chain Expert (RE)", "At the start of Closing, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline."],
+        ["Concession Holder (UT)", "At the start of Closing you may switch your concession on: your Utilities are then paid $1 over the current price this quarter - their band multiplies the higher price. Every quarter you are paid at that premium, the Utilities price falls one step at the end of the quarter."],
       ],
     } },
     { note: "Each persona is a tilt, not a cage. They all deliberately point at doing more of one industry, and the entry bonus deliberately points the other way, so a persona changes your best line without collapsing it to one." },
@@ -492,18 +522,21 @@ export const RULEBOOK = [
   title: "Rule variants (optional)",
   blocks: [
     { p: "Every one of these is off by default, and a table that leaves them alone plays exactly the rules in this book. They can be combined freely." },
-    { p: "The first three read as playing it the older way, because that is what they are: rules that were optional in v12 and became standard in v13. The beginner game is the opposite - not an older version of this game but a shorter way into it, and it has a section of its own below." },
+    { p: "The first six read as playing it the older way, because that is what they are: three rules that were optional in v12 and became standard in v13, and the three rules v23 changed, kept switchable so that v22 and v23 can be played side by side on the same seeds. The beginner game is the opposite - not an older version of this game but a shorter way into it, and it has a section of its own below." },
     { table: {
       head: ["Variant", "What changes"],
       rows: [
         ["Score at the year end", "A company waits for the next year end to take its EP, instead of scoring the moment it is built or upgraded. It still scores once per build or upgrade."],
         ["Ordered decks", "Each industry deck runs level 1 on top down to level 3 at the bottom, instead of being shuffled whole. No level 3 can be drafted, and the early game holds no surprises."],
-        ["Land awards at the end only", "The Real-Estate Mogul and The Omnipresent are paid once, after Quarter 12, instead of at every year end. Land becomes a late-game race rather than something to hold all game."],
+        ["Land awards at the end only", "The Real-Estate Mogul and The Omnipresent are paid once, after the final quarter, instead of at every year end. Land becomes a late-game race rather than something to hold all game."],
+        ["Revenue by the unit", "Every company delivers its printed production one unit an icon and recycles the rest at $1, the way the game sold up to v22, instead of being paid by the band of icons it reaches."],
+        ["Three-year game", "Twelve quarters instead of eight: a third year, with the land awards paid three times and a $40 loan buy-back at the end of it."],
+        ["Rows 3-4 open in Year 2", "Rows 3 and 4 of every district stay closed until Quarter 5, as they did up to v22."],
       ],
     } },
     { p: "Agree which of them are on before the draft. Several change what a Blueprint is worth, so choosing halfway through is not a neutral act.", only: "table" },
     { p: "Whichever are on is shown in the waiting room before the game starts, and recorded with the finished game, so a variant table is never mistaken for a standard one in the records.", only: "digital" },
-    { note: "The three older rules are kept switchable so the two versions can be played side by side, not because they are balanced against the new. Two more were dropped in v20 after twenty-six recorded games in which nobody had switched either on: hubs on the road, which forced every hub rule in the game to answer for two shapes, and levels score heavy, which by its own description pushed land, cash and the entry bonuses into the background." },
+    { note: "The older rules are kept switchable so the versions can be played side by side, not because they are balanced against the new. Two more were dropped in v20 after twenty-six recorded games in which nobody had switched either on: hubs on the road, which forced every hub rule in the game to answer for two shapes, and levels score heavy, which by its own description pushed land, cash and the entry bonuses into the background." },
     { note: "Hubs on plots is a genuine constriction: a quarter of the plots on the board have no orthogonal neighbour at all, so a badly placed hub connects nobody. That is the rule working as intended - it is why the hub picker tells you how many plots a spot would connect before you commit to it - but it is also the rule most likely to need another look after a few tables." },
   ],
 },
@@ -513,13 +546,13 @@ export const RULEBOOK = [
   id: "beginner",
   title: "The beginner game",
   blocks: [
-    { p: "A shorter way in, for a table where somebody has never played. It is two years instead of three, and each track keeps one action instead of two, so there are four things you can do rather than eight. Everything cut is a subsystem that needs a second explanation; nothing cut is the engine of the game." },
-    { p: "What stays is the part worth learning. Your production still sells into the demand icons, your operating costs still flow into the pots of the industries your Blueprint buys from and are split among whoever owns companies there, and every build still pushes its own industry's price down a dollar and each of its suppliers' up one. Your customer is still your competitor." },
+    { p: "A shorter way in, for a table where somebody has never played. It is the same two years as the standard game, but each track keeps one action instead of two, so there are four things you can do rather than eight. Everything cut is a subsystem that needs a second explanation; nothing cut is the engine of the game." },
+    { p: "What stays is the part worth learning. Your companies are still paid by the demand icons they reach, your operating costs still flow into the pots of the industries your Blueprint buys from and are split among whoever owns companies there, and every build still pushes its own industry's price down a dollar and each of its suppliers' up one. Your customer is still your competitor." },
     { table: {
       head: ["", "The full game", "The beginner game"],
       rows: [
         ["Players", "2-6", "2-4"],
-        ["Length", "12 quarters, 3 years", "8 quarters, 2 years"],
+        ["Length", "8 quarters, 2 years (12 with the three-year variant)", "8 quarters, 2 years"],
         ["Raise Capital", "LOAN or SELL", "LOAN"],
         ["M&A", "BUY or LAUNCH", "LAUNCH"],
         ["R&D", "RESEARCH or UPGRADE", "RESEARCH"],
@@ -571,27 +604,27 @@ export const RULEBOOK = [
     { table: {
       head: ["", ""],
       rows: [
-        ["Game length", "12 quarters (3 years of 4), or until someone launches a 2nd Megacorp"],
+        ["Game length", "8 quarters (2 years of 4), or until someone launches a 2nd Megacorp; 12 under the three-year variant"],
         ["Players", "2 to 6"],
         ["Workers", "2 each, or 3 each in a two-player game"],
         ["Discs", "12, covering plots owned + active companies + unpaid loans"],
         ["Company slots", "5, counting Megacorp headquarters"],
         ["Hand limit", "5 Blueprints"],
-        ["Loan", "+$20 and one disc; buy back for $30 / $35 / $40 at year ends; -5 EP if unpaid"],
+        ["Loan", "+$20 and one disc; buy back for $30 / $35 at the year ends ($40 at the third, in the three-year game); -5 EP if unpaid"],
         ["Sell a Blueprint", "$4 / $8 / $12 by level; $2 / $4 / $6 in a forced sale"],
         ["Sell a company", "half its setup, or the full setup if upgraded; halved again in a forced sale"],
         ["Plot value", "road price (1-6) + $3 per structure on it or orthogonally touching (a hub is a structure)"],
         ["Upgrade", "pay the setup cost again; production and OPEX double; level +1"],
         ["Rent", "$2 per company level, to the owners of the plots it stands on"],
-        ["Unsold production", "$1 per unit"],
+        ["Revenue", "the current price x the band your icon count falls in - see the band table; nothing is delivered or recycled"],
         ["Industry pot", "split evenly among that industry's active companies; the remainder rides forward, and a pot with nobody to pay waits in full"],
         ["Renovation", "any card of the shell's level, whatever its industry or shape; the company keeps the shell's footprint"],
         ["Final tie", "most active companies, then most money, then fewest loan discs in the bank"],
-        ["Demand rows 3-4", "closed until Quarter 5"],
-        ["Demand grid", "icons are never used up: one unit a quarter from each company that reaches them, two from Technology"],
+        ["Demand rows 3-4", "open from Quarter 1, like rows 1-2"],
+        ["Demand grid", "icons are never used up: every company that reaches an icon counts it, every quarter"],
         ["Company scoring", "2 EP per level, the moment it is built - and again when it is upgraded"],
         ["Industry debut", "3 EP the first time you build in each industry, banked at once"],
-        ["Land awards", "5 EP to the outright leader in plots, and in districts, at every year end - 10 at 4+ players"],
+        ["Land awards", "4 EP plus the number of players, to the outright leader in plots, and in districts, at every year end"],
         ["Logistic Hub", "one per quarter, on an empty unowned plot; reaches its own district; joins orthogonally"],
       ],
     } },
@@ -648,7 +681,7 @@ export const RULEBOOK = [
       head: ["Term", "Meaning, and use in play"],
       rows: [
         ["Supply chain", "The line of firms each buying from the one before it, all the way to the customer. In the game: printed on every Blueprint. Your OPEX is your place in somebody else's chain."],
-        ["B2B", "Business to business - selling to other firms rather than to the public. In the game: the Revenue step where the industry pots are shared out. That money came from other players' bills, not from the districts."],
+        ["B2B", "Business to business - selling to other firms rather than to the public. In the game: the Closing step where the industry pots are shared out. That money came from other players' bills, not from the districts."],
         ["Industry pot", "A sector's total spend, which the firms in it divide between them. In the game: every company in an industry draws one equal share, whatever its size. Supplying an industry nobody has built in is very lucrative."],
         ["Demand", "What the market will actually buy, at a price, right now. In the game: the coloured squares in each district. Open to everyone, every quarter."],
         ["Vertical integration", "Growing by owning more of your own supply chain - upward, on one site. In the game: how Retail, Hospitality and Healthcare upgrade, stacking the new level on a plot the company already holds."],
@@ -661,8 +694,8 @@ export const RULEBOOK = [
     { table: {
       head: ["Term", "Meaning, and use in play"],
       rows: [
-        ["Fiscal year", "The twelve months a company reports on, which need not match the calendar. In the game: three of them, four quarters each. Accounts are settled at the end of every year."],
-        ["Quarter", "A three-month reporting period; public companies report four times a year. In the game: one round - plan, act, produce, sell, close."],
+        ["Fiscal year", "The twelve months a company reports on, which need not match the calendar. In the game: two of them, four quarters each - three in the three-year game. Accounts are settled at the end of every year."],
+        ["Quarter", "A three-month reporting period; public companies report four times a year. In the game: one round - plan, act, close."],
         ["EP", "Not a real term - the game's own score. Entrepreneurial Points: buildings, industry debuts, Megacorps, land and leftover cash all convert to it."],
       ],
     } },
@@ -682,7 +715,17 @@ export const RULEBOOK = [
   blocks: [
     { p: "THE NUMBER MOVES WHEN A RULE MOVES. An edition is reprinted whenever something changes that would make an older book wrong at the table - not for a clearer sentence, a corrected typo or a new annex on its own. If you are holding an earlier edition, this is what you are missing." },
 
-    { h: "v22 - this edition" },
+    { h: "v23 - this edition" },
+    { ul: [
+      "REVENUE IS PAID BY BAND. A company counts the demand icons of its industry it reaches, reads the band that count falls in on its row of the band table - $, $$ or $$$ - and is paid the current price times that band's number, in one go. Nothing is delivered, nothing is counted unit by unit and nothing is recycled. v22 delivered one unit an icon and recycled the rest at $1; 'Revenue by the unit' still plays it that way.",
+      "THREE PHASES, NOT FIVE. Planning and Action as before; Production, Revenue and Closing are one Closing that settles at once - the bills, every company's band, the pots, the hub - and hands nobody the board.",
+      "THE STANDARD GAME IS TWO YEARS: eight quarters, two year ends, the loan buy-back at $30 and $35. v22 played three; 'Three-year game' plays twelve quarters with a third year end and the $40 buy-back.",
+      "ROWS 3 AND 4 ARE OPEN FROM THE FIRST QUARTER. v22 locked them until Quarter 5; 'Rows 3-4 open in Year 2' locks them again.",
+      "THE PERSONAS ARE READ IN ICONS. The Public Health Director counts every column of a Healthcare row with no discount; the White-Label Supplier's Manufacturing is paid the best price among the rows of its district; the Concession Holder's premium is a dollar on the price its band multiplies.",
+    ] },
+    { note: "Measured over 1000 games at three and at four players, every rule against its revert on the same seeds (audit_v23.js). THE BAND PAYS THE SAME ECONOMY: a company-quarter earns $10.3 / $25.2 / $43.9 at levels 1 to 3 under the band against $9.5 / $24.6 / $43.5 by the unit at three players, the winning score is 48.9 against 48.0, the winner's score is made of the same parts to within a point, and the seats and the industries win in the same proportions - with 25 deliveries a game (37 at four players) replaced by a payout nobody is asked about. TWO YEARS IS THE SAME GAME, SHORTER: against the three-year game the winning score falls from 81 to 49, the lead still changes hands 1.7 times a game and last changes at quarter 4.6 of 8 (6.6 of 12), land is 35% of a winner's score instead of 29% and Megacorps 7% instead of 15%, and a game asks for 46 worker placements instead of 68. ROWS OPEN FROM Q1 lift trade income by 22% (from $499 to $611 a game) and the share of level-1 company-quarters paid in the top band from 30% to 40%. Against v22 as a whole - all three reverts at once - the table makes 46 placements and no deliveries where it made 68 and 45: three decisions in five are gone, and what is left scores the same way." },
+
+    { h: "v22" },
     { ul: [
       "DEMAND IS NOT USED UP. An icon absorbs one unit a quarter from every company that reaches it (two from Technology) and is open again next quarter; nothing is tracked on the grid, nothing is wiped at Quarter 8, and nobody races anybody for an icon. v21 had an icon absorb its own column once, first come first served, and the table had already stopped playing it that way.",
       "A POT WITH NOBODY TO PAY WAITS, as it did under v20. v21 wrote it off; the carry is back by choice, and the prize it hands the late entrant is measured in the B2B note.",
@@ -767,9 +810,9 @@ export const RULEBOOK = [
     { p: "Twelve of the first sixteen rows are drawn freely, so a game can run short of a whole family - one Residential district, or no Academic at all - and that reshapes which industries are worth entering before a single card is played." },
 
     { h: "What demand is printed on each district" },
-    { p: "Every district carries a 4x4 grid: four ROWS, one industry each, and four COLUMNS of rising value. Rows 1 and 2 are open from the start; ROWS 3 AND 4 OPEN AT QUARTER 5, when Year 2 begins. The first row of a district and its last row are ALWAYS THE SAME INDUSTRY, so whatever opens a district also closes it." },
+    { p: "Every district carries a 4x4 grid: four ROWS, one industry each, and four COLUMNS of rising value. ALL FOUR ROWS ARE OPEN FROM THE FIRST QUARTER. The first row of a district and its last row are ALWAYS THE SAME INDUSTRY, so the industry that opens a district also closes it - and a company of that industry counts two icons a column there." },
     { table: {
-      head: ["District", "Row 1", "Row 2", "Row 3 (Y2)", "Row 4 (Y2)"],
+      head: ["District", "Row 1", "Row 2", "Row 3", "Row 4"],
       rows: [
         ["Residential", "UT", "RE", "TE", "UT"],
         ["Commercial", "HO", "MA", "HC", "HO"],
@@ -783,7 +826,7 @@ export const RULEBOOK = [
     } },
     { p: "Across a whole board that gives each industry the same breadth and slightly different depth - every industry appears in exactly eight districts, and Utilities and Hospitality carry twelve rows each against ten for the rest." },
     { table: {
-      head: ["Industry", "Rows on the board", "Districts it appears in", "Rows open in Year 1", "Rows opening in Year 2"],
+      head: ["Industry", "Rows on the board", "Districts it appears in", "In rows 1-2", "In rows 3-4"],
       rows: [
         ["Utilities", "12", "8", "7", "5"],
         ["Retail", "10", "8", "6", "4"],
@@ -793,7 +836,7 @@ export const RULEBOOK = [
         ["Technology", "10", "8", "4", "6"],
       ],
     } },
-    { note: "Equal spread at 8 and a deliberate year tilt: Manufacturing and Utilities are early industries, Healthcare and Technology late ones, and Hospitality is the only one that is flat across both years. The spread being equal six ways is what stops the demand table carrying any of the industry balance - whatever is left over is on the cards, where it can be read. Retail and Manufacturing are the only industries printed on NO centre district, so their demand swings with the draw more than anyone else's; Healthcare, on all four centres, swings least." },
+    { note: "Equal spread at 8. The deliberate year tilt the rows carried up to v22 - Manufacturing and Utilities early, Healthcare and Technology late - went with the Year 2 lock: every row is open from the first quarter, and the table is kept as printed because the first and last rows still pair. The spread being equal six ways is what stops the demand table carrying any of the industry balance - whatever is left over is on the cards, where it can be read. Retail and Manufacturing are the only industries printed on NO centre district, so their demand swings with the draw more than anyone else's; Healthcare, on all four centres, swings least." },
 
     { h: "Discs, money and the loan" },
     { table: {
@@ -821,9 +864,9 @@ export const RULEBOOK = [
     { p: "Each industry buys from three others and is named as a supplier by three others, so the money cannot pool in one corner of the loop: fourteen of the eighteen links run both ways." },
 
     { h: "What a company is worth at each level" },
-    { p: "Setup is paid to build and again to upgrade. OPEX is charged every quarter - $2 a level of it is ground rent, the rest is the supplier bill. Production is units a quarter. Growing a company adds a level and DOUBLES both its OPEX and its production." },
+    { p: "Setup is paid to build and again to upgrade. OPEX is charged every quarter - $2 a level of it is ground rent, the rest is the supplier bill. Production is the company's size: under the standard rules it is not sold unit by unit, and the top band of the band table begins at about that many icons, never above it. Growing a company adds a level and DOUBLES both its OPEX and its production." },
     { table: {
-      head: ["Industry", "Level 1", "Level 2", "Level 3", "Quarters to pay back at base price"],
+      head: ["Industry", "Level 1", "Level 2", "Level 3", "Quarters to pay back at base price, by the unit"],
       rows: [
         ["Utilities", "15 / 6 / 3", "20 / 11 / 6", "30 / 15 / 12", "2.50"],
         ["Retail", "15 / 10 / 4", "25 / 18 / 8", "40 / 28 / 16", "2.50"],
@@ -833,19 +876,19 @@ export const RULEBOOK = [
         ["Technology", "10 / 8 / 2", "15 / 13 / 4", "25 / 21 / 8", "2.50"],
       ],
     } },
-    { p: "Entry is paired - Hospitality and Technology at $10, Utilities and Retail at $15, Manufacturing and Healthcare at $20 - and five of the six pay back in the same 2.50 quarters at their base price. What differs is HOW FAR THE PRICE CAN FALL before a company stops making money." },
+    { p: "Entry is paired - Hospitality and Technology at $10, Utilities and Retail at $15, Manufacturing and Healthcare at $20 - and what differs is WHICH BAND A COMPANY NEEDS before it clears its bills. At base price a level-1 Manufacturing company is in profit from its bottom band, Healthcare and Technology from the middle one, and Utilities, Retail and Hospitality only at the top." },
     { table: {
-      head: ["Industry", "Profit at base price", "At base -$1", "At base -$2", "Dollars of price it can lose"],
+      head: ["Industry at level 1, base price", "Bottom band $", "Middle band $$", "Top band $$$", "Clears its bills from"],
       rows: [
-        ["Retail", "$6", "$2", "-$2", "1.5"],
-        ["Utilities", "$6", "$3", "$0", "2.0"],
-        ["Hospitality", "$4", "$2", "$0", "2.0"],
-        ["Technology", "$4", "$2", "$0", "2.0"],
-        ["Healthcare", "$8", "$5", "$2", "2.67"],
-        ["Manufacturing", "$12", "$8", "$4", "3.0"],
+        ["Manufacturing", "+$2", "+$7", "+$12", "$"],
+        ["Healthcare", "-$4", "+$2", "+$8", "$$"],
+        ["Technology", "-$2", "+$4", "+$4", "$$"],
+        ["Utilities", "-$2", "-$2", "+$2", "$$$"],
+        ["Retail", "-$6", "-$2", "+$6", "$$$"],
+        ["Hospitality", "-$1", "-$1", "+$4", "$$$"],
       ],
     } },
-    { note: "That is the whole industry character in one table. Retail turns the most goods and dies first when its market sours; Manufacturing costs the most to enter and can ride all the way to the floor. Payback and headroom are not independent - headroom is profit divided by production, and payback is setup divided by profit - so level payback with graded headroom is only possible when setup rises with production times headroom, which is what the pairing above does." },
+    { note: "That is the whole industry character in one table. Manufacturing costs the most to enter and earns from its first icon; Retail turns over the most and is the one that cannot live on a quiet district - a level-1 chain in a district with two Retail rows counts two icons, which is its middle band, and still loses $2 a quarter at the base price until the price moves or the chain opens a branch. The bands were cut from a thousand measured games of the unit rule, so the economy they pay is the one the cards were tuned for; what moved is where the money is read: from the production printed on the card to the demand standing around it." },
     { note: "WHERE THIS LEAVES THE GAME, measured over 1500 games a table size with a disjoint block of the same rules as the control. At three players the three vertical industries took 90.9% of games before this rebalance and now take about 69.5%; the most-dominant industry is down from 43.6% to 34.8% and the quietest up from 1.9% to 9.1%, so nothing sits below one game in ten any more. The worst an industry is missing from a board is 23.9% of games, against 35.1%. Payback spread is 1.50x against 3.14x, and the supply loop runs 1.68x against 3.46x. Three changes did that and none of them is worth much alone: the land awards paying for built ground is worth 8.8 points of the industry split, the branch rule 1.8, and together they are worth 15.4 - they compound because built ground is what makes a branch worth having and the branch rule is what stops the industry that gains most from running away with it. Rounding Retail and Technology's upgrade ladders onto the deck's multiple of five, which was meant as a tidy-up, turned out to be worth a further point and a half, because the two cards needing it sat at opposite ends of the table. ONE STRUCTURE IS LEFT AND THE CARDS CANNOT REACH IT: the horizontal industries do best at two players and worst at six, 31.1% of games against 22.6%, because the land awards that pay them back are 37% of a winning score at two seats and 22% at six. It is monotonic, it is measured, and it is about half the size it used to be. See audit_setup.js --tails." },
   ],
 },
@@ -854,7 +897,7 @@ export const RULEBOOK = [
   id: "blueprints",
   title: "Annex: the sixty Blueprints",
   blocks: [
-    { p: "Every card in the game, by industry. SETUP is what it costs to build, and again to upgrade. OPEX is the running cost printed on the card: $2 a level of it is ground rent to whoever owns the ground, and the rest is the supplier bill, divided between the suppliers in proportion to the shares below. PRODUCTION is how many units it makes each quarter, and it doubles on upgrade along with OPEX." },
+    { p: "Every card in the game, by industry. SETUP is what it costs to build, and again to upgrade. OPEX is the running cost printed on the card: $2 a level of it is ground rent to whoever owns the ground, and the rest is the supplier bill, divided between the suppliers in proportion to the shares below. PRODUCTION is the company's size - how many units it would make a quarter under 'Revenue by the unit', and about the icon count at which its top band begins - and it doubles on upgrade along with OPEX." },
     { note: "This annex is written out of the card data itself and checked against it cell by cell in check_rulebook.mjs, so a card cannot be retuned without the book following. It is the one part of the book nobody should ever edit by hand." },
 
     { h: "Utilities (UT) - base price $4, upgrades horizontal" },
