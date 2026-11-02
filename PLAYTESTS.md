@@ -29,20 +29,27 @@ with a translation beside them.
 | Chris | v21 | 19/10/26 | 90 min (1 year) | 4 | 3 | 3 | 4 | 4 |
 | Fábio "Zanin" | v21 | 25/10/26 | 300 min (2.5 years) | 5 | 3 | 4 | 5 | 5 |
 | Abner Judson | v21 | 25/10/26 | 300 min (2.5 years) | 5 | 4 | 4 | 5 | 3 |
+| Diovany | v22 | 01/11/26 | 5h (2 years) | 5 | 3 | 4 | 5 | 5 |
+| H.P. `[?]` | v22 | 01/11/26 | 5h (2 years) | 4 | 2 | 4 | 4 | 4 |
 
-**Means across twelve players:** Enjoyment 3.8 · Clarity 3.3 · Strategic depth
-4.3 · Theme immersion 4.3.
+Fábio "Zanin" played the 01/11/26 table too, his second game, and wrote his v22
+notes on the back of his 25/10 form instead of scoring again; they are under
+that date below.
 
-**And the v21 cut matters more than the pooled one**, because v1.0 and v2.0 are
-a different game. Across the five v21 forms: Enjoyment 4.2 · Clarity 3.6 ·
-Depth 4.2 · Theme 3.8. Against the seven earlier forms — Enjoyment 3.6,
-Clarity 3.1, Depth 4.4, Theme 4.7 — that is **clarity up a full half-point and
-theme down almost a point**, and both movements have named causes below. The
-enjoyment rise is real but the sample is five.
+**Means across fourteen players:** Enjoyment 3.9 · Clarity 3.4 · Strategic depth
+4.4 · Theme immersion 4.4.
 
-Two things to keep in view when reading the v21 numbers: three of those five
-tables did not finish (2.5 years of 3, and two one-year games), and the two
-lowest theme scores both come with a reason written next to them.
+**And the current cut matters more than the pooled one**, because v1.0 and v2.0
+are a different game. Across the seven v21 and v22 forms: Enjoyment 4.3 ·
+Clarity 3.7 · Depth 4.3 · Theme 4.0. Against the seven earlier forms —
+Enjoyment 3.6, Clarity 3.1, Depth 4.4, Theme 4.7 — that is **clarity up six
+tenths and theme down seven**, and both movements have named causes below. The
+two v22 forms are what pulled theme back from 3.8: a 5 and a 4, with no flavour
+text added yet. The enjoyment rise is real but the sample is seven.
+
+Two things to keep in view when reading the current numbers: four of those seven
+tables did not finish (2.5 years of 3, two one-year games, and a two-year game),
+and the two lowest theme scores both come with a reason written next to them.
 
 ---
 
@@ -107,6 +114,49 @@ Continued on the back of the sheet, under "beginners game suggestions":
 - **The goal, in his words:** "To grow and expand across different industries + districts to gain as many points through sales + cross business developments. This is worked through different Phases in a 'business' year of 4 quarters."
 - **Magic wand:** "The business plans to know more of each bp. and its benefit v/s not understand which direction to go in — and to build."
 - **Play again:** "Yes. Having played it once and understanding the rules more it would be good to play again. Then also to try and use more learnings to play different ways."
+
+---
+
+## 01/11/26 — the first v22 table, two years in five hours
+
+Three players: Diovany, a player who signed the form with a monogram read here
+as H.P., and Fábio "Zanin" on his second game. Eight quarters in five hours, by
+the top of Zanin's notes ("2 anos 5h") and H.P.'s own playtime; Diovany left the
+playtime blank. The first table on v22: demand as a rate with nothing placed on
+the icons, $100 an EP, Retail chains of L shopfronts, any-shape renovation. Two
+photographs of the final board show a dense city — towers four to six blocks
+high beside horizontal spreads across several districts — and what appear to be
+the Megacorp tiles still laid out beside the board, so no merger seems to have
+happened in the two years. Money at this table is grey, black and natural-wood
+cubes, which is what H.P.'s comment on colouring the money refers to.
+
+### Diovany — v22, 5h
+
+- **Most satisfying:** "A dinâmica de flutuação de custo e recebimentos é top." — *the dynamic of costs and receipts moving around is great*
+- **Frustrated/confused:** "Não conseguir demolir edificações" — *not being able to demolish buildings*
+- **Over/underpowered:** "Talvez diluir a pontuação dos distritos e prédios construídos do fim dos anos em progressão, e não 6 pontos/ano." — *maybe spread the year-end scoring for districts and built plots over a progression, instead of 6 points a year* (at three seats the award is 7 EP; he wrote 6)
+- **The goal, in his words:** "Boa gestão de capital atentado-se à valorização dos recursos" — *good capital management, keeping an eye on how resources gain value*
+- **Magic wand:** "Alguma mecânica mais simples de recuperar discos" — *some simpler mechanic for getting discs back*
+- **Play again:** "Pra caralho" — *hell yes*
+
+### H.P. `[?]` — v22, 5h
+
+The name is a signed monogram; H.P. is a reading, not a certainty.
+
+- **Most satisfying:** "O jogo nunca é igual 2x. O mercado sempre muda e é preciso se adaptar" — *the game is never the same twice. The market always changes and you have to adapt*
+- **Frustrated/confused:** "A matemática fica muito pesada. A coloração do $ ajudaria." — *the maths gets very heavy. Colouring the money would help.*
+- **Over/underpowered:** left blank
+- **The goal, in their words:** "Superar a estratégia do adversário e se adaptar ao mercado" — *beat the opponent's strategy and adapt to the market*
+- **Magic wand:** left blank
+- **Play again:** "Yes!"
+- **On the back of the sheet:** "As cartas tem mtas informações → Se ao lado do level da carta vier o msm símbolo de stack ↕ ou spread ↔ vai facilitar o entendimento." — *the cards carry a lot of information → if the same stack ↕ or spread ↔ symbol came beside the card's level, it would make it easier to understand*
+
+### Fábio "Zanin" — second game, v22 notes on the back of his 25/10 form
+
+- "2 anos 5h" at the top — *2 years, 5h*
+- "V22 - Categorias deveriam pontos no final do jogo (ex) quem reciclou mais..." — *v22: categories should score points at the end of the game, e.g. whoever recycled the most...*
+- "Hub deveria ser como uma carta. Guardar para usar quando quiser gastando uma ação" — *the hub should be like a card. Keep it to use when you want, spending an action*
+- "Ainda acho que pontuação de plot e distritos muito forte." — *I still think the plot and district scoring is too strong.*
 
 ---
 
@@ -225,3 +275,67 @@ flagged the same card without conferring.
 card that alters the market is close to the **Events** expansion already drafted
 on the sell sheet. Arthur's "game was bit too long" is about a 300-minute
 2.5-year table, which is the honest number to compare against the box's 120–180.
+
+**The land awards, for the third time, now from two players at one table.**
+Zanin's "ainda acho... muito forte" after a second game, and Diovany's proposal
+to spread the award over a progression rather than a flat sum at every year end.
+Measured on v22 over 250 games a table size, the two awards are 29% of the
+winner's score at three seats and 25% at four — the largest bucket after
+companies — and they go to the leader alone, which lands them on the player who
+is already ahead: the halfway leader now converts 59% at three seats where the
+runaway audit's earlier note read 50%. The per-built-plot arm of
+`audit_land_awards.js` (1 EP per built plot and per district, every year end)
+was measured at 200 games: it halves the winner's land edge over the table and
+narrows the margin over second by about 3 EP, with land staying near a fifth of
+the score. Diovany's progression — small in Year 1, larger later — is a
+different arm, not yet measured; it would also soften the first-year compounding
+the seat audit found. Either is a one-line splice.
+
+**Demolition and disc recovery are one request.** Diovany could not demolish a
+building and wants a simpler way to get discs back. There is no demolish
+action: a building leaves the board only by being sold, which sends it to the
+bank as a Distressed Asset, or merged. Twelve discs are the whole footprint, and
+the state-of-play audit finds 20–32% of seats ending the game with no free disc.
+A DEMOLISH action — take your own building down, keep the plot, take the disc
+back, no refund — would answer both complaints with one rule. The bots would
+have to learn it before it can be measured.
+
+**The hub as a card.** Zanin wants each quarter's Logistic Hub held like a card
+and placed by spending an action, instead of placed by the first player at
+closing. Measured, the placement privilege is nearly worthless to its holder —
+the first-player audit has the seat that held it most winning 34.0% against a
+33.3% baseline — so this is a change about agency rather than balance; it adds
+an action to a track and a decision to every quarter. Noted, not measured.
+
+**End-game category awards.** Zanin's "quem reciclou mais" asks for awards by
+category at the end. Under v22 recycling is the smallest it has been — 30% of
+production, from 55–66% before the rate rule — so "most recycled" would reward
+the thing the economy now punishes least. The shape of the idea, awards for
+things other than land, overlaps the industry-debut bonus already paid at every
+first build. Not measured.
+
+**The arithmetic, again, and the money.** H.P.'s "a matemática fica muito pesada"
+is the fourth form to name the revenue arithmetic, after Tiago, Abner and Chris.
+The ranged payout table drafted against the shipped economy is the answer being
+measured: price times a band of reach, no units counted and nothing recycled at
+the table. Colouring the money by denomination is a component fix with no rules
+cost.
+
+**A symbol for how a company grows.** The back of H.P.'s form asks for a stack
+↕ or spread ↔ glyph beside the level on every Blueprint. Growth direction is
+fixed per industry — three vertical, three horizontal — so it is one glyph per
+card, the cheapest clarity fix on the list, and it belongs with the flavour-text
+item above.
+
+**Two years took five hours.** Eight quarters in 300 minutes is 37 minutes a
+quarter at three seats, slower than the 30 of the 2.5-year tables, with one
+returning player. H.P. gave length a 2 and Diovany a 3. The pace items stand:
+the ranged payout, simultaneous revenue as the default wording rather than an
+option, and a two-year standard game — which this table effectively played.
+
+**What held up.** Both new forms name the market as the best part, in different
+words — "a dinâmica de flutuação de custo e recebimentos é top", "o mercado
+sempre muda e é preciso se adaptar" — which is the one idea the game is built
+on. Clarity 4 and 4 from a v22 table with newcomers is the best pair the form
+has recorded, and theme recovers to 4.0 in the current cut with no flavour text
+added yet.

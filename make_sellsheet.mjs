@@ -186,7 +186,7 @@ const QUOTES = [
   ["“Sim. Eu super compraria esse jogo!”", "Fábio Zanin", "“Yes. I would totally buy this game!”"],
   ["“…a game that may require a few plays to ‘get’, and that’s okay.”", "Michael Boggs"],
 ];
-const QUOTE_SOURCE = "Twelve handwritten forms after physical sessions  ·  strategic depth 4.3/5, theme immersion 4.3/5, rules clarity 3.3/5 — clarity was 3.1 before the teaching script and the beginner game, and is 3.6 on the forms from the current version";
+const QUOTE_SOURCE = "Fourteen handwritten forms after physical sessions  ·  strategic depth 4.4/5, theme immersion 4.4/5, rules clarity 3.4/5 — clarity was 3.1 before the teaching script and the beginner game, and is 3.7 on the forms from the current version";
 
 /* The name sits on the same line as the words, in smaller muted type. Four
    quotes with four attribution lines under them would be eight paragraphs for
