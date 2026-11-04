@@ -211,9 +211,9 @@ summary.
 The supply web, read off the real cards:
 
 ```
-UT buys from  HO, TE, HC        RE buys from  TE, HO, MA
-HO buys from  MA, HC, RE        MA buys from  HC, RE, UT
-HC buys from  RE, UT, TE        TE buys from  UT, MA, HO
+UT buys from  MA, HC, TE        RE buys from  UT, HO, TE
+HO buys from  RE, MA, HC        MA buys from  UT, HO, TE
+HC buys from  UT, RE, HO        TE buys from  RE, MA, HC
 ```
 
 Every industry buys from exactly three others and sells to exactly three others —
@@ -245,79 +245,79 @@ strong typographic or geometric treatment instead of a placeholder image.
 
 ## Appendix — the 60 Blueprints
 
-Format: `Name · setup / production / OPEX · suppliers`
+Format: `Name · setup / production / OPEX · suppliers (share of the bill)`. Production is the company's size: under v23 it is sold only under the "Revenue by the unit" variant, and the top band begins at about that many icons.
 
 **Utilities** (base $4, Horizontal)
-- L1 Solar Field I · 15/4/4 · HO
-- L1 Hydro-Farm Initiative I · 15/4/4 · HO
-- L1 Wind Farm I · 15/4/4 · TE
-- L1 Biomass Plant I · 15/4/4 · TE
-- L1 Tidal Generator I · 15/4/4 · HC
-- L2 Fusion Conduit Hub II · 20/8/7 · HO, TE
-- L2 Smart Grid Node II · 20/8/7 · HO, HC
-- L2 Oceanic Turbine II · 20/8/7 · TE, HC
-- L3 Geothermal Supernode III · 30/16/10 · HO, TE, HC
-- L3 Antimatter Reactor III · 30/16/10 · HO, TE, HC
+- L1 Solar Field I · 15/3/6 · TE 6
+- L1 Hydro-Farm Initiative I · 15/3/6 · TE 6
+- L1 Wind Farm I · 15/3/6 · HC 6
+- L1 Biomass Plant I · 15/3/6 · HC 6
+- L1 Tidal Generator I · 15/3/6 · MA 6
+- L2 Fusion Conduit Hub II · 20/6/11 · TE 6, HC 5
+- L2 Smart Grid Node II · 20/6/11 · TE 6, MA 5
+- L2 Oceanic Turbine II · 20/6/11 · HC 6, MA 5
+- L3 Geothermal Supernode III · 30/12/15 · TE 6, HC 5, MA 4
+- L3 Antimatter Reactor III · 30/12/15 · TE 6, HC 5, MA 4
 
 **Retail** (base $4, Vertical)
-- L1 Corner Store I · 10/4/5 · TE
-- L1 Pop-Up Kiosk I · 10/4/5 · TE
-- L1 Local Market I · 10/4/5 · HO
-- L1 Strip Mall I · 10/4/5 · HO
-- L1 Vending Network I · 10/4/5 · MA
-- L2 Supermarket II · 15/8/9 · TE, HO
-- L2 Department Store II · 15/8/9 · TE, MA
-- L2 Outlet Center II · 15/8/9 · HO, MA
-- L3 Mega-Mall III · 25/16/14 · TE, HO, MA
-- L3 Omni-Channel Hub III · 25/16/14 · TE, HO, MA
+- L1 Corner Store I · 15/4/10 · UT 10
+- L1 Pop-Up Kiosk I · 15/4/10 · UT 10
+- L1 Local Market I · 15/4/10 · HO 10
+- L1 Strip Mall I · 15/4/10 · HO 10
+- L1 Vending Network I · 15/4/10 · TE 10
+- L2 Supermarket II · 25/8/18 · UT 10, HO 8
+- L2 Department Store II · 25/8/18 · UT 10, TE 8
+- L2 Outlet Center II · 25/8/18 · HO 10, TE 8
+- L3 Mega-Mall III · 40/16/28 · UT 12, HO 8, TE 8
+- L3 Omni-Channel Hub III · 40/16/28 · UT 12, HO 8, TE 8
 
 **Hospitality** (base $5, Vertical)
-- L1 Motel I · 10/3/6 · MA
-- L1 Bed & Breakfast I · 10/3/6 · MA
-- L1 Transit Hostel I · 10/3/6 · HC
-- L1 Roadside Inn I · 10/3/6 · HC
-- L1 Capsule Hotel I · 10/3/6 · RE
-- L2 Business Hotel II · 15/6/10 · MA, HC
-- L2 Resort Lodge II · 15/6/10 · MA, RE
-- L2 Boutique Hotel II · 15/6/10 · HC, RE
-- L3 Luxury Casino III · 25/12/16 · MA, HC, RE
-- L3 Orbit Resort III · 25/12/16 · MA, HC, RE
+- L1 Motel I · 10/2/6 · HC 6
+- L1 Bed & Breakfast I · 10/2/6 · HC 6
+- L1 Transit Hostel I · 10/2/6 · MA 6
+- L1 Roadside Inn I · 10/2/6 · MA 6
+- L1 Capsule Hotel I · 10/2/6 · RE 6
+- L2 Business Hotel II · 15/4/10 · HC 6, MA 4
+- L2 Resort Lodge II · 15/4/10 · HC 6, RE 4
+- L2 Boutique Hotel II · 15/4/10 · MA 6, RE 4
+- L3 Luxury Casino III · 25/8/16 · HC 6, MA 5, RE 5
+- L3 Orbit Resort III · 25/8/16 · HC 6, MA 5, RE 5
 
 **Manufacturing** (base $5, Horizontal)
-- L1 Assembly Workshop I · 20/3/4 · HC
-- L1 Parts Fabricator I · 20/3/4 · HC
-- L1 Textile Mill I · 20/3/4 · RE
-- L1 Canning Facility I · 20/3/4 · RE
-- L1 Injection Molder I · 20/3/4 · UT
-- L2 Auto Plant II · 35/6/7 · HC, RE
-- L2 Microchip Foundry II · 35/6/7 · HC, UT
-- L2 Chemical Plant II · 35/6/7 · RE, UT
-- L3 Heavy Robotics III · 60/12/10 · HC, RE, UT
-- L3 Orbital Shipyard III · 60/12/10 · HC, RE, UT
+- L1 Assembly Workshop I · 20/4/8 · HO 8
+- L1 Parts Fabricator I · 20/4/8 · HO 8
+- L1 Textile Mill I · 20/4/8 · TE 8
+- L1 Canning Facility I · 20/4/8 · TE 8
+- L1 Injection Molder I · 20/4/8 · UT 8
+- L2 Auto Plant II · 35/8/14 · HO 8, TE 6
+- L2 Microchip Foundry II · 35/8/14 · HO 8, UT 6
+- L2 Chemical Plant II · 35/8/14 · TE 8, UT 6
+- L3 Heavy Robotics III · 60/16/20 · HO 8, TE 6, UT 6
+- L3 Orbital Shipyard III · 60/16/20 · HO 8, TE 6, UT 6
 
 **Healthcare** (base $6, Vertical)
-- L1 Urgent Care Clinic I · 20/2/5 · RE
-- L1 Pharmacy I · 20/2/5 · RE
-- L1 Dental Office I · 20/2/5 · UT
-- L1 Wellness Center I · 20/2/5 · UT
-- L1 Physical Therapy I · 20/2/5 · TE
-- L2 General Hospital II · 35/4/9 · RE, UT
-- L2 Trauma Center II · 35/4/9 · RE, TE
-- L2 Specialized Clinic II · 35/4/9 · UT, TE
-- L3 Biotech Campus III · 60/8/14 · RE, UT, TE
-- L3 Cybernetics Inst. III · 60/8/14 · RE, UT, TE
+- L1 Urgent Care Clinic I · 20/3/10 · RE 10
+- L1 Pharmacy I · 20/3/10 · RE 10
+- L1 Dental Office I · 20/3/10 · UT 10
+- L1 Wellness Center I · 20/3/10 · UT 10
+- L1 Physical Therapy I · 20/3/10 · HO 10
+- L2 General Hospital II · 35/6/18 · RE 10, UT 8
+- L2 Trauma Center II · 35/6/18 · RE 10, HO 8
+- L2 Specialized Clinic II · 35/6/18 · UT 10, HO 8
+- L3 Biotech Campus III · 60/12/28 · RE 12, UT 8, HO 8
+- L3 Cybernetics Inst. III · 60/12/28 · RE 12, UT 8, HO 8
 
 **Technology** (base $6, Horizontal)
-- L1 App Startup I · 15/2/6 · UT
-- L1 Data Center I · 15/2/6 · UT
-- L1 Server Farm I · 15/2/6 · MA
-- L1 IT Support Firm I · 15/2/6 · MA
-- L1 Cloud Provider I · 15/2/6 · HO
-- L2 Software Campus II · 25/4/10 · UT, MA
-- L2 Network Hub II · 25/4/10 · UT, HO
-- L2 Telecom Provider II · 25/4/10 · MA, HO
-- L3 Sentient AI Cluster III · 40/8/16 · UT, MA, HO
-- L3 Quantum Computing III · 40/8/16 · UT, MA, HO
+- L1 App Startup I · 10/2/8 · MA 8
+- L1 Data Center I · 10/2/8 · MA 8
+- L1 Server Farm I · 10/2/8 · RE 8
+- L1 IT Support Firm I · 10/2/8 · RE 8
+- L1 Cloud Provider I · 10/2/8 · HC 8
+- L2 Software Campus II · 15/4/13 · MA 8, RE 5
+- L2 Network Hub II · 15/4/13 · MA 8, HC 5
+- L2 Telecom Provider II · 15/4/13 · RE 8, HC 5
+- L3 Sentient AI Cluster III · 25/8/21 · MA 8, RE 7, HC 6
+- L3 Quantum Computing III · 25/8/21 · MA 8, RE 7, HC 6
 
 ## Starting capital and draft
 
