@@ -10,7 +10,7 @@ vm.runInContext(src.slice(0, cut).replace(/^\s*(import|export)\s.*$/gm, "") + `b
   initGame,mulberry32,botChoosePlanningTrack,placeMeeple,consumePlanningTurn,buildResolutionQueue,
   botResolveOneAction,runProduction,runBotRevenue,runB2B,runClosingRest,placeNewLH,finalizeGame,
   activeBiz,bizInd,INDUSTRIES,makeTracks,canLaunchMore,discsFree,safeToSpend,pickLaunchCandidate,eligibleSlotsFor,exchangeRate,bizProd,plotHasLH,
-  missingIndustries,plotValue,SCALING,committedOpex,bestMegacorpMatch,megacorpWorthIt,epTotal,
+  missingIndustries,plotValue,SCALING,committedOpex,cardRunningCost,bestMegacorpMatch,megacorpWorthIt,epTotal,
   bizSetup,upgradeBlockedReason,price,plotCount,districtCount,BP_DATA};`, sb);
 const E = sb.box.exports;
 
@@ -24,7 +24,9 @@ function diagnose(st, p) {
   if (E.discsFree(st, p) <= 0) return "no free discs";
   const affordableRaw = p.hand.filter((bp) => p.cash >= bp.setup);
   if (!affordableRaw.length) return "cannot afford any card in hand";
-  const affordableSafe = p.hand.filter((bp) => E.safeToSpend(p, bp.setup, bp.opex));
+  /* The bot's own test, with the bill the game in play would charge: the printed OPEX,
+     or the round supplier amounts of the trial rules. */
+  const affordableSafe = p.hand.filter((bp) => E.safeToSpend(p, bp.setup, E.cardRunningCost(st, bp), 0.4, st));
   if (!affordableSafe.length) return "blocked by OPEX safety buffer";
   const owned = Object.entries(st.board.owner).filter(([k, v]) => v === p.id && !(k in st.board.occupiedBy)).map(([k]) => k);
   const need = Math.min(...affordableSafe.map((bp) => (E.SCALING[bp.ind] === "H" ? bp.lvl : 1)));

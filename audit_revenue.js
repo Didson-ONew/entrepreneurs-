@@ -316,7 +316,14 @@ if (!ARMS.length) ARMS = ["current", "band"];
 const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
 const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
 if (CUT < 0) { console.error("the engine marker moved - update this probe"); process.exit(2); }
-const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
+/* THE PRINTED ECONOMY, PINNED. Every arm here is a way of paying revenue against the
+   OPEX and the $2 rent the rulebook prints, and the ranged table it drafted is where the
+   trial rules' tiers came from. The engine now plays those trial rules unless told
+   otherwise, so the probe switches them off at the source rather than through a variant:
+   what it measured is then what it still measures. */
+const TRIAL_ON = 'const trialOn = (state) => !hasVariant(state, "printedV23") && !hasVariant(state, "unitRevenue");';
+if (!SRC.includes(TRIAL_ON)) { console.error("the engine changed shape around the trial switch - update this probe"); process.exit(2); }
+const BASE = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "").replace(TRIAL_ON, "const trialOn = (state) => false;");
 
 /* Every splice is on an exact line, and a line that has moved stops the probe. */
 const need = (src, s, what) => { if (!src.includes(s)) { console.error(`the engine changed shape around ${what} - update this probe`); process.exit(2); } };
@@ -331,9 +338,9 @@ const N = {
   deliverHead: "  let remaining = bizProd(biz);\n  let crossAllowance = bizInd(biz) === \"MA\" ? biz.level : 0;\n  let earned = 0;",
   deliverTail: "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;\n}",
   cardValue: "  let perQuarter = (bandTake === null ? sellable * px + waste * 1 : bandTake) - effOpex;",
-  upNow: "  const nowUnits = Math.min(bizProd(b), sellableForBiz(state, p, b));\n  const nowNet = (unitRevenueOn(state) ? nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1 : bandRevenue(state, p, b).revenue)\n    - bizOpex(b) - RENT_PER_LEVEL * b.level;",
-  upGrown: "  const grownUnits = Math.min(grownProd, sellableForBiz(state, p, grown));\n  const grownNet = (unitRevenueOn(state) ? grownUnits * px + Math.max(0, grownProd - grownUnits) * 1 : bandRevenue(state, p, grown).revenue)\n    - bizOpex(grown) - 3 * grown.level;",
-  mcTrade: "    const units = Math.min(bizProd(b), sellableForBiz(state, p, b));\n    const trade = (unitRevenueOn(state) ? units * price(state.pm, bizInd(b)) + Math.max(0, bizProd(b) - units) * 1 : bandRevenue(state, p, b).revenue)\n      - bizOpex(b) - RENT_PER_LEVEL * b.level;",
+  upNow: "  const nowUnits = Math.min(bizProd(b), sellableForBiz(state, p, b));\n  const nowNet = (unitRevenueOn(state) ? nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1 : bandRevenue(state, p, b).revenue)\n    - bizRunningCost(state, p, b);",
+  upGrown: "  const grownUnits = Math.min(grownProd, sellableForBiz(state, p, grown));\n  const grownNet = (unitRevenueOn(state) ? grownUnits * px + Math.max(0, grownProd - grownUnits) * 1 : bandRevenue(state, p, grown).revenue)\n    - (trialOn(state) ? bizRunningCost(state, p, { ...grown, levels: null }) : bizOpex(grown) + 3 * grown.level);",
+  mcTrade: "    const units = Math.min(bizProd(b), sellableForBiz(state, p, b));\n    const trade = (unitRevenueOn(state) ? units * price(state.pm, bizInd(b)) + Math.max(0, bizProd(b) - units) * 1 : bandRevenue(state, p, b).revenue)\n      - bizRunningCost(state, p, b);",
   land: "    addEP(p, share, label, state.quarter);",
 };
 /* Demand reached, in UNITS - what the designer's ranges are written in. Under the

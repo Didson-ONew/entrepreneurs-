@@ -26,6 +26,11 @@ function loadEngine() {
   return box.exports;
 }
 const E = loadEngine();
+/* THE PRINTED RULE, PINNED. $2 a level is the rulebook's rent; the trial rules charge by
+   what the plot is worth and are how a game plays unless "printedV23" says otherwise.
+   Where each level's rent GOES is the same under both, and that is what this file is
+   about; the trial rate itself is pinned in test_trial_rules.js. */
+const PRINTED = { printedV23: true };
 
 let fails = 0;
 const check = (label, cond, detail) => {
@@ -53,7 +58,7 @@ function connectedRun(st, n) {
 /* ============================================================ the levels record */
 section("A new company knows where its levels stand");
 {
-  const st = E.initGame(2, 4, ["You"], undefined, false, undefined);
+  const st = E.initGame(2, 4, ["You"], undefined, false, PRINTED);
   const vertical = Object.keys(E.SCALING).filter((i) => E.SCALING[i] === "V");
   const horizontal = Object.keys(E.SCALING).filter((i) => E.SCALING[i] === "H");
   check("the board has both kinds of industry", vertical.length > 0 && horizontal.length > 0,
@@ -86,7 +91,7 @@ section("Rent is $2 for every level on a plot");
 {
   /* Two landlords, one tenant. The tenant builds a vertical company on ONE of their
      plots, so that landlord takes the whole rent and the other takes nothing. */
-  const st = E.initGame(2, 11, ["You"], undefined, false, undefined);
+  const st = E.initGame(2, 11, ["You"], undefined, false, PRINTED);
   const tenant = E.byId(st, 0);
   const landlordA = st.players[1], landlordB = st.players[2];
 
@@ -95,7 +100,11 @@ section("Rent is $2 for every level on a plot");
   st.board.owner[run[0]] = landlordA.id;
   st.board.owner[run[1]] = landlordB.id;
 
-  const vbp = E.BP_DATA.find((x) => E.SCALING[x.ind] === "V" && x.lvl === 2);
+  /* Not Retail: a level 2 chain opens a branch, the branch lands on landlord B's plot
+     and B is then owed rent for it - which they were never actually paid until the
+     branch's rent was given somewhere to go (test_trial_rules.js pins that). This case
+     is about a company that stands on one plot and nowhere else. */
+  const vbp = E.BP_DATA.find((x) => E.SCALING[x.ind] === "V" && x.ind !== "RE" && x.lvl === 2);
   tenant.hand = [vbp]; tenant.cash = 500;
   const built = E.doLaunch(st, tenant, vbp, E.mulberry32(1), quiet, [run[0]]);
   check("the vertical company is built on landlord A's plot", built);
@@ -110,7 +119,7 @@ section("Rent is $2 for every level on a plot");
 
 section("A horizontal company pays each landlord for its own storey");
 {
-  const st = E.initGame(2, 13, ["You"], undefined, false, undefined);
+  const st = E.initGame(2, 13, ["You"], undefined, false, PRINTED);
   const tenant = E.byId(st, 0);
   const A = st.players[1], B = st.players[2];
   const run = connectedRun(st, 2);
@@ -132,7 +141,7 @@ section("The case that used to owe $4.50: two storeys here, one there");
   /* Technology spreads by default. The Systems Architect makes it stack instead, so a
      level 2 TE on two plots upgraded by that persona becomes level 3 on the same two
      plots - two levels on one, one on the other. */
-  const st = E.initGame(2, 17, ["You"], undefined, false, undefined);
+  const st = E.initGame(2, 17, ["You"], undefined, false, PRINTED);
   const tenant = E.byId(st, 0);
   const A = st.players[1], B = st.players[2];
   tenant.persona = "tech_savvy";
@@ -168,7 +177,7 @@ section("The case that used to owe $4.50: two storeys here, one there");
 
 section("Stacking on your own land brings the rent back");
 {
-  const st = E.initGame(2, 19, ["You"], undefined, false, undefined);
+  const st = E.initGame(2, 19, ["You"], undefined, false, PRINTED);
   const tenant = E.byId(st, 0);
   const landlord = st.players[1];
   tenant.persona = "tech_savvy";

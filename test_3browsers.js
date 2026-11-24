@@ -41,7 +41,7 @@ async function tryAct(p) {
   }
   if (/place this quarter.s Logistic Hub/.test(t)) {
     const ok = await p.evaluate(() => {
-      const d = Array.from(document.querySelectorAll("div")).filter((x) => getComputedStyle(x).backgroundColor === "rgb(13, 40, 24)");
+      const d = Array.from(document.querySelectorAll("[data-eligible]"));
       if (!d.length) return false; d[0].click(); return true;
     });
     await sleep(120);

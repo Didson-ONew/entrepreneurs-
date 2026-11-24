@@ -46,7 +46,12 @@ const check = (label, cond, note = "") => {
 };
 const section = (t) => console.log(`\n${t}`);
 const quiet = () => {};
-const game = (variants, seed = 5) => E.initGame(3, seed, ["You"], undefined, false, variants);
+/* THE PRINTED RULE, PINNED. This file is about v23's band rule - the price times the
+   band's multiplier. The trial rules read the same table as three tiers in dollars and
+   are how a game plays unless "printedV23" says otherwise, so every game here is started
+   with it; test_trial_rules.js pins the tiers. */
+const PRINTED = (variants) => ({ printedV23: true, ...(variants || {}) });
+const game = (variants, seed = 5) => E.initGame(3, seed, ["You"], undefined, false, PRINTED(variants));
 const districtOf = (st, plot) => { const c = st.board.cellOf[plot]; return `${c.r},${c.c}`; };
 
 /* Put a company straight onto the board, on a free plot in a district that carries a
@@ -229,7 +234,7 @@ section("The standard game is eight quarters; the three-year game is twelve");
 section("Full bot games end on the last quarter of their calendar");
 {
   const play = (variants, seed) => {
-    const st = E.initGame(2, seed, ["Seat 1"], undefined, true, variants);
+    const st = E.initGame(2, seed, ["Seat 1"], undefined, true, PRINTED(variants));
     st.players[0].isHuman = false;
     if (st.phase === "drafting") { E.advanceDraft(st, quiet); E.startPlanning(st); }
     E.advancePlanning(st, E.mulberry32(seed + 777), quiet);

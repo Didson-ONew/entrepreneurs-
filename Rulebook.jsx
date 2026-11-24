@@ -41,8 +41,8 @@ import { FeedbackPanel, useFeedbackAccess } from "./Feedback.jsx";
    ========================================================================== */
 
 const INK = {
-  bg: "#14161a", edge: "#262a33", panel: "#0f1115",
-  text: "#c3c9d4", dim: "#8b93a3", head: "#ffffff", accent: "#8fd3b6", accentBg: "#1a2420",
+  bg: "#ffffff", edge: "#d4d4d7", panel: "#fafafb",
+  text: "#424244", dim: "#5d5d60", head: "#1d1f20", accent: "#416180", accentBg: "#eef6ff",
 };
 
 function Portal({ children }) {
@@ -85,9 +85,9 @@ function Blocks({ blocks }) {
           )}
           <tbody>
             {b.table.rows.map((r, k) => (
-              <tr key={k} style={{ backgroundColor: k % 2 ? "transparent" : "#12141a" }}>
+              <tr key={k} style={{ backgroundColor: k % 2 ? "transparent" : "#fafafb" }}>
                 {r.map((c, j) => (
-                  <td key={j} style={{ padding: "6px 9px", color: j === 0 ? "#e5e7eb" : INK.text,
+                  <td key={j} style={{ padding: "6px 9px", color: j === 0 ? "#1d1f20" : INK.text,
                     fontWeight: j === 0 ? 600 : 400, lineHeight: 1.5, verticalAlign: "top",
                     borderBottom: `1px solid ${INK.edge}55` }}>{c}</td>
                 ))}
@@ -188,12 +188,12 @@ export function Rulebook({ onClose }) {
         }
       `}</style>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 10040,
-        backgroundColor: "rgba(6,8,11,.82)", backdropFilter: "blur(2px)" }} />
+        backgroundColor: "rgba(29,31,32,.5)", backdropFilter: "blur(2px)" }} />
       <div role="dialog" aria-label="Rulebook" onClick={(e) => e.stopPropagation()} style={{
         position: "fixed", zIndex: 10041, top: "3vh", bottom: "3vh",
         left: "50%", transform: "translateX(-50%)", width: "min(96vw, 900px)",
-        backgroundColor: INK.bg, border: "1px solid #2c5f4f", borderRadius: 12,
-        boxShadow: "0 24px 70px rgba(0,0,0,.75)", display: "flex", flexDirection: "column", overflow: "hidden",
+        backgroundColor: INK.bg, border: "1px solid #749dc4", borderRadius: 12,
+        boxShadow: "0 24px 70px rgba(43,43,45,0.26)", display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
         {/* header */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
@@ -206,7 +206,7 @@ export function Rulebook({ onClose }) {
           </div>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("Search the rules…")}
             style={{ marginLeft: "auto", width: "min(40vw, 210px)", padding: "6px 9px", borderRadius: 6,
-              fontSize: 12, backgroundColor: "#1c1f26", border: "1px solid #33384a", color: "#e5e7eb" }} />
+              fontSize: 12, backgroundColor: "#f5f5f8", border: "1px solid #c9c9cc", color: "#1d1f20" }} />
           <button onClick={onClose} aria-label={t("Close the rulebook")} style={{ background: "none", border: "none",
             color: INK.dim, fontSize: 18, lineHeight: 1, cursor: "pointer", padding: "0 2px" }}>&times;</button>
         </div>
@@ -339,20 +339,20 @@ export function LiveCounts({ counts }) {
           cursor: who ? "pointer" : "default" }}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#3ddc97",
           boxShadow: "0 0 6px #3ddc9799", flexShrink: 0 }} />
-        <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.online}</span> {t("online")}
-        <span style={{ color: "#3a4152" }}>|</span>
-        <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.matches}</span>
+        <span style={{ color: "#1d1f20", fontWeight: 700 }}>{counts.online}</span> {t("online")}
+        <span style={{ color: "#98989b" }}>|</span>
+        <span style={{ color: "#1d1f20", fontWeight: 700 }}>{counts.matches}</span>
         {" "}{t(counts.matches === 1 ? "match" : "matches")}
         {/* Two numbers, because they are two different things and showing only the
             first read as a miscount: registering is optional, so the register can say
             2 while three people have played. */}
         {counts.accounts !== null && counts.accounts !== undefined && (<>
-          <span style={{ color: "#3a4152" }}>|</span>
-          <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.accounts}</span> {t("registered")}
+          <span style={{ color: "#98989b" }}>|</span>
+          <span style={{ color: "#1d1f20", fontWeight: 700 }}>{counts.accounts}</span> {t("registered")}
         </>)}
         {counts.players !== null && counts.players !== undefined && (<>
-          <span style={{ color: "#3a4152" }}>|</span>
-          <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{counts.players}</span>
+          <span style={{ color: "#98989b" }}>|</span>
+          <span style={{ color: "#1d1f20", fontWeight: 700 }}>{counts.players}</span>
           {" "}{t(counts.players === 1 ? "player" : "players")}
         </>)}
       </span>
@@ -361,19 +361,19 @@ export function LiveCounts({ counts }) {
         <span onClick={() => setOpen(false)}
           style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 9999,
             minWidth: 170, maxHeight: 260, overflowY: "auto", textAlign: "left",
-            padding: "7px 10px", borderRadius: 8, backgroundColor: "#14161a",
-            border: `1px solid ${INK.edge}`, boxShadow: "0 8px 24px rgba(0,0,0,0.55)",
+            padding: "7px 10px", borderRadius: 8, backgroundColor: "#ffffff",
+            border: `1px solid ${INK.edge}`, boxShadow: "0 8px 24px rgba(43,43,45,0.19)",
             fontSize: 11, color: INK.dim, cursor: "pointer" }}>
-          <span style={{ display: "block", fontWeight: 700, color: "#8b93a3", marginBottom: 4 }}>
+          <span style={{ display: "block", fontWeight: 700, color: "#5d5d60", marginBottom: 4 }}>
             {t("ON THE SITE NOW")}
           </span>
           {who.length === 0 && <span style={{ fontStyle: "italic" }}>{t("Nobody, apparently.")}</span>}
           {who.map((w, i) => (
             <span key={i} style={{ display: "block", lineHeight: 1.6,
-              color: w.registered ? "#d5d9e0" : "#8b93a3" }}>
+              color: w.registered ? "#2b2b2d" : "#5d5d60" }}>
               {w.name}
-              {!w.registered && <span style={{ color: "#6b7280" }}> {t("(guest)")}</span>}
-              {w.tabs > 1 && <span style={{ color: "#6b7280" }}> &times;{w.tabs}</span>}
+              {!w.registered && <span style={{ color: "#6f6f72" }}> {t("(guest)")}</span>}
+              {w.tabs > 1 && <span style={{ color: "#6f6f72" }}> &times;{w.tabs}</span>}
             </span>
           ))}
         </span>
@@ -419,7 +419,7 @@ export default function SiteChrome({ table }) {
             title={access.admin ? t("Write in, read what came in, and see who is playing") : t("Tell the designer how it played (Esc closes)")}
             style={{
               display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 800,
-              color: "#241d14", backgroundColor: "#f0a868", border: "1px solid #f5d76e",
+              color: "#5a4500", backgroundColor: "#e8930c", border: "1px solid #d9b84a",
               borderRadius: 999, padding: "6px 15px", cursor: "pointer", whiteSpace: "nowrap",
               boxShadow: "0 4px 16px rgba(240,168,104,.35)",
             }}>
@@ -430,13 +430,13 @@ export default function SiteChrome({ table }) {
       )}
       <div style={{ position: "fixed", left: 8, bottom: 8, zIndex: 9994,
         display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", maxWidth: "calc(100vw - 16px)" }}>
-        <LanguageSwitch style={pill("#1b2030", "#3a4560", "#c9d4ea")} />
+        <LanguageSwitch style={pill("#eef2f9", "#b9c4d9", "#2c3444")} />
         <button onClick={() => setOpen("rules")} title={t("Read the rules (Esc closes)")}
-          style={pill(INK.accentBg, "#2c5f4f", INK.accent)}>
+          style={pill(INK.accentBg, "#5980a6", INK.accent)}>
           <span aria-hidden="true">&#9776;</span> {t("Rulebook")}
         </button>
         <button onClick={() => setOpen("records")} title={t("Hall of fame and match statistics (Esc closes)")}
-          style={pill("#231f14", "#7a6a3f", "#f5d76e")}>
+          style={pill("#fcf6e1", "#dccb93", "#b08400")}>
           <span aria-hidden="true">&#9733;</span> {t("Records")}
         </button>
         <LiveCounts counts={counts} />

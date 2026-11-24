@@ -138,8 +138,8 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
   console.log(`delivering ${biz.bp.name} (HC level ${biz.level}) in Q${st.quarter}`);
   check("the clinic really is below level 4 - so the persona has something to give", biz.level < 4);
 
-  /* Now look at what the page offers. Anything the grid marks clickable carries a
-     white border and a pointer cursor; the cells are 16px wide. */
+  /* Now look at what the page offers. Anything the grid marks clickable carries
+     data-pick: "own" for a cell of the company's own industry, "cross" for a cross-sale. */
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || "/opt/pw-browsers/chromium" });
   const ctx = await browser.newContext({ viewport: { width: 1500, height: 950 } });
   await ctx.addInitScript(([code, token]) => {
@@ -161,12 +161,7 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
 
   const clickable = await page.evaluate(() => {
     let n = 0;
-    for (const d of document.querySelectorAll("div")) {
-      const cs = getComputedStyle(d);
-      if (cs.width !== "16px" || cs.cursor !== "pointer") continue;
-      if (!cs.borderColor.includes("255, 255, 255")) continue;   // white ring = own-industry slot
-      n++;
-    }
+    for (const d of document.querySelectorAll('[data-pick="own"]')) n++;   // an own-industry cell on offer
     return n;
   });
   console.log(`the page offers ${clickable} clickable Healthcare cell(s)`);
@@ -190,10 +185,8 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
   // and one of them can actually be clicked through to a sale
   const cashBefore = st.players[0].cash;
   await page.evaluate(() => {
-    for (const d of document.querySelectorAll("div")) {
-      const cs = getComputedStyle(d);
-      if (cs.width === "16px" && cs.cursor === "pointer" && cs.borderColor.includes("255, 255, 255")) { d.click(); return; }
-    }
+    const d = document.querySelector('[data-pick="own"]');
+    if (d) d.click();
   });
   await sleep(1200);
   const after = await getState(room.code, room.token);

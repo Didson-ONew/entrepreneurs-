@@ -3,27 +3,28 @@
 *Rulebook v23. The complete rules, with the designer's notes on why each one exists.*
 
 1. [The game in one minute](#overview)
-2. [Setup](#setup)
-3. [Your twelve discs](#discs)
-4. [A quarter, step by step](#quarter)
-5. [Planning: placing workers](#planning)
-6. [The actions](#actions)
-7. [Land and buildings](#land)
-8. [Prices, supply and demand](#prices)
-9. [Closing, first: paying the bills](#production)
-10. [Revenue: what the demand pays](#revenue)
-11. [Closing and the year end](#closing)
-12. [Going public and Megacorps](#megacorp)
-13. [Winning](#scoring)
-14. [Personas](#personas)
-15. [Rule variants (optional)](#variants)
-16. [The beginner game](#beginner)
-17. [Playing online](#online)
-18. [Quick reference](#quickref)
-19. [The words on the board](#glossary)
-20. [Annex: version history](#history)
-21. [Annex: every component, and what is printed on it](#components)
-22. [Annex: the sixty Blueprints](#blueprints)
+2. [Trial rules: the playtest sheet of 23 November 2026](#trial)
+3. [Setup](#setup)
+4. [Your twelve discs](#discs)
+5. [A quarter, step by step](#quarter)
+6. [Planning: placing workers](#planning)
+7. [The actions](#actions)
+8. [Land and buildings](#land)
+9. [Prices, supply and demand](#prices)
+10. [Closing, first: paying the bills](#production)
+11. [Revenue: what the demand pays](#revenue)
+12. [Closing and the year end](#closing)
+13. [Going public and Megacorps](#megacorp)
+14. [Winning](#scoring)
+15. [Personas](#personas)
+16. [Rule variants (optional)](#variants)
+17. [The beginner game](#beginner)
+18. [Playing online](#online)
+19. [Quick reference](#quickref)
+20. [The words on the board](#glossary)
+21. [Annex: version history](#history)
+22. [Annex: every component, and what is printed on it](#components)
+23. [Annex: the sixty Blueprints](#blueprints)
 
 ---
 
@@ -43,6 +44,104 @@ You are a founder building a city's economy. You buy land, build companies on it
 Every company pays a supplier bill each quarter, and that money does not vanish - it goes to the industries printed on its Blueprint as suppliers. So the industry nobody is building is quietly collecting everyone else's money, and its price is climbing while the crowded industries sink toward $2. Reading that pressure is the game.
 
 > **Designer's note.** The economy is a closed loop on purpose. The bank pays every company by the band of demand it reaches, and lends $20 a disc, and that is every faucet there is - so a table that all builds the same thing genuinely impoverishes itself. Every playtest that felt flat was a table that had not noticed this yet.
+
+---
+
+<a id="trial"></a>
+
+## Trial rules: the playtest sheet of 23 November 2026
+
+Three rules are being trialled on top of this book, and the Blueprint cards printed for the playtest carry their numbers. The online game plays them. Everything else plays as written in the chapters that follow. Where a later chapter describes OPEX, the band table or $2 of rent a level, read this chapter instead - or switch on the variant 'Bills and revenue as printed in v23' to play the book as it stands.
+
+### 1. Pay: one round amount to each supplier
+
+At Closing, each company pays every supplier printed on its card the same amount, into that industry's pot. The amount depends only on the company's level.
+
+| Company level | Each supplier is paid |
+| --- | --- |
+| Level 1 | $5 |
+| Level 2 | $10 |
+| Level 3 | $20 |
+| Level 4 | $40 |
+
+A Level 2 with two suppliers pays $10 + $10. The printed OPEX and the supplier shares are not used, and rent is never part of this bill.
+
+### 2. Earn: the best tier you fully meet
+
+Count your demand icons exactly as this book describes, then read the three tiers on the card in place of the band table. The middle and top tiers each ask for two things: enough icons, and a market price at or above the one printed. Collect the amount printed on the highest tier where both are true. If neither is met you still collect the Minimum, even with no icons. Nothing is multiplied.
+
+The price a tier asks for depends on the industry alone: the middle tier needs the industry's base price less $1, and the top tier its base price plus $2.
+
+| Industry | Middle tier needs a price of | Top tier needs a price of |
+| --- | --- | --- |
+| Utilities, Retail | $3 | $6 |
+| Hospitality, Manufacturing | $4 | $7 |
+| Healthcare, Technology | $5 | $8 |
+
+Example: an Auto Plant at Level 2 has a Minimum of $10, a middle tier of 5 icons and $4 that pays $35, and a top tier of 8 icons and $7 that pays $55. With 6 icons at $5 it collects $35. With 9 icons at $5 it still collects $35, because the top tier needs $7. With 9 icons at $7 it collects $55. With 3 icons at $9 it collects the Minimum, $10.
+
+Every card's tiers, by industry and by the company's level. An upgraded company reads the row of its new level.
+
+| Industry | Level | Minimum pays | Middle tier: icons | Middle tier pays | Top tier: icons | Top tier pays |
+| --- | --- | --- | --- | --- | --- | --- |
+| Utilities (UT) | Level 1 | $5 | 1 | $10 | 2 | $15 |
+| Utilities (UT) | Level 2 | $5 | 4 | $15 | 6 | $35 |
+| Utilities (UT) | Level 3 | $15 | 7 | $40 | 12 | $70 |
+| Utilities (UT) | Level 4 | $45 | 14 | $95 | 24 | $145 |
+| Retail (RE) | Level 1 | $5 | 2 | $10 | 3 | $25 |
+| Retail (RE) | Level 2 | $10 | 5 | $25 | 8 | $50 |
+| Retail (RE) | Level 3 | $10 | 7 | $40 | 12 | $85 |
+| Retail (RE) | Level 4 | $20 | 12 | $70 | 20 | $145 |
+| Hospitality (HO) | Level 1 | $5 | 1 | $10 | 2 | $15 |
+| Hospitality (HO) | Level 2 | $5 | 2 | $15 | 4 | $30 |
+| Hospitality (HO) | Level 3 | $10 | 5 | $30 | 8 | $55 |
+| Hospitality (HO) | Level 4 | $20 | 10 | $65 | 16 | $110 |
+| Manufacturing (MA) | Level 1 | $5 | 2 | $15 | 4 | $30 |
+| Manufacturing (MA) | Level 2 | $10 | 5 | $35 | 8 | $55 |
+| Manufacturing (MA) | Level 3 | $20 | 10 | $70 | 16 | $110 |
+| Manufacturing (MA) | Level 4 | $30 | 19 | $125 | 32 | $225 |
+| Healthcare (HC) | Level 1 | $5 | 2 | $10 | 3 | $25 |
+| Healthcare (HC) | Level 2 | $10 | 4 | $25 | 6 | $50 |
+| Healthcare (HC) | Level 3 | $20 | 7 | $55 | 12 | $95 |
+| Healthcare (HC) | Level 4 | $50 | 14 | $120 | 24 | $190 |
+| Technology (TE) | Level 1 | $5 | 1 | $10 | 2 | $15 |
+| Technology (TE) | Level 2 | $5 | 2 | $25 | 4 | $30 |
+| Technology (TE) | Level 3 | $5 | 3 | $35 | 6 | $65 |
+| Technology (TE) | Level 4 | $10 | 4 | $55 | 8 | $130 |
+
+### 3. Rent: floors times the plot's rate
+
+A company standing on another player's plot pays that owner rent at Closing, together with its bills. For each such plot: the floors standing on it, times the plot's rate. The rate is $1 for every full $5 the plot is worth at that moment, and never less than $1. Plot value is unchanged: the road price plus $3 for each structure on it or touching it.
+
+| The plot is worth | A floor pays |
+| --- | --- |
+| Up to $9 | $1 |
+| $10 to $14 | $2 |
+| $15 to $19 | $3 |
+| $20 or more | $4 |
+
+A floor is one company level standing on the plot. A stacking company (Retail, Hospitality, Healthcare) has all its levels on one plot; a spreading company (Utilities, Manufacturing, Technology) has one on each of its plots. A Retail branch is one floor, and a Megacorp headquarters keeps its floors. Nothing is owed on your own land.
+
+### One Closing, one company
+
+An Auto Plant at Level 2 stands on two rented plots worth $8 and $12. It reaches 6 icons and Manufacturing sells at $5. It pays Hospitality $10 and Technology $10, and $1 + $2 in rent: $23 in all. It earns the middle tier, $35. That leaves $12, before its share of the Manufacturing pot.
+
+### Reading the card
+
+- In hand: build for the cost shown, on as many plots as the card says. Each plot must already be owned - by you or by anyone. Sell is what the card itself fetches.
+- Built: the card shows what an upgrade costs - the build cost again, plus one more owned plot or one more floor - and what the company sells for.
+- Upgraded: every number is the upgraded one.
+- A grey number after a slash is that same number once upgraded. Sell is a planned sale through Raise Capital; Liquidate is the forced-sale half.
+
+### What stays as written
+
+Phases, tracks and last in, first out. How prices move. Which icons you count and how far you reach. Pot shares. Forced sales. Scoring, Megacorps, hubs, loans and land awards.
+
+- White-Label Supplier and Concession Holder: the better price they give is the price the tiers are checked against.
+- Revenue by the unit is not played with the trial rules, because the trial cards print no production; switching it on plays the printed bills and rent as well.
+- Beginner game: land is free, and there is no rent, upgrade, renovation or planned sale. Pay and earn work as above.
+
+> **Designer's note.** These three are a trial, not an edition: the book stays v23 until a table has said whether they hold. audit_trial.js plays both on the same seeds. With bots tuned on the printed economy, the trial rules cut the cash a player is left holding at the end by more than half - which was the table's complaint - and make a Level 3 lose money in an average quarter, because three suppliers at $20 cost more than its middle tier pays. That second number is the one to bring back from the table.
 
 ---
 
@@ -286,6 +385,8 @@ The three are not equally common: across the ten Blueprints of an industry, the 
 
 ## Closing, first: paying the bills
 
+Trial rules in play: the supplier bill below is replaced by rule 1 of the Trial rules chapter, and the rent by rule 3, unless the variant 'Bills and revenue as printed in v23' is on.
+
 Every active company pays two bills at the start of every Closing, automatically, whatever its band pays it afterwards:
 
 - Its SUPPLIER BILL goes into the industry pots of the suppliers printed on its Blueprint, divided in proportion to the dependency values.
@@ -308,6 +409,8 @@ If you close the window with the bill still short, the bank sells for you at tho
 <a id="revenue"></a>
 
 ## Revenue: what the demand pays
+
+Trial rules in play: the band table below is replaced by the three tiers of rule 2 of the Trial rules chapter, unless the variant 'Bills and revenue as printed in v23' is on. Which icons a company counts is unchanged.
 
 Every company is paid once a quarter, in one go, for the demand it can reach: COUNT the demand icons of its industry it reaches, find the BAND that count falls in on its row of the band table below, and MULTIPLY the current market price of its industry by that band's number. That is its revenue. Nothing is delivered, nothing is counted unit by unit and nothing is recycled.
 
@@ -557,10 +660,10 @@ Personas are asymmetric powers, one tied to each industry. They are dealt by def
 | --- | --- |
 | Systems Architect (TE) | Your Technology companies may upgrade vertically, stacking on one plot instead of needing a free neighbour - or spread as Technology usually does. You choose at each upgrade. |
 | Public Health Director (HC) | Your Healthcare companies reach every column of a Healthcare row whatever their level - they may count all four icons where a level-1 company counts one. |
-| White-Label Supplier (MA) | Your Manufacturing may be paid the best price among the rows of its own district, its own row included: that price is what its band multiplies. |
+| White-Label Supplier (MA) | Your Manufacturing may be paid the best price among the rows of its own district, its own row included: that is the price its tiers are checked against. |
 | Resort Developer (HO) | Your Hospitality companies may upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them - or stack as Hospitality usually does. You choose at each upgrade. |
 | Supply Chain Expert (RE) | At the start of Closing, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline. |
-| Concession Holder (UT) | At the start of Closing you may switch your concession on: your Utilities are then paid $1 over the current price this quarter - their band multiplies the higher price. Every quarter you are paid at that premium, the Utilities price falls one step at the end of the quarter. |
+| Concession Holder (UT) | At the start of Closing you may switch your concession on: your Utilities then read the market price as $1 higher this quarter - the higher price is the one their tiers are checked against. Every quarter you are paid at that premium, the Utilities price falls one step at the end of the quarter. |
 
 > **Designer's note.** Each persona is a tilt, not a cage. They all deliberately point at doing more of one industry, and the entry bonus deliberately points the other way, so a persona changes your best line without collapsing it to one.
 
@@ -572,16 +675,17 @@ Personas are asymmetric powers, one tied to each industry. They are dealt by def
 
 Every one of these is off by default, and a table that leaves them alone plays exactly the rules in this book. They can be combined freely.
 
-The first six read as playing it the older way, because that is what they are: three rules that were optional in v12 and became standard in v13, and the three rules v23 changed, kept switchable so that v22 and v23 can be played side by side on the same seeds. The beginner game is the opposite - not an older version of this game but a shorter way into it, and it has a section of its own below.
+The first seven read as playing it the older way, because that is what they are: three rules that were optional in v12 and became standard in v13, the three rules v23 changed, kept switchable so that v22 and v23 can be played side by side on the same seeds, and the book's own bills, bands and rent, which the trial rules replace. The beginner game is the opposite - not an older version of this game but a shorter way into it, and it has a section of its own below.
 
 | Variant | What changes |
 | --- | --- |
 | Score at the year end | A company waits for the next year end to take its EP, instead of scoring the moment it is built or upgraded. It still scores once per build or upgrade. |
 | Ordered decks | Each industry deck runs level 1 on top down to level 3 at the bottom, instead of being shuffled whole. No level 3 can be drafted, and the early game holds no surprises. |
 | Land awards at the end only | The Real-Estate Mogul and The Omnipresent are paid once, after the final quarter, instead of at every year end. Land becomes a late-game race rather than something to hold all game. |
-| Revenue by the unit | Every company delivers its printed production one unit an icon and recycles the rest at $1, the way the game sold up to v22, instead of being paid by the band of icons it reaches. |
+| Revenue by the unit | Every company delivers its printed production one unit an icon and recycles the rest at $1, the way the game sold up to v22, instead of being paid by the band of icons it reaches. It plays the v23 bills and rent too. |
 | Three-year game | Twelve quarters instead of eight: a third year, with the land awards paid three times and a $50 loan buy-back at the end of it. |
 | Rows 3-4 open in Year 2 | Rows 3 and 4 of every district stay closed until Quarter 5, as they did up to v22. |
+| Bills and revenue as printed in v23 | Each company pays the OPEX printed in this book, split among its suppliers, is paid the market price times its band, and owes $2 of rent a level - instead of the trial rules' round supplier bills, three earning tiers and rent by plot value. |
 
 Whichever are on is shown in the waiting room before the game starts, and recorded with the finished game, so a variant table is never mistaken for a standard one in the records.
 

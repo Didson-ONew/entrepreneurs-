@@ -29,7 +29,7 @@ runInContext(
              DISCS_PER_PLAYER, MEGACORPS_TO_END, COMPANY_SLOTS, MEGACORP_TIER,
              MEGACORP_TITHE_EP, INDUSTRIES, BP_DATA, STARTING, MEGACORP_TILES, SCALING,
              PERSONAS, IND_NAME: typeof IND_NAME !== "undefined" ? IND_NAME : null,
-             makePriceMatrix, price };`, box);
+             makePriceMatrix, price, supplierUnit, tierTable, tierFor, TRIAL_RENT_STEP, RENT_PER_LEVEL };`, box);
 const E = box.E;
 
 let fails = 0, n = 0;
@@ -328,6 +328,63 @@ section("Annex: the sixty Blueprints");
       check(`${ind}: every cell matches the card`, bad.length === 0, bad.slice(0, 3).join("; "));
     });
   }
+}
+
+/* ---- the trial rules chapter ----
+   The chapter prints four tables and a worked example, and every figure in them is one
+   the engine works out rather than stores. If a threshold or a payout moved in the engine
+   and not here, a player would be paid a number the book does not show. */
+section("The trial rules chapter says what the engine plays");
+{
+  const pay = tableByHead(/Company level \| Each supplier is paid/);
+  check("the chapter has the supplier table", !!pay);
+  if (pay) check("each supplier is paid $5, $10, $20, $40 by the company's level",
+    pay.rows.length === 4 && pay.rows.every((r, i) => money(r[1]) === E.supplierUnit(i + 1)), pay.rows.map((r) => r[1]).join(" "));
+
+  const need = tableByHead(/Industry \| Middle tier needs a price of/);
+  check("the chapter has the table of prices a tier needs", !!need);
+  if (need) {
+    const bad = [];
+    for (const r of need.rows) for (const name of String(r[0]).split(",").map((x) => x.trim())) {
+      const code = codeOf(name), t = E.tierTable(code, 1);
+      if (!t || money(r[1]) !== t.price[1] || money(r[2]) !== t.price[2]) bad.push(`${name} ${r[1]}/${r[2]}`);
+    }
+    check("the middle tier needs base - $1 and the top tier base + $2, for every industry",
+      bad.length === 0 && need.rows.reduce((k, r) => k + String(r[0]).split(",").length, 0) === E.INDUSTRIES.length, bad.join("; "));
+  }
+
+  const tiers = tableByHead(/Industry \| Level \| Minimum pays/);
+  check("the chapter has the table of every card's tiers", !!tiers);
+  if (tiers) {
+    const bad = [];
+    for (const r of tiers.rows) {
+      const code = codeOf(r[0]), lvl = money(r[1]), t = E.tierTable(code, lvl);
+      const want = t ? [t.pays[0], t.icons[1], t.pays[1], t.icons[2], t.pays[2]] : [];
+      if (!t || want.some((v, i) => money(r[2 + i]) !== v)) bad.push(`${r[0]} L${lvl}`);
+    }
+    check("all 24 rows - six industries, four levels - match the engine's tiers", tiers.rows.length === 24 && bad.length === 0, bad.slice(0, 4).join("; "));
+  }
+
+  const rent = tableByHead(/The plot is worth \| A floor pays/);
+  check("the chapter has the rent table", !!rent);
+  if (rent) {
+    const rate = (v) => Math.max(1, Math.floor(v / E.TRIAL_RENT_STEP));
+    const bad = [];
+    for (const r of rent.rows) {
+      const nums = (String(r[0]).match(/\d+/g) || []).map(Number);
+      /* "Up to $9" starts at the cheapest plot there is; "$20 or more" stops at the
+         dearest a plot can be - a $6 road and five structures at $3. */
+      const lo = /up to/i.test(r[0]) ? 1 : nums[0], hi = /up to/i.test(r[0]) ? nums[0] : /or more/i.test(r[0]) ? 21 : nums[1];
+      for (let v = lo; v <= hi; v++) if (rate(v) !== money(r[1])) bad.push(`$${v} -> $${rate(v)}, not ${r[1]}`);
+    }
+    check("a floor pays $1 for every full $5 the plot is worth, and never less than $1", bad.length === 0, bad.slice(0, 3).join("; "));
+  }
+  const worked = prose.find((x) => /Auto Plant at Level 2 has a Minimum/.test(x));
+  check("the worked example is in the book", !!worked);
+  check("and its four cases are what the engine pays: $35, $35, $55 and the Minimum $10",
+    E.tierFor("MA", 2, 6, 5).pays === 35 && E.tierFor("MA", 2, 9, 5).pays === 35 && E.tierFor("MA", 2, 9, 7).pays === 55 && E.tierFor("MA", 2, 3, 9).pays === 10);
+  check("the variants table offers the way back to the printed rules",
+    !!allBlocks.find((b) => b.table && b.table.rows.some((r) => r[0] === "Bills and revenue as printed in v23")));
 }
 
 console.log(fails ? `\n${fails} of ${n} check(s) failed\n` : `\nall ${n} checks passed\n`);

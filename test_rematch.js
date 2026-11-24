@@ -29,7 +29,7 @@ async function act(p){
     if(await go.count()&&await go.first().isEnabled().catch(()=>false)){await go.first().click({timeout:1500}).catch(()=>{});return true;}
   }
   if(/place this quarter.s Logistic Hub/.test(t)){
-    const ok=await p.evaluate(()=>{const d=Array.from(document.querySelectorAll("div")).filter(x=>getComputedStyle(x).backgroundColor==="rgb(13, 40, 24)");if(!d.length)return false;d[0].click();return true;});
+    const ok=await p.evaluate(()=>{const d=Array.from(document.querySelectorAll("[data-eligible]"));if(!d.length)return false;d[0].click();return true;});
     await sleep(100);
     const cf=p.getByText("Confirm placement");
     if(await cf.count()&&await cf.first().isEnabled().catch(()=>false)){await cf.first().click({timeout:1500}).catch(()=>{});return true;}

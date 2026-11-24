@@ -399,7 +399,9 @@ section("A headquarters banks its industry's price every quarter");
 
 section("Its owner pays the ground rent out of pocket");
 {
-  const st = E.initGame(0, 33, ["A", "B"], undefined, false);
+  /* The printed rent, $2 a level. Under the trial rules a headquarters keeps its floors
+     and pays the plot's own rate for each; test_trial_rules.js pins that. */
+  const st = E.initGame(0, 33, ["A", "B"], undefined, false, { printedV23: true });
   const [a, b] = st.players;
   const plots = Object.keys(st.board.graph);
   const reBp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 2);

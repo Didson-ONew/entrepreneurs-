@@ -142,6 +142,12 @@ const has = (f) => process.argv.includes(f);
 const SRC = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
 const CUT = SRC.indexOf("/* ============================== REACT UI ============================== */");
 let logic = SRC.slice(0, CUT).replace(/^\s*(import|export)\s.*$/gm, "");
+/* THE PRINTED ECONOMY, PINNED. Everything below - the paper half and the games - is about
+   the OPEX the cards print and how much of it reaches a pot. The engine now plays the
+   trial rules unless told otherwise, so they are switched off at the source here. */
+const TRIAL_ON = 'const trialOn = (state) => !hasVariant(state, "printedV23") && !hasVariant(state, "unitRevenue");';
+if (!logic.includes(TRIAL_ON)) { console.error("the engine changed shape around the trial switch - update this probe"); process.exit(2); }
+logic = logic.replace(TRIAL_ON, "const trialOn = (state) => false;");
 const need = (frag, what) => {
   if (!logic.includes(frag)) { console.error(`the engine changed shape around ${what} - update this probe`); process.exit(2); }
 };
@@ -152,7 +158,10 @@ const CARDS0 = JSON.parse(logic.match(CARDS_RE)[1]);
 const pad = (s, w) => String(s).padEnd(w), rp = (s, w) => String(s).padStart(w);
 
 /* ---- the paper half ---- */
-need("const bizPotBill = (b) => Math.max(0, bizOpex(b) - RENT_PER_LEVEL * b.level);", "the supplier bill");
+/* The paper half reasons about the PRINTED bill - the card's OPEX less $2 a level - which
+     the engine still plays behind "printedV23". The trial rules' round bills are a
+     different sum and are measured in audit_trial.js. */
+need("  : Math.max(0, bizOpex(b) - RENT_PER_LEVEL * b.level));", "the supplier bill");
 need("const RENT_PER_LEVEL = 2;", "the ground rent");
 function paper(cards, label) {
   console.log(`\n${"=".repeat(94)}\n${label}\n${"=".repeat(94)}`);

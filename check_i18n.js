@@ -21,7 +21,7 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 
-const FILES = ["EntrepreneursGame.jsx", "OnlineApp.jsx", "Rulebook.jsx", "Records.jsx", "Feedback.jsx"];
+const FILES = ["EntrepreneursGame.jsx", "PhysicalUI.jsx", "OnlineApp.jsx", "Rulebook.jsx", "Records.jsx", "Feedback.jsx"];
 const STRICT = process.argv.includes("--strict");
 
 /* Which languages exist, straight out of the registry, so this file never has

@@ -100,8 +100,11 @@ section("Standings count Megacorps and label discs honestly");
   check("Megacorp HQs are shown", /t\("\+\{0\}MC", megacorpHQs\(p\)\.length\)/.test(SRC));
   /* Was "used-of-twelve". The beginner mode plays with six, so the total is
      read from the state rather than from the constant. */
-  check("the disc figure is the same used-of-total the player board shows",
-    /t\("\{0\}\/\{1\} discs", discsUsed\(state, p\), discsPerPlayer\(state\)\)/.test(SRC));
+  /* And now it is DISCS FREE, the figure the printed player box carries: the same total
+     and the same used-count the player board shows, subtracted - never the loan discs
+     alone, which was the original confusion. */
+  check("the disc figure is worked out from the same used and total the player board shows",
+    /discsPerPlayer\(state\) - discsUsed\(state, p\)/.test(SRC));
   check("loan discs are still called out separately",
     /t\("\(\{0\} loan\)", p\.discsInBank\)/.test(SRC));
 }

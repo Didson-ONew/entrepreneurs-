@@ -45,6 +45,390 @@ export const RULEBOOK_PT = [
     ]
   },
   {
+    "id": "trial",
+    "title": "Regras de teste: a folha de playtest de 23 de novembro de 2026",
+    "blocks": [
+      {
+        "p": "Três regras estão sendo testadas por cima deste manual, e as cartas de Projeto impressas para o playtest trazem os números delas. O jogo online joga com elas. Todo o resto vale como está escrito nos capítulos seguintes. Onde um capítulo adiante falar de OPEX, da tabela de faixas ou de $2 de aluguel por nível, leia este capítulo no lugar - ou ligue a variante 'Contas e receita como impressas na v23' para jogar o manual como ele está."
+      },
+      {
+        "h": "1. Pagar: um valor redondo para cada fornecedor"
+      },
+      {
+        "p": "No Encerramento, cada empresa paga a cada fornecedor impresso na carta o mesmo valor, no fundo daquele setor. O valor depende só do nível da empresa."
+      },
+      {
+        "table": {
+          "head": [
+            "Nível da empresa",
+            "Cada fornecedor recebe"
+          ],
+          "rows": [
+            [
+              "Nível 1",
+              "$5"
+            ],
+            [
+              "Nível 2",
+              "$10"
+            ],
+            [
+              "Nível 3",
+              "$20"
+            ],
+            [
+              "Nível 4",
+              "$40"
+            ]
+          ]
+        }
+      },
+      {
+        "p": "Uma empresa de Nível 2 com dois fornecedores paga $10 + $10. O OPEX impresso e as cotas dos fornecedores não são usados, e o aluguel nunca faz parte desta conta."
+      },
+      {
+        "h": "2. Receber: a melhor faixa que você cumpre por inteiro"
+      },
+      {
+        "p": "Conte seus ícones de demanda exatamente como este manual descreve e então leia as três faixas da carta no lugar da tabela de faixas. A faixa do meio e a mais alta pedem duas coisas cada: ícones suficientes e um preço de mercado igual ou maior que o impresso. Receba o valor impresso na faixa mais alta em que as duas coisas forem verdade. Se nenhuma for cumprida, você ainda recebe o Mínimo, mesmo sem ícones. Nada é multiplicado."
+      },
+      {
+        "p": "O preço que uma faixa pede depende só do setor: a faixa do meio precisa do preço base do setor menos $1, e a mais alta do preço base mais $2."
+      },
+      {
+        "table": {
+          "head": [
+            "Setor",
+            "A faixa do meio precisa de um preço de",
+            "A faixa mais alta precisa de um preço de"
+          ],
+          "rows": [
+            [
+              "Serviços Públicos, Varejo",
+              "$3",
+              "$6"
+            ],
+            [
+              "Hotelaria, Manufatura",
+              "$4",
+              "$7"
+            ],
+            [
+              "Saúde, Tecnologia",
+              "$5",
+              "$8"
+            ]
+          ]
+        }
+      },
+      {
+        "p": "Exemplo: uma Montadora de Nível 2 tem um Mínimo de $10, uma faixa do meio de 5 ícones e $4 que paga $35, e uma faixa mais alta de 8 ícones e $7 que paga $55. Com 6 ícones a $5 ela recebe $35. Com 9 ícones a $5 ela ainda recebe $35, porque a faixa mais alta precisa de $7. Com 9 ícones a $7 ela recebe $55. Com 3 ícones a $9 ela recebe o Mínimo, $10."
+      },
+      {
+        "p": "As faixas de todas as cartas, por setor e pelo nível da empresa. Uma empresa expandida lê a linha do seu novo nível."
+      },
+      {
+        "table": {
+          "head": [
+            "Setor",
+            "Nível",
+            "O Mínimo paga",
+            "Faixa do meio: ícones",
+            "A faixa do meio paga",
+            "Faixa mais alta: ícones",
+            "A faixa mais alta paga"
+          ],
+          "rows": [
+            [
+              "Serviços Públicos (UT)",
+              "Nível 1",
+              "$5",
+              "1",
+              "$10",
+              "2",
+              "$15"
+            ],
+            [
+              "Serviços Públicos (UT)",
+              "Nível 2",
+              "$5",
+              "4",
+              "$15",
+              "6",
+              "$35"
+            ],
+            [
+              "Serviços Públicos (UT)",
+              "Nível 3",
+              "$15",
+              "7",
+              "$40",
+              "12",
+              "$70"
+            ],
+            [
+              "Serviços Públicos (UT)",
+              "Nível 4",
+              "$45",
+              "14",
+              "$95",
+              "24",
+              "$145"
+            ],
+            [
+              "Varejo (RE)",
+              "Nível 1",
+              "$5",
+              "2",
+              "$10",
+              "3",
+              "$25"
+            ],
+            [
+              "Varejo (RE)",
+              "Nível 2",
+              "$10",
+              "5",
+              "$25",
+              "8",
+              "$50"
+            ],
+            [
+              "Varejo (RE)",
+              "Nível 3",
+              "$10",
+              "7",
+              "$40",
+              "12",
+              "$85"
+            ],
+            [
+              "Varejo (RE)",
+              "Nível 4",
+              "$20",
+              "12",
+              "$70",
+              "20",
+              "$145"
+            ],
+            [
+              "Hotelaria (HO)",
+              "Nível 1",
+              "$5",
+              "1",
+              "$10",
+              "2",
+              "$15"
+            ],
+            [
+              "Hotelaria (HO)",
+              "Nível 2",
+              "$5",
+              "2",
+              "$15",
+              "4",
+              "$30"
+            ],
+            [
+              "Hotelaria (HO)",
+              "Nível 3",
+              "$10",
+              "5",
+              "$30",
+              "8",
+              "$55"
+            ],
+            [
+              "Hotelaria (HO)",
+              "Nível 4",
+              "$20",
+              "10",
+              "$65",
+              "16",
+              "$110"
+            ],
+            [
+              "Manufatura (MA)",
+              "Nível 1",
+              "$5",
+              "2",
+              "$15",
+              "4",
+              "$30"
+            ],
+            [
+              "Manufatura (MA)",
+              "Nível 2",
+              "$10",
+              "5",
+              "$35",
+              "8",
+              "$55"
+            ],
+            [
+              "Manufatura (MA)",
+              "Nível 3",
+              "$20",
+              "10",
+              "$70",
+              "16",
+              "$110"
+            ],
+            [
+              "Manufatura (MA)",
+              "Nível 4",
+              "$30",
+              "19",
+              "$125",
+              "32",
+              "$225"
+            ],
+            [
+              "Saúde (HC)",
+              "Nível 1",
+              "$5",
+              "2",
+              "$10",
+              "3",
+              "$25"
+            ],
+            [
+              "Saúde (HC)",
+              "Nível 2",
+              "$10",
+              "4",
+              "$25",
+              "6",
+              "$50"
+            ],
+            [
+              "Saúde (HC)",
+              "Nível 3",
+              "$20",
+              "7",
+              "$55",
+              "12",
+              "$95"
+            ],
+            [
+              "Saúde (HC)",
+              "Nível 4",
+              "$50",
+              "14",
+              "$120",
+              "24",
+              "$190"
+            ],
+            [
+              "Tecnologia (TE)",
+              "Nível 1",
+              "$5",
+              "1",
+              "$10",
+              "2",
+              "$15"
+            ],
+            [
+              "Tecnologia (TE)",
+              "Nível 2",
+              "$5",
+              "2",
+              "$25",
+              "4",
+              "$30"
+            ],
+            [
+              "Tecnologia (TE)",
+              "Nível 3",
+              "$5",
+              "3",
+              "$35",
+              "6",
+              "$65"
+            ],
+            [
+              "Tecnologia (TE)",
+              "Nível 4",
+              "$10",
+              "4",
+              "$55",
+              "8",
+              "$130"
+            ]
+          ]
+        }
+      },
+      {
+        "h": "3. Aluguel: andares vezes a taxa do lote"
+      },
+      {
+        "p": "Uma empresa que está no lote de outro jogador paga aluguel a esse dono no Encerramento, junto com as contas. Para cada lote assim: os andares que estão nele, vezes a taxa do lote. A taxa é $1 para cada $5 completos que o lote vale naquele momento, e nunca menos de $1. O valor do lote não muda: o preço da via mais $3 para cada estrutura nele ou encostada nele."
+      },
+      {
+        "table": {
+          "head": [
+            "O lote vale",
+            "Um andar paga"
+          ],
+          "rows": [
+            [
+              "Até $9",
+              "$1"
+            ],
+            [
+              "$10 a $14",
+              "$2"
+            ],
+            [
+              "$15 a $19",
+              "$3"
+            ],
+            [
+              "$20 ou mais",
+              "$4"
+            ]
+          ]
+        }
+      },
+      {
+        "p": "Um andar é um nível de empresa que está no lote. Uma empresa que empilha (Varejo, Hotelaria, Saúde) tem todos os níveis em um lote; uma empresa que se espalha (Serviços Públicos, Manufatura, Tecnologia) tem um em cada lote. Uma filial de Varejo é um andar, e a sede de uma Megacorporação mantém seus andares. Nada é devido na sua própria terra."
+      },
+      {
+        "h": "Um Encerramento, uma empresa"
+      },
+      {
+        "p": "Uma Montadora de Nível 2 está em dois lotes alugados que valem $8 e $12. Ela alcança 6 ícones e a Manufatura vende a $5. Ela paga $10 à Hotelaria e $10 à Tecnologia, e $1 + $2 de aluguel: $23 ao todo. Ela recebe a faixa do meio, $35. Sobram $12, antes da parte dela no fundo da Manufatura."
+      },
+      {
+        "h": "Como ler a carta"
+      },
+      {
+        "ul": [
+          "Na mão: construa pelo custo mostrado, em tantos lotes quantos a carta disser. Cada lote já precisa ter dono - você ou qualquer outro. Vender é o que a própria carta rende.",
+          "Construída: a carta mostra quanto custa expandir - o custo de construção de novo, mais um lote com dono ou mais um andar - e por quanto a empresa é vendida.",
+          "Expandida: todo número é o da empresa expandida.",
+          "Um número cinza depois de uma barra é aquele mesmo número depois de expandir. Vender é uma venda planejada por Captar Recursos; Liquidar é a metade da venda forçada."
+        ]
+      },
+      {
+        "h": "O que continua como está escrito"
+      },
+      {
+        "p": "Fases, trilhas e o último a entrar age primeiro. Como os preços se movem. Quais ícones você conta e até onde alcança. As partes dos fundos. Vendas forçadas. Pontuação, Megacorporações, centros logísticos, empréstimos e prêmios de terras."
+      },
+      {
+        "ul": [
+          "Fornecedor White-Label e Concessionário: o preço melhor que eles dão é o preço contra o qual as faixas são conferidas.",
+          "Receita por unidade não é jogada com as regras de teste, porque as cartas de teste não imprimem produção; ligá-la joga também as contas e o aluguel impressos.",
+          "Jogo para iniciantes: a terra é grátis e não há aluguel, expansão, reforma nem venda planejada. Pagar e receber funcionam como acima."
+        ]
+      },
+      {
+        "note": "Estas três são um teste, não uma edição: o manual continua v23 até uma mesa dizer se elas se sustentam. O audit_trial.js joga as duas com as mesmas sementes. Com bots ajustados na economia impressa, as regras de teste cortam em mais da metade o dinheiro que sobra na mão de um jogador no fim - que era a queixa da mesa - e fazem um Nível 3 perder dinheiro em um trimestre médio, porque três fornecedores a $20 custam mais do que a faixa do meio dele paga. Esse segundo número é o que vale trazer de volta da mesa."
+      }
+    ]
+  },
+  {
     "id": "setup",
     "title": "Preparação",
     "blocks": [
@@ -568,6 +952,9 @@ export const RULEBOOK_PT = [
     "title": "Encerramento, primeiro: pagar as contas",
     "blocks": [
       {
+        "p": "Regras de teste em jogo: a conta dos fornecedores abaixo é substituída pela regra 1 do capítulo Regras de teste, e o aluguel pela regra 3, a não ser que a variante 'Contas e receita como impressas na v23' esteja ligada."
+      },
+      {
         "p": "Toda empresa ativa paga duas contas no início de cada Encerramento, automaticamente, seja qual for a faixa que ela receba depois:"
       },
       {
@@ -600,6 +987,9 @@ export const RULEBOOK_PT = [
     "id": "revenue",
     "title": "Receita: o que a demanda paga",
     "blocks": [
+      {
+        "p": "Regras de teste em jogo: a tabela de faixas abaixo é substituída pelas três faixas da regra 2 do capítulo Regras de teste, a não ser que a variante 'Contas e receita como impressas na v23' esteja ligada. Os ícones que uma empresa conta não mudam."
+      },
       {
         "p": "Toda empresa é paga uma vez por trimestre, de uma só vez, pela demanda que consegue alcançar: CONTE os ícones de demanda do seu setor que ela alcança, encontre a FAIXA em que essa contagem cai na linha dela da tabela de faixas abaixo, e MULTIPLIQUE o preço de mercado atual do seu setor pelo número daquela faixa. Essa é a receita dela. Nada é entregue, nada é contado unidade por unidade e nada é reciclado."
       },
@@ -1271,7 +1661,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Fornecedor White-Label (MA)",
-              "Sua Manufatura é paga pelo melhor preço entre as linhas do próprio distrito, a linha dela incluída: é esse preço que a faixa dela multiplica."
+              "Sua Manufatura pode usar o melhor preço entre as linhas do próprio distrito, a linha dela incluída: é contra esse preço que as faixas dela são conferidas."
             ],
             [
               "Incorporador de Resorts (HO)",
@@ -1283,7 +1673,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Concessionário (UT)",
-              "No início do Encerramento você pode ligar sua concessão: seus Serviços Públicos então são pagos $1 acima do preço atual neste trimestre - a faixa deles multiplica o preço maior. A cada trimestre em que você for pago com esse ágio, o preço de Serviços Públicos cai um passo no fim do trimestre."
+              "No início do Encerramento você pode ligar sua concessão: seus Serviços Públicos então leem o preço de mercado $1 mais alto neste trimestre - é contra o preço maior que as faixas deles são conferidas. A cada trimestre em que você for pago com esse ágio, o preço de Serviços Públicos cai um passo no fim do trimestre."
             ]
           ]
         }
@@ -1301,7 +1691,7 @@ export const RULEBOOK_PT = [
         "p": "Todas elas vêm desligadas por padrão, e uma mesa que não mexer em nenhuma joga exatamente as regras deste livro. Podem ser combinadas livremente."
       },
       {
-        "p": "As seis primeiras soam como jogar do jeito antigo, porque é isso que elas são: três regras que eram opcionais na v12 e viraram padrão na v13, e as três regras que a v23 mudou, mantidas alternáveis para que a v22 e a v23 possam ser jogadas lado a lado com as mesmas sementes. O jogo para iniciantes é o oposto - não é uma versão antiga deste jogo, e sim um caminho mais curto para entrar nele, e tem uma seção própria mais abaixo."
+        "p": "As sete primeiras soam como jogar do jeito antigo, porque é isso que elas são: três regras que eram opcionais na v12 e viraram padrão na v13, as três regras que a v23 mudou, mantidas alternáveis para que a v22 e a v23 possam ser jogadas lado a lado com as mesmas sementes, e as contas, faixas e aluguel do próprio manual, que as regras de teste substituem. O jogo para iniciantes é o oposto - não é uma versão antiga deste jogo, e sim um caminho mais curto para entrar nele, e tem uma seção própria mais abaixo."
       },
       {
         "table": {
@@ -1324,7 +1714,7 @@ export const RULEBOOK_PT = [
             ],
             [
               "Receita por unidade",
-              "Toda empresa entrega a produção impressa, uma unidade por ícone, e recicla o resto a $1, do jeito que o jogo vendia até a v22, em vez de ser paga pela faixa de ícones que alcança."
+              "Toda empresa entrega a produção impressa, uma unidade por ícone, e recicla o resto a $1, do jeito que o jogo vendia até a v22, em vez de ser paga pela faixa de ícones que alcança. Usa também as contas e o aluguel da v23."
             ],
             [
               "Jogo de três anos",
@@ -1333,6 +1723,10 @@ export const RULEBOOK_PT = [
             [
               "Linhas 3-4 abrem no Ano 2",
               "As linhas 3 e 4 de todo distrito ficam fechadas até o Trimestre 5, como ficavam até a v22."
+            ],
+            [
+              "Contas e receita como impressas na v23",
+              "Cada empresa paga o OPEX impresso neste manual, dividido entre seus fornecedores, recebe o preço de mercado vezes a sua faixa e deve $2 de aluguel por nível - em vez das contas redondas por fornecedor, das três faixas de receita e do aluguel pelo valor do lote das regras de teste."
             ]
           ]
         }

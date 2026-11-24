@@ -8,12 +8,25 @@
 *, *::before, *::after { box-sizing: border-box; border-width: 0; border-style: solid; }
 * { margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; line-height: 1.5; }
+/* THE LOOK OF THE PRINTED SET. A light technical ground, steel blue as the one accent,
+   Barlow Condensed over Barlow, square corners and hairlines - the tokens of the
+   components on the table, so a player who moves between the two reads one game.
+   Everything below takes its colour from here. */
+:root {
+  --ground: #f2f2f3; --surface: #e9e9ea; --panel: #ffffff; --well: #f5f5f8;
+  --ink: #1d1f20; --ink-2: #424244; --ink-3: #5d5d60; --ink-4: #7a7a7d; --ink-5: #98989b;
+  --line: #d4d4d7; --line-2: #b7b7ba; --line-soft: #e7e7ea;
+  --accent: #5980a6; --accent-100: #eef6ff; --accent-200: #d6ebff; --accent-300: #b5d9fd; --accent-400: #94bce3;
+  --accent-500: #749dc4; --accent-600: #597ea3; --accent-700: #416180; --accent-800: #2c455d; --accent-900: #1d2d3d;
+  --warn: #b3261a; --gold: #8a6500;
+  --font-head: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Barlow", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+}
 body {
   line-height: inherit;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-               "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-  background-color: #0e1014;
-  color: #e5e7eb;
+  font-family: var(--font-body);
+  background-color: var(--ground);
+  color: var(--ink);
 }
 button { font-family: inherit; font-size: 100%; font-weight: inherit; line-height: inherit;
          color: inherit; background-color: transparent; background-image: none; cursor: pointer; }
@@ -143,15 +156,15 @@ h1, h2, h3, h4 { font-size: inherit; font-weight: inherit; }
 .leading-snug  { line-height: 1.375; }
 
 /* --- colors --- */
-.text-white      { color: #ffffff; }
-.text-white\/60  { color: rgba(255,255,255,0.6); }
-.text-gray-100   { color: #f3f4f6; }
-.text-gray-200   { color: #e5e7eb; }
-.text-gray-300   { color: #d1d5db; }
-.text-gray-400   { color: #9ca3af; }
-.text-gray-500   { color: #6b7280; }
-.text-gray-600   { color: #4b5563; }
-.text-red-400    { color: #f87171; }
+.text-white      { color: var(--ink); }
+.text-white\/60  { color: rgba(29,31,32,0.62); }
+.text-gray-100   { color: var(--ink); }
+.text-gray-200   { color: var(--ink); }
+.text-gray-300   { color: var(--ink-2); }
+.text-gray-400   { color: var(--ink-3); }
+.text-gray-500   { color: var(--ink-4); }
+.text-gray-600   { color: var(--ink-4); }
+.text-red-400    { color: var(--warn); }
 
 /* --- misc --- */
 .overflow-y-auto     { overflow-y: auto; }
@@ -170,11 +183,11 @@ h1, h2, h3, h4 { font-size: inherit; font-weight: inherit; }
 .disabled\:cursor-not-allowed:disabled { cursor: not-allowed; }
 
 /* --- app chrome: keep the board comfortable on small screens --- */
-html, body { background-color: #0e1014; }
+html, body { background-color: var(--ground); }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: #14161a; }
-::-webkit-scrollbar-thumb { background: #33384a; border-radius: 5px; }
-::-webkit-scrollbar-thumb:hover { background: #454b60; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-5); }
 
 /* ===========================================================
    Responsive layout
@@ -214,7 +227,7 @@ html, body { background-color: #0e1014; }
     position: sticky;
     top: 0;
     z-index: 5;
-    background-color: #0e1014;
+    background-color: var(--ground);
   }
   .play-rail > * + * { margin-top: 0.6rem; }
   /* A single tall stack of panels meant constant scrolling. Flow them into as many
@@ -265,7 +278,7 @@ html, body { background-color: #0e1014; }
   position: relative;
   overflow: hidden;
   border-radius: 2px;
-  background: #0b0c0f;
+  background: var(--panel);
   touch-action: pan-y;          /* the page still scrolls; pinch is ours */
 }
 .board-viewport.is-zoomed { touch-action: none; cursor: grab; }
@@ -276,17 +289,17 @@ html, body { background-color: #0e1014; }
 }
 .board-zoom button {
   min-width: 34px; height: 30px; padding: 0 8px;
-  border-radius: 6px; border: 1px solid #333a47; background: #171a21;
-  color: #d7dce5; font-size: 15px; font-weight: 700; line-height: 1;
+  border-radius: 2px; border: 1px solid var(--line-2); background: var(--panel);
+  color: var(--ink); font-size: 15px; font-weight: 700; line-height: 1;
   -webkit-tap-highlight-color: transparent;
 }
 .board-zoom button:disabled { opacity: .35; }
 .board-zoom .pct {
   min-width: 52px; text-align: center;
-  font-size: 12px; font-weight: 700; color: #8b93a3;
+  font-size: 12px; font-weight: 700; color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
-.board-zoom .hint { font-size: 11px; color: #6b7280; margin-left: 2px; }
+.board-zoom .hint { font-size: 11px; color: var(--ink-4); margin-left: 2px; }
 
 @media (max-width: 520px) {
   .max-w-6xl { padding-left: 0.25rem; padding-right: 0.25rem; }
@@ -333,3 +346,163 @@ html, body { background-color: #0e1014; }
   gap: 0.6rem;
   align-items: start;
 }
+
+/* ===========================================================
+   THE PRINTED COMPONENTS (PhysicalUI.jsx)
+   Square corners, hairlines, condensed capitals for labels and
+   the industry's own colour as a pale wash - the card, the
+   price track, the phase strip and the worker slot as the
+   printed set draws them.
+   =========================================================== */
+h1, h2, h3 { font-family: var(--font-head); letter-spacing: .02em; }
+.font-mono { font-variant-numeric: tabular-nums; }
+.pu-head { font-family: var(--font-head); font-weight: 700; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.pu-logo { display: inline-block; flex: none; border-radius: 2px; vertical-align: middle; }
+
+/* --- phase strip and quarter track --- */
+.pu-clock { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-family: var(--font-head); }
+.pu-phases, .pu-quarters { display: flex; align-items: stretch; }
+.pu-phase { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px 2px 7px; font-size: 12.5px; font-weight: 500; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3); background: var(--panel); border: 1px solid var(--line); margin-left: -1px; }
+.pu-phase:first-child { margin-left: 0; }
+.pu-phase b { font-weight: 500; color: var(--ink-5); }
+.pu-phase.on { background: var(--accent-900); border-color: var(--accent-900); color: #ffffff; font-weight: 700; position: relative; z-index: 1; }
+.pu-phase.on b { color: var(--accent-300); }
+.pu-q { min-width: 21px; padding: 2px 3px; text-align: center; font-size: 11.5px; font-weight: 500; color: var(--ink-4);
+  background: var(--panel); border: 1px solid var(--line); margin-left: -1px; font-variant-numeric: tabular-nums; }
+.pu-q:first-child { margin-left: 0; }
+.pu-q.done { color: var(--ink-5); background: var(--surface); }
+.pu-q.yearend { border-right: 2px solid var(--ink-3); }
+.pu-q.on { background: var(--accent); border-color: var(--accent-700); color: #ffffff; font-weight: 700; position: relative; z-index: 1; }
+.pu-year { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
+.pu-detail { font-family: var(--font-body); font-size: 11px; color: var(--accent-700); }
+
+/* --- price track --- */
+.pu-track { position: relative; height: 14px; flex: 1 1 auto; min-width: 70px; margin: 0 6px; }
+.pu-track-line { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--ink-4); }
+.pu-tick { position: absolute; top: 3px; bottom: 3px; width: 1px; background: var(--line-2); }
+.pu-tick.base { top: 0; bottom: 0; width: 2px; margin-left: -.5px; background: var(--ink); }
+.pu-marker { position: absolute; top: 50%; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; border: 1.5px solid var(--ink); box-sizing: border-box; transition: left .35s ease; }
+
+/* --- the market: one row per industry, as the printed market sets them out --- */
+.pu-market { display: grid; gap: 4px; }
+.pu-mrow { display: grid; grid-template-columns: auto minmax(70px, 1fr) auto auto; align-items: center; gap: 4px; padding: 3px 5px 3px 3px;
+  background: var(--panel); border: 1px solid var(--line); cursor: help; }
+.pu-mrow .pu-price { font-family: var(--font-head); font-weight: 700; font-size: 15px; min-width: 26px; text-align: right; font-variant-numeric: tabular-nums; }
+.pu-pot { display: inline-flex; align-items: baseline; gap: 3px; min-width: 50px; justify-content: flex-end; padding: 1px 5px; font-family: var(--font-head);
+  font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; border: 1px solid var(--line); }
+.pu-pot small { font-weight: 500; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.pu-pot.empty { color: var(--ink-5); }
+.pu-mnote { grid-column: 2 / -1; font-size: 9px; line-height: 1.2; color: var(--ink-4); margin-top: -2px; }
+
+/* --- worker slots --- */
+.pu-slot { display: inline-flex; align-items: center; justify-content: center; position: relative; width: 26px; height: 26px; border-radius: 50%;
+  border: 1px solid var(--line-2); background: var(--panel); color: var(--ink-5); font-family: var(--font-head); font-size: 11px; font-weight: 500; flex: none; }
+.pu-slot.hatched { background: repeating-linear-gradient(135deg, var(--panel) 0 3px, var(--line-soft) 3px 5px); }
+.pu-slot.locked { border-radius: 2px; background: var(--surface); color: var(--ink-4); }
+.pu-slot.filled { border-width: 1.5px; }
+.pu-slot.filled em { position: absolute; right: -3px; bottom: -3px; min-width: 12px; height: 12px; padding: 0 2px; border-radius: 2px; background: var(--ink);
+  color: #ffffff; font-style: normal; font-size: 8.5px; font-weight: 700; line-height: 12px; text-align: center; }
+
+/* --- the Blueprint --- */
+.pu-card { display: block; width: 184px; flex: none; text-align: left; background: var(--panel); border: 1px solid var(--ink); border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(43,43,45,.14); font-family: var(--font-head); color: var(--ink); overflow: hidden; }
+.pu-card.is-click { cursor: pointer; transition: box-shadow .12s ease, transform .12s ease; }
+.pu-card.is-click:hover { box-shadow: 0 3px 10px rgba(43,43,45,.22); transform: translateY(-1px); }
+.pu-card.is-click:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pu-card.is-off { opacity: .5; cursor: not-allowed; }
+.pu-card s { text-decoration: none; color: var(--ink-5); font-weight: 500; font-size: .78em; }
+.pu-card-plate { position: relative; display: flex; align-items: center; gap: 4px; height: 34px; padding: 0 5px;
+  background-color: var(--ind-tint);
+  background-image: linear-gradient(to right, rgba(29,31,32,.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(29,31,32,.07) 1px, transparent 1px);
+  background-size: 9px 9px; border-bottom: 1px solid var(--ink); }
+.pu-lvl { padding: 0 5px; height: 20px; line-height: 20px; background: var(--ind); color: #ffffff; font-weight: 700; font-size: 14px; letter-spacing: .02em;
+  text-shadow: 0 0 2px rgba(29,31,32,.55); border-radius: 1px; }
+.pu-up { color: var(--ind-ink); font-size: 9px; }
+.pu-grow { margin-left: auto; font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--ind-ink); white-space: nowrap; }
+.pu-code { font-size: 9.5px; font-weight: 500; letter-spacing: .06em; color: var(--ink-3); }
+.pu-card-title { padding: 3px 6px; min-height: 22px; background: var(--line); font-weight: 700; font-size: 13.5px; line-height: 1.15; letter-spacing: .04em;
+  text-transform: uppercase; border-bottom: 1px solid var(--ink-4); }
+.pu-card-q, .pu-band { display: flex; align-items: stretch; }
+.pu-vert { flex: none; width: 13px; display: flex; align-items: center; justify-content: center; background: var(--ind-tint); border-right: 1px solid var(--line-2); }
+.pu-vert span { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 7.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ind-ink); white-space: nowrap; }
+.pu-q-body { flex: 1 1 auto; min-width: 0; padding: 4px 5px 5px; }
+.pu-lab { font-size: 8.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.pu-pay { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 5px; }
+.pu-sups { display: inline-flex; align-items: center; gap: 2px; }
+.pu-sups.split { gap: 6px; }
+.pu-sups.split span { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; }
+.pu-num { font-weight: 700; font-size: 17px; line-height: 1; }
+.pu-sub { flex-basis: 100%; font-size: 8px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); }
+.pu-earn { margin-top: 4px; }
+.pu-tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 2px; }
+.pu-tier { display: flex; flex-direction: column; justify-content: space-between; min-height: 43px; padding: 2px 3px 1px; border: 1px solid var(--line-2); background: var(--well); }
+.pu-tier.on { border-color: var(--ink); background: var(--ind-tint); box-shadow: inset 0 0 0 1px var(--ink); }
+.pu-tier-h { display: flex; flex-direction: column; font-size: 7.6px; font-weight: 700; line-height: 1.15; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); }
+.pu-tier-h s { font-size: 1em; }
+.pu-tier-v { font-weight: 700; font-size: 16px; line-height: 1.05; }
+.pu-live { margin-top: 2px; font-family: var(--font-body); font-size: 9px; color: var(--ind-ink); }
+.pu-band { border-top: 1px dashed var(--ink-4); color: var(--ink-4); }
+.pu-band .pu-vert { background: var(--surface); }
+.pu-band .pu-vert span { color: var(--ink-4); font-size: 7px; }
+.pu-band.on { color: var(--ink); }
+.pu-band.on .pu-vert { background: var(--ink-2); border-right-color: var(--ink-2); }
+.pu-band.on .pu-vert span { color: #ffffff; }
+.pu-band-body { flex: 1 1 auto; min-width: 0; padding: 2px 5px 3px; font-size: 11.5px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pu-band-body i { font-style: normal; font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.pu-band-body b { font-weight: 700; font-size: 13px; }
+.pu-band:not(.on) .pu-band-body b { color: var(--ink-3); }
+.pu-ep { color: var(--gold); }
+.pu-dot { display: inline-block; width: 3px; height: 3px; margin: 0 3px 2px; border-radius: 50%; background: var(--ink-5); }
+.pu-card-note { padding: 2px 6px 3px; border-top: 1px solid var(--line); font-family: var(--font-body); font-size: 9.5px; line-height: 1.25; color: var(--ink-3); }
+.pu-card-foot { display: flex; gap: 4px; padding: 4px 5px 5px; border-top: 1px solid var(--line); background: var(--well); }
+.pu-card-foot button { flex: 1 1 0; padding: 3px 4px; font-family: var(--font-head); font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  border: 1px solid var(--line-2); border-radius: 2px; background: var(--panel); color: var(--ink); }
+.pu-card-foot button:hover:not(:disabled) { background: var(--accent-100); border-color: var(--accent); }
+.pu-card-foot button:disabled { opacity: .35; cursor: not-allowed; }
+.pu-card-foot button.warn { color: var(--warn); }
+.pu-card.is-compact { width: 164px; }
+.pu-card.is-compact .pu-card-plate { height: 28px; }
+.pu-card.is-compact .pu-tier { min-height: 40px; }
+
+/* --- a district's demand, as the tile prints it --- */
+.pu-demand { display: flex; flex-direction: column; justify-content: center; gap: 1px; width: 100%; height: 100%; padding: 2px 2px 2px 2px; background: var(--panel); user-select: none; }
+.pu-demand-h { display: flex; align-items: center; height: 11px; font-family: var(--font-head); font-weight: 700; font-size: 10px; line-height: 1; letter-spacing: .04em; color: var(--ink); }
+.pu-demand-h span { width: 16px; text-align: center; font-size: 7.5px; font-weight: 500; color: var(--ink-4); }
+.pu-demand-h b { flex: 1 1 auto; font-weight: 700; }
+.pu-drow { display: flex; align-items: center; gap: 1px; }
+.pu-drow.locked { opacity: .5; }
+.pu-dcell { display: flex; align-items: center; justify-content: center; gap: 1px; width: 15px; height: 15px; box-sizing: border-box; border: 1px solid rgba(29,31,32,.16); }
+.pu-dcell i { width: 2px; height: 5px; border-radius: .5px; }
+.pu-dcell.pick { cursor: pointer; }
+
+/* --- buttons take the printed set's one solid object --- */
+button { border-radius: 2px; }
+
+/* --- the player box --- */
+.pu-player { padding: 4px 6px 4px 7px; background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--ink-4); }
+.pu-player-top { display: flex; flex-wrap: wrap; align-items: stretch; gap: 3px 6px; }
+.pu-player-name { flex: 1 1 100%; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 5px; font-family: var(--font-head); line-height: 1.1; }
+.pu-player-name b { font-weight: 700; font-size: 16px; letter-spacing: .01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+/* The persona keeps its own capitals: text a script reads off the page should be the name as written. */
+.pu-player-name small { margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: .03em; }
+.pu-first { font-size: 9px; font-weight: 700; letter-spacing: .08em; color: var(--ink-4); text-transform: uppercase; }
+.pu-loan { padding: 0 3px; font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; background: var(--ink); color: #ffffff; }
+.pu-stat { flex: 1 1 0; min-width: 30px; padding: 2px 0; background: var(--well); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--font-head); }
+.pu-stat b { font-weight: 700; font-size: 17px; line-height: 1; font-variant-numeric: tabular-nums; }
+.pu-stat i { font-style: normal; font-size: 7.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-4); white-space: nowrap; }
+
+/* --- a Megacorp charter --- */
+.pu-charter { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 6px; padding: 3px 6px; background: var(--panel);
+  border: 1px solid var(--line); border-left: 3px solid var(--ink); font-family: var(--font-head); }
+.pu-charter-name { font-weight: 700; font-size: 12.5px; letter-spacing: .05em; text-transform: uppercase; line-height: 1.1; }
+.pu-charter-need { display: inline-flex; gap: 2px; }
+.pu-charter-need i { display: inline-block; min-width: 17px; padding: 0 2px; font-style: normal; font-size: 10.5px; font-weight: 700; line-height: 15px; text-align: center;
+  border: 1px solid var(--ink-3); background: var(--well); }
+.pu-charter-tier { font-size: 12px; font-weight: 700; color: #6b4fb3; cursor: help; }
+.pu-charter-ep { min-width: 30px; text-align: right; font-size: 14px; font-weight: 700; color: var(--gold); }
+
+/* --- states are themed, never the browser's defaults --- */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::selection { background: var(--accent-200); color: var(--ink); }
