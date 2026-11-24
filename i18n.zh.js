@@ -993,7 +993,6 @@ export default {
   "Every player is a founder. You buy land, build companies on it, and sell what they produce to the districts around them. Most Entrepreneurial Points at the end of Year 2 wins.": "每位玩家都是创始人。你买地，在地上建公司，把公司生产的东西卖给周围的城区。第 2 年结束时创业点数最多者获胜。",
   "2 years of 4 quarters — 8 quarters in total": "2 个财年，每年 4 个季度——总共 8 个季度",
   "The rows in the middle of a district are its demand: what it will buy": "城区中间的几行就是它的需求：它会买什么",
-  "Every quarter each company pays every supplier printed on its Blueprint the same round amount, set by its level: $5, $10, $20 or $40. Those payments are the heart of the game.": "每个季度，每家公司向印在它蓝图上的每个供应商支付同样的整数金额，金额只看公司的等级：$5、$10、$20 或 $40。这些支付是整个游戏的核心。",
   "Ground rent is paid by the floor to whoever owns the plot: $1 for every full $5 the plot is worth, and never less than $1": "地租按层付给地块的所有者：地块价值每满 $5 收 $1，且每层不少于 $1",
   "A crowded industry can fall to $2, too low for the better tiers on its cards": "拥挤的产业可能跌到 $2，低到够不上它卡上的较高档",
   "CLOSING — bills are paid, every company is paid its best tier, the pots are shared, a Logistic Hub is placed; years end with the land awards": "结算 — 支付账单，每家公司按符合的最高档收款，分配资金池，放置一座物流枢纽；年末发放土地奖励",
@@ -1008,4 +1007,5 @@ export default {
   "Build, pay, earn, score — 2 fiscal years, solo vs bots.": "建造、支付、收款、得分——2 个财年，单人对战机器人。",
   "No Megacorps, and one action per track: LOAN, LAUNCH, RESEARCH and REPOSITION. Building claims its ground free, six discs instead of twelve, land scores districts only, and a company reaches one demand column above its level.": "没有巨头企业，每条行动轨道只留一个动作：贷款、创建、研发、调整顺序。建造时免费取得脚下的地，圆牌从十二个减为六个，土地只按城区计分，公司可以覆盖高于自身等级一级的需求列。",
   "Ground rent: $1 a floor for every full ${0} the plot is worth, to whoever owns it.": "地租：地块价值每满 ${0}，每层收 $1，付给它的所有者。",
+  "Every quarter each company pays the suppliers printed on its Blueprint one round total: $5, $10 or $15 at Level 1, by its industry, and double that with every level. Those payments are the heart of the game.": "每个季度，每家公司向印在它蓝图上的供应商支付一个整数总额：等级 1 时按产业是 $5、$10 或 $15，每升一级翻一倍。这些支付是整个游戏的核心。",
 };

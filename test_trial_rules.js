@@ -27,7 +27,8 @@ function loadEngine() {
       SCALING, runProduction, runBandRevenue, bandRevenue, bandFor, BAND_TABLE, BASE_PRICE, orthOf, plotValue,
       plotRentRate, tierTable, tierFor, bizPotBill, potShares, bizGroundRent, quarterBill, trialOn, cardPotBill,
       latticeKeyForCell, advanceDraft, startPlanning, advancePlanning, epTotal, placeBranches, VARIANTS,
-      normaliseVariants, INDUSTRIES, RENT_PER_LEVEL, price, hqRentDue };
+      normaliseVariants, INDUSTRIES, RENT_PER_LEVEL, price, hqRentDue, OPEX_TIER, OPEX_TIER_LABEL, supplierBill,
+      supplierShares, upgradeAddedBill };
   `, sandbox);
   return box.exports;
 }
@@ -73,23 +74,60 @@ section("The trial rules are the game unless a variant says otherwise");
 }
 
 /* ============================================================ rule 1: pay */
-section("Pay: one round amount to each supplier, by the company's level");
+section("Pay: one round total, set by the industry's OPEX tier and doubled by each level");
 {
   const st = E.initGame(2, 5, ["You"], undefined, false, undefined);
-  const want = { 1: 5, 2: 10, 3: 20, 4: 40 };
-  for (const bp of [card("TE-01"), card("MA-06"), card("HC-10")]) {
+  /* Written out rather than computed, because this table IS the rule: Didson's own
+     figures of 24 November 2026, the totals a card pays by tier and level. */
+  const TOTAL = { Low: [5, 10, 20, 40], Mid: [10, 20, 40, 80], High: [15, 30, 60, 120] };
+  const TIER_OF = { UT: "Low", HO: "Low", MA: "Mid", TE: "Mid", RE: "High", HC: "High" };
+  check("Low is Utilities and Hospitality, Mid Manufacturing and Technology, High Retail and Healthcare",
+    E.INDUSTRIES.every((i) => E.OPEX_TIER_LABEL[E.OPEX_TIER[i]] === TIER_OF[i]),
+    E.INDUSTRIES.map((i) => `${i} ${E.OPEX_TIER_LABEL[E.OPEX_TIER[i]]}`).join(" "));
+  check("those are the three groups v23 prints as OPEX 6, 8 and 10 at Level 1",
+    E.BP_DATA.filter((c) => c.lvl === 1).every((c) => c.opex === 4 + 2 * E.OPEX_TIER[c.ind]));
+  for (const tier of ["Low", "Mid", "High"]) {
+    const ind = E.INDUSTRIES.find((i) => TIER_OF[i] === tier);
+    check(`${tier}: $${TOTAL[tier].join(", $")} at Levels 1 to 4`,
+      same([1, 2, 3, 4].map((l) => E.supplierBill(ind, l)), TOTAL[tier]));
+  }
+  const wrong = [];
+  for (const bp of E.BP_DATA) {
     for (const up of [false, true]) {
       const b = E.newBusiness(bp, ["a"], 1, st);
       if (up) { b.upgraded = true; b.level = bp.lvl + 1; }
-      const unit = want[b.level], n = bp.deps.length;
-      check(`${bp.name}${up ? ", upgraded" : ""}: ${n} supplier${n > 1 ? "s" : ""} at $${unit} each`,
-        E.bizPotBill(st, b) === unit * n && same(E.potShares(st, b), bp.deps.map(() => unit)),
-        `bill $${E.bizPotBill(st, b)}, shares ${E.potShares(st, b).join("+")}`);
+      const total = TOTAL[TIER_OF[bp.ind]][b.level - 1];
+      const want = bp.deps.length === 1 ? [total] : bp.deps.length === 2 ? [total / 2, total / 2] : [total / 2, total / 4, total / 4];
+      const got = E.potShares(st, b);
+      if (E.bizPotBill(st, b) !== total || !same(got, want) || got.some((v) => v % 5)) wrong.push(`${bp.code}${up ? "+" : ""} ${got.join("+")}`);
     }
   }
-  check("the sheet's own line: a Level 2 with two suppliers pays $10 + $10",
+  check("all 60 cards, as printed and upgraded: one supplier takes it all, two take half each, three take a half and two quarters",
+    wrong.length === 0, wrong.slice(0, 4).join("; "));
+  const shares = (code, up) => {
+    const bp = card(code), b = E.newBusiness(bp, ["a"], 1, st);
+    if (up) { b.upgraded = true; b.level = bp.lvl + 1; }
+    return E.potShares(st, b);
+  };
+  check("a Level 1 pays its one supplier $5, $10 or $15, and $10, $20 or $30 once upgraded",
+    same([shares("UT-01"), shares("TE-01"), shares("RE-01")], [[5], [10], [15]])
+    && same([shares("UT-01", true), shares("TE-01", true), shares("RE-01", true)], [[10], [20], [30]]));
+  check("a Level 2 splits $10, $20 or $30 in half, and each half doubles on upgrading",
+    same([shares("UT-06"), shares("MA-06"), shares("HC-06")], [[5, 5], [10, 10], [15, 15]])
+    && same([shares("UT-06", true), shares("MA-06", true), shares("HC-06", true)], [[10, 10], [20, 20], [30, 30]]));
+  check("a Level 3 gives half to the first supplier printed and a quarter to each of the others: $10+$5+$5, $20+$10+$10, $30+$15+$15",
+    same([shares("UT-10"), shares("MA-10"), shares("HC-10")], [[10, 5, 5], [20, 10, 10], [30, 15, 15]]));
+  check("...and at Level 4 each of them is doubled: $20+$10+$10, $40+$20+$20, $60+$30+$30",
+    same([shares("UT-10", true), shares("MA-10", true), shares("HC-10", true)], [[20, 10, 10], [40, 20, 20], [60, 30, 30]]));
+  check("the first supplier printed on a Level 3 is the one v23 made its largest dependency",
+    E.BP_DATA.filter((c) => c.lvl === 3).every((c) => c.deps.every((d) => d.val <= c.deps[0].val)));
+  check("each industry leads exactly one other industry's Level 3s",
+    same(E.INDUSTRIES.map((i) => new Set(E.BP_DATA.filter((c) => c.lvl === 3 && c.deps[0].ind === i).map((c) => c.ind)).size), E.INDUSTRIES.map(() => 1)));
+  check("the sheet's own line: a Level 2 with two suppliers pays $10 + $10 - it is a Mid card",
     same(E.potShares(st, E.newBusiness(card("MA-06"), ["a", "b"], 1, st)), [10, 10]));
-  check("a card in hand is priced the same way", E.cardPotBill(st, card("HC-10")) === 60 && E.cardPotBill(st, card("RE-01")) === 5);
+  check("a card in hand is priced the same way", E.cardPotBill(st, card("HC-10")) === 60 && E.cardPotBill(st, card("RE-01")) === 15 && E.cardPotBill(st, card("UT-06")) === 10);
+  const up = E.newBusiness(card("TE-10"), ["a"], 1, st);
+  check("upgrading adds exactly the bill it already pays", E.upgradeAddedBill(st, up) === 40 && E.upgradeAddedBill(st, E.newBusiness(card("HO-01"), ["a"], 1, st)) === 5);
 }
 
 section("The bill lands in the suppliers' pots, whole");

@@ -52,39 +52,84 @@ export const RULEBOOK_PT = [
         "p": "Três regras estão sendo testadas por cima deste manual, e as cartas de Projeto impressas para o playtest trazem os números delas. O jogo online joga com elas. Todo o resto vale como está escrito nos capítulos seguintes. Onde um capítulo adiante falar de OPEX, da tabela de faixas ou de $2 de aluguel por nível, leia este capítulo no lugar - ou ligue a variante 'Contas e receita como impressas na v23' para jogar o manual como ele está."
       },
       {
-        "h": "1. Pagar: um valor redondo para cada fornecedor"
+        "h": "1. Pagar: um total redondo, que dobra a cada nível"
       },
       {
-        "p": "No Encerramento, cada empresa paga a cada fornecedor impresso na carta o mesmo valor, no fundo daquele setor. O valor depende só do nível da empresa."
+        "p": "No Encerramento, cada empresa paga aos seus fornecedores um total redondo, nos fundos dos setores deles. Duas coisas definem o total: o custo de operar o setor da empresa - Baixo, Médio ou Alto - e o nível da empresa. Cada nível dobra o total."
       },
       {
         "table": {
           "head": [
-            "Nível da empresa",
-            "Cada fornecedor recebe"
+            "Custo de operação",
+            "Setores",
+            "Nível 1",
+            "Nível 2",
+            "Nível 3",
+            "Nível 4"
           ],
           "rows": [
             [
-              "Nível 1",
-              "$5"
-            ],
-            [
-              "Nível 2",
-              "$10"
-            ],
-            [
-              "Nível 3",
-              "$20"
-            ],
-            [
-              "Nível 4",
+              "Baixo",
+              "Serviços Públicos, Hotelaria",
+              "$5",
+              "$10",
+              "$20",
               "$40"
+            ],
+            [
+              "Médio",
+              "Manufatura, Tecnologia",
+              "$10",
+              "$20",
+              "$40",
+              "$80"
+            ],
+            [
+              "Alto",
+              "Varejo, Saúde",
+              "$15",
+              "$30",
+              "$60",
+              "$120"
             ]
           ]
         }
       },
       {
-        "p": "Uma empresa de Nível 2 com dois fornecedores paga $10 + $10. O OPEX impresso e as cotas dos fornecedores não são usados, e o aluguel nunca faz parte desta conta."
+        "p": "A carta mostra como o total é dividido entre os fornecedores dela. Um fornecedor fica com tudo. Dois ficam com metade cada um. Uma carta que começa no Nível 3 traz três: o primeiro impresso fica com metade, e os outros dois com um quarto cada. Expandir a empresa dobra o que cada fornecedor recebe."
+      },
+      {
+        "table": {
+          "head": [
+            "A carta começa no",
+            "Baixo paga",
+            "Médio paga",
+            "Alto paga"
+          ],
+          "rows": [
+            [
+              "Nível 1, um fornecedor",
+              "$5",
+              "$10",
+              "$15"
+            ],
+            [
+              "Nível 2, dois fornecedores",
+              "$5 + $5",
+              "$10 + $10",
+              "$15 + $15"
+            ],
+            [
+              "Nível 3, três fornecedores",
+              "$10 + $5 + $5",
+              "$20 + $10 + $10",
+              "$30 + $15 + $15"
+            ]
+          ]
+        }
+      },
+      {
+        "p": "Uma Montadora é uma carta de Manufatura que começa no Nível 2: ela paga $10 + $10, e $20 + $20 depois de expandida. O OPEX impresso e as cotas dos fornecedores da v23 não são usados, e o aluguel nunca faz parte desta conta."
       },
       {
         "h": "2. Receber: a melhor faixa que você cumpre por inteiro"
@@ -424,7 +469,7 @@ export const RULEBOOK_PT = [
         ]
       },
       {
-        "note": "Estas três são um teste, não uma edição: o manual continua v23 até uma mesa dizer se elas se sustentam. O audit_trial.js joga as duas com as mesmas sementes. Com bots ajustados na economia impressa, as regras de teste cortam em mais da metade o dinheiro que sobra na mão de um jogador no fim - que era a queixa da mesa - e fazem um Nível 3 perder dinheiro em um trimestre médio, porque três fornecedores a $20 custam mais do que a faixa do meio dele paga. Esse segundo número é o que vale trazer de volta da mesa."
+        "note": "Estas três são um teste, não uma edição: o manual continua v23 até uma mesa dizer se elas se sustentam. O audit_trial.js joga as duas com as mesmas sementes. Com bots ajustados na economia impressa, as regras de teste cortam em cerca de dois terços o dinheiro que sobra na mão de um jogador no fim - que era a queixa da mesa - e deixam uma empresa com menos no fim do trimestre quanto maior o nível dela: $9, $5 e $3 para os Níveis 1, 2 e 3 com quatro jogadores. A conta dobra a cada nível, e as faixas, calculadas para o OPEX impresso, não acompanham. Quanto os Níveis 2 a 4 recebem é a próxima coisa a acertar."
       }
     ]
   },

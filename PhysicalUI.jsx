@@ -108,6 +108,10 @@ function LockGlyph() {
 
    A number after a slash, in grey, is the same number once upgraded, exactly as printed.
 
+   PAY names what each supplier is handed. One supplier takes the card's whole bill, two
+   take the same half ("Pay each"), and the three on a card that starts at Level 3 are
+   written out one by one, because the first of them takes half and the others a quarter.
+
    `face` comes from the engine's cardFace(). `live`, for a company on the board, is what
    it reaches right now - { icons, px, tier } - and marks the tier it is being paid. */
 const money = (v) => "$" + v;
@@ -149,7 +153,7 @@ export function BlueprintCard({ face, color, mode = "hand", grow, live, flipped,
         <div className="pu-vert"><span>{t("Every quarter")}</span></div>
         <div className="pu-q-body">
           <div className="pu-pay">
-            <span className="pu-lab">{f.trial ? t("Pay each") : t("Pay")}</span>
+            <span className="pu-lab">{f.trial && allSame && f.suppliers.length > 1 ? t("Pay each") : t("Pay")}</span>
             {allSame ? (
               <>
                 <span className="pu-sups">{f.suppliers.map((s, i) => <IndLogo key={i} ind={s} size={15} title={s} />)}</span>
@@ -157,7 +161,7 @@ export function BlueprintCard({ face, color, mode = "hand", grow, live, flipped,
               </>
             ) : (
               <span className={cx("pu-sups", "split")}>
-                {f.suppliers.map((s, i) => <span key={i}><IndLogo ind={s} size={13} title={s} /><b>${f.pay[i]}</b></span>)}
+                {f.suppliers.map((s, i) => <span key={i}><IndLogo ind={s} size={13} title={s} /><b><Twin now={f.pay[i]} next={f.payNext ? f.payNext[i] : null} /></b></span>)}
               </span>
             )}
             <span className="pu-sub">{f.rentFlat ? t("+ ${0} rent a floor", f.rentFlat) : t("+ rent if any")}</span>

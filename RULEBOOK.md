@@ -53,18 +53,25 @@ Every company pays a supplier bill each quarter, and that money does not vanish 
 
 Three rules are being trialled on top of this book, and the Blueprint cards printed for the playtest carry their numbers. The online game plays them. Everything else plays as written in the chapters that follow. Where a later chapter describes OPEX, the band table or $2 of rent a level, read this chapter instead - or switch on the variant 'Bills and revenue as printed in v23' to play the book as it stands.
 
-### 1. Pay: one round amount to each supplier
+### 1. Pay: one round total, doubled by each level
 
-At Closing, each company pays every supplier printed on its card the same amount, into that industry's pot. The amount depends only on the company's level.
+At Closing, each company pays its suppliers one round total, into their industries' pots. Two things set the total: how dear the company's industry is to run - Low, Mid or High - and the company's level. Every level doubles it.
 
-| Company level | Each supplier is paid |
-| --- | --- |
-| Level 1 | $5 |
-| Level 2 | $10 |
-| Level 3 | $20 |
-| Level 4 | $40 |
+| Running cost | Industries | Level 1 | Level 2 | Level 3 | Level 4 |
+| --- | --- | --- | --- | --- | --- |
+| Low | Utilities, Hospitality | $5 | $10 | $20 | $40 |
+| Mid | Manufacturing, Technology | $10 | $20 | $40 | $80 |
+| High | Retail, Healthcare | $15 | $30 | $60 | $120 |
 
-A Level 2 with two suppliers pays $10 + $10. The printed OPEX and the supplier shares are not used, and rent is never part of this bill.
+The card prints how the total is divided among its suppliers. One supplier takes all of it. Two take half each. A card that starts at Level 3 prints three: the first one printed takes half, and the other two a quarter each. Upgrading doubles what each supplier is paid.
+
+| The card starts at | Low pays | Mid pays | High pays |
+| --- | --- | --- | --- |
+| Level 1, one supplier | $5 | $10 | $15 |
+| Level 2, two suppliers | $5 + $5 | $10 + $10 | $15 + $15 |
+| Level 3, three suppliers | $10 + $5 + $5 | $20 + $10 + $10 | $30 + $15 + $15 |
+
+An Auto Plant is a Manufacturing card that starts at Level 2: it pays $10 + $10, and $20 + $20 once upgraded. The printed OPEX and the v23 supplier shares are not used, and rent is never part of this bill.
 
 ### 2. Earn: the best tier you fully meet
 
@@ -141,7 +148,7 @@ Phases, tracks and last in, first out. How prices move. Which icons you count an
 - Revenue by the unit is not played with the trial rules, because the trial cards print no production; switching it on plays the printed bills and rent as well.
 - Beginner game: land is free, and there is no rent, upgrade, renovation or planned sale. Pay and earn work as above.
 
-> **Designer's note.** These three are a trial, not an edition: the book stays v23 until a table has said whether they hold. audit_trial.js plays both on the same seeds. With bots tuned on the printed economy, the trial rules cut the cash a player is left holding at the end by more than half - which was the table's complaint - and make a Level 3 lose money in an average quarter, because three suppliers at $20 cost more than its middle tier pays. That second number is the one to bring back from the table.
+> **Designer's note.** These three are a trial, not an edition: the book stays v23 until a table has said whether they hold. audit_trial.js plays both on the same seeds. With bots tuned on the printed economy, the trial rules cut the cash a player is left holding at the end by about two thirds - which was the table's complaint - and leave a company with less at the end of a quarter the higher its level: $9, $5 and $3 for Levels 1, 2 and 3 with four players. The bill doubles with every level, and the tiers, worked out for the printed OPEX, do not keep up. What Levels 2 to 4 are paid is the next thing to settle.
 
 ---
 

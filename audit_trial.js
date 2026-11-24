@@ -5,10 +5,11 @@
    printed for it, and the engine plays them unless "Bills and revenue as printed
    in v23" puts the book's own back:
 
-     trial     as it ships: every supplier is paid $5/$10/$20/$40 by the company's
-               level; a company collects the best tier it fully meets, icons AND
-               price; a floor on somebody else's plot owes $1 for every full $5
-               the plot is worth
+     trial     as it ships: a company pays its suppliers one round total, $5, $10
+               or $15 at Level 1 by its industry and double that with every
+               level; it collects the best tier it fully meets, icons AND price;
+               a floor on somebody else's plot owes $1 for every full $5 the plot
+               is worth
      printed   the rulebook's three rules: the OPEX on the card split among its
                suppliers, the market price times the band, $2 of rent a level
 

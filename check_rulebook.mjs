@@ -29,7 +29,8 @@ runInContext(
              DISCS_PER_PLAYER, MEGACORPS_TO_END, COMPANY_SLOTS, MEGACORP_TIER,
              MEGACORP_TITHE_EP, INDUSTRIES, BP_DATA, STARTING, MEGACORP_TILES, SCALING,
              PERSONAS, IND_NAME: typeof IND_NAME !== "undefined" ? IND_NAME : null,
-             makePriceMatrix, price, supplierUnit, tierTable, tierFor, TRIAL_RENT_STEP, RENT_PER_LEVEL };`, box);
+             makePriceMatrix, price, supplierBill, supplierShares, OPEX_TIER, OPEX_TIER_LABEL, tierTable, tierFor,
+             TRIAL_RENT_STEP, RENT_PER_LEVEL };`, box);
 const E = box.E;
 
 let fails = 0, n = 0;
@@ -331,15 +332,50 @@ section("Annex: the sixty Blueprints");
 }
 
 /* ---- the trial rules chapter ----
-   The chapter prints four tables and a worked example, and every figure in them is one
+   The chapter prints five tables and a worked example, and every figure in them is one
    the engine works out rather than stores. If a threshold or a payout moved in the engine
    and not here, a player would be paid a number the book does not show. */
 section("The trial rules chapter says what the engine plays");
 {
-  const pay = tableByHead(/Company level \| Each supplier is paid/);
-  check("the chapter has the supplier table", !!pay);
-  if (pay) check("each supplier is paid $5, $10, $20, $40 by the company's level",
-    pay.rows.length === 4 && pay.rows.every((r, i) => money(r[1]) === E.supplierUnit(i + 1)), pay.rows.map((r) => r[1]).join(" "));
+  const pay = tableByHead(/Running cost \| Industries \| Level 1/);
+  check("the chapter has the table of supplier totals", !!pay);
+  if (pay) {
+    const bad = [], seen = [];
+    for (const r of pay.rows) for (const name of String(r[1]).split(",").map((x) => x.trim())) {
+      const code = codeOf(name);
+      seen.push(code);
+      if (E.OPEX_TIER_LABEL[E.OPEX_TIER[code]] !== r[0]) bad.push(`${name} is not ${r[0]}`);
+      [1, 2, 3, 4].forEach((l) => { if (money(r[1 + l]) !== E.supplierBill(code, l)) bad.push(`${name} Level ${l} ${r[1 + l]}`); });
+    }
+    check("every industry's total, at every level, is the one the engine bills", bad.length === 0, bad.slice(0, 3).join("; "));
+    check("all six industries are in it, once", seen.slice().sort().join() === E.INDUSTRIES.slice().sort().join(), seen.join(" "));
+    check("every level doubles the one before", pay.rows.every((r) => [3, 4, 5].every((k) => money(r[k]) === 2 * money(r[k - 1]))));
+  }
+  const split = tableByHead(/The card starts at \| Low pays/);
+  check("the chapter has the table of how a card divides its total", !!split);
+  if (split) {
+    const bad = [];
+    let cards = 0;
+    split.rows.forEach((r, i) => ["Low", "Mid", "High"].forEach((tier, k) => {
+      for (const c of E.BP_DATA.filter((x) => x.lvl === i + 1 && E.OPEX_TIER_LABEL[E.OPEX_TIER[x.ind]] === tier)) {
+        cards++;
+        const got = E.supplierShares(c, c.lvl).map((v) => "$" + v).join(" + ");
+        if (got !== r[1 + k]) bad.push(`${c.code} pays ${got}, the book says ${r[1 + k]}`);
+        const up = E.supplierShares(c, c.lvl + 1), now = E.supplierShares(c, c.lvl);
+        if (!up.every((v, j) => v === 2 * now[j])) bad.push(`${c.code} upgraded does not double each supplier`);
+      }
+    }));
+    check("each of the 60 cards divides its bill as its row says, and doubles every share when upgraded", bad.length === 0 && cards === 60,
+      bad.slice(0, 3).join("; ") || `${cards} cards`);
+  }
+  const autoPay = prose.find((x) => /Auto Plant is a Manufacturing card that starts at Level 2/.test(x));
+  check("the Auto Plant's line is in the book", !!autoPay);
+  if (autoPay) {
+    const c = E.BP_DATA.find((x) => x.code === "MA-06");
+    check("it pays $10 + $10, and $20 + $20 once upgraded",
+      /\$10 \+ \$10/.test(autoPay) && /\$20 \+ \$20/.test(autoPay)
+      && E.supplierShares(c, 2).join() === "10,10" && E.supplierShares(c, 3).join() === "20,20");
+  }
 
   const need = tableByHead(/Industry \| Middle tier needs a price of/);
   check("the chapter has the table of prices a tier needs", !!need);

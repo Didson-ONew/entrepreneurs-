@@ -1363,9 +1363,26 @@ const hasVariant = (state, key) => !!(state && state.variants && state.variants[
    cards carry, so they are how the engine plays - unless "printedV23" puts the book's own
    three rules back, which is also what keeps the two measurable side by side.
 
-   PAY. A company hands every supplier printed on its card the same round amount, set by
-   the company's level alone: $5, $10, $20, $40. The printed OPEX and the uneven supplier
-   shares are gone, and rent is never part of this bill.
+   PAY. What a company hands its suppliers each quarter is one round TOTAL, set by two
+   things: the OPEX tier of its industry - Low for Utilities and Hospitality, Mid for
+   Manufacturing and Technology, High for Retail and Healthcare, the same three groups v23
+   prints as OPEX 6, 8 and 10 at Level 1 - and its level, the total doubling with each one:
+
+            Level 1   Level 2   Level 3   Level 4
+     Low       $5       $10       $20       $40
+     Mid      $10       $20       $40       $80
+     High     $15       $30       $60      $120
+
+   One supplier takes the whole of it and two take half each. The twelve cards that start
+   at Level 3 print three, and there the first supplier printed - the largest dependency
+   on the v23 card - takes half and the other two a quarter each, so $20 is $10 + $5 + $5.
+   Upgrading doubles what each supplier is handed, which is what doubles the total. The
+   printed OPEX is gone, and rent is never part of this bill.
+
+   (The first cut of this, on 23 November 2026, read the same line of the sheet as "$5,
+   $10, $20, $40 to EVERY supplier, by level alone". Didson corrected it the next day: the
+   figures were totals, and they depend on the tier. Three suppliers at Level 3 were his
+   open question; "half to the lead" was the option he chose.)
 
    EARN. The band table stays, read as three tiers with the dollars already worked out.
    The middle and top tiers each ask for two things - enough icons, and a market price at
@@ -1378,11 +1395,27 @@ const hasVariant = (state, key) => !!(state && state.variants && state.variants[
 
    "Revenue by the unit" needs the printed production, which the trial cards do not carry,
    so switching it on plays the printed bills and rent as well. */
-const TRIAL_SUPPLIER_UNIT = { 1: 5, 2: 10, 3: 20, 4: 40 };
+const OPEX_TIER = { UT: 1, HO: 1, MA: 2, TE: 2, RE: 3, HC: 3 };
+const OPEX_TIER_LABEL = { 1: "Low", 2: "Mid", 3: "High" };
+const TRIAL_BILL_STEP = 5;
 const TRIAL_RENT_STEP = 5;
 const trialOn = (state) => !hasVariant(state, "printedV23") && !hasVariant(state, "unitRevenue");
 const levelRow = (level) => Math.min(4, Math.max(1, level || 1));
-const supplierUnit = (level) => TRIAL_SUPPLIER_UNIT[levelRow(level)];
+/* The whole supplier bill of a card of this industry standing at this level. */
+const supplierBill = (ind, level) => TRIAL_BILL_STEP * (OPEX_TIER[ind] || 1) * Math.pow(2, levelRow(level) - 1);
+/* ...and how it is divided among the suppliers the card prints, in the order it prints
+   them. Whole dollars always, and always the whole bill: on the sixty cards every share
+   is a multiple of $5, and the remainders only guard a card nobody has printed yet. */
+function supplierShares(bp, level) {
+  const n = (bp.deps || []).length;
+  if (!n) return [];
+  const total = supplierBill(bp.ind, level);
+  if (n === 1) return [total];
+  if (n === 2) { const half = Math.floor(total / 2); return [total - half, half]; }
+  const rest = Math.floor(total / 4);
+  return [total - rest * (n - 1), ...Array(n - 1).fill(rest)];
+}
+const sumOf = (xs) => xs.reduce((a, v) => a + v, 0);
 /* What one floor owes on this plot, this quarter. */
 function plotRentRate(state, plot) {
   return trialOn(state) ? Math.max(1, Math.floor(plotValue(state, plot) / TRIAL_RENT_STEP)) : RENT_PER_LEVEL;
@@ -1391,7 +1424,7 @@ function plotRentRate(state, plot) {
    and what a bot should set aside for it. Under the printed rules the bots always held
    back the whole OPEX, rent and all, and they still do. */
 const cardPotBill = (state, bp) => (trialOn(state)
-  ? supplierUnit(bp.lvl) * (bp.deps || []).length
+  ? sumOf(supplierShares(bp, bp.lvl))
   : Math.max(0, bp.opex - RENT_PER_LEVEL * bp.lvl));
 const cardRunningCost = (state, bp) => (trialOn(state) ? cardPotBill(state, bp) : bp.opex);
 
@@ -1631,7 +1664,7 @@ const bizRunningCost = (state, p, b) => (trialOn(state)
   : bizOpex(b) + RENT_PER_LEVEL * b.level);
 /* What an upgrade adds to the quarter's bill. */
 const upgradeAddedBill = (state, b) => (trialOn(state)
-  ? (supplierUnit(b.level + 1) - supplierUnit(b.level)) * (b.bp.deps || []).length
+  ? sumOf(supplierShares(b.bp, b.level + 1)) - sumOf(supplierShares(b.bp, b.level))
   : bizOpex(b));
 /* Ground rent used to be carved OUT of OPEX: the player paid the card's whole bill, the
    landlord took $2 a level from inside it, and only the remainder reached the suppliers'
@@ -1647,7 +1680,7 @@ const upgradeAddedBill = (state, b) => (trialOn(state)
    nobody owns: the old sum subtracted rent for it from the pot share and then paid it to
    nobody, destroying the money. Now there is no landlord, so there is nothing to pay. */
 const bizPotBill = (state, b) => (trialOn(state)
-  ? supplierUnit(b.level) * (b.bp.deps || []).length
+  ? sumOf(supplierShares(b.bp, b.level))
   : Math.max(0, bizOpex(b) - RENT_PER_LEVEL * b.level));
 /* What each supplier is actually handed, in whole dollars: its share of the supplier bill
    in proportion to what the card owes it, with the odd dollars going to the largest
@@ -1655,9 +1688,9 @@ const bizPotBill = (state, b) => (trialOn(state)
    so what a card says it will pay and what the quarter really pays cannot drift apart. */
 function potShares(state, b) {
   const deps = b.bp.deps || [];
-  /* Under the trial rules there is nothing to split: every supplier is handed the same
-     round amount, whatever the card once owed each of them. */
-  if (trialOn(state)) return deps.map(() => supplierUnit(b.level));
+  /* Under the trial rules the split is printed, not worked out: all of it, half each, or
+     half to the first supplier and a quarter to each of the other two. */
+  if (trialOn(state)) return supplierShares(b.bp, b.level);
   const bill = bizPotBill(state, b);
   if (!deps.length || bill <= 0) return deps.map(() => 0);
   const depTotal = deps.reduce((s, d) => s + d.val, 0) || 1;
@@ -2375,7 +2408,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "1a28cecf";
+const ENGINE_VERSION = "2883c510";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -6120,7 +6153,7 @@ const TUTORIAL = [
              "The rows in the middle of a district are its demand: what it will buy"] },
 
   { title: "Six industries that feed each other", target: "pots", art: ArtChain,
-    body: "Every quarter each company pays every supplier printed on its Blueprint the same round amount, set by its level: $5, $10, $20 or $40. Those payments are the heart of the game.",
+    body: "Every quarter each company pays the suppliers printed on its Blueprint one round total: $5, $10 or $15 at Level 1, by its industry, and double that with every level. Those payments are the heart of the game.",
     points: [`Every industry buys from ${SUPPLY.each} others \u2014 and sells to ${SUPPLY.each} others`,
              `${SUPPLY.lines} supply lines in all: no dead ends, and no safe corner`,
              "Your supplier bill lands in your suppliers' industry pots; ground rent goes to landlords",
