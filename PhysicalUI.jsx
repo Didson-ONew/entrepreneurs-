@@ -130,7 +130,7 @@ export function BlueprintCard({ face, color, mode = "hand", grow, live, flipped,
     return (
       <>
         <span><Twin now={table.icons[i]} next={next ? next.icons[i] : null} fmt={(v) => v + "+"} /> {t("icons")}</span>
-        {table.price && <span>&amp; {t("price")} ${table.price[i]}+</span>}
+        {table.price && <span>&amp; {t("price")} <Twin now={table.price[i]} next={next && next.price ? next.price[i] : null} fmt={(v) => "$" + v + "+"} /></span>}
       </>
     );
   };

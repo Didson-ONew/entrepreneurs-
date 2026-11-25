@@ -138,36 +138,81 @@ export const RULEBOOK_PT = [
         "p": "Conte seus ícones de demanda exatamente como este manual descreve e então leia as três faixas da carta no lugar da tabela de faixas. A faixa do meio e a mais alta pedem duas coisas cada: ícones suficientes e um preço de mercado igual ou maior que o impresso. Receba o valor impresso na faixa mais alta em que as duas coisas forem verdade. Se nenhuma for cumprida, você ainda recebe o Mínimo, mesmo sem ícones. Nada é multiplicado."
       },
       {
-        "p": "O preço que uma faixa pede depende só do setor: a faixa do meio precisa do preço base do setor menos $1, e a mais alta do preço base mais $2."
+        "p": "Cada faixa é uma margem sobre a conta de fornecedores da própria carta, definida por quão difícil é entrar no setor dela. Se espalhar em vez de empilhar, um custo de construção alto, um custo de operação alto e poucas linhas de demanda no mapa deixam um setor mais difícil, e os mais difíceis pagam as margens mais generosas. Um prejuízo ou lucro pequeno é $5 no Nível 1, $10 no Nível 2, $15 no Nível 3 e $20 no Nível 4. Um prejuízo grande ou um lucro normal é o dobro disso, e um lucro bom o triplo. Um prejuízo grande pode ser a conta inteira, então o Mínimo de uma carta Fácil paga $0. As partes dos fundos vêm por cima e não contam aqui."
       },
       {
         "table": {
           "head": [
-            "Setor",
-            "A faixa do meio precisa de um preço de",
-            "A faixa mais alta precisa de um preço de"
+            "Grau",
+            "Setores",
+            "Mínimo",
+            "Faixa do meio",
+            "Faixa mais alta"
           ],
           "rows": [
             [
-              "Serviços Públicos, Varejo",
-              "$3",
-              "$6"
+              "Fácil",
+              "Hotelaria, Serviços Públicos",
+              "prejuízo grande",
+              "prejuízo pequeno",
+              "lucro pequeno"
             ],
             [
-              "Hotelaria, Manufatura",
-              "$4",
-              "$7"
+              "Médio",
+              "Varejo, Tecnologia",
+              "prejuízo pequeno",
+              "empate",
+              "lucro"
             ],
             [
-              "Saúde, Tecnologia",
-              "$5",
-              "$8"
+              "Difícil",
+              "Manufatura, Saúde",
+              "empate",
+              "lucro pequeno",
+              "lucro bom"
             ]
           ]
         }
       },
       {
-        "p": "Exemplo: uma Montadora de Nível 2 tem um Mínimo de $10, uma faixa do meio de 5 ícones e $4 que paga $35, e uma faixa mais alta de 8 ícones e $7 que paga $55. Com 6 ícones a $5 ela recebe $35. Com 9 ícones a $5 ela ainda recebe $35, porque a faixa mais alta precisa de $7. Com 9 ícones a $7 ela recebe $55. Com 3 ícones a $9 ela recebe o Mínimo, $10."
+        "p": "A faixa do meio pede o preço base do setor menos $1, em qualquer nível. A faixa mais alta pede o preço base mais $2 no Nível 1, mais $1 no Nível 2, e o próprio preço base a partir do Nível 3. Cada expansão alcança mais demanda, e também deixa o preço da faixa mais alta $1 mais fácil."
+      },
+      {
+        "table": {
+          "head": [
+            "Setor",
+            "Faixa do meio, qualquer nível",
+            "Faixa mais alta no Nível 1",
+            "Faixa mais alta no Nível 2",
+            "Faixa mais alta nos Níveis 3 e 4"
+          ],
+          "rows": [
+            [
+              "Serviços Públicos, Varejo",
+              "$3",
+              "$6",
+              "$5",
+              "$4"
+            ],
+            [
+              "Hotelaria, Manufatura",
+              "$4",
+              "$7",
+              "$6",
+              "$5"
+            ],
+            [
+              "Saúde, Tecnologia",
+              "$5",
+              "$8",
+              "$7",
+              "$6"
+            ]
+          ]
+        }
+      },
+      {
+        "p": "Exemplo: uma Montadora de Nível 2 é uma carta Difícil com uma conta de $20. O Mínimo dela paga $20. A faixa do meio, 5 ícones e $4, paga $30. A faixa mais alta, 8 ícones e $6, paga $50. Com 6 ícones a $5 ela recebe $30. Com 9 ícones a $5 ela ainda recebe $30, porque a faixa mais alta precisa de $6. Com 9 ícones a $6 ela recebe $50. Com 3 ícones a $9 ela recebe o Mínimo, $20."
       },
       {
         "p": "As faixas de todas as cartas, por setor e pelo nível da empresa. Uma empresa expandida lê a linha do seu novo nível."
@@ -187,182 +232,182 @@ export const RULEBOOK_PT = [
             [
               "Serviços Públicos (UT)",
               "Nível 1",
-              "$5",
+              "$0",
               "1",
-              "$10",
+              "$5",
               "2",
-              "$15"
+              "$10"
             ],
             [
               "Serviços Públicos (UT)",
               "Nível 2",
-              "$5",
+              "$0",
               "4",
-              "$15",
+              "$5",
               "6",
+              "$20"
+            ],
+            [
+              "Serviços Públicos (UT)",
+              "Nível 3",
+              "$0",
+              "7",
+              "$5",
+              "12",
               "$35"
             ],
             [
               "Serviços Públicos (UT)",
-              "Nível 3",
-              "$15",
-              "7",
-              "$40",
-              "12",
-              "$70"
-            ],
-            [
-              "Serviços Públicos (UT)",
               "Nível 4",
-              "$45",
+              "$0",
               "14",
-              "$95",
+              "$20",
               "24",
-              "$145"
+              "$60"
             ],
             [
               "Varejo (RE)",
               "Nível 1",
-              "$5",
-              "2",
               "$10",
+              "2",
+              "$15",
               "3",
               "$25"
             ],
             [
               "Varejo (RE)",
               "Nível 2",
-              "$10",
+              "$20",
               "5",
-              "$25",
+              "$30",
               "8",
               "$50"
             ],
             [
               "Varejo (RE)",
               "Nível 3",
-              "$10",
+              "$45",
               "7",
-              "$40",
+              "$60",
               "12",
+              "$90"
+            ],
+            [
+              "Varejo (RE)",
+              "Nível 4",
+              "$100",
+              "12",
+              "$120",
+              "20",
+              "$160"
+            ],
+            [
+              "Hotelaria (HO)",
+              "Nível 1",
+              "$0",
+              "1",
+              "$5",
+              "2",
+              "$10"
+            ],
+            [
+              "Hotelaria (HO)",
+              "Nível 2",
+              "$0",
+              "2",
+              "$5",
+              "4",
+              "$20"
+            ],
+            [
+              "Hotelaria (HO)",
+              "Nível 3",
+              "$0",
+              "5",
+              "$5",
+              "8",
+              "$35"
+            ],
+            [
+              "Hotelaria (HO)",
+              "Nível 4",
+              "$0",
+              "10",
+              "$20",
+              "16",
+              "$60"
+            ],
+            [
+              "Manufatura (MA)",
+              "Nível 1",
+              "$10",
+              "2",
+              "$15",
+              "4",
+              "$25"
+            ],
+            [
+              "Manufatura (MA)",
+              "Nível 2",
+              "$20",
+              "5",
+              "$30",
+              "8",
+              "$50"
+            ],
+            [
+              "Manufatura (MA)",
+              "Nível 3",
+              "$40",
+              "10",
+              "$55",
+              "16",
               "$85"
             ],
             [
-              "Varejo (RE)",
-              "Nível 4",
-              "$20",
-              "12",
-              "$70",
-              "20",
-              "$145"
-            ],
-            [
-              "Hotelaria (HO)",
-              "Nível 1",
-              "$5",
-              "1",
-              "$10",
-              "2",
-              "$15"
-            ],
-            [
-              "Hotelaria (HO)",
-              "Nível 2",
-              "$5",
-              "2",
-              "$15",
-              "4",
-              "$30"
-            ],
-            [
-              "Hotelaria (HO)",
-              "Nível 3",
-              "$10",
-              "5",
-              "$30",
-              "8",
-              "$55"
-            ],
-            [
-              "Hotelaria (HO)",
-              "Nível 4",
-              "$20",
-              "10",
-              "$65",
-              "16",
-              "$110"
-            ],
-            [
-              "Manufatura (MA)",
-              "Nível 1",
-              "$5",
-              "2",
-              "$15",
-              "4",
-              "$30"
-            ],
-            [
-              "Manufatura (MA)",
-              "Nível 2",
-              "$10",
-              "5",
-              "$35",
-              "8",
-              "$55"
-            ],
-            [
-              "Manufatura (MA)",
-              "Nível 3",
-              "$20",
-              "10",
-              "$70",
-              "16",
-              "$110"
-            ],
-            [
               "Manufatura (MA)",
               "Nível 4",
-              "$30",
+              "$80",
               "19",
-              "$125",
+              "$100",
               "32",
-              "$225"
+              "$140"
             ],
             [
               "Saúde (HC)",
               "Nível 1",
-              "$5",
+              "$15",
               "2",
-              "$10",
+              "$20",
               "3",
-              "$25"
+              "$30"
             ],
             [
               "Saúde (HC)",
               "Nível 2",
-              "$10",
+              "$30",
               "4",
-              "$25",
+              "$40",
               "6",
-              "$50"
+              "$60"
             ],
             [
               "Saúde (HC)",
               "Nível 3",
-              "$20",
+              "$60",
               "7",
-              "$55",
+              "$75",
               "12",
-              "$95"
+              "$105"
             ],
             [
               "Saúde (HC)",
               "Nível 4",
-              "$50",
-              "14",
               "$120",
+              "14",
+              "$140",
               "24",
-              "$190"
+              "$180"
             ],
             [
               "Tecnologia (TE)",
@@ -371,34 +416,34 @@ export const RULEBOOK_PT = [
               "1",
               "$10",
               "2",
-              "$15"
+              "$20"
             ],
             [
               "Tecnologia (TE)",
               "Nível 2",
-              "$5",
+              "$10",
               "2",
-              "$25",
+              "$20",
               "4",
-              "$30"
+              "$40"
             ],
             [
               "Tecnologia (TE)",
               "Nível 3",
-              "$5",
+              "$25",
               "3",
-              "$35",
+              "$40",
               "6",
-              "$65"
+              "$70"
             ],
             [
               "Tecnologia (TE)",
               "Nível 4",
-              "$10",
+              "$60",
               "4",
-              "$55",
+              "$80",
               "8",
-              "$130"
+              "$120"
             ]
           ]
         }
@@ -442,7 +487,7 @@ export const RULEBOOK_PT = [
         "h": "Um Encerramento, uma empresa"
       },
       {
-        "p": "Uma Montadora de Nível 2 está em dois lotes alugados que valem $8 e $12. Ela alcança 6 ícones e a Manufatura vende a $5. Ela paga $10 à Hotelaria e $10 à Tecnologia, e $1 + $2 de aluguel: $23 ao todo. Ela recebe a faixa do meio, $35. Sobram $12, antes da parte dela no fundo da Manufatura."
+        "p": "Uma Montadora de Nível 2 está em dois lotes alugados que valem $8 e $12. Ela alcança 6 ícones e a Manufatura vende a $5. Ela paga $10 à Hotelaria e $10 à Tecnologia, e $1 + $2 de aluguel: $23 ao todo. Ela recebe a faixa do meio, $30. Sobram $7, antes da parte dela no fundo da Manufatura."
       },
       {
         "h": "Como ler a carta"
@@ -469,7 +514,7 @@ export const RULEBOOK_PT = [
         ]
       },
       {
-        "note": "Estas três são um teste, não uma edição: o manual continua v23 até uma mesa dizer se elas se sustentam. O audit_trial.js joga as duas com as mesmas sementes. Com bots ajustados na economia impressa, as regras de teste cortam em cerca de dois terços o dinheiro que sobra na mão de um jogador no fim - que era a queixa da mesa - e deixam uma empresa com menos no fim do trimestre quanto maior o nível dela: $9, $5 e $3 para os Níveis 1, 2 e 3 com quatro jogadores. A conta dobra a cada nível, e as faixas, calculadas para o OPEX impresso, não acompanham. Quanto os Níveis 2 a 4 recebem é a próxima coisa a acertar."
+        "note": "Estas três são um teste, não uma edição: o manual continua v23 até uma mesa dizer se elas se sustentam. O audit_trial.js joga as duas com as mesmas sementes. Com bots ajustados na economia impressa e quatro jogadores, as regras de teste deixam um jogador no fim com cerca de um terço do dinheiro que a v23 deixava, $50 contra $139 - que era a queixa da mesa - e uma empresa fica com um pouco mais quanto maior o nível dela: $8, $9 e $11 por trimestre nos Níveis 1, 2 e 3, contando as partes dos fundos. O preço é que se expande menos: uma empresa de Nível 3 opera em 63% das partidas, contra 96% na v23, e uma de Nível 4 em 8%."
       }
     ]
   },

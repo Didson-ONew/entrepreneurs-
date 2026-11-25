@@ -2051,25 +2051,43 @@ const BAND_TABLE = {
   TE: { 1: { a: 1, b: 2, m: [1, 2, 2] }, 2: { a: 2, b: 4, m: [1, 4, 4] }, 3: { a: 3, b: 6, m: [1, 6, 8] }, 4: { a: 4, b: 8, m: [2, 9, 16] } },
 };
 const BAND_LABEL = ["$", "$$", "$$$"];
-/* THE TIERS, as the trial cards print them. Each is the band's multiplier turned into
-   dollars at a price the industry really trades at - two under its base for the Minimum,
-   the base for the middle, two over for the top - and rounded to the nearest $5, with at
-   least $5 between one tier and the next so a card never prints the same number twice.
-   The middle tier asks for a price a dollar under base and the top for two over it, which
-   is what stops a crowded market paying like an empty one.
+/* THE TIERS, as the trial cards print them - Didson's frame of 25 November 2026. Each
+   tier is a margin over the card's own supplier bill, never an amount of its own:
 
-   This is the arithmetic the printed cards were made with. test_trial_rules.js pins a
-   card from every industry against the sheet, so the two cannot drift apart unnoticed. */
+                   Minimum        middle          top
+     Easy        big loss      little loss    little profit     Hospitality, Utilities
+     Medium      little loss   breakeven      profit            Retail, Technology
+     Hard        breakeven     little profit  good profit       Manufacturing, Healthcare
+
+   "Little" is $5 a level ($5, $10, $15, $20), a loss or profit twice that is "big" or
+   plain "profit", and a good profit is three times. A big loss may be the whole bill: a
+   tier then pays $0, and the company has wasted its OPEX for the quarter. Pot shares are
+   on top of all this and are not counted. The grade is how hard the industry is to enter
+   and grow - spreading rather than stacking, dear to build, a High or Mid OPEX, few demand
+   rows on the map - so the industries that are hardest to hold pay the kindest margins.
+
+   The icons a tier asks for are the v23 band thresholds. Its price is base less $1 for
+   the middle tier, and for the top tier base plus $2 at Level 1, plus $1 at Level 2 and
+   the base itself from Level 3. Upgrading reaches a column more of demand in every row in
+   reach, and the bots showed icons were seldom what kept a company out of the top tier -
+   the price was; so each upgrade makes the top tier's price $1 easier to meet.
+
+   test_trial_rules.js pins this table cell by cell, and check_rulebook pins the book's. */
 const TIER_LABEL = ["Minimum", "Middle", "Top"];
-const roundTo5 = (x) => Math.max(5, Math.floor(x / 5 + 0.5) * 5);
+const ENTRY_GRADE = { HO: 0, UT: 0, RE: 1, TE: 1, MA: 2, HC: 2 };
+const ENTRY_GRADE_LABEL = ["Easy", "Medium", "Hard"];
+const TIER_MARGIN = [[-2, -1, 1], [-1, 0, 2], [0, 1, 3]];
+const TIER_STEP = 5;
+const topPriceOver = (level) => 2 - Math.min(2, levelRow(level) - 1);
 function tierTable(ind, level) {
   const r = (BAND_TABLE[ind] || {})[levelRow(level)];
-  if (!r) return null;
-  const base = BASE_PRICE[ind];
-  const a1 = roundTo5(r.m[0] * (base - 2));
-  const a2 = Math.max(roundTo5(r.m[1] * base), a1 + 5);
-  const a3 = Math.max(roundTo5(r.m[2] * (base + 2)), a2 + 5);
-  return { icons: [0, r.a, r.b], price: [0, base - 1, base + 2], pays: [a1, a2, a3] };
+  if (!r || !(ind in ENTRY_GRADE)) return null;
+  const L = levelRow(level), base = BASE_PRICE[ind], bill = supplierBill(ind, L), u = TIER_STEP * L;
+  const m = TIER_MARGIN[ENTRY_GRADE[ind]];
+  const a1 = Math.max(0, bill + m[0] * u);
+  const a2 = Math.max(a1 + 5, bill + m[1] * u);
+  const a3 = Math.max(a2 + 5, bill + m[2] * u);
+  return { icons: [0, r.a, r.b], price: [0, base - 1, base + topPriceOver(L)], pays: [a1, a2, a3] };
 }
 /* The best tier fully met: enough icons AND a high enough price, or the Minimum. */
 function tierFor(ind, level, icons, px) {
@@ -2408,7 +2426,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "2883c510";
+const ENGINE_VERSION = "7fed7f0a";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the

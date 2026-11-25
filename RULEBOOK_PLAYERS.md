@@ -75,44 +75,52 @@ An Auto Plant is a Manufacturing card that starts at Level 2: it pays $10 + $10,
 
 Count your demand icons exactly as this book describes, then read the three tiers on the card in place of the band table. The middle and top tiers each ask for two things: enough icons, and a market price at or above the one printed. Collect the amount printed on the highest tier where both are true. If neither is met you still collect the Minimum, even with no icons. Nothing is multiplied.
 
-The price a tier asks for depends on the industry alone: the middle tier needs the industry's base price less $1, and the top tier its base price plus $2.
+Each tier is a margin over the card's own supplier bill, set by how hard its industry is to enter. Spreading rather than stacking, a high build cost, a high running cost and few demand rows on the map all make an industry harder, and the hardest pay the kindest margins. A little loss or profit is $5 at Level 1, $10 at Level 2, $15 at Level 3 and $20 at Level 4. A big loss or a plain profit is twice that, and a good profit three times. A big loss can be the whole bill, so an Easy card's Minimum pays $0. Pot shares come on top and are not counted here.
 
-| Industry | Middle tier needs a price of | Top tier needs a price of |
-| --- | --- | --- |
-| Utilities, Retail | $3 | $6 |
-| Hospitality, Manufacturing | $4 | $7 |
-| Healthcare, Technology | $5 | $8 |
+| Grade | Industries | Minimum | Middle tier | Top tier |
+| --- | --- | --- | --- | --- |
+| Easy | Hospitality, Utilities | big loss | little loss | little profit |
+| Medium | Retail, Technology | little loss | breakeven | profit |
+| Hard | Manufacturing, Healthcare | breakeven | little profit | good profit |
 
-Example: an Auto Plant at Level 2 has a Minimum of $10, a middle tier of 5 icons and $4 that pays $35, and a top tier of 8 icons and $7 that pays $55. With 6 icons at $5 it collects $35. With 9 icons at $5 it still collects $35, because the top tier needs $7. With 9 icons at $7 it collects $55. With 3 icons at $9 it collects the Minimum, $10.
+The middle tier asks for the industry's base price less $1, at every level. The top tier asks for the base price plus $2 at Level 1, plus $1 at Level 2, and the base price itself from Level 3. Every upgrade reaches more demand, and it makes the top tier's price $1 easier too.
+
+| Industry | Middle tier, any level | Top tier at Level 1 | Top tier at Level 2 | Top tier at Levels 3 and 4 |
+| --- | --- | --- | --- | --- |
+| Utilities, Retail | $3 | $6 | $5 | $4 |
+| Hospitality, Manufacturing | $4 | $7 | $6 | $5 |
+| Healthcare, Technology | $5 | $8 | $7 | $6 |
+
+Example: an Auto Plant at Level 2 is a Hard card with a $20 bill. Its Minimum pays $20. Its middle tier, 5 icons and $4, pays $30. Its top tier, 8 icons and $6, pays $50. With 6 icons at $5 it collects $30. With 9 icons at $5 it still collects $30, because the top tier needs $6. With 9 icons at $6 it collects $50. With 3 icons at $9 it collects the Minimum, $20.
 
 Every card's tiers, by industry and by the company's level. An upgraded company reads the row of its new level.
 
 | Industry | Level | Minimum pays | Middle tier: icons | Middle tier pays | Top tier: icons | Top tier pays |
 | --- | --- | --- | --- | --- | --- | --- |
-| Utilities (UT) | Level 1 | $5 | 1 | $10 | 2 | $15 |
-| Utilities (UT) | Level 2 | $5 | 4 | $15 | 6 | $35 |
-| Utilities (UT) | Level 3 | $15 | 7 | $40 | 12 | $70 |
-| Utilities (UT) | Level 4 | $45 | 14 | $95 | 24 | $145 |
-| Retail (RE) | Level 1 | $5 | 2 | $10 | 3 | $25 |
-| Retail (RE) | Level 2 | $10 | 5 | $25 | 8 | $50 |
-| Retail (RE) | Level 3 | $10 | 7 | $40 | 12 | $85 |
-| Retail (RE) | Level 4 | $20 | 12 | $70 | 20 | $145 |
-| Hospitality (HO) | Level 1 | $5 | 1 | $10 | 2 | $15 |
-| Hospitality (HO) | Level 2 | $5 | 2 | $15 | 4 | $30 |
-| Hospitality (HO) | Level 3 | $10 | 5 | $30 | 8 | $55 |
-| Hospitality (HO) | Level 4 | $20 | 10 | $65 | 16 | $110 |
-| Manufacturing (MA) | Level 1 | $5 | 2 | $15 | 4 | $30 |
-| Manufacturing (MA) | Level 2 | $10 | 5 | $35 | 8 | $55 |
-| Manufacturing (MA) | Level 3 | $20 | 10 | $70 | 16 | $110 |
-| Manufacturing (MA) | Level 4 | $30 | 19 | $125 | 32 | $225 |
-| Healthcare (HC) | Level 1 | $5 | 2 | $10 | 3 | $25 |
-| Healthcare (HC) | Level 2 | $10 | 4 | $25 | 6 | $50 |
-| Healthcare (HC) | Level 3 | $20 | 7 | $55 | 12 | $95 |
-| Healthcare (HC) | Level 4 | $50 | 14 | $120 | 24 | $190 |
-| Technology (TE) | Level 1 | $5 | 1 | $10 | 2 | $15 |
-| Technology (TE) | Level 2 | $5 | 2 | $25 | 4 | $30 |
-| Technology (TE) | Level 3 | $5 | 3 | $35 | 6 | $65 |
-| Technology (TE) | Level 4 | $10 | 4 | $55 | 8 | $130 |
+| Utilities (UT) | Level 1 | $0 | 1 | $5 | 2 | $10 |
+| Utilities (UT) | Level 2 | $0 | 4 | $5 | 6 | $20 |
+| Utilities (UT) | Level 3 | $0 | 7 | $5 | 12 | $35 |
+| Utilities (UT) | Level 4 | $0 | 14 | $20 | 24 | $60 |
+| Retail (RE) | Level 1 | $10 | 2 | $15 | 3 | $25 |
+| Retail (RE) | Level 2 | $20 | 5 | $30 | 8 | $50 |
+| Retail (RE) | Level 3 | $45 | 7 | $60 | 12 | $90 |
+| Retail (RE) | Level 4 | $100 | 12 | $120 | 20 | $160 |
+| Hospitality (HO) | Level 1 | $0 | 1 | $5 | 2 | $10 |
+| Hospitality (HO) | Level 2 | $0 | 2 | $5 | 4 | $20 |
+| Hospitality (HO) | Level 3 | $0 | 5 | $5 | 8 | $35 |
+| Hospitality (HO) | Level 4 | $0 | 10 | $20 | 16 | $60 |
+| Manufacturing (MA) | Level 1 | $10 | 2 | $15 | 4 | $25 |
+| Manufacturing (MA) | Level 2 | $20 | 5 | $30 | 8 | $50 |
+| Manufacturing (MA) | Level 3 | $40 | 10 | $55 | 16 | $85 |
+| Manufacturing (MA) | Level 4 | $80 | 19 | $100 | 32 | $140 |
+| Healthcare (HC) | Level 1 | $15 | 2 | $20 | 3 | $30 |
+| Healthcare (HC) | Level 2 | $30 | 4 | $40 | 6 | $60 |
+| Healthcare (HC) | Level 3 | $60 | 7 | $75 | 12 | $105 |
+| Healthcare (HC) | Level 4 | $120 | 14 | $140 | 24 | $180 |
+| Technology (TE) | Level 1 | $5 | 1 | $10 | 2 | $20 |
+| Technology (TE) | Level 2 | $10 | 2 | $20 | 4 | $40 |
+| Technology (TE) | Level 3 | $25 | 3 | $40 | 6 | $70 |
+| Technology (TE) | Level 4 | $60 | 4 | $80 | 8 | $120 |
 
 ### 3. Rent: floors times the plot's rate
 
@@ -129,7 +137,7 @@ A floor is one company level standing on the plot. A stacking company (Retail, H
 
 ### One Closing, one company
 
-An Auto Plant at Level 2 stands on two rented plots worth $8 and $12. It reaches 6 icons and Manufacturing sells at $5. It pays Hospitality $10 and Technology $10, and $1 + $2 in rent: $23 in all. It earns the middle tier, $35. That leaves $12, before its share of the Manufacturing pot.
+An Auto Plant at Level 2 stands on two rented plots worth $8 and $12. It reaches 6 icons and Manufacturing sells at $5. It pays Hospitality $10 and Technology $10, and $1 + $2 in rent: $23 in all. It earns the middle tier, $30. That leaves $7, before its share of the Manufacturing pot.
 
 ### Reading the card
 

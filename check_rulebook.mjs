@@ -29,7 +29,7 @@ runInContext(
              DISCS_PER_PLAYER, MEGACORPS_TO_END, COMPANY_SLOTS, MEGACORP_TIER,
              MEGACORP_TITHE_EP, INDUSTRIES, BP_DATA, STARTING, MEGACORP_TILES, SCALING,
              PERSONAS, IND_NAME: typeof IND_NAME !== "undefined" ? IND_NAME : null,
-             makePriceMatrix, price, supplierBill, supplierShares, OPEX_TIER, OPEX_TIER_LABEL, tierTable, tierFor,
+             makePriceMatrix, price, supplierBill, supplierShares, OPEX_TIER, OPEX_TIER_LABEL, ENTRY_GRADE, ENTRY_GRADE_LABEL, tierTable, tierFor,
              TRIAL_RENT_STEP, RENT_PER_LEVEL };`, box);
 const E = box.E;
 
@@ -377,15 +377,37 @@ section("The trial rules chapter says what the engine plays");
       && E.supplierShares(c, 2).join() === "10,10" && E.supplierShares(c, 3).join() === "20,20");
   }
 
-  const need = tableByHead(/Industry \| Middle tier needs a price of/);
+  const grade = tableByHead(/Grade \| Industries \| Minimum \| Middle tier \| Top tier/);
+  check("the chapter has the table of grades", !!grade);
+  if (grade) {
+    const UNITS = { "big loss": -2, "little loss": -1, "breakeven": 0, "little profit": 1, "profit": 2, "good profit": 3 };
+    const bad = [], seen = [];
+    grade.rows.forEach((r) => String(r[1]).split(",").map((x) => x.trim()).forEach((name) => {
+      const code = codeOf(name); seen.push(code);
+      if (E.ENTRY_GRADE_LABEL[E.ENTRY_GRADE[code]] !== r[0]) bad.push(`${name} is not ${r[0]}`);
+      for (let l = 1; l <= 4; l++) {
+        const t = E.tierTable(code, l), bill = E.supplierBill(code, l), u = 5 * l;
+        [2, 3, 4].forEach((c, k) => {
+          const want = Math.max(k ? 0 : 0, bill + UNITS[r[c]] * u);
+          /* a tier is never under $0 and always $5 over the one below, which can only make it kinder */
+          if (t.pays[k] < want || (t.pays[k] > want && !(want <= 0 || (k && t.pays[k] === t.pays[k - 1] + 5)))) bad.push(`${name} L${l} ${r[c]}: $${t.pays[k]}`);
+        });
+      }
+    }));
+    check("every industry's tiers are its bill plus the margin its grade names", bad.length === 0, bad.slice(0, 3).join("; "));
+    check("all six industries are graded, once", seen.slice().sort().join() === E.INDUSTRIES.slice().sort().join(), seen.join(" "));
+  }
+
+  const need = tableByHead(/Industry \| Middle tier, any level \| Top tier at Level 1/);
   check("the chapter has the table of prices a tier needs", !!need);
   if (need) {
     const bad = [];
     for (const r of need.rows) for (const name of String(r[0]).split(",").map((x) => x.trim())) {
-      const code = codeOf(name), t = E.tierTable(code, 1);
-      if (!t || money(r[1]) !== t.price[1] || money(r[2]) !== t.price[2]) bad.push(`${name} ${r[1]}/${r[2]}`);
+      const code = codeOf(name), t = [1, 2, 3, 4].map((l) => E.tierTable(code, l));
+      if (t.some((x) => money(r[1]) !== x.price[1])) bad.push(`${name} middle ${r[1]}`);
+      if (money(r[2]) !== t[0].price[2] || money(r[3]) !== t[1].price[2] || money(r[4]) !== t[2].price[2] || money(r[4]) !== t[3].price[2]) bad.push(`${name} top ${r[2]}/${r[3]}/${r[4]}`);
     }
-    check("the middle tier needs base - $1 and the top tier base + $2, for every industry",
+    check("the middle tier needs base - $1, the top tier base + $2, + $1, then the base itself, for every industry",
       bad.length === 0 && need.rows.reduce((k, r) => k + String(r[0]).split(",").length, 0) === E.INDUSTRIES.length, bad.join("; "));
   }
 
@@ -415,10 +437,13 @@ section("The trial rules chapter says what the engine plays");
     }
     check("a floor pays $1 for every full $5 the plot is worth, and never less than $1", bad.length === 0, bad.slice(0, 3).join("; "));
   }
-  const worked = prose.find((x) => /Auto Plant at Level 2 has a Minimum/.test(x));
+  const worked = prose.find((x) => /Auto Plant at Level 2 is a Hard card/.test(x));
   check("the worked example is in the book", !!worked);
-  check("and its four cases are what the engine pays: $35, $35, $55 and the Minimum $10",
-    E.tierFor("MA", 2, 6, 5).pays === 35 && E.tierFor("MA", 2, 9, 5).pays === 35 && E.tierFor("MA", 2, 9, 7).pays === 55 && E.tierFor("MA", 2, 3, 9).pays === 10);
+  check("and its four cases are what the engine pays: $30, $30, $50 and the Minimum $20",
+    !!worked && /\$30\b/.test(worked) && /\$50\b/.test(worked) && /Minimum, \$20/.test(worked)
+    && E.tierFor("MA", 2, 6, 5).pays === 30 && E.tierFor("MA", 2, 9, 5).pays === 30 && E.tierFor("MA", 2, 9, 6).pays === 50 && E.tierFor("MA", 2, 3, 9).pays === 20);
+  const closing = prose.find((x) => /It earns the middle tier, \$30\. That leaves \$7/.test(x));
+  check("the one-Closing example earns $30 and is left with $7", !!closing && E.tierFor("MA", 2, 6, 5).pays - 20 - 3 === 7);
   check("the variants table offers the way back to the printed rules",
     !!allBlocks.find((b) => b.table && b.table.rows.some((r) => r[0] === "Bills and revenue as printed in v23")));
 }

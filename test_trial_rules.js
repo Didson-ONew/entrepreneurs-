@@ -28,7 +28,7 @@ function loadEngine() {
       plotRentRate, tierTable, tierFor, bizPotBill, potShares, bizGroundRent, quarterBill, trialOn, cardPotBill,
       latticeKeyForCell, advanceDraft, startPlanning, advancePlanning, epTotal, placeBranches, VARIANTS,
       normaliseVariants, INDUSTRIES, RENT_PER_LEVEL, price, hqRentDue, OPEX_TIER, OPEX_TIER_LABEL, supplierBill,
-      supplierShares, upgradeAddedBill };
+      supplierShares, upgradeAddedBill, ENTRY_GRADE, ENTRY_GRADE_LABEL };
   `, sandbox);
   return box.exports;
 }
@@ -148,46 +148,66 @@ section("The bill lands in the suppliers' pots, whole");
 }
 
 /* ============================================================ rule 2: earn */
-section("Earn: the tiers printed on the cards");
+section("Earn: the tiers printed on the cards - a margin over the bill, by how hard the industry is to enter");
 {
+  /* Written out, because this table IS the rule (Didson, 25 November 2026): what each
+     tier leaves after the supplier bill, by grade, in "little" units of $5 a level. */
+  const GRADE = { HO: "Easy", UT: "Easy", RE: "Medium", TE: "Medium", MA: "Hard", HC: "Hard" };
+  const MARGIN = { Easy: [-2, -1, 1], Medium: [-1, 0, 2], Hard: [0, 1, 3] };
+  check("Easy: Hospitality, Utilities. Medium: Retail, Technology. Hard: Manufacturing, Healthcare",
+    E.INDUSTRIES.every((i) => E.ENTRY_GRADE_LABEL[E.ENTRY_GRADE[i]] === GRADE[i]));
+  const wrong = [];
+  for (const ind of E.INDUSTRIES) for (let l = 1; l <= 4; l++) {
+    const t = E.tierTable(ind, l), bill = E.supplierBill(ind, l), u = 5 * l;
+    const want = [];
+    MARGIN[GRADE[ind]].forEach((m, k) => { want.push(Math.max(k ? want[k - 1] + 5 : 0, bill + m * u)); });
+    if (!same(t.pays, want)) wrong.push(`${ind} L${l} ${t.pays.join("/")} not ${want.join("/")}`);
+  }
+  check("every tier of every card is its bill plus its margin, never under $0, each $5 over the one below", wrong.length === 0, wrong.slice(0, 3).join("; "));
   const pins = [
-    ["MA", 2, { icons: [0, 5, 8], price: [0, 4, 7], pays: [10, 35, 55] }, "Auto Plant, the card in the sheet's examples"],
-    ["HC", 1, { icons: [0, 2, 3], price: [0, 5, 8], pays: [5, 10, 25] }, "Urgent Care Clinic"],
-    ["HC", 2, { icons: [0, 4, 6], price: [0, 5, 8], pays: [10, 25, 50] }, "Urgent Care Clinic, upgraded"],
-    ["TE", 1, { icons: [0, 1, 2], price: [0, 5, 8], pays: [5, 10, 15] }, "App Startup"],
-    ["TE", 2, { icons: [0, 2, 4], price: [0, 5, 8], pays: [5, 25, 30] }, "App Startup, upgraded"],
+    ["MA", 2, { icons: [0, 5, 8], price: [0, 4, 6], pays: [20, 30, 50] }, "Auto Plant (Hard, bill $20): breakeven, +$10, +$30"],
+    ["HC", 1, { icons: [0, 2, 3], price: [0, 5, 8], pays: [15, 20, 30] }, "Urgent Care Clinic (Hard, bill $15): $15 / $20 / $30"],
+    ["RE", 3, { icons: [0, 7, 12], price: [0, 3, 4], pays: [45, 60, 90] }, "a Retail Level 3 (Medium, bill $60): -$15, breakeven, +$30"],
+    ["TE", 2, { icons: [0, 2, 4], price: [0, 5, 7], pays: [10, 20, 40] }, "App Startup, upgraded (Medium, bill $20): $10 / $20 / $40"],
+    ["HO", 1, { icons: [0, 1, 2], price: [0, 4, 7], pays: [0, 5, 10] }, "a Hospitality Level 1 (Easy, bill $5): $0 / $5 / $10"],
+    ["UT", 4, { icons: [0, 14, 24], price: [0, 3, 4], pays: [0, 20, 60] }, "a Utilities Level 4 (Easy, bill $40): $0 / $20 / $60"],
   ];
   for (const [ind, lvl, want, name] of pins) {
     const got = E.tierTable(ind, lvl);
-    check(`${name}: ${want.pays.map((v) => "$" + v).join(" / ")}`, same(got, want), JSON.stringify(got));
+    check(name, same(got, want), JSON.stringify(got));
   }
   const need = {};
-  E.INDUSTRIES.forEach((i) => { const t = E.tierTable(i, 1); need[i] = `$${t.price[1]} · $${t.price[2]}`; });
-  check("the price a tier asks for depends on the industry alone: $3 · $6, $4 · $7, $5 · $8",
-    need.UT === "$3 · $6" && need.RE === "$3 · $6" && need.HO === "$4 · $7" && need.MA === "$4 · $7" && need.HC === "$5 · $8" && need.TE === "$5 · $8",
-    JSON.stringify(need));
-  let rising = true, fives = true, nested = true;
+  E.INDUSTRIES.forEach((i) => { need[i] = [1, 2, 3, 4].map((l) => { const t = E.tierTable(i, l); return t.price[2] - E.BASE_PRICE[i]; }).join(","); });
+  check("the top tier needs base + $2 at Level 1, + $1 at Level 2, the base itself from Level 3",
+    E.INDUSTRIES.every((i) => need[i] === "2,1,0,0"), JSON.stringify(need));
+  check("the middle tier needs base - $1 at every level",
+    E.INDUSTRIES.every((i) => [1, 2, 3, 4].every((l) => E.tierTable(i, l).price[1] === E.BASE_PRICE[i] - 1)));
+  let rising = true, fives = true, nested = true, zeros = [];
   for (const ind of E.INDUSTRIES) for (let l = 1; l <= 4; l++) {
     const t = E.tierTable(ind, l);
     if (!(t.pays[0] < t.pays[1] && t.pays[1] < t.pays[2])) rising = false;
-    if (t.pays.some((v) => v % 5 !== 0 || v < 5)) fives = false;
+    if (t.pays.some((v) => v % 5 !== 0 || v < 0)) fives = false;
     if (!(t.icons[1] <= t.icons[2] && t.price[1] < t.price[2])) nested = false;
+    if (t.pays[0] === 0) zeros.push(ind + l);
   }
   check("every card's three tiers rise, on every level of every industry", rising);
-  check("every payout is a multiple of $5, and none is below $5", fives);
-  check("the top tier always asks for at least what the middle asks", nested);
+  check("every payout is a multiple of $5, and none is below $0", fives);
+  check("only the Easy industries' Minimum pays $0 - the whole bill wasted", zeros.length > 0 && zeros.every((z) => /^(HO|UT)/.test(z)), zeros.join(" "));
+  check("the top tier always asks for more than the middle", nested);
+  check("no Minimum ever leaves a profit, and every top tier does",
+    E.INDUSTRIES.every((i) => [1, 2, 3, 4].every((l) => { const t = E.tierTable(i, l), b = E.supplierBill(i, l); return t.pays[0] <= b && t.pays[2] > b; })));
 }
 
 section("Earn: the best tier fully met, and the Minimum otherwise");
 {
   const pay = (icons, px) => E.tierFor("MA", 2, icons, px).pays;
-  check("6 icons at $5 collects the middle tier, $35", pay(6, 5) === 35, `$${pay(6, 5)}`);
-  check("9 icons at $5 still collects $35 - the top tier needs $7", pay(9, 5) === 35, `$${pay(9, 5)}`);
-  check("9 icons at $7 collects the top tier, $55", pay(9, 7) === 55, `$${pay(9, 7)}`);
-  check("3 icons at $9 collects the Minimum, $10 - a high price is not enough alone", pay(3, 9) === 10, `$${pay(3, 9)}`);
-  check("no icons at all still collects the Minimum", pay(0, 2) === 10, `$${pay(0, 2)}`);
-  check("exactly on both thresholds counts", pay(5, 4) === 35 && pay(8, 7) === 55);
-  check("a dollar short on price drops a tier", pay(5, 3) === 10 && pay(8, 6) === 35);
+  check("6 icons at $5 collects the middle tier, $30", pay(6, 5) === 30, `$${pay(6, 5)}`);
+  check("9 icons at $5 still collects $30 - the top tier needs $6", pay(9, 5) === 30, `$${pay(9, 5)}`);
+  check("9 icons at $6 collects the top tier, $50", pay(9, 6) === 50, `$${pay(9, 6)}`);
+  check("3 icons at $9 collects the Minimum, $20 - a high price is not enough alone", pay(3, 9) === 20, `$${pay(3, 9)}`);
+  check("no icons at all still collects the Minimum", pay(0, 2) === 20, `$${pay(0, 2)}`);
+  check("exactly on both thresholds counts", pay(5, 4) === 30 && pay(8, 6) === 50);
+  check("a dollar short on price drops a tier", pay(5, 3) === 20 && pay(8, 5) === 30);
 }
 
 section("Earn: a company is paid what its card says, in one go");
@@ -246,7 +266,7 @@ section("The sheet's worked example: one Closing, one company");
     E.runProduction(st, quiet);
     check("the $8 plot's owner collects $1 and the $12 plot's owner $2", A.cash === 1 && B.cash === 2, `A $${A.cash}, B $${B.cash}`);
     check("the company pays $20 to its suppliers and $3 in rent: $23", 500 - tenant.cash === 23, `paid $${500 - tenant.cash}`);
-    check("less the middle tier's $35, that leaves $12 before its pot share", E.tierFor("MA", 2, 6, 5).pays - 23 === 12);
+    check("plus the middle tier's $30, that leaves $7 before its pot share", E.tierFor("MA", 2, 6, 5).pays - 23 === 7);
   } else {
     /* The two plots share a road on this board, so they cannot be priced apart; the
        rule is still checked against whatever they are worth. */
