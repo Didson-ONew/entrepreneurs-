@@ -370,8 +370,8 @@ if (has("--nohq")) { need(HQ_SEAT, "the headquarters seat"); logic = logic.repla
 
 /* ---- the probe ---- */
 const HOOKS = [
-  ["a pot credit", `        deps.forEach((d, i) => { state.pots[d.ind] += shares[i]; });`,
-                   `        deps.forEach((d, i) => { __probe.pay(bizInd(b), d.ind, shares[i], b.level, !!b.upgraded); state.pots[d.ind] += shares[i]; });`],
+  ["a pot credit", `        deps.forEach((d, i) => { state.pots[d.ind] += shares[i]; notePotInflow(state, d.ind, shares[i]); });`,
+                   `        deps.forEach((d, i) => { __probe.pay(bizInd(b), d.ind, shares[i], b.level, !!b.upgraded); state.pots[d.ind] += shares[i]; notePotInflow(state, d.ind, shares[i]); });`],
   /* The pot carries forward again (v22); --expire measures the v21 rule, where
      it rode forward and the first company into an empty industry scooped the lot. */
   ["an unclaimed pot", `    if (!recipients.length) continue;   // nobody to pay: the pot stays and keeps growing`,

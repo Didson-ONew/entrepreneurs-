@@ -1906,6 +1906,69 @@ function priceAfterMyBuild(pm, ind) {
      - minus what it costs to get standing, also converted to points
 
    A company that cannot sell now scores negative, which is the whole point. */
+/* READING THE ECONOMY, as a table does (trial rules only).
+
+   A human at the table watches three things the bots used to ignore: how much money
+   each pot is collecting quarter after quarter, which tiers companies of an industry
+   are actually reaching, and what everybody holds in hand - drafted Blueprints sit
+   face up under each strip, so a rival's next build is public. The bots read the same
+   three signals:
+
+   - POT FLOW. What came into each pot over recent quarters (an even-weighted running
+     average), plus what the face-up cards in every hand would pay into it if built
+     (counted at 40%, since not all of them will be), shared among the companies of that
+     industry standing now, the cards of that industry waiting in hands (at half), and
+     the new company itself.
+   - TIERS REACHED. How often companies of the industry have collected the Minimum, the
+     middle and the top tier lately; a card is expected to earn that mix, blended half
+     and half with what its best plot would pay today.
+   - RIVALS' HANDS. Cards of the same industry in other hands crowd its demand and its
+     pot, so they count toward the competition a new company will meet.
+
+   Measured in audit_industries.js and audit_trial.js; the printed-v23 bots are left as
+   they were. */
+function notePotInflow(state, ind, amt) {
+  if (!state.potInQ) state.potInQ = {};
+  state.potInQ[ind] = (state.potInQ[ind] || 0) + amt;
+}
+function foldPotFlow(state) {
+  if (!state.potFlow) state.potFlow = {};
+  for (const ind of INDUSTRIES) {
+    const now = (state.potInQ && state.potInQ[ind]) || 0;
+    state.potFlow[ind] = state.potFlow[ind] == null ? now : 0.5 * state.potFlow[ind] + 0.5 * now;
+  }
+  state.potInQ = {};
+}
+function noteTierReached(state, ind, tier) {
+  if (!state.tierMix) state.tierMix = {};
+  const m = state.tierMix[ind] || (state.tierMix[ind] = { n: 0, p: [1 / 3, 1 / 3, 1 / 3] });
+  const a = 0.25;
+  m.p = m.p.map((v, k) => (1 - a) * v + a * (k === tier ? 1 : 0));
+  m.n++;
+}
+const handsOf = (state) => state.players.flatMap((pl) => pl.hand.map((c) => ({ c, pl })));
+function rivalHandCards(state, p, ind) {
+  return state.players.reduce((n, pl) => n + (pl === p ? 0 : pl.hand.filter((c) => c.ind === ind).length), 0);
+}
+function expectedPotShare(state, p, ind, exclude) {
+  const flow = (state.potFlow && state.potFlow[ind]) || 0;
+  let coming = 0;
+  for (const { c } of handsOf(state)) {
+    if (c === exclude) continue;
+    const k = (c.deps || []).findIndex((d) => d.ind === ind);
+    if (k >= 0) coming += supplierShares(c, c.lvl)[k] * 0.4;
+  }
+  const standing = state.players.reduce((n, pl) => n + activeBiz(pl).filter((b) => bizInd(b) === ind).length + megacorpHQs(pl).filter((b) => bizInd(b) === ind).length, 0);
+  const waiting = state.players.reduce((n, pl) => n + pl.hand.filter((c) => c.ind === ind && c !== exclude).length, 0) * 0.5;
+  return (flow + coming) / (standing + waiting + 1);
+}
+function expectedTrade(state, bp, snapshot) {
+  const m = state.tierMix && state.tierMix[bp.ind];
+  const t = tierTable(bp.ind, bp.lvl);
+  if (!m || m.n < 3 || !t) return snapshot;
+  const seen = m.p.reduce((a, v, k) => a + v * t.pays[k], 0);
+  return 0.5 * snapshot + 0.5 * seen;
+}
 function launchScore(state, p, bp, archetype) {
   const pm = state.pm;
   const px = priceAfterMyBuild(pm, bp.ind);
@@ -1941,14 +2004,15 @@ function launchScore(state, p, bp, archetype) {
   /* Under the band rule the company is paid price x multiplier for the icons it would
      reach from the best plot its owner holds. */
   const bandTake = unitRevenueOn(state) ? null : bestBandRevenueFor(state, p, bp, px);
-  let perQuarter = (bandTake === null ? sellable * px + waste * 1 : bandTake) - effOpex;
+  const reads = trialOn(state) && bandTake !== null;
+  let perQuarter = (bandTake === null ? sellable * px + waste * 1 : (reads ? expectedTrade(state, bp, bandTake) : bandTake)) - effOpex;
 
   /* Two things say the good years will not last, and both belong on the revenue, not
      on the finished score. Other companies in your industry compete for the same demand
      icons; a picked-over deck means more of them are coming. */
   if (perQuarter > 0) {
     const ownActive = state.players.reduce((n, pl) =>
-      n + activeBiz(pl).filter((b) => bizInd(b) === bp.ind).length, 0);
+      n + activeBiz(pl).filter((b) => bizInd(b) === bp.ind).length, 0) + (reads ? 0.5 * rivalHandCards(state, p, bp.ind) : 0);
     const deckLeft = (state.decks && state.decks[bp.ind]) ? state.decks[bp.ind].length : 5;
     perQuarter *= 1 / (1 + 0.45 * ownActive);
     perQuarter *= Math.min(1.15, 0.92 + 0.025 * deckLeft);
@@ -1966,7 +2030,8 @@ function launchScore(state, p, bp, archetype) {
   }
 
   // --- add it up, in points ---
-  const cashEP = (perQuarter * qLeft + potNow) / cashToEpRate(state);
+  const potFlowNow = reads ? expectedPotShare(state, p, bp.ind, bp) * qLeft : 0;
+  const cashEP = (perQuarter * qLeft + potNow + potFlowNow) / cashToEpRate(state);
   const buildEP = bp.lvl * levelEP(state);
   /* Entering an industry is owed once per game, ever. Reading the live ledger rather
      than "do I have one standing right now" stops a bot rebuilding an industry it has
@@ -2189,6 +2254,7 @@ function runBandRevenue(state, log) {
     for (const b of activeBiz(p)) {
       if (!businessCanProduce(state, b)) continue;
       const r = bandRevenue(state, p, b);
+      noteTierReached(state, bizInd(b), r.band);
       p.cash += r.revenue;
       noteConcessionSale(state, p, b, r.revenue > 0 ? 1 : 0);
       if (log && trialOn(state)) log(logMsg(["{0} reaches {1} icons at ${2}: the Minimum pays ${3}.", "{0} reaches {1} icons at ${2}: the middle tier pays ${3}.", "{0} reaches {1} icons at ${2}: the top tier pays ${3}."][r.band], b.bp.name, r.icons, r.px, r.revenue), p.id);
@@ -2426,7 +2492,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "7fed7f0a";
+const ENGINE_VERSION = "ffa9e427";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2633,7 +2699,7 @@ function runProduction(state, log) {
       const deps = b.bp.deps;
       if (deps.length && supplierBill > 0) {
         const shares = potShares(state, b);
-        deps.forEach((d, i) => { state.pots[d.ind] += shares[i]; });
+        deps.forEach((d, i) => { state.pots[d.ind] += shares[i]; notePotInflow(state, d.ind, shares[i]); });
       }
     }
   }
@@ -2779,6 +2845,7 @@ function runMegacorpTithe(state, log) {
   }
 }
 function runB2B(state, log) {
+  foldPotFlow(state);
   if (!state.pots) return;
   for (const ind of INDUSTRIES) {
     const pot = state.pots[ind];
@@ -4391,7 +4458,14 @@ function draftScore(bp, drafted, state) {
   const bumps = draftedPressure(drafted);
   const px = expectedDraftPrice(bp.ind, bumps);
   const rent = RENT_PER_LEVEL * bp.lvl;                                 // paid, then returned on own land
-  const net = draftNet(bp, px, state);
+  let net = draftNet(bp, px, state);
+  /* Drafted cards are face up. Under the trial rules a bot also reads who will be paying
+     into this industry's pot: every drafted card that lists it as a supplier, shared with
+     the cards of the same industry already taken. */
+  if (state && trialOn(state)) {
+    const feeding = drafted.reduce((t, d) => { const k = (d.deps || []).findIndex((x) => x.ind === bp.ind); return t + (k >= 0 ? supplierShares(d, d.lvl)[k] : 0); }, 0);
+    net += 0.5 * feeding / (1 + drafted.filter((d) => d.ind === bp.ind).length);
+  }
   let s = net / Math.max(1, bp.setup + (SCALING[bp.ind] === "H" ? (bp.lvl - 1) * 3 : 0));
   // a deck the table is already raiding will be crowded on the board too
   const sameInd = drafted.filter((d) => d.ind === bp.ind).length;

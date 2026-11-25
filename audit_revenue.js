@@ -337,7 +337,7 @@ const N = {
   closing: "  if (quarter === 4) unlockY2(demand);",
   deliverHead: "  let remaining = bizProd(biz);\n  let crossAllowance = bizInd(biz) === \"MA\" ? biz.level : 0;\n  let earned = 0;",
   deliverTail: "  const leftover = Math.max(0, remaining);\n  p.cash += earned + leftover * 1;\n}",
-  cardValue: "  let perQuarter = (bandTake === null ? sellable * px + waste * 1 : bandTake) - effOpex;",
+  cardValue: "  let perQuarter = (bandTake === null ? sellable * px + waste * 1 : (reads ? expectedTrade(state, bp, bandTake) : bandTake)) - effOpex;",
   upNow: "  const nowUnits = Math.min(bizProd(b), sellableForBiz(state, p, b));\n  const nowNet = (unitRevenueOn(state) ? nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1 : bandRevenue(state, p, b).revenue)\n    - bizRunningCost(state, p, b);",
   upGrown: "  const grownUnits = Math.min(grownProd, sellableForBiz(state, p, grown));\n  const grownNet = (unitRevenueOn(state) ? grownUnits * px + Math.max(0, grownProd - grownUnits) * 1 : bandRevenue(state, p, grown).revenue)\n    - (trialOn(state) ? bizRunningCost(state, p, { ...grown, levels: null }) : bizOpex(grown) + 3 * grown.level);",
   mcTrade: "    const units = Math.min(bizProd(b), sellableForBiz(state, p, b));\n    const trade = (unitRevenueOn(state) ? units * price(state.pm, bizInd(b)) + Math.max(0, bizProd(b) - units) * 1 : bandRevenue(state, p, b).revenue)\n      - bizRunningCost(state, p, b);",
