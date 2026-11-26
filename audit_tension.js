@@ -31,6 +31,7 @@
 
    Run: node audit_tension.js [games a table size] [seats...]
         node audit_tension.js 250 4 5 6
+        node audit_tension.js 250 --arms=shipped     the sell sheet's figures
    ========================================================================== */
 const fs = require("fs");
 const path = require("path");
@@ -150,6 +151,10 @@ const PRESETS = {
   /* The two levers that raise land's share, apart and together. Raising the award
      adds EP to the board; cutting the level rate raises land's share by shrinking the
      largest source instead. Whether they stack or collide is the open question. */
+  /* The rules as they ship and nothing else: the figures the sell sheet quotes. */
+  shipped: [
+    { key: "current", name: "as it ships" },
+  ],
   land: [
     { key: "current", name: "as it ships: land 5/10 by table size" },
     { key: "land10", name: "land: 10 to the leader at EVERY table size", land: true },
@@ -207,7 +212,10 @@ function run(E, seats) {
     /* One last reading AFTER end-of-game scoring, so the land awards, the cash and the
        Megacorp districts get to have their say - that swing is itself a tension
        measure, and stopping at the last quarter would hide it. */
-    marks.push({ q: 13, eps: st.players.map((x) => ({ id: x.id, ep: E.epTotal(x) })) });
+    /* Counted from the game's own length: this read q 13 and Q9+ when every game was
+       twelve quarters, which put final scoring at "Q12" of an eight-quarter game. */
+    const LAST = st.quarter, AFTER = LAST + 1;
+    marks.push({ q: AFTER, eps: st.players.map((x) => ({ id: x.id, ep: E.epTotal(x) })) });
 
     let leader = null, changes = 0, winnerTime = 0, lastTook = null;
     const led = new Set();
@@ -226,12 +234,12 @@ function run(E, seats) {
       }
       if (leader === winner.id) { winnerTime++; }
       T.checkpoints++;
-      if (mk.q === 13) break;
+      if (mk.q === AFTER) break;
       beforeFinal = leader;
     }
     T.changes += changes;
     T.everLed += led.size / seats;
-    if (lastTook !== null) { T.decidedAt += Math.min(12, lastTook); if (lastTook >= 9) T.decidedLate++; }
+    if (lastTook !== null) { T.decidedAt += Math.min(LAST, lastTook); if (lastTook > (LAST * 2) / 3) T.decidedLate++; }
     T.winnerTime += winnerTime / Math.max(1, marks.length);
     if (beforeFinal !== null && beforeFinal !== winner.id) T.lastWordFlips++;
     if (changes === 0) T.wireToWire++;
@@ -257,7 +265,7 @@ block("LEAD CHANGES a game", (T) => (T.changes / Math.max(1, T.games)).toFixed(2
 block("games nobody was ever passed (wire to wire)", (T) => pc(T.wireToWire, T.games));
 block("share of the table that led at some point", (T) => pc(T.everLed, T.games));
 block("DECIDED AT: quarter the winner last took the lead", (T) => (T.decidedAt / Math.max(1, T.games)).toFixed(1));
-block("...games decided in the last third (Q9+)", (T) => pc(T.decidedLate, T.games));
+block("...games decided in the last third", (T) => pc(T.decidedLate, T.games));
 block("share of the game the winner spent in front", (T) => pc(T.winnerTime, T.games));
 block("THE LAST WORD: final scoring changed the winner", (T) => pc(T.lastWordFlips, T.games));
 console.log("");

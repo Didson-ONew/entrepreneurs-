@@ -1731,15 +1731,16 @@ function safeToSpend(p, spend, addedOpex = 0, buffer = 0.4, state = undefined) {
 }
 /* The cost of caution falls as the game shortens: an unused company slot earns nothing,
    while a company built now still takes its one score at the next year end and produces
-   until then. Late building is cheaper than it looks. */
+   until then. Late building is cheaper than it looks. "Late" is the last year, counted
+   from the game's own end: a fixed Q9 never came in the eight-quarter game. */
 function expansionBuffer(state) {
-  return state.quarter >= 9 ? 0.15 : state.quarter >= 5 ? 0.28 : 0.4;
+  return state.quarter > finalQuarterOf(state) - 4 ? 0.15 : state.quarter >= 5 ? 0.28 : 0.4;
 }
 /* $50 of cash is worth 1 EP at the end; a company is worth its level once, plus its level
    again on every upgrade, plus the entry bonus if it opens a new industry. Sitting on money is close to the worst thing a bot
    can do, so the safety buffer relaxes hard once the game is nearly over. */
 function endgameSpendMode(state, p) {
-  return state.quarter >= 9 && p.cash > 60;
+  return state.quarter > finalQuarterOf(state) - 4 && p.cash > 60;
 }
 /* Scoring rewards breadth (an entry bonus per distinct industry) and endgame bonuses
    reward land and district spread. Bots were hoarding cash and finishing with ~1.6
@@ -3906,7 +3907,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     const LOAN_CEILING = 60; // once cash comfortably covers most BPs, more loans are pure EP cost with no upside
     // Each disc is a guaranteed -5 EP unless bought back for $30-40, and bots rarely
     // end with that spare. Borrow late only when it converts straight into a company.
-    const lateGame = state.quarter >= 9;
+    const lateGame = state.quarter > finalQuarterOf(state) - 4; // the last year
     const MAX_VOLUNTARY_DISCS = lateGame ? 1 : 3;
     const genuineNeed = committedOpex(p, state) > p.cash * 0.8 || p.cash < 15;
     // a company that cannot produce is pure OPEX drain - sell it before anything else
@@ -3944,7 +3945,7 @@ function botResolveOneAction(state, p, track, rng, log) {
       bp.ind !== bizInd(collapsed)
       && price(state.pm, bp.ind) >= BASE_PRICE[bp.ind]
       && p.cash + bizSetup(collapsed) / 2 >= bp.setup);
-    if (collapsed && replacement && state.quarter <= 9) {
+    if (collapsed && replacement && state.quarter <= finalQuarterOf(state) - 3) {
       const got = sellCompany(state, p, collapsed, false);
       log(logMsg("{0} sells {1}: {2} has collapsed to ${3} and it was losing money (+${4}).", p.name, collapsed.bp.name, bizInd(collapsed), PRICE_MIN, got), p.id);
       return;

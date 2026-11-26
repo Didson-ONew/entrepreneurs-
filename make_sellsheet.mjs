@@ -248,11 +248,11 @@ const doc = new Document({
       ]),
       Prun([
         { t: "A quarter that settles itself. ", bold: true },
-        { t: "Every company is paid by the band of demand it can reach — count the icons, read the band on the card, multiply the market price — so the revenue step asks nobody anything, and a full game is two years of four quarters. Measured over a thousand games, the band pays the same economy as counting units did, with three decisions in five taken off the table." },
+        { t: "Every Blueprint prints its own bill and three earning tiers. Count the demand icons the company reaches, check the market price, collect the best tier both clear — nothing is delivered and nothing is multiplied, so the revenue step asks nobody anything, and a full game is two years of four quarters." },
       ]),
       Prun([
         { t: "It teaches itself, and that is measured too. ", bold: true },
-        { t: "A built-in beginner game runs eight quarters with one action per track and no Megacorps, while leaving the supply chain exactly as it is \u2014 so a first-time player learns the engine and nothing else. Over 150 games a table size it holds up as a game rather than a demo: the last two quarters still carry a third of the winning score, and no seat was ever wiped out." },
+        { t: "A built-in beginner game runs eight quarters with one action per track and no Megacorps, while leaving the supply chain exactly as it is \u2014 so a first-time player learns the engine and nothing else. Over 150 games a table size it holds up as a game rather than a demo: the lead changes hands more often than in the full game, and a seat last at halfway reaches the top half a third of the time or better." },
       ]),
       Prun([
         { t: "An endgame with a door that closes. ", bold: true },
@@ -260,15 +260,20 @@ const doc = new Document({
       ]),
 
       H("It already works, and it is measured"),
-      /* Source: audit_tension.js, 250 complete games at EVERY table size on the
-         shipped ruleset, re-run for v23 (revenue by band, eight quarters, rows
-         open). Four-player figures quoted because it is the count a publisher will
-         test first; the numbers move the right way as the table grows (2.7 lead
-         changes and 1.6% wire-to-wire at six) and the wrong way at two (0.9 and
-         43%), which is stated rather than hidden. The shorter game keeps the
-         four-player shape of v22 - 2.6 changes, one in twenty wire to wire - a
-         third shorter. */
-      P("Tuned on a simulation harness, not by feel. Across 250 complete games at every table size: at four players the lead changes hands 2.1 times, three players in four hold it at some point, one game in sixteen is led wire to wire, and the winner takes the lead for the last time around Q7 of 8. Two players is the tightest count, and the likeliest to run wire to wire.",
+      /* Source: node audit_tension.js 250 --arms=shipped, 250 complete games at
+         EVERY table size on the shipped ruleset - the trial rules of 23 November
+         2026, eight quarters. Four-player figures quoted because it is the count a
+         publisher will test first: 2.18 lead changes, 81.3% of the table led at
+         some point, 6.0% wire to wire, and end-of-game scoring changed the winner
+         in 42.8% of games. The numbers move the right way as the table grows (2.72 changes
+         and 1.2% wire to wire at six) and the wrong way at two (1.08 and 31.6%),
+         which is stated rather than hidden.
+         The beginner paragraph above: node audit_beginner.js 150 2 3 4 - lead
+         changes 1.82 / 2.31 / 2.81 against the full game's 1.10 / 1.83 / 2.24, and
+         a seat last at halfway reaches the top half 46.1% / 52.2% / 34.2%. It used
+         to say no seat was ever wiped out; under the trial rules 12-16% of seats end
+         with nothing standing, so it no longer does. */
+      P("Tuned on a simulation harness, not by feel. Across 250 complete games at every table size: at four players the lead changes hands 2.2 times, four players in five hold it at some point, one game in seventeen is led wire to wire, and in two games in five the final count changes the winner. Two players is the tightest count, and the likeliest to run wire to wire.",
         { size: 18 }),
 
       /* The simulation says it is balanced. It cannot say anyone enjoyed it. */
@@ -298,7 +303,10 @@ const doc = new Document({
         [{ t: "Rules", bold: true }, `Complete. ${EDITION} is generated from the data the game runs on, so it cannot drift.`],
         [{ t: "Prototype", bold: true }, "Built and played at the table. A complete print-and-play set is generated from the rules engine - cards, tiles, boards and aids - so the table always matches the current edition."],
         [{ t: "Digital build", bold: true }, "Playable now: solo against AI, or online with up to six."],
-        [{ t: "Testing", bold: true }, `Balanced by measurement. The three industries that grow vertically used to decide 90.9% of three-player games; they now decide about 69.5%, and no industry decides fewer than one game in ten. ${AUDITS} balance audits and ${TESTS} automated tests, all in the repository.`],
+        /* node audit_v23.js 1000 3 --arms=v23 on the shipped rules: the winner's
+           largest industry is vertical in 42.6% of three-player games, the most-won
+           industry is Hospitality at 20.8%, the least-won Retail at 6.2%. */
+        [{ t: "Testing", bold: true }, `Balanced by measurement. The three industries that grow vertically used to decide 90.9% of three-player games; they now decide 42.6%, and no industry decides more than about one game in five. ${AUDITS} balance audits and ${TESTS} automated tests, all in the repository.`],
         [{ t: "Teaching mode", bold: true }, "A built-in beginner game: 8 quarters, four actions, no Megacorps. Measured over 150 games a table size."],
         [{ t: "Art", bold: true }, "Functional placeholder. Open to your direction."],
       ], [1700, TEXT_WIDTH - 1700], { size: 18 }),
