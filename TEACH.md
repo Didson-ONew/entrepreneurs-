@@ -12,9 +12,11 @@ with the things to leave out named explicitly so you can trust leaving them out.
 turn without help, and they know what they are trying to do.* Everything else is
 taught in play, at the moment it comes up, to the one player it affects.
 
-Since v23 the quarter has three phases, not five, and nobody delivers anything:
-every company is paid by the band of demand it reaches. The teach got shorter
-with it. The script below is the v23 one.
+Since v23 the quarter has three phases, not five, and nobody delivers anything.
+Since the trial rules of 23 November 2026 — what the online game plays unless the
+variant "Bills and revenue as printed in v23" is on — every Blueprint also prints
+its own bill and three earning tiers, so nothing is multiplied at the table. The
+script below teaches the trial rules.
 
 ---
 
@@ -82,29 +84,36 @@ on the board.
    > game, and **+2** because it is a level 1. Banked immediately — I never have
    > to keep this company to keep those points."
 3. **"Building moved two prices."** Move both markers while they watch.
-   > "Healthcare goes **down** a dollar — there is more Healthcare in the world
-   > now. And this card says its supplier is Retail, so Retail goes **up** a
-   > dollar, because I am about to start buying from them."
+   > "Healthcare goes **down** a dollar, from $6 to $5 — there is more Healthcare
+   > in the world now. And this card says its supplier is Technology, so
+   > Technology goes **up** a dollar, because I am about to start buying from them."
 4. **"Now, every quarter, forever: this company pays its bill."**
-   > "Ten dollars printed. Two of that is ground rent, which goes to whoever
-   > owns the plot — that's me, so it comes straight back. The other **eight
-   > dollars go into the Retail pot.** Not the bank. The pot."
+   > "The card prints it: **pay Technology $15**. That money goes into the
+   > **Technology pot.** Not the bank. The pot."
+   >
+   > "This plot is mine, so I owe no rent. Build on somebody else's plot and you
+   > pay them a dollar a floor for every $5 the plot is worth — that is the only
+   > other bill there is."
 5. **"Then it is paid — by how much demand it can reach."**
    > "I look at the Healthcare rows in this district. My company is level 1, so
    > I count **column 1** of every Healthcare row I can reach. The first row of
    > this district is Healthcare, and so is the last one — that is always true,
    > whatever opens a district closes it — so I count **two icons**."
    >
-   > "Two icons on a level-1 Healthcare card is the middle band, **$$**. The band
-   > table says $$ pays **2 × the Healthcare price**. Healthcare is at $6, so I
-   > am paid $12. Nothing is delivered, nothing is recycled, nobody counts units."
+   > "The card prints three tiers. The **Minimum, $15**, is paid whatever
+   > happens, even with no icons. The **middle tier** asks for 2 icons *and*
+   > Healthcare at $5 or more, and pays **$20**. The **top tier** asks for 3 icons
+   > and $8, and pays **$30**. I have 2 icons and Healthcare is at $5, so I
+   > collect **$20**. Fifteen out, twenty in: this company keeps **$5** a quarter."
    >
-   > "Reach more icons — a bigger company counts deeper columns, a hub beside you
-   > reaches other districts — and you climb a band. That is the whole revenue step."
+   > "Both halves of a tier have to be met. Reach more icons — a bigger company
+   > counts deeper columns, a hub beside you reaches other districts — and keep
+   > your industry's price up, and you climb a tier. That is the whole revenue
+   > step: count, find the best tier you fully meet, collect what it prints."
 6. **"Then the pots pay out."**
-   > "Everyone who owns a Retail company splits the Retail pot evenly — equal
-   > shares, regardless of company size. If nobody has built Retail, that money
-   > just sits there and grows, and the first one in takes it all."
+   > "Everyone who owns a Technology company splits the Technology pot evenly —
+   > equal shares, regardless of company size. If nobody has built Technology,
+   > that money just sits there and grows, and the first one in takes it all."
 
 Now land it:
 
@@ -122,7 +131,7 @@ Write these three where everyone can see them:
 |---|---|---|
 | 1 | **Plan** | Everyone places workers. |
 | 2 | **Act** | The tracks resolve; you take your actions. |
-| 3 | **Close** | Every company pays its bill, is paid its band, the pots split, a hub opens. Every fourth quarter, land awards. |
+| 3 | **Close** | Every company pays its bill and any rent, collects its best tier, the pots split, a hub opens. Every fourth quarter, land awards. |
 
 > "Only 1 and 2 need you to decide anything. Three just happens — it stops only
 > to ask where the hub goes, or whether you want to pay a loan back."
@@ -178,7 +187,8 @@ Then the rule, slowly:
 
 > "Pick where by looking at the demand grid — build where your industry's row is
 > the first row of the district, because then it is the last row too, and you
-> count two icons a column instead of one."
+> count two icons a column instead of one. Then look at the price track: a tier
+> pays only if your industry's price is up to it."
 
 > "Don't take a loan in the first quarter. Don't go to the Board Meeting."
 
@@ -198,10 +208,10 @@ Say this list exists. Don't read it out.
 | The six industry abilities | the first time a player builds that industry — one sentence, to that player only |
 | Logistic Hubs and reach | the first time somebody wants a district they can't reach |
 | UPGRADE | end of quarter 1, or the first time somebody asks how to get bigger |
-| The band table's thresholds | the first time somebody asks why they were paid what they were paid — show them their row |
+| The tiers after an upgrade | the first time somebody upgrades — the grey number after a slash on their card is the upgraded one |
 | Solvency and distressed companies | the first time somebody can't pay a bill |
 | Exact land award numbers | the first year end |
-| Ground rent to other players | the first time somebody builds on a plot they don't own |
+| Rent by plot value | the first time somebody builds on a plot they don't own — $1 a floor for every full $5 the plot is worth |
 | The supply-chain table | never — tell them to read the Blueprint in front of them |
 
 ---
@@ -215,10 +225,11 @@ In the order the playtest sheets raised them.
    phase list. Do not trim that part to save time; trim the phase list instead.
 2. **The revenue step.** Tiago: *"Revenue phase was a bit difficult to
    understand at first."* That was the unit-by-unit delivery, and v23 removed it.
-   What is left is three words — **count, band, multiply** — said once with the
-   real card over the real district. The thing people still miss is that the
-   first and last rows of a district are the same industry, so a company there
-   counts two icons a column, not one.
+   What is left is **count, check, collect** — said once with the real card over
+   the real district. Two things people still miss: the first and last rows of a
+   district are the same industry, so a company there counts two icons a column,
+   not one; and a tier needs its price as well as its icons, so nine icons at the
+   wrong price still collect the middle tier.
 3. **Turn order feels unfair.** Amy's frustration was "being 4th player." Pre-empt
    it: *"Later seats start with less money but more Blueprints, and the placement
    order changes every single quarter."* Said up front it reads as a design;
@@ -229,7 +240,7 @@ In the order the playtest sheets raised them.
 ## If you only have three minutes
 
 Goal → step 4 of the walkthrough (the bill goes to the other players, not the
-bank) → step 5 (count, band, multiply) → last in, first out → "buy a plot and
+bank) → step 5 (count, check the tier, collect) → last in, first out → "buy a plot and
 build." Teach the rest inside quarter 1 as it comes up. A table that starts
 playing in three minutes and asks questions for twenty beats a table that listens
 for twenty and then starts.
