@@ -487,7 +487,7 @@ export const RULEBOOK_PT = [
         "h": "Um Encerramento, uma empresa"
       },
       {
-        "p": "Uma Montadora de Nível 2 está em dois lotes alugados que valem $8 e $12. Ela alcança 6 ícones e a Manufatura vende a $5. Ela paga $10 à Hotelaria e $10 à Tecnologia, e $1 + $2 de aluguel: $23 ao todo. Ela recebe a faixa do meio, $30. Sobram $7, antes da parte dela no fundo da Manufatura."
+        "p": "Uma Montadora de Nível 2 está em dois lotes alugados que valem $8 e $12. Ela alcança 6 ícones e a Manufatura vende a $5. Ela paga $10 à Saúde e $10 à Tecnologia, e $1 + $2 de aluguel: $23 ao todo. Ela recebe a faixa do meio, $30. Sobram $7, antes da parte dela no fundo da Manufatura."
       },
       {
         "h": "Como ler a carta"
@@ -993,38 +993,38 @@ export const RULEBOOK_PT = [
             [
               "Serviços Públicos",
               "HO",
-              "TE",
-              "HC"
+              "MA",
+              "TE"
             ],
             [
               "Varejo",
-              "TE",
-              "HO",
+              "UT",
+              "HC",
               "MA"
             ],
             [
               "Hotelaria",
-              "MA",
-              "HC",
-              "RE"
+              "RE",
+              "UT",
+              "HC"
             ],
             [
               "Manufatura",
               "HC",
-              "RE",
-              "UT"
+              "TE",
+              "RE"
             ],
             [
               "Saúde",
+              "TE",
               "RE",
-              "UT",
-              "TE"
+              "HO"
             ],
             [
               "Tecnologia",
-              "UT",
               "MA",
-              "HO"
+              "HO",
+              "UT"
             ]
           ]
         }
@@ -2628,43 +2628,43 @@ export const RULEBOOK_PT = [
               "Serviços Públicos (UT)",
               "$4",
               "Horizontal - um lote por nível",
-              "TE, HC, MA"
+              "HO, MA, TE"
             ],
             [
               "Varejo (RE)",
               "$4",
               "Vertical - um lote, qualquer nível",
-              "UT, HO, TE"
+              "UT, HC, MA"
             ],
             [
               "Hotelaria (HO)",
               "$5",
               "Vertical - um lote, qualquer nível",
-              "HC, MA, RE"
+              "RE, UT, HC"
             ],
             [
               "Indústria (MA)",
               "$5",
               "Horizontal - um lote por nível",
-              "HO, TE, UT"
+              "HC, TE, RE"
             ],
             [
               "Saúde (HC)",
               "$6",
               "Vertical - um lote, qualquer nível",
-              "RE, UT, HO"
+              "TE, RE, HO"
             ],
             [
               "Tecnologia (TE)",
               "$6",
               "Horizontal - um lote por nível",
-              "MA, RE, HC"
+              "MA, HO, UT"
             ]
           ]
         }
       },
       {
-        "p": "Cada setor compra de três outros e é citado como fornecedor por três outros, então o dinheiro não pode empoçar num canto do circuito: catorze das dezoito ligações correm nos dois sentidos."
+        "p": "Cada setor compra de três outros e é citado como fornecedor por três outros, então o dinheiro não pode empoçar num canto do circuito: doze das dezoito ligações correm nos dois sentidos."
       },
       {
         "h": "Quanto vale uma empresa em cada nível"
@@ -2819,61 +2819,61 @@ export const RULEBOOK_PT = [
               "Usina Solar I",
               "1",
               "15 / 6 / 3",
-              "TE 6"
+              "HO 6"
             ],
             [
               "Pequena Hidrelétrica I",
               "1",
               "15 / 6 / 3",
-              "TE 6"
+              "HO 6"
             ],
             [
               "Parque Eólico I",
               "1",
               "15 / 6 / 3",
-              "HC 6"
+              "MA 6"
             ],
             [
               "Usina de Biomassa I",
               "1",
               "15 / 6 / 3",
-              "HC 6"
+              "MA 6"
             ],
             [
               "Usina Maremotriz I",
               "1",
               "15 / 6 / 3",
-              "MA 6"
+              "TE 6"
             ],
             [
               "Hub de Fusão II",
               "2",
               "20 / 11 / 6",
-              "TE 6, HC 5"
+              "HO 6, MA 5"
             ],
             [
               "Nó de Smart Grid II",
               "2",
               "20 / 11 / 6",
-              "TE 6, MA 5"
+              "HO 6, TE 5"
             ],
             [
               "Turbina Oceânica II",
               "2",
               "20 / 11 / 6",
-              "HC 6, MA 5"
+              "MA 6, TE 5"
             ],
             [
               "Supernó Geotérmico III",
               "3",
               "30 / 15 / 12",
-              "TE 6, HC 5, MA 4"
+              "HO 6, MA 5, TE 4"
             ],
             [
               "Reator de Antimatéria III",
               "3",
               "30 / 15 / 12",
-              "TE 6, HC 5, MA 4"
+              "HO 6, MA 5, TE 4"
             ]
           ]
         }
@@ -2906,49 +2906,49 @@ export const RULEBOOK_PT = [
               "Feira do Bairro I",
               "1",
               "15 / 10 / 4",
-              "HO 10"
+              "HC 10"
             ],
             [
               "Galeria I",
               "1",
               "15 / 10 / 4",
-              "HO 10"
+              "HC 10"
             ],
             [
               "Rede de Vending I",
               "1",
               "15 / 10 / 4",
-              "TE 10"
+              "MA 10"
             ],
             [
               "Supermercado II",
               "2",
               "25 / 18 / 8",
-              "UT 10, HO 8"
+              "UT 10, HC 8"
             ],
             [
               "Loja de Departamentos II",
               "2",
               "25 / 18 / 8",
-              "UT 10, TE 8"
+              "UT 10, MA 8"
             ],
             [
               "Outlet II",
               "2",
               "25 / 18 / 8",
-              "HO 10, TE 8"
+              "HC 10, MA 8"
             ],
             [
               "Mega-Shopping III",
               "3",
               "40 / 28 / 16",
-              "UT 12, HO 8, TE 8"
+              "UT 12, HC 8, MA 8"
             ],
             [
               "Hub Omnichannel III",
               "3",
               "40 / 28 / 16",
-              "UT 12, HO 8, TE 8"
+              "UT 12, HC 8, MA 8"
             ]
           ]
         }
@@ -2969,61 +2969,61 @@ export const RULEBOOK_PT = [
               "Pousada I",
               "1",
               "10 / 6 / 2",
-              "HC 6"
+              "RE 6"
             ],
             [
               "Cama e Café I",
               "1",
               "10 / 6 / 2",
-              "HC 6"
+              "RE 6"
             ],
             [
               "Hostel de Passagem I",
               "1",
               "10 / 6 / 2",
-              "MA 6"
+              "UT 6"
             ],
             [
               "Hotel de Estrada I",
               "1",
               "10 / 6 / 2",
-              "MA 6"
+              "UT 6"
             ],
             [
               "Hotel Cápsula I",
               "1",
               "10 / 6 / 2",
-              "RE 6"
+              "HC 6"
             ],
             [
               "Hotel Executivo II",
               "2",
               "15 / 10 / 4",
-              "HC 6, MA 4"
+              "RE 6, UT 4"
             ],
             [
               "Eco-Resort II",
               "2",
               "15 / 10 / 4",
-              "HC 6, RE 4"
+              "RE 6, HC 4"
             ],
             [
               "Hotel Boutique II",
               "2",
               "15 / 10 / 4",
-              "MA 6, RE 4"
+              "UT 6, HC 4"
             ],
             [
               "Cassino de Luxo III",
               "3",
               "25 / 16 / 8",
-              "HC 6, MA 5, RE 5"
+              "RE 6, UT 5, HC 5"
             ],
             [
               "Resort Orbital III",
               "3",
               "25 / 16 / 8",
-              "HC 6, MA 5, RE 5"
+              "RE 6, UT 5, HC 5"
             ]
           ]
         }
@@ -3044,13 +3044,13 @@ export const RULEBOOK_PT = [
               "Oficina de Montagem I",
               "1",
               "20 / 8 / 4",
-              "HO 8"
+              "HC 8"
             ],
             [
               "Fábrica de Peças I",
               "1",
               "20 / 8 / 4",
-              "HO 8"
+              "HC 8"
             ],
             [
               "Tecelagem I",
@@ -3068,37 +3068,37 @@ export const RULEBOOK_PT = [
               "Injetora de Plástico I",
               "1",
               "20 / 8 / 4",
-              "UT 8"
+              "RE 8"
             ],
             [
               "Montadora II",
               "2",
               "35 / 14 / 8",
-              "HO 8, TE 6"
+              "HC 8, TE 6"
             ],
             [
               "Fundição de Chips II",
               "2",
               "35 / 14 / 8",
-              "HO 8, UT 6"
+              "HC 8, RE 6"
             ],
             [
               "Indústria Química II",
               "2",
               "35 / 14 / 8",
-              "TE 8, UT 6"
+              "TE 8, RE 6"
             ],
             [
               "Robótica Pesada III",
               "3",
               "60 / 20 / 16",
-              "HO 8, TE 6, UT 6"
+              "HC 8, TE 6, RE 6"
             ],
             [
               "Estaleiro Orbital III",
               "3",
               "60 / 20 / 16",
-              "HO 8, TE 6, UT 6"
+              "HC 8, TE 6, RE 6"
             ]
           ]
         }
@@ -3119,25 +3119,25 @@ export const RULEBOOK_PT = [
               "Pronto Atendimento I",
               "1",
               "20 / 10 / 3",
-              "RE 10"
+              "TE 10"
             ],
             [
               "Farmácia I",
               "1",
               "20 / 10 / 3",
-              "RE 10"
+              "TE 10"
             ],
             [
               "Consultório Dentário I",
               "1",
               "20 / 10 / 3",
-              "UT 10"
+              "RE 10"
             ],
             [
               "Centro de Bem-Estar I",
               "1",
               "20 / 10 / 3",
-              "UT 10"
+              "RE 10"
             ],
             [
               "Fisioterapia I",
@@ -3149,31 +3149,31 @@ export const RULEBOOK_PT = [
               "Hospital Geral II",
               "2",
               "35 / 18 / 6",
-              "RE 10, UT 8"
+              "TE 10, RE 8"
             ],
             [
               "Centro de Trauma II",
               "2",
               "35 / 18 / 6",
-              "RE 10, HO 8"
+              "TE 10, HO 8"
             ],
             [
               "Clínica Especializada II",
               "2",
               "35 / 18 / 6",
-              "UT 10, HO 8"
+              "RE 10, HO 8"
             ],
             [
               "Polo de Biotecnologia III",
               "3",
               "60 / 28 / 12",
-              "RE 12, UT 8, HO 8"
+              "TE 12, RE 8, HO 8"
             ],
             [
               "Inst. de Cibernética III",
               "3",
               "60 / 28 / 12",
-              "RE 12, UT 8, HO 8"
+              "TE 12, RE 8, HO 8"
             ]
           ]
         }
@@ -3206,49 +3206,49 @@ export const RULEBOOK_PT = [
               "Sala de Servidores I",
               "1",
               "10 / 8 / 2",
-              "RE 8"
+              "HO 8"
             ],
             [
               "Suporte de TI I",
               "1",
               "10 / 8 / 2",
-              "RE 8"
+              "HO 8"
             ],
             [
               "Provedor de Nuvem I",
               "1",
               "10 / 8 / 2",
-              "HC 8"
+              "UT 8"
             ],
             [
               "Campus de Software II",
               "2",
               "15 / 13 / 4",
-              "MA 8, RE 5"
+              "MA 8, HO 5"
             ],
             [
               "Hub de Rede II",
               "2",
               "15 / 13 / 4",
-              "MA 8, HC 5"
+              "MA 8, UT 5"
             ],
             [
               "Operadora de Telecom II",
               "2",
               "15 / 13 / 4",
-              "RE 8, HC 5"
+              "HO 8, UT 5"
             ],
             [
               "Cluster de IA Senciente III",
               "3",
               "25 / 21 / 8",
-              "MA 8, RE 7, HC 6"
+              "MA 8, HO 7, UT 6"
             ],
             [
               "Computação Quântica III",
               "3",
               "25 / 21 / 8",
-              "MA 8, RE 7, HC 6"
+              "MA 8, HO 7, UT 6"
             ]
           ]
         }

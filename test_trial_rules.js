@@ -136,14 +136,14 @@ section("The bill lands in the suppliers' pots, whole");
   const me = E.byId(st, 0);
   const run = connectedRun(st, 2);
   run.forEach((k) => { st.board.owner[k] = me.id; });
-  const bp = card("MA-06");                       // Auto Plant II: suppliers HO and TE
+  const bp = card("MA-06");                       // Auto Plant II: suppliers HC and TE
   me.hand = [bp]; me.cash = 500;
   check("the Auto Plant is built on two of its owner's plots", !!E.doLaunch(st, me, bp, E.mulberry32(1), quiet, run));
   E.INDUSTRIES.forEach((i) => { st.pots[i] = 0; });
   const before = me.cash;
   E.runProduction(st, quiet);
   check("it pays $20 in all, and no rent on its own land", before - me.cash === 20, `paid $${before - me.cash}`);
-  check("Hospitality's pot takes $10 and Technology's takes $10", st.pots.HO === 10 && st.pots.TE === 10,
+  check("Healthcare's pot takes $10 and Technology's takes $10", st.pots.HC === 10 && st.pots.TE === 10,
     E.INDUSTRIES.map((i) => `${i} ${st.pots[i]}`).join(" "));
 }
 
