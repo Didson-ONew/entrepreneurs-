@@ -1,9 +1,9 @@
 /* Two things a player reported from a real game.
 
-   1. Delivery must go in TURN ORDER, everybody in one sequence. Demand icons are
-      first come first served, so a bot selling before a human who is seated ahead of
-      it takes icons that were the human's to take. It used to run every bot first,
-      whatever the seating.
+   1. Delivery must go in TURN ORDER, everybody in one sequence. It used to run every
+      bot first, whatever the seating. (Since v22 an icon is never used up, so the
+      order no longer costs anybody a sale - but the walk is still the sequence a
+      human is handed the board in, and it still has to be the seating.)
 
    2. Selling under a bill you cannot pay is a FORCED sale at half rates. Selling the
       same Blueprint by choice through Raise Capital pays $4; being forced to sell it

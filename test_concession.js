@@ -35,20 +35,26 @@ const check = (label, cond) => {
 /* A holder with a producing level-1 Utilities company on a plot in a district that
    carries a Utilities row, so its delivery can actually sell something. */
 function scenario(isHuman) {
-  const st = E.initGame(2, 777, ["Holder", "Other"], undefined, false);
+  /* Under "Revenue by the unit": these checks follow the premium through a delivery,
+     unit by unit, which is how the rule was written. The band path - a dollar on the
+     price the band multiplies, and the same bill - is pinned in test_band_revenue.js. */
+  const st = E.initGame(2, 777, ["Holder", "Other"], undefined, false, { unitRevenue: true });
   const me = E.byId(st, 0);
   me.persona = "gov_rel";
   me.isHuman = isHuman;
   let plot = null;
   for (const [k, t] of Object.entries(st.demand.tiles)) {
-    if (!t.rows.includes("UT")) continue;
+    /* A YEAR-ONE row, not just any row. Rows three and four open at Q5 and this
+       scenario runs in Q3, so a district whose only Utilities row is a late one has
+       nothing to deliver into and the premium cannot be measured. */
+    if (!t.rows.slice(0, 2).includes("UT")) continue;
     const inTile = Object.keys(st.board.cellOf).filter((pk) => {
       const c = st.board.cellOf[pk];
       return `${c.r},${c.c}` === k && !(pk in st.board.occupiedBy);
     });
     if (inTile.length) { plot = inTile[0]; break; }
   }
-  if (!plot) throw new Error("no district with a Utilities row - seed changed?");
+  if (!plot) throw new Error("no district with a Year-1 Utilities row - seed changed?");
   const bp = { code: "UT-TEST", ind: "UT", name: "Test Waterworks I", lvl: 1, setup: 20, opex: 5, deps: [], prod: 4 };
   st.board.owner[plot] = me.id;
   const biz = { id: 9001, bp, footprint: [plot], level: 1, upgraded: false, distressed: false, scored: false, epOnCard: 0, quarterBuilt: 1 };

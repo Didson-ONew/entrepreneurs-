@@ -1,5 +1,12 @@
 /* Two independent browser windows join the same room and play a real game.
    Nothing is shared between them except the server. */
+/* ELIGIBLE PLOTS AND CELLS ARE FOUND BY A HOOK, NOT A COLOUR. These used to be picked out
+   by their computed background - rgb(13, 40, 24), the dark theme's green - and by a 16px
+   width and a white border. The interface now wears the printed set's light colours, so
+   every one of those tests went blind at once without a single rule having moved. A plot
+   the player may click carries data-eligible, and a demand cell data-pick ("own" or
+   "cross"); a restyle can no longer break them. */
+
 const { launchBrowser } = require("./testkit.js");
 /* The runner picks a free port rather than assuming 8080 is idle, so read where
    the server actually is. */
@@ -138,8 +145,7 @@ async function tryAct(p, who) { /* returns branch label or null */
     }
     M("pickPlot.evaluate");
     const picked = await timed("scan:plot", () => p.evaluate(() => {
-      const d = Array.from(document.querySelectorAll("div"))
-        .filter((x) => getComputedStyle(x).backgroundColor === "rgb(13, 40, 24)");
+      const d = Array.from(document.querySelectorAll("[data-eligible]"));
       if (!d.length) return false;
       d[0].click();
       return true;
@@ -177,7 +183,7 @@ async function tryAct(p, who) { /* returns branch label or null */
   if (/place this quarter.s Logistic Hub/.test(t)) {
     M("hub");
     const ok = await p.evaluate(() => {
-      const d = Array.from(document.querySelectorAll("div")).filter((x) => getComputedStyle(x).backgroundColor === "rgb(13, 40, 24)");
+      const d = Array.from(document.querySelectorAll("[data-eligible]"));
       if (!d.length) return false; d[0].click(); return true;
     });
     if (ok) return "lhPick";
@@ -191,10 +197,7 @@ async function tryAct(p, who) { /* returns branch label or null */
   if (/unit\(s\) left/.test(t)) {
     M("deliver");
     const ok = await timed("scan:deliver", () => p.evaluate(() => {
-      const d = Array.from(document.querySelectorAll("div")).find((x) => {
-        const cs = getComputedStyle(x);
-        return cs.cursor === "pointer" && cs.width === "16px";
-      });
+      const d = document.querySelector("[data-pick]");
       if (d) { d.click(); return true; } return false;
     }));
     if (ok) return "deliver";
@@ -255,7 +258,7 @@ async function tryAct(p, who) { /* returns branch label or null */
     if (await pick.count() && !(await pick.first().isDisabled())) {
       await pick.first().click({ timeout: 2500 }).catch(() => {}); await sleep(150);
       const ok = await p.evaluate(() => {
-        const d = Array.from(document.querySelectorAll("div")).filter((x) => getComputedStyle(x).backgroundColor === "rgb(13, 40, 24)");
+        const d = Array.from(document.querySelectorAll("[data-eligible]"));
         if (!d.length) return false; d[0].click(); return true;
       });
       await sleep(150);

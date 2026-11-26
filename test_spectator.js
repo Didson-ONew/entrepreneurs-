@@ -83,7 +83,7 @@ async function waitText(p, re, ms = 12000) {
      screen from the moment the watcher arrives, and proves the same thing: this is
      live game data, not a shell. */
   check("is served the live deck state",
-    await waitText(S, /\d+ left/, 12000) && /opex \$\d+/.test(await txt(S)));
+    await waitText(S, /\d+ left/, 12000) && /build\s*\$\d+/i.test(await txt(S)));   // each deck's count, and what its top card costs to build
 
 
   // --- no controls ---

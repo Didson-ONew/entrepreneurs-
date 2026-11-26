@@ -55,7 +55,7 @@ vm.runInContext(engine + "\n" + artStubs + "\n" + block + `
   box.e = { TUTORIAL, SUPPLY, MEGACORP_EP, TUT_LEVEL_EP,
     INDUSTRY_DEBUT_EP, LAND_AWARD, LAND_AWARD_LARGE, LAND_AWARD_BASE, levelEP, BP_DATA, INDUSTRIES, MEGACORP_TILES,
     MEGACORP_TITHE_EP, MEGACORPS_TO_END,
-    SCALING, RENT_PER_LEVEL };`, sb);
+    SCALING, RENT_PER_LEVEL, TRIAL_RENT_STEP };`, sb);
 const E = box.e;
 
 const all = E.TUTORIAL.flatMap((s) => [s.title, s.body, ...(s.points || [])]).join("\n");
@@ -173,7 +173,9 @@ const art = (name) => {
   const scaling = art("ArtScaling");
   check("the scaling picture reads SCALING rather than listing industries by hand",
     /SCALING\[i\] === "H"/.test(scaling) && /SCALING\[i\] === "V"/.test(scaling));
-  check("and quotes the rent rate from the engine", /RENT_PER_LEVEL/.test(scaling));
+  /* The rent a tutorial teaches is the trial rule's - a dollar a floor for every full $5 a
+     plot is worth - so the step is the engine's number to quote, not the printed $2. */
+  check("and quotes the rent step from the engine", /TRIAL_RENT_STEP/.test(scaling));
 }
 
 /* --- the step a playtester found missing ------------------------------------- */
@@ -188,8 +190,8 @@ const art = (name) => {
   check("it says horizontal and vertical in as many words",
     /HORIZONTAL/.test(text) && /VERTICAL/.test(text));
   check("it explains what upgrading does to each", /[Uu]pgrad/.test(text));
-  check("and it quotes the ground rent rate", text.includes(`$${E.RENT_PER_LEVEL} per level`),
-    `RENT_PER_LEVEL = ${E.RENT_PER_LEVEL}`);
+  check("and it quotes the ground rent rule", text.includes(`$1 for every full $${E.TRIAL_RENT_STEP} the plot is worth`),
+    `TRIAL_RENT_STEP = ${E.TRIAL_RENT_STEP}`);
   /* The distinction is only worth teaching if the two really do differ. */
   check("horizontal and vertical are genuinely different in the engine",
     H.length > 0 && V.length > 0 && H.every((i) => !V.includes(i)),

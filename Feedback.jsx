@@ -16,9 +16,9 @@ import { t, useLang } from "./i18n.js";
    ========================================================================== */
 
 const INK = {
-  bg: "#14161a", edge: "#262a33", panel: "#0f1115",
-  text: "#c3c9d4", dim: "#8b93a3", head: "#ffffff", accent: "#8fd3b6", accentBg: "#1a2420",
-  warn: "#f0a868", warnBg: "#241d14",
+  bg: "#ffffff", edge: "#d4d4d7", panel: "#fafafb",
+  text: "#424244", dim: "#5d5d60", head: "#1d1f20", accent: "#416180", accentBg: "#eef6ff",
+  warn: "#e8930c", warnBg: "#fcf6e1",
 };
 
 function Portal({ children }) {
@@ -76,9 +76,9 @@ function Stars({ value, onChange, compact, bare }) {
           style={{
             width: size, height: size, borderRadius: 6, cursor: "pointer",
             fontSize: compact ? 11 : 15, lineHeight: 1, padding: 0,
-            border: `1px solid ${value != null && n <= value ? "#7a6a3f" : INK.edge}`,
-            backgroundColor: value != null && n <= value ? "#231f14" : "transparent",
-            color: value != null && n <= value ? "#f5d76e" : INK.dim,
+            border: `1px solid ${value != null && n <= value ? "#dccb93" : INK.edge}`,
+            backgroundColor: value != null && n <= value ? "#fcf6e1" : "transparent",
+            color: value != null && n <= value ? "#8a6500" : INK.dim,
           }}>&#9733;</button>
       ))}
       {/* The running total belongs beside the one score for the whole session.
@@ -150,7 +150,7 @@ function WriteIn({ context, onClose }) {
         {t("It went in with the rules version you were playing, so it will still make sense later.")}
       </div>
       <button onClick={() => { setSent(false); setText(""); setRating(null); setAspects(noAspects()); }}
-        style={btn(INK.accentBg, "#2c5f4f", INK.accent)}>{t("Write another")}</button>
+        style={btn(INK.accentBg, "#5980a6", INK.accent)}>{t("Write another")}</button>
       <button onClick={onClose} style={{ ...btn("transparent", INK.edge, INK.dim), marginLeft: 8 }}>{t("Close")}</button>
     </div>
   );
@@ -162,7 +162,7 @@ function WriteIn({ context, onClose }) {
           <button key={k.key} onClick={() => setKind(k.key)}
             style={{
               flex: "1 1 130px", textAlign: "left", padding: "8px 10px", borderRadius: 7, cursor: "pointer",
-              border: `1px solid ${kind === k.key ? "#2c5f4f" : INK.edge}`,
+              border: `1px solid ${kind === k.key ? "#749dc4" : INK.edge}`,
               backgroundColor: kind === k.key ? INK.accentBg : "transparent",
             }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: kind === k.key ? INK.accent : INK.text }}>{t(k.label)}</div>
@@ -189,7 +189,7 @@ function WriteIn({ context, onClose }) {
         style={{
           width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 7, resize: "vertical",
           marginTop: 12,
-          backgroundColor: "#1c1f26", border: `1px solid #33384a`, color: "#e5e7eb",
+          backgroundColor: "#f5f5f8", border: `1px solid #c9c9cc`, color: "#1d1f20",
           fontSize: 12.5, lineHeight: 1.5, fontFamily: "inherit",
         }} />
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
@@ -200,11 +200,11 @@ function WriteIn({ context, onClose }) {
         </div>
         <span style={{ fontSize: 10, color: INK.dim }}>{text.length}/2000</span>
         <button onClick={send} disabled={busy}
-          style={{ ...btn(INK.accentBg, "#2c5f4f", INK.accent), opacity: busy ? 0.6 : 1 }}>
+          style={{ ...btn(INK.accentBg, "#416180", INK.accent), opacity: busy ? 0.6 : 1 }}>
           {busy ? t("Sending…") : t("Send it")}
         </button>
       </div>
-      {err && <div style={{ marginTop: 8, fontSize: 11.5, color: "#ff8f8f" }}>{err}</div>}
+      {err && <div style={{ marginTop: 8, fontSize: 11.5, color: "#b3261a" }}>{err}</div>}
     </div>
   );
 }
@@ -231,7 +231,7 @@ function Notes() {
     return () => { stop = true; };
   }, []);
 
-  if (err) return <div style={{ padding: 16, fontSize: 12, color: "#ff8f8f" }}>{err}</div>;
+  if (err) return <div style={{ padding: 16, fontSize: 12, color: "#b3261a" }}>{err}</div>;
   if (!data) return <div style={{ padding: 16, fontSize: 12, color: INK.dim }}>{t("Reading…")}</div>;
 
   const s = data.summary;
@@ -243,12 +243,12 @@ function Notes() {
         {[["all", `${t("Everything")} (${s.total})`]].concat(KINDS.map((k) => [k.key, `${t(k.label)} (${s.byKind[k.key] || 0})`]))
           .map(([key, label]) => (
             <button key={key} onClick={() => setFilter(key)} style={{
-              ...btn(filter === key ? INK.accentBg : "transparent", filter === key ? "#2c5f4f" : INK.edge,
+              ...btn(filter === key ? INK.accentBg : "transparent", filter === key ? "#5980a6" : INK.edge,
                 filter === key ? INK.accent : INK.dim), fontSize: 11, padding: "4px 10px",
             }}>{label}</button>
           ))}
         {s.averageRating !== null && (
-          <span style={{ marginLeft: "auto", fontSize: 11, color: "#f5d76e" }}>
+          <span style={{ marginLeft: "auto", fontSize: 11, color: "#8a6500" }}>
             &#9733; {t(s.rated === 1 ? "{0} average, from {1} score" : "{0} average, from {1} scores", s.averageRating, s.rated)}
           </span>
         )}
@@ -265,11 +265,11 @@ function Notes() {
             return (
               <span key={a.key} title={t(a.q)} style={{ fontSize: 11, color: INK.dim }}>
                 {t(a.label)}{" "}
-                <b style={{ color: col.average === null ? "#4b5563"
-                  : col.average >= 4 ? "#8fd3b6" : col.average >= 3 ? "#f5d76e" : "#fca5a5" }}>
+                <b style={{ color: col.average === null ? "#8a8a8d"
+                  : col.average >= 4 ? "#416180" : col.average >= 3 ? "#8a6500" : "#b3261a" }}>
                   {col.average === null ? "\u2014" : col.average}
                 </b>
-                <span style={{ color: "#4b5563" }}> ({col.rated})</span>
+                <span style={{ color: "#8a8a8d" }}> ({col.rated})</span>
               </span>
             );
           })}
@@ -290,7 +290,7 @@ function Notes() {
               {e.account && <span style={{ color: INK.accent, marginLeft: 4 }} title={t("signed in")}>&#10003;</span>}
             </span>
             {e.rating !== null && e.rating !== undefined && (
-              <span style={{ fontSize: 11, color: "#f5d76e" }}>{"★".repeat(e.rating)}</span>
+              <span style={{ fontSize: 11, color: "#8a6500" }}>{"★".repeat(e.rating)}</span>
             )}
             <span style={{ marginLeft: "auto", fontSize: 10, color: INK.dim, fontFamily: "ui-monospace, monospace" }}>
               {when(e.at)}
@@ -304,7 +304,7 @@ function Notes() {
               {ASPECTS.filter((a) => Number.isFinite(e.aspects[a.key])).map((a) => (
                 <span key={a.key} title={t(a.q)} style={{ fontSize: 10.5, color: INK.dim }}>
                   {t(a.label)}{" "}
-                  <b style={{ color: e.aspects[a.key] >= 4 ? "#8fd3b6" : e.aspects[a.key] >= 3 ? "#f5d76e" : "#fca5a5" }}>
+                  <b style={{ color: e.aspects[a.key] >= 4 ? "#416180" : e.aspects[a.key] >= 3 ? "#8a6500" : "#b3261a" }}>
                     {e.aspects[a.key]}
                   </b>
                 </span>
@@ -338,7 +338,7 @@ function Backup() {
      second one with a different signature is how a wrong style ends up somewhere. */
   const action = (primary) => ({
     fontSize: 12, fontWeight: 700, padding: "8px 14px", borderRadius: 7, cursor: "pointer",
-    border: `1px solid ${primary ? "#2c5f4f" : INK.edge}`,
+    border: `1px solid ${primary ? "#749dc4" : INK.edge}`,
     backgroundColor: primary ? INK.accentBg : "transparent",
     color: primary ? INK.accent : INK.text,
   });
@@ -385,13 +385,13 @@ function Backup() {
 
       {said && (
         <div style={{ padding: "9px 11px", borderRadius: 7, marginBottom: 12,
-          backgroundColor: INK.accentBg, border: "1px solid #2c5f4f", color: INK.accent }}>
+          backgroundColor: INK.accentBg, border: "1px solid #749dc4", color: INK.accent }}>
           {said}
         </div>
       )}
       {err && (
         <div style={{ padding: "9px 11px", borderRadius: 7, marginBottom: 12,
-          backgroundColor: "#241618", border: "1px solid #7a3f3f", color: "#ff8f8f" }}>
+          backgroundColor: "#f9edee", border: "1px solid #e3a59f", color: "#b3261a" }}>
           {err}
         </div>
       )}
@@ -425,7 +425,7 @@ function Matches() {
     return () => { stop = true; clearInterval(timer); };
   }, []);
 
-  if (err) return <div style={{ padding: 16, fontSize: 12, color: "#ff8f8f" }}>{err}</div>;
+  if (err) return <div style={{ padding: 16, fontSize: 12, color: "#b3261a" }}>{err}</div>;
   if (!data) return <div style={{ padding: 16, fontSize: 12, color: INK.dim }}>{t("Reading…")}</div>;
   if (!data.matches.length) return <div style={{ padding: 16, fontSize: 12, color: INK.dim }}>{t("Nobody is playing right now.")}</div>;
 
@@ -453,7 +453,7 @@ function Matches() {
             {m.seats.map((seat) => (
               <span key={seat.seat} style={{
                 fontSize: 11, padding: "3px 9px", borderRadius: 999,
-                border: `1px solid ${seat.human ? "#2c5f4f" : INK.edge}`,
+                border: `1px solid ${seat.human ? "#749dc4" : INK.edge}`,
                 backgroundColor: seat.human ? INK.accentBg : "transparent",
                 color: seat.human ? INK.accent : INK.dim,
               }}>
@@ -497,12 +497,12 @@ export function FeedbackPanel({ admin, context, onClose, onOpened }) {
   return (
     <Portal>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 10040,
-        backgroundColor: "rgba(6,8,11,.82)", backdropFilter: "blur(2px)" }} />
+        backgroundColor: "rgba(29,31,32,.5)", backdropFilter: "blur(2px)" }} />
       <div role="dialog" aria-label={t("Playtest feedback")} onClick={(e) => e.stopPropagation()} style={{
         position: "fixed", zIndex: 10041, top: "5vh", bottom: "5vh",
         left: "50%", transform: "translateX(-50%)", width: "min(96vw, 720px)",
-        backgroundColor: INK.bg, border: "1px solid #2c5f4f", borderRadius: 12,
-        boxShadow: "0 24px 70px rgba(0,0,0,.75)", display: "flex", flexDirection: "column", overflow: "hidden",
+        backgroundColor: INK.bg, border: "1px solid #749dc4", borderRadius: 12,
+        boxShadow: "0 24px 70px rgba(43,43,45,0.26)", display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
           borderBottom: `1px solid ${INK.edge}`, flexShrink: 0 }}>
@@ -522,7 +522,7 @@ export function FeedbackPanel({ admin, context, onClose, onOpened }) {
           <div style={{ display: "flex", gap: 6, padding: "10px 14px 0", flexShrink: 0 }}>
             {tabs.map(([key, label]) => (
               <button key={key} onClick={() => setTab(key)} style={{
-                ...btn(tab === key ? INK.accentBg : "transparent", tab === key ? "#2c5f4f" : INK.edge,
+                ...btn(tab === key ? INK.accentBg : "transparent", tab === key ? "#5980a6" : INK.edge,
                   tab === key ? INK.accent : INK.dim), padding: "5px 12px",
               }}>{label}</button>
             ))}
@@ -656,7 +656,7 @@ export function EndOfGameThanks({ matchId, context, onClose }) {
         <div role="dialog" aria-label={t("Thanks for playing")}
           style={{
             width: "min(92vw, 380px)", backgroundColor: INK.bg, border: `1px solid ${INK.edge}`,
-            borderRadius: 12, boxShadow: "0 24px 70px rgba(0,0,0,.75)",
+            borderRadius: 12, boxShadow: "0 24px 70px rgba(43,43,45,0.26)",
             /* Six questions make this taller than the corner it sits in on a
                short screen, so it scrolls rather than running off the bottom. */
             maxHeight: "calc(100vh - 80px)", overflowY: "auto",
@@ -688,12 +688,12 @@ export function EndOfGameThanks({ matchId, context, onClose }) {
                   fontSize: 12, lineHeight: 1.45, fontFamily: "inherit", boxSizing: "border-box",
                 }} />
 
-              {err && <div style={{ fontSize: 11, color: "#fca5a5", marginTop: 8 }}>{err}</div>}
+              {err && <div style={{ fontSize: 11, color: "#b3261a", marginTop: 8 }}>{err}</div>}
 
               <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
                 <button onClick={send} disabled={busy || (rating === null && !anyAspect(aspects) && !text.trim())}
                   style={{
-                    ...btn(INK.accentBg, "#2c5f4f", INK.accent),
+                    ...btn(INK.accentBg, "#5980a6", INK.accent),
                     opacity: busy || (rating === null && !anyAspect(aspects) && !text.trim()) ? 0.5 : 1,
                   }}>{busy ? t("Sending…") : t("Send it")}</button>
                 <button onClick={dismiss} style={btn("transparent", INK.edge, INK.dim)}>{t("Not now")}</button>

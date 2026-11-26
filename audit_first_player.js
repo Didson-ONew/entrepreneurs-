@@ -17,13 +17,18 @@
      4 THE HUB        runClosing hands the new Logistic Hub to state.turnOrder[0],
                       every quarter, for as long as they hold first.
 
-   AND A WARNING ABOUT NUMBER 4. placeNewLH picks uniformly at random from the
-   legal spots. It does not take a player argument and never looks at whose
-   buildings it would connect. So on an all-bot table - which is every probe in
-   this repository - benefit 4 IS WORTH EXACTLY ZERO, and every figure anyone has
-   quoted about first-player strength was measured in a game where the one
-   privilege that never expires does not exist. The lhSmart arm below is what it
-   looks like when somebody actually uses it.
+   NUMBER 4 USED TO BE WORTH NOTHING HERE, and this header used to carry a
+   warning saying so: placeNewLH picked uniformly at random, took no player
+   argument and never looked at whose buildings a hub would connect, so on an
+   all-bot table the one privilege that never expires did not exist, and every
+   figure anyone quoted about first-player strength was measured without it.
+
+   FIXED. placeNewLH now scores every candidate plot for the first player through
+   lhPlacementScore - a company of theirs that would join the network is worth
+   far more than a district of extra reach, companies that cannot use hubs are
+   not counted, and rivals the same hub would connect are subtracted - and keeps
+   the random pick only among ties. The lhRandom arm below is the old behaviour,
+   kept so the size of that blindness stays on the record.
 
    THE ARMS
      current    as it ships
@@ -34,8 +39,9 @@
                 in full, but it lands before anybody acts, so nothing is
                 retroactive and no action resolves out of band.
      noDouble   benefit 3 removed, everything else kept.
-     lhSmart    benefit 4 switched on: the first player places the hub where it
-                joins the most of their own buildings.
+     lhRandom   benefit 4 switched OFF, which is how this probe and every other
+                one here used to run. Kept as the counterfactual so the cost of
+                the old blindness stays visible.
 
    Run: node audit_first_player.js [games a table size] [seats...]
    ========================================================================== */
@@ -77,7 +83,7 @@ const NEEDLES = {
      road-hub variant - and an earlier version of this probe patched the road one,
      so the arm silently measured the shipped game instead of its own proposal.
      The variant has since been removed and there is only one branch to hit. */
-  lhRandom: "  const plot = pool[Math.floor(rng() * pool.length)];",
+  lhAimed: "  const plot = picks[Math.floor(rng() * picks.length)];",
   startPlanning: "function startPlanning(state) {",
 };
 for (const [k, v] of Object.entries(NEEDLES)) {
@@ -109,33 +115,19 @@ const BM_FIRST = `  const queue = [];
 const NO_DOUBLE = `  state.doubleFirstPlayer = null;
   state.planningQueue = rep(state.turnOrder, W);`;
 
-/* lhSmart: the first player puts the hub where it joins the most of their own
-   buildings, which is what benefit 4 is for. Ties keep the random pick, so the arm
-   measures the CHOICE and not a change of distribution. */
-const LH_SMART = `    const __fp = state.turnOrder[0];
-    const __mine = (k0) => {
-      const seen = new Set();
-      for (const k of orthOf(state.board, k0)) {
-        const id = state.board.occupiedBy[k];
-        if (id === undefined || seen.has(id)) continue;
-        const owner = state.players.find((q) => q.businesses.some((x) => x.id === id));
-        if (owner && owner.id === __fp) seen.add(id);
-      }
-      return seen.size;
-    };
-    let __best = -1, __pick = [];
-    for (const sp of pool) {
-      const v = __mine(sp);
-      if (v > __best) { __best = v; __pick = [sp]; } else if (v === __best) __pick.push(sp);
-    }
-    const plot = __pick[Math.floor(rng() * __pick.length)];`;
+/* THIS ARM IS NOW THE COUNTERFACTUAL, NOT THE PROPOSAL. The engine aims the hub:
+   placeNewLH scores every candidate for the first player through
+   lhPlacementScore and keeps the random pick only among ties. So benefit 4 is
+   live, and what is worth measuring is the game WITHOUT it - which is what every
+   figure in this repository was measured on before the fix. */
+const LH_RANDOM = "  const plot = pool[Math.floor(rng() * pool.length)];";
 
 const ARMS = [
   { key: "current", name: "as it ships" },
   { key: "noSteal", name: "1 removed: no in-quarter reorder" },
   { key: "bmFirst", name: "Board Meeting resolves first (steal kept, nothing retroactive)" },
   { key: "noDouble", name: "3 removed: no double placement" },
-  { key: "lhSmart", name: "4 switched on: the first player aims the hub" },
+  { key: "lhRandom", name: "4 switched OFF: the hub lands at random, as it used to" },
 ];
 
 function engineFor(arm) {
@@ -146,7 +138,7 @@ function engineFor(arm) {
   }
   if (arm.key === "bmFirst") logic = splice(logic, NEEDLES.resolutionOrder, BM_FIRST, "board meeting first");
   if (arm.key === "noDouble") logic = splice(logic, NEEDLES.planningQueue, NO_DOUBLE, "no double placement");
-  if (arm.key === "lhSmart") logic = splice(logic, NEEDLES.lhRandom, LH_SMART, "aimed hub");
+  if (arm.key === "lhRandom") logic = splice(logic, NEEDLES.lhAimed, LH_RANDOM, "random hub");
   const box = {};
   const sandbox = { console, Math, Set, Object, Array, JSON, String, box };
   vm.createContext(sandbox);

@@ -38,6 +38,17 @@ const section = (t) => console.log(`\n${t}`);
 
 const game = (variants, seed = 5) => E.initGame(3, seed, ["You"], undefined, false, variants);
 /* Put a company on a plot without going through the action economy. */
+/* The land awards pay for BUILT ground, so a land leader needs a company standing on
+   the plots, not just the deeds. Marked scored, so a year end banks the two land awards
+   and nothing else - which is what these checks count. */
+function develop(st, p, n) {
+  const plots = Object.keys(st.board.graph).slice(0, n);
+  plots.forEach((k) => { st.board.owner[k] = p.id; });
+  const bp = E.BP_DATA.find((x) => x.lvl === 1);
+  p.businesses.push({ id: 9100 + p.id, bp, footprint: plots, level: 1, upgraded: false,
+                      distressed: false, scored: true, quarterBuilt: 1 });
+  plots.forEach((k) => { st.board.occupiedBy[k] = 9100 + p.id; });
+}
 function plant(st, p, ind, plot, level = 1) {
   const bp = E.BP_DATA.find((x) => x.ind === ind && x.lvl === 1);
   const biz = { id: 5000 + p.businesses.length + p.id * 100, bp, footprint: [plot], level,
@@ -61,13 +72,15 @@ section("Defaults - a table that touches nothing plays Rulebook v13");
      twenty-nine sites of dual-shape hub machinery, the second made the game
      narrower by its own description, and neither had been switched on in
      twenty-six recorded matches. */
-  check("four variants are on offer", E.VARIANTS.length === 4, E.VARIANTS.map((v) => v.key).join(", "));
+  /* And now eight: "printedV23" puts the rulebook's bills, bands and rent back under the
+     trial rules, the same way the three v23 switches keep v22 playable. */
+  check("eight variants are on offer", E.VARIANTS.length === 8, E.VARIANTS.map((v) => v.key).join(", "));
   check("every one is off", E.VARIANT_KEYS.every((k) => st.variants[k] === false));
   check("hubs stand on plots", st.board.lhPlots !== undefined && st.board.lhEdges === undefined);
   const lv = st.decks.UT.map((c) => c.lvl);
   check("the decks are shuffled whole", JSON.stringify(lv) !== JSON.stringify([...lv].sort()), lv.join(""));
   check("a company is worth 2 EP per level", E.levelEP(st) === 2);
-  check("and the land awards pay at every year end", E.landPayouts(st) === 3, `${E.landPayouts(st)} payouts`);
+  check("and the land awards pay at every year end - two of them in the two-year game", E.landPayouts(st) === 2, `${E.landPayouts(st)} payouts`);
   check("junk off the wire cannot invent a variant",
     E.normaliseVariants({ nonsense: true, orderedDecks: "yes" }).nonsense === undefined
     && E.normaliseVariants({ orderedDecks: "yes" }).orderedDecks === true);
@@ -220,7 +233,7 @@ section("5. Land awards at the end only");
     const st = game(v);
     st.quarter = 4;
     const me = E.byId(st, 0);
-    Object.keys(st.board.graph).slice(0, 6).forEach((p) => { st.board.owner[p] = me.id; });
+    develop(st, me, 6);
     E.runClosingRest(st, () => {});
     return me.epBank;
   };
@@ -234,15 +247,15 @@ section("5. Land awards at the end only");
   check("under the variant the year end pays nothing", mk({ endgameLandAwards: true }) === 0,
     `${mk({ endgameLandAwards: true })} EP`);
 
-  // and Q12 must not pay twice: finalizeGame owns the last one
+  // and the final quarter - Q8 as standard since v23 - must not pay twice: finalizeGame owns the last one
   const st = game(undefined);
-  st.quarter = 12;
+  st.quarter = 8;
   const me = E.byId(st, 0);
-  Object.keys(st.board.graph).slice(0, 6).forEach((p) => { st.board.owner[p] = me.id; });
+  develop(st, me, 6);
   E.runClosingRest(st, () => {});
   const afterClose = me.epBank;
   E.finalizeGame(st);
-  check("quarter 12 awards them once, in final scoring",
+  check("the final quarter awards them once, in final scoring",
     afterClose === 0 && me.epBank >= 10, `close ${afterClose}, final ${me.epBank}`);
 }
 
@@ -250,13 +263,14 @@ section("5. Land awards at the end only");
 section("The bots read the variants too");
 {
   const plain = game(undefined), endOnly = game({ endgameLandAwards: true });
-  check("land pays three times as standard, once under the variant",
-    E.landPayouts(plain) === 3 && E.landPayouts(endOnly) === 1);
-  check("so a plot is worth three times as much to a bot's arithmetic",
-    E.landEPWeight(plain) === E.landEPWeight(endOnly) * 3);
-  plain.quarter = 9;
+  check("land pays twice as standard - once a year for two years - and once under the variant",
+    E.landPayouts(plain) === 2 && E.landPayouts(endOnly) === 1);
+  check("so a plot is worth twice as much to a bot's arithmetic",
+    E.landEPWeight(plain) === E.landEPWeight(endOnly) * 2);
+  check("and three times in the three-year game", E.landPayouts(game({ longGame: true })) === 3);
+  plain.quarter = 5;
   check("and that value falls as the remaining years run out",
-    E.landPayouts(plain) === 1, `Q9 -> ${E.landPayouts(plain)} payout(s)`);
+    E.landPayouts(plain) === 1, `Q5 -> ${E.landPayouts(plain)} payout(s)`);
 
   const scoreOf = (v) => {
     const st = game(v, 21);
@@ -274,9 +288,10 @@ section("The bots read the variants too");
 /* -------------------------------------------------- the award log's quarter */
 section("Land awards are logged in the quarter they were given");
 {
-  const st = game(undefined);
+  /* The three-year game, so there are two ordinary year ends before the final one. */
+  const st = game({ longGame: true });
   const me = E.byId(st, 0);
-  Object.keys(st.board.graph).slice(0, 6).forEach((p) => { st.board.owner[p] = me.id; });
+  develop(st, me, 6);
   st.quarter = 4;
   E.runClosingRest(st, () => {});
   const y1 = (me.epLog || []).filter((e) => e.label === "The Real-Estate Mogul");

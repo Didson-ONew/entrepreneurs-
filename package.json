@@ -7,6 +7,7 @@
     "build": "node make_rulebook.mjs && node build.mjs",
     "rulebook": "node check_rulebook.mjs && node check_rulebook_i18n.mjs && node make_rulebook.mjs",
     "docx": "node make_docx.mjs --both",
+    "components": "node make_components.mjs --pdf",
     "check-rulebook": "node check_rulebook.mjs && node check_rulebook_i18n.mjs",
     "test": "node run_tests.mjs"
   },

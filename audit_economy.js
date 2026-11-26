@@ -67,16 +67,18 @@ hook("  state.megacorpPool = state.megacorpPool.filter((t) => t !== match.tile);
   "  __econ.megacorp(state, p, match);\n  state.megacorpPool = state.megacorpPool.filter((t) => t !== match.tile);", "claimMegacorp");
 
 // 6. rent handed to landlords - the one payment the engine can make fractional
-hook("        const due = RENT_PER_LEVEL * levelsOn(b, plot);",
-  "        const due = RENT_PER_LEVEL * levelsOn(b, plot);\n        __econ.rent(due, b.footprint.length, due, b.level);", "rent split");
+/* Rent is worked out in one helper now, for a plot of the footprint and for a branch
+   alike, at whatever a floor owes on that plot under the rules in play. */
+hook("        const due = plotRentRate(state, plot) * floors;",
+  "        const due = plotRentRate(state, plot) * floors;\n        __econ.rent(due, b.footprint.length, due, b.level);", "rent split");
 /* The rent transfer was rewritten when the ground-rent ledger was added, so the
    old one-line `if (owner) owner.cash += due;` no longer exists. This hooks the
    production-side transfer where it now lives, just before the ledger entries. */
 /* Rent onto your own ground is no longer paid and refunded - it is skipped - so the
    line that used to follow `if (!owner) continue;` now has the own-land case between
    them. Anchor on that case instead; it is unique. */
-hook("        if (owner.id === p.id) { p.rentSaved = (p.rentSaved || 0) + due; continue; }\n        owner.cash += due;",
-  "        if (owner.id === p.id) { p.rentSaved = (p.rentSaved || 0) + due; continue; }\n        __econ.rentPay(p.id, owner.id, due);\n        owner.cash += due;",
+hook("        if (owner.id === p.id) { p.rentSaved = (p.rentSaved || 0) + due; return; }\n        owner.cash += due;",
+  "        if (owner.id === p.id) { p.rentSaved = (p.rentSaved || 0) + due; return; }\n        __econ.rentPay(p.id, owner.id, due);\n        owner.cash += due;",
   "rent payment");
 
 // 7. a snapshot at the close of every quarter, for the cash curve

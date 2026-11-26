@@ -409,17 +409,6 @@ function applyAction(room, seat, action, data) {
       if ((st.deliveryRemaining[b.id] || 0) <= 0) E.finishDelivery(st, lg, rng);
       break;
     }
-    case "reChoice": {
-      if (st.phase !== "delivering") return { error: "Not delivering." };
-      /* The cap used to be enforced only by the button in the browser, so the district
-         count was advisory in multiplayer. Trim to the same allowance the engine uses. */
-      const reBiz = p.businesses.find((x) => x.id === d.bizId);
-      if (!reBiz) return { error: "No such company." };
-      const allow = E.reAllowance(st, reBiz, p);
-      const sent = Array.isArray(d.districts) ? d.districts : [];
-      st.reChoices[d.bizId] = sent.slice(0, allow);
-      break;
-    }
     case "supplyChain": {
       if (st.phase !== "supplyChain") return { error: "Not choosing a supply chain." };
       if (!E.chooseSupplyChain(st, p, d.ind, lg, rng)) return { error: "Not your choice to make." };

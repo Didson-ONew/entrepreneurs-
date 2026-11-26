@@ -77,7 +77,7 @@ const CUR = {
   step: "const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;",
   track: "const PRICE_MIN = 2, PRICE_MAX = 12;",
   base: "const BASE_PRICE = { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 };",
-  rate: "const CASH_PER_EP = 50;",
+  rate: "const CASH_PER_EP = 100;",
 };
 const OLD = {
   step: "const SUPPLIER_CELLS = 1, BUILT_CELLS = -1;",

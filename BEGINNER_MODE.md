@@ -23,7 +23,7 @@ changes.
 
 | | full game | beginner |
 |---|---|---|
-| length | 12 quarters, 3 years | **8 quarters, 2 years** |
+| length | 8 quarters, 2 years (12 under the three-year variant) | **8 quarters, 2 years** |
 | Megacorps | go public, HQ, brand EP | **none** |
 | Players | 2-6 | **2-4** |
 | Personas | one each, six exist | **one each, four exist** |

@@ -251,6 +251,7 @@ section("One Megacorp still plays the full three years");
 
 /* ------------------------------------------------------- full games, all sizes */
 section("Full games finish at every table size");
+const LAST = 8;   // the standard game is two years since v23; the three-year game is a variant
 for (const n of SIZES) {
   let done = 0, early = 0, quarters = 0, err = null;
   for (let seed = 1; seed <= 12; seed++) {
@@ -262,11 +263,11 @@ for (const n of SIZES) {
       if (st.phase !== "gameover") continue;
       done++;
       quarters += st.quarter;
-      if (st.quarter < 12) early++;
+      if (st.quarter < LAST) early++;
       /* whatever ended it, the scores must be real numbers */
       if (!st.players.every((p) => Number.isFinite(E.epTotal(p)))) throw new Error("a score is not a number");
       /* and the deadline must have been respected, not overshot */
-      if (st.quarter < 12 && !E.endgameRushers(st).length) throw new Error(`ended in Q${st.quarter} with no rusher`);
+      if (st.quarter < LAST && !E.endgameRushers(st).length) throw new Error(`ended in Q${st.quarter} with no rusher`);
     } catch (e) { err = err || e; }
   }
   check(`${n} players: 12 games all reach gameover`, done === 12 && !err,

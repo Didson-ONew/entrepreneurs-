@@ -52,9 +52,9 @@
      ends through yearEndsOf(state), because the beginner mode plays eight
      quarters - so this probe splices those two helpers rather than the literals
      that used to be here. "quarters left" is still `13 - quarter` in four,
-     loan buy-back prices are a table of three, and the demand board is refreshed
-     once, at Q8. A fourth year with no fourth refresh plays its last four
-     quarters on a board that is already full.
+     loan buy-back prices are a table of three, and (before v22) the demand board
+     was refreshed once, at Q8 - since v22 an icon is never used up, so a fourth
+     year needs no refresh at all.
 
    Everything below is patched into the engine inside a sandbox; the repo file is
    never touched, and none of this is a rule the game plays by.
@@ -90,9 +90,9 @@
       win at four players against 90, and 130 at six against 101, with the lead
       over last going 45.2 to 57.8. Everything scales with it because everything
       in the scoring is per-quarter. The one thing that needs a decision rather
-      than a constant is the demand board, which is only refreshed once, at Q8 - a
-      fourth year needs a second refresh or it is played out on a board with
-      nothing left on it. NOT IMPLEMENTED; the game plays three years.
+      than a constant WAS the demand board, which was only refreshed once, at Q8;
+      since v22 an icon is never used up and that decision has gone away.
+      NOT IMPLEMENTED; the game plays three years.
 
    5. TWO THIRDS OF EVERY GAME IS THE DELIVERY PHASE. At six seats, 38.0 of a
       player's 59.2 decisions are single delivery clicks. If a table ever
@@ -122,46 +122,41 @@ const N = {
      game-over test reads the deadline as well as Q12, and the deadline itself caps
      at 12. A longer game has to move both or the extra year is unreachable. */
   over: "  if (state.quarter >= finalQuarterOf(state) || (state.finalQuarter && state.quarter >= state.finalQuarter)) {",
-  deadlineCap: "    state.finalQuarter = Math.min(12, state.quarter + 1);",
+  deadlineCap: "    state.finalQuarter = Math.min(finalQuarterOf(state), state.quarter + 1);",
+  /* Since v23 the calendar is one pair of constants: the standard game is eight
+     quarters and the three-year variant twelve. A longer game moves both. */
+  calendar: "const STANDARD_QUARTERS = 8, LONG_GAME_QUARTERS = 12;",
   yearEndsClosing: "  if (yearEndsOf(state).includes(quarter)) {",
   yearEndsRepay: "  if (yearEndsOf(state).includes(state.quarter)) {",
   landPayouts: "  return yearEndsOf(state).filter((q) => q >= state.quarter).length || 1;",
-  repayRates: "const LOAN_REPAY_RATE = { 4: 30, 8: 35, 12: 40 };",
-  refresh: "  if (quarter === 8) refreshY3(demand);",
+  repayRates: "const LOAN_REPAY_RATE = { 4: 30, 8: 40, 12: 50 };",
+  refresh: "  if (quarter === 4) unlockY2(demand);",
   botLast: "  if (quarter === finalQuarterOf(state)) {",
   /* counters */
   meeple: "function placeMeeple(state, playerId, track) {",
-  deliver: "  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;",
+  deliver: "  markSlotUsed(state.demand, biz.id, tileKey, rowIdx, levelIdx);",
 };
 for (const [k, v] of Object.entries(N)) {
   if (!BASE.includes(v)) { console.error(`the engine changed shape around ${k} - update this probe`); process.exit(2); }
 }
 
-function engineFor({ quarters = 12 } = {}) {
+function engineFor({ quarters = 8 } = {}) {
   let logic = BASE;
   const last = quarters;
 
-  if (quarters !== 12) {
+  if (quarters !== 8) {
     const ends = [];
     for (let q = 4; q <= last; q += 4) ends.push(q);
-    const endsSrc = `[${ends.join(", ")}]`;
-    /* keep the second-Megacorp deadline; only the year count moves */
-    logic = logic.replace(N.over,
-      `  if (state.quarter >= ${last} || (state.finalQuarter && state.quarter >= state.finalQuarter)) {`);
-    logic = logic.replace(N.deadlineCap, `    state.finalQuarter = Math.min(${last}, state.quarter + 1);`);
-    logic = logic.replace(N.yearEndsClosing, `  if (${endsSrc}.includes(quarter)) {`);
-    logic = logic.replace(N.yearEndsRepay, `  if (${endsSrc}.includes(state.quarter)) {`);
-    logic = logic.replace(N.landPayouts, `  return ${endsSrc}.filter((q) => q >= state.quarter).length || 1;`);
-    logic = logic.replace(N.botLast, `  if (quarter === ${last}) {`);
+    /* Everything that reads the calendar - the game-over test, the deadline's cap, the
+       year ends, the land payouts, the bots' horizon - goes through finalQuarterOf and
+       yearEndsOf, so moving the two constants moves the whole game. */
+    logic = logic.replace(N.calendar, `const STANDARD_QUARTERS = ${last}, LONG_GAME_QUARTERS = ${last};`);
     /* Prices rise a little each year, as they already do. */
-    const rates = ends.map((q, i) => `${q}: ${30 + i * 5}`).join(", ");
+    const rates = ends.map((q, i) => `${q}: ${30 + i * 10}`).join(", ");
     logic = logic.replace(N.repayRates, `const LOAN_REPAY_RATE = { ${rates} };`);
-    /* The demand board is wiped once, at Q8. A fourth year needs another wipe or
-       it plays out on a board with nothing left on it. */
-    logic = logic.replace(N.refresh,
-      `  if (quarter === 8) refreshY3(demand);\n  if (quarter === 12 && ${last} > 12) refreshY3(demand);`);
-    logic = logic.replace(/13 - \(state\.quarter \|\| 1\)/g, `${last + 1} - (state.quarter || 1)`);
-    logic = logic.replace(/13 - state\.quarter/g, `${last + 1} - state.quarter`);
+    /* Since v22 an icon is never used up, so a longer game needs no second wipe: the
+       anchor is kept so the probe still notices if the closing step changes shape. */
+    logic = logic.replace(N.refresh, "  if (quarter === 4) unlockY2(demand);");
   }
 
   /* Count the moments a person would be asked to do something. */
@@ -197,7 +192,7 @@ const rp = (s, n) => String(s).padStart(n);
 function run(cfg) {
   const { E, counts } = engineFor(cfg);
   const seats = cfg.seats || 4;
-  const T = { seats, quarters: cfg.quarters || 12, games: 0, players: 0, threw: null,
+  const T = { seats, quarters: cfg.quarters || 8, games: 0, players: 0, threw: null,
     winnerEP: 0, lastEP: 0, spread: 0, plots: 0, companies: 0, hqs: 0, tiles: 0,
     demandUsed: 0, demandTotal: 0, place: 0, deliver: 0, unowned: 0, loans: 0 };
   for (let seed = 1; seed <= SEEDS; seed++) {
@@ -226,10 +221,13 @@ function run(cfg) {
       T.loans += p.discsInBank;
     }
     T.unowned += Object.keys(st.board.graph).filter((k) => !(k in st.board.owner)).length;
-    /* How much of the demand board actually got used. */
+    /* How much of the demand board got used in the last quarter: an icon is never used
+       up (v22), so "used" means sold into by at least one company that quarter. */
+    const sold = new Set();
+    Object.values(st.demand.used || {}).forEach((u) => Object.keys(u).forEach((key) => sold.add(key)));
     for (const k of Object.keys(st.demand.tiles)) {
       const t = st.demand.tiles[k];
-      t.filled.forEach((row) => row.forEach((v) => { T.demandTotal++; if (v) T.demandUsed++; }));
+      t.rows.forEach((ind, r) => { for (let l = 0; l < 4; l++) { T.demandTotal++; if (sold.has(`${k}|${r}|${l}`)) T.demandUsed++; } });
     }
   }
   T.place = counts.place; T.deliver = counts.deliver;
@@ -263,6 +261,8 @@ console.log("Does it run at all, as the code stands?");
    Both table sizes are kept in the table because the fourth year inflates the
    score differently at each. */
 const CASES = [
+  { label: "4 players, 2 years (as shipped)", seats: 4, quarters: 8 },
+  { label: "6 players, 2 years (as shipped)", seats: 6, quarters: 8 },
   { label: "4 players, 3 years", seats: 4, quarters: 12 },
   { label: "6 players, 3 years", seats: 6, quarters: 12 },
   { label: "4 players, 4 years", seats: 4, quarters: 16 },

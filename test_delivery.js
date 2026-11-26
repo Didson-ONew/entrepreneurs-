@@ -265,7 +265,18 @@ section("A company can never deliver more than it produced");
 section("A company cannot deliver where it cannot reach");
 {
   const { st, me } = table(23);
-  const home = Object.keys(st.board.graph).find((k) => !(k in st.board.owner));
+  /* The home plot has to be somewhere this company can actually trade. A level-1
+     Retail opens no branches - they start at level 2 - so it reaches its own
+     district and nothing else, and a third of districts carry no Retail row at
+     all. Picking blind made this check fail on a company with nowhere to sell,
+     which is a fact about Retail rather than about the reach rule under test. */
+  const hasRERow = (k) => {
+    const c = st.board.cellOf[k];
+    const t = st.demand.tiles[`${c.r},${c.c}`];
+    return !!t && t.rows.includes("RE");
+  };
+  const home = Object.keys(st.board.graph).find((k) => !(k in st.board.owner) && hasRERow(k))
+            || Object.keys(st.board.graph).find((k) => !(k in st.board.owner));
   const biz = plant(st, me, "RE", 1, home);
   const reach = E.reachableDistricts(st, biz);
   const outside = E.allDistrictKeys(st.board).filter((d) => !reach.has(d));

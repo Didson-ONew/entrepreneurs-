@@ -26,7 +26,10 @@ async function roomWithPreventive(maxTries = 40) {
   for (let i = 0; i < maxTries; i++) {
     const c = await post("/api/create", { name: "Doc", bots: 2 });
     const { code, token } = c.body;
-    await post("/api/options", { code, token, personas: true });
+    /* "Revenue by the unit": the delivery screen this test counts cells on only exists
+       under that variant - as the game ships since v23, every company is paid its band
+       at the close of the quarter and nobody is handed the board. */
+    await post("/api/options", { code, token, personas: true, variants: { unitRevenue: true } });
     await post("/api/start", { code, token });
     const st = await getState(code, token);
     if (st && st.players[0].persona === "preventive") return { code, token, tries: i + 1 };
@@ -45,11 +48,12 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
 
     if (st.phase === "delivering" && st.awaitingPlayerId === 0) {
       const biz = me.businesses.find((b) => b.id === st.deliveringBizId);
-      // wait for a clinic that still has an open Healthcare row to sell into
-      const openBeyond = biz && biz.bp.ind === "HC" && [...HOME(st, biz)].some((tk) => {
+      // wait for a clinic with a Healthcare row in reach that has columns beyond its level
+      // (icons are never used up, so any open row qualifies - as long as the clinic is
+      // under level 4 and so has columns above it to reach)
+      const openBeyond = biz && biz.bp.ind === "HC" && biz.level < 4 && [...HOME(st, biz)].some((tk) => {
         const t = st.demand.tiles[tk];
-        return t && t.rows.some((ind, ri) => ind === "HC" && (ri < 2 || st.quarter > 4)
-          && t.filled[ri].some((f, li) => !f && li >= biz.level));
+        return t && t.rows.some((ind, ri) => ind === "HC" && (ri < 2 || st.quarter > 4));
       });
       if (openBeyond) return { st, biz, reached: true };
       await act("skipDelivery", {});
@@ -119,22 +123,23 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
      or the seat never gets a Healthcare card - and that is the seed's doing, not the
      persona's. It failed a full-suite run that way once, in under a second. So a
      room that never reaches the delivery is put back and another is dealt, a few
-     times, before this counts as a failure. */
+     times, before this counts as a failure. Ten rooms since v23: the standard game is
+     eight quarters, so a seat that dawdles over its first build runs out of game more often. */
   let room = null, out = { reached: false, why: "not tried" };
-  for (let attempt = 1; attempt <= 4 && !out.reached; attempt++) {
+  for (let attempt = 1; attempt <= 10 && !out.reached; attempt++) {
     room = await roomWithPreventive();
     if (!room) { console.log("could not deal the Public Health Director in 40 rooms - giving up"); process.exit(1); }
     console.log(`room ${room.code}: seat 0 is the Public Health Director (after ${room.tries} deal${room.tries === 1 ? "" : "s"})`);
     out = await driveToHcDelivery(room.code, room.token);
     if (!out.reached) console.log(`  that game never reached a Healthcare delivery (${out.why}) - dealing another`);
   }
-  if (!out.reached) { console.log(`could not reach a Healthcare delivery in 4 rooms: ${out.why}`); process.exit(1); }
+  if (!out.reached) { console.log(`could not reach a Healthcare delivery in 10 rooms: ${out.why}`); process.exit(1); }
   const { st, biz } = out;
   console.log(`delivering ${biz.bp.name} (HC level ${biz.level}) in Q${st.quarter}`);
   check("the clinic really is below level 4 - so the persona has something to give", biz.level < 4);
 
-  /* Now look at what the page offers. Anything the grid marks clickable carries a
-     white border and a pointer cursor; the cells are 16px wide. */
+  /* Now look at what the page offers. Anything the grid marks clickable carries
+     data-pick: "own" for a cell of the company's own industry, "cross" for a cross-sale. */
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || "/opt/pw-browsers/chromium" });
   const ctx = await browser.newContext({ viewport: { width: 1500, height: 950 } });
   await ctx.addInitScript(([code, token]) => {
@@ -156,12 +161,7 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
 
   const clickable = await page.evaluate(() => {
     let n = 0;
-    for (const d of document.querySelectorAll("div")) {
-      const cs = getComputedStyle(d);
-      if (cs.width !== "16px" || cs.cursor !== "pointer") continue;
-      if (!cs.borderColor.includes("255, 255, 255")) continue;   // white ring = own-industry slot
-      n++;
-    }
+    for (const d of document.querySelectorAll('[data-pick="own"]')) n++;   // an own-industry cell on offer
     return n;
   });
   console.log(`the page offers ${clickable} clickable Healthcare cell(s)`);
@@ -174,7 +174,7 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
     let k = 0;
     t.rows.forEach((ind, ri) => {
       if (ind !== "HC" || (ri >= 2 && st.quarter <= 4)) return;
-      for (let li = 0; li < biz.level; li++) if (!t.filled[ri][li]) k++;
+      k += biz.level;   // every column within its level is open: icons are never used up
     });
     return acc + k;
   }, 0);
@@ -185,10 +185,8 @@ async function driveToHcDelivery(code, token, maxSteps = 4000) {
   // and one of them can actually be clicked through to a sale
   const cashBefore = st.players[0].cash;
   await page.evaluate(() => {
-    for (const d of document.querySelectorAll("div")) {
-      const cs = getComputedStyle(d);
-      if (cs.width === "16px" && cs.cursor === "pointer" && cs.borderColor.includes("255, 255, 255")) { d.click(); return; }
-    }
+    const d = document.querySelector('[data-pick="own"]');
+    if (d) d.click();
   });
   await sleep(1200);
   const after = await getState(room.code, room.token);

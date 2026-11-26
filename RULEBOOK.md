@@ -1,27 +1,30 @@
 # Entrepreneurs - Rulebook
 
-*Rulebook v20. The complete rules, with the designer's notes on why each one exists.*
+*Rulebook v23. The complete rules, with the designer's notes on why each one exists.*
 
 1. [The game in one minute](#overview)
-2. [Setup](#setup)
-3. [Your twelve discs](#discs)
-4. [A quarter, step by step](#quarter)
-5. [Planning: placing workers](#planning)
-6. [The actions](#actions)
-7. [Land and buildings](#land)
-8. [Prices, supply and demand](#prices)
-9. [Production: paying the bills](#production)
-10. [Revenue: selling what you produce](#revenue)
-11. [Closing and the year end](#closing)
-12. [Going public and Megacorps](#megacorp)
-13. [Winning](#scoring)
-14. [Personas](#personas)
-15. [Rule variants (optional)](#variants)
-16. [The beginner game](#beginner)
-17. [Playing online](#online)
-18. [Quick reference](#quickref)
-19. [The words on the board](#glossary)
-20. [Annex: the sixty Blueprints](#blueprints)
+2. [Trial rules: the playtest sheet of 23 November 2026](#trial)
+3. [Setup](#setup)
+4. [Your twelve discs](#discs)
+5. [A quarter, step by step](#quarter)
+6. [Planning: placing workers](#planning)
+7. [The actions](#actions)
+8. [Land and buildings](#land)
+9. [Prices, supply and demand](#prices)
+10. [Closing, first: paying the bills](#production)
+11. [Revenue: what the demand pays](#revenue)
+12. [Closing and the year end](#closing)
+13. [Going public and Megacorps](#megacorp)
+14. [Winning](#scoring)
+15. [Personas](#personas)
+16. [Rule variants (optional)](#variants)
+17. [The beginner game](#beginner)
+18. [Playing online](#online)
+19. [Quick reference](#quickref)
+20. [The words on the board](#glossary)
+21. [Annex: version history](#history)
+22. [Annex: every component, and what is printed on it](#components)
+23. [Annex: the sixty Blueprints](#blueprints)
 
 ---
 
@@ -29,10 +32,10 @@
 
 ## The game in one minute
 
-You are a founder building a city's economy. You buy land, build companies on it, and sell what they produce to the districts around them. The player with the most Entrepreneurial Points (EP) at the end of Year 3 wins.
+You are a founder building a city's economy. You buy land, build companies on it, and sell what they produce to the districts around them. The player with the most Entrepreneurial Points (EP) at the end of Year 2 wins.
 
 - 2 to 6 players.
-- 3 years of 4 quarters - 12 rounds at most. A second Megacorp ends it sooner.
+- 2 years of 4 quarters - 8 rounds at most. A second Megacorp ends it sooner, and a three-year variant plays 12.
 - The board is 16 districts of 4 plots each.
 - The coloured squares inside a district are its demand: what it will buy.
 
@@ -40,7 +43,120 @@ You are a founder building a city's economy. You buy land, build companies on it
 
 Every company pays a supplier bill each quarter, and that money does not vanish - it goes to the industries printed on its Blueprint as suppliers. So the industry nobody is building is quietly collecting everyone else's money, and its price is climbing while the crowded industries sink toward $2. Reading that pressure is the game.
 
-> **Designer's note.** The economy is a closed loop on purpose. The bank pays for what the demand icons take and $1 a unit for recycling, and lends $20 a disc, and that is every faucet there is - so a table that all builds the same thing genuinely impoverishes itself. Every playtest that felt flat was a table that had not noticed this yet.
+> **Designer's note.** The economy is a closed loop on purpose. The bank pays every company by the band of demand it reaches, and lends $20 a disc, and that is every faucet there is - so a table that all builds the same thing genuinely impoverishes itself. Every playtest that felt flat was a table that had not noticed this yet.
+
+---
+
+<a id="trial"></a>
+
+## Trial rules: the playtest sheet of 23 November 2026
+
+Three rules are being trialled on top of this book, and the Blueprint cards printed for the playtest carry their numbers. The online game plays them. Everything else plays as written in the chapters that follow. Where a later chapter describes OPEX, the band table or $2 of rent a level, read this chapter instead - or switch on the variant 'Bills and revenue as printed in v23' to play the book as it stands.
+
+### 1. Pay: one round total, doubled by each level
+
+At Closing, each company pays its suppliers one round total, into their industries' pots. Two things set the total: how dear the company's industry is to run - Low, Mid or High - and the company's level. Every level doubles it.
+
+| Running cost | Industries | Level 1 | Level 2 | Level 3 | Level 4 |
+| --- | --- | --- | --- | --- | --- |
+| Low | Utilities, Hospitality | $5 | $10 | $20 | $40 |
+| Mid | Manufacturing, Technology | $10 | $20 | $40 | $80 |
+| High | Retail, Healthcare | $15 | $30 | $60 | $120 |
+
+The card prints how the total is divided among its suppliers. One supplier takes all of it. Two take half each. A card that starts at Level 3 prints three: the first one printed takes half, and the other two a quarter each. Upgrading doubles what each supplier is paid.
+
+| The card starts at | Low pays | Mid pays | High pays |
+| --- | --- | --- | --- |
+| Level 1, one supplier | $5 | $10 | $15 |
+| Level 2, two suppliers | $5 + $5 | $10 + $10 | $15 + $15 |
+| Level 3, three suppliers | $10 + $5 + $5 | $20 + $10 + $10 | $30 + $15 + $15 |
+
+An Auto Plant is a Manufacturing card that starts at Level 2: it pays $10 + $10, and $20 + $20 once upgraded. The printed OPEX and the v23 supplier shares are not used, and rent is never part of this bill.
+
+### 2. Earn: the best tier you fully meet
+
+Count your demand icons exactly as this book describes, then read the three tiers on the card in place of the band table. The middle and top tiers each ask for two things: enough icons, and a market price at or above the one printed. Collect the amount printed on the highest tier where both are true. If neither is met you still collect the Minimum, even with no icons. Nothing is multiplied.
+
+Each tier is a margin over the card's own supplier bill, set by how hard its industry is to enter. Spreading rather than stacking, a high build cost, a high running cost and few demand rows on the map all make an industry harder, and the hardest pay the kindest margins. A little loss or profit is $5 at Level 1, $10 at Level 2, $15 at Level 3 and $20 at Level 4. A big loss or a plain profit is twice that, and a good profit three times. A big loss can be the whole bill, so an Easy card's Minimum pays $0. Pot shares come on top and are not counted here.
+
+| Grade | Industries | Minimum | Middle tier | Top tier |
+| --- | --- | --- | --- | --- |
+| Easy | Hospitality, Utilities | big loss | little loss | little profit |
+| Medium | Retail, Technology | little loss | breakeven | profit |
+| Hard | Manufacturing, Healthcare | breakeven | little profit | good profit |
+
+The middle tier asks for the industry's base price less $1, at every level. The top tier asks for the base price plus $2 at Level 1, plus $1 at Level 2, and the base price itself from Level 3. Every upgrade reaches more demand, and it makes the top tier's price $1 easier too.
+
+| Industry | Middle tier, any level | Top tier at Level 1 | Top tier at Level 2 | Top tier at Levels 3 and 4 |
+| --- | --- | --- | --- | --- |
+| Utilities, Retail | $3 | $6 | $5 | $4 |
+| Hospitality, Manufacturing | $4 | $7 | $6 | $5 |
+| Healthcare, Technology | $5 | $8 | $7 | $6 |
+
+Example: an Auto Plant at Level 2 is a Hard card with a $20 bill. Its Minimum pays $20. Its middle tier, 5 icons and $4, pays $30. Its top tier, 8 icons and $6, pays $50. With 6 icons at $5 it collects $30. With 9 icons at $5 it still collects $30, because the top tier needs $6. With 9 icons at $6 it collects $50. With 3 icons at $9 it collects the Minimum, $20.
+
+Every card's tiers, by industry and by the company's level. An upgraded company reads the row of its new level.
+
+| Industry | Level | Minimum pays | Middle tier: icons | Middle tier pays | Top tier: icons | Top tier pays |
+| --- | --- | --- | --- | --- | --- | --- |
+| Utilities (UT) | Level 1 | $0 | 1 | $5 | 2 | $10 |
+| Utilities (UT) | Level 2 | $0 | 4 | $5 | 6 | $20 |
+| Utilities (UT) | Level 3 | $0 | 7 | $5 | 12 | $35 |
+| Utilities (UT) | Level 4 | $0 | 14 | $20 | 24 | $60 |
+| Retail (RE) | Level 1 | $10 | 2 | $15 | 3 | $25 |
+| Retail (RE) | Level 2 | $20 | 5 | $30 | 8 | $50 |
+| Retail (RE) | Level 3 | $45 | 7 | $60 | 12 | $90 |
+| Retail (RE) | Level 4 | $100 | 12 | $120 | 20 | $160 |
+| Hospitality (HO) | Level 1 | $0 | 1 | $5 | 2 | $10 |
+| Hospitality (HO) | Level 2 | $0 | 2 | $5 | 4 | $20 |
+| Hospitality (HO) | Level 3 | $0 | 5 | $5 | 8 | $35 |
+| Hospitality (HO) | Level 4 | $0 | 10 | $20 | 16 | $60 |
+| Manufacturing (MA) | Level 1 | $10 | 2 | $15 | 4 | $25 |
+| Manufacturing (MA) | Level 2 | $20 | 5 | $30 | 8 | $50 |
+| Manufacturing (MA) | Level 3 | $40 | 10 | $55 | 16 | $85 |
+| Manufacturing (MA) | Level 4 | $80 | 19 | $100 | 32 | $140 |
+| Healthcare (HC) | Level 1 | $15 | 2 | $20 | 3 | $30 |
+| Healthcare (HC) | Level 2 | $30 | 4 | $40 | 6 | $60 |
+| Healthcare (HC) | Level 3 | $60 | 7 | $75 | 12 | $105 |
+| Healthcare (HC) | Level 4 | $120 | 14 | $140 | 24 | $180 |
+| Technology (TE) | Level 1 | $5 | 1 | $10 | 2 | $20 |
+| Technology (TE) | Level 2 | $10 | 2 | $20 | 4 | $40 |
+| Technology (TE) | Level 3 | $25 | 3 | $40 | 6 | $70 |
+| Technology (TE) | Level 4 | $60 | 4 | $80 | 8 | $120 |
+
+### 3. Rent: floors times the plot's rate
+
+A company standing on another player's plot pays that owner rent at Closing, together with its bills. For each such plot: the floors standing on it, times the plot's rate. The rate is $1 for every full $5 the plot is worth at that moment, and never less than $1. Plot value is unchanged: the road price plus $3 for each structure on it or touching it.
+
+| The plot is worth | A floor pays |
+| --- | --- |
+| Up to $9 | $1 |
+| $10 to $14 | $2 |
+| $15 to $19 | $3 |
+| $20 or more | $4 |
+
+A floor is one company level standing on the plot. A stacking company (Retail, Hospitality, Healthcare) has all its levels on one plot; a spreading company (Utilities, Manufacturing, Technology) has one on each of its plots. A Retail branch is one floor, and a Megacorp headquarters keeps its floors. Nothing is owed on your own land.
+
+### One Closing, one company
+
+An Auto Plant at Level 2 stands on two rented plots worth $8 and $12. It reaches 6 icons and Manufacturing sells at $5. It pays Healthcare $10 and Technology $10, and $1 + $2 in rent: $23 in all. It earns the middle tier, $30. That leaves $7, before its share of the Manufacturing pot.
+
+### Reading the card
+
+- In hand: build for the cost shown, on as many plots as the card says. Each plot must already be owned - by you or by anyone. Sell is what the card itself fetches.
+- Built: the card shows what an upgrade costs - the build cost again, plus one more owned plot or one more floor - and what the company sells for.
+- Upgraded: every number is the upgraded one.
+- A grey number after a slash is that same number once upgraded. Sell is a planned sale through Raise Capital; Liquidate is the forced-sale half.
+
+### What stays as written
+
+Phases, tracks and last in, first out. How prices move. Which icons you count and how far you reach. Pot shares. Forced sales. Scoring, Megacorps, hubs, loans and land awards.
+
+- White-Label Supplier and Concession Holder: the better price they give is the price the tiers are checked against.
+- Revenue by the unit is not played with the trial rules, because the trial cards print no production; switching it on plays the printed bills and rent as well.
+- Beginner game: land is free, and there is no rent, upgrade, renovation or planned sale. Pay and earn work as above.
+
+> **Designer's note.** These three are a trial, not an edition: the book stays v23 until a table has said whether they hold. audit_trial.js plays both on the same seeds. With bots tuned on the printed economy and four players, the trial rules leave a player about a third of the cash v23 did at the end, $50 against $139 - which was the table's complaint - and a company is left with a little more the higher its level: $8, $9 and $11 a quarter at Levels 1, 2 and 3, pot shares included. The price is fewer upgrades: a Level 3 trades in 63% of games, against 96% in v23, and a Level 4 in 8%.
 
 ---
 
@@ -102,15 +218,13 @@ Separately, you have five company slots. Every active company fills one, and so 
 
 ## A quarter, step by step
 
-All twelve quarters run the same five phases. Planning and Action are where you act; the later phases resolve around you and stop only when there is a choice to make - where to deliver, what to sell short, where the hub goes, whether to repay a loan.
+All eight quarters run the same three phases. Planning and Action are where you act; Closing settles the quarter around you - the bills, every company's revenue, the pots, the hub - and stops only when there is a choice to make: what to sell short, where the hub goes, whether to repay a loan.
 
 | Phase | What happens |
 | --- | --- |
 | 1. Planning | Everyone places their workers on the action tracks. |
 | 2. Action | The tracks resolve and each worker takes its actions. |
-| 3. Production | Every active company pays its supplier bill into the industry pots, and its ground rent to the landlords it stands on. |
-| 4. Revenue | You deliver production to demand icons for cash, then the industry pots are shared out. |
-| 5. Closing | A new Logistic Hub opens. At the end of each year, the two land awards are paid. |
+| 3. Closing | Every active company pays its supplier bill into the industry pots and its ground rent to its landlords; every company is paid its band of revenue; the pots are shared out; a new Logistic Hub opens. At the end of each year, the two land awards are paid. |
 
 ---
 
@@ -169,7 +283,9 @@ Reclaiming costs what the bank paid, so read that price off how the building got
 
 You may build on plots owned by another player. They collect the rent every quarter, but the company is yours.
 
-A renovation has to fit the shell that is already standing. The card must match the distressed structure's level, and from level 2 upwards its scaling type as well: a level-2 or level-3 horizontal structure spreads across several plots and cannot be rebuilt as a vertical one, nor the other way round. At level 1 both kinds occupy a single plot, so a level-1 shell is open to any level-1 Blueprint.
+A renovation has to fit the shell's LEVEL, and nothing else. Any Blueprint of the same level renovates any distressed structure, whatever industry it was and whatever shape it stands in - a stacked plot can become a spread industry's company, and a row of plots a stacked industry's. The company keeps the shell's footprint exactly as it stands, pays rent and counts for the land awards on every plot of it, and grows from there in its own industry's direction.
+
+> **Designer's note.** Measured over 300 games a table size: renovations rise 43%, about one hybrid a game is formed, and the gain lands on the horizontal industries - renovations into Utilities nearly double and into Technology likewise - because the common shell is a stacked plot, and a horizontal card may now take it without finding two or three adjacent plots. Vertical industries bank most EP in 66.7% of three-player games against 69.8%.
 
 Renovating moves the price markers exactly as launching does - the industry you build goes DOWN $1 and every supplier the new card names goes UP $1 - because a renovation puts a genuinely new business into the city, and it scores its levels like any new company does. The Blueprint it displaces is not spent: it goes back to the BOTTOM of its own industry deck. Reclaiming a shell as it stands moves nothing and scores nothing. The building never changed, and neither did what the city can supply or needs to buy.
 
@@ -244,7 +360,7 @@ A marker stops at the ends. On $12 it will not climb further, and on $2 it will 
 
 > **Designer's note.** The ends being hard stops is why this is a marker on a track rather than a running tally. Counting supply and demand separately let an industry that 'should' have been $14 sit at $10 while carrying an invisible overshoot, so four companies had to be built before the price moved at all. A marker cannot hide anything: what you see on the track is the whole state.
 
-A crowded industry can sink to $2. That is still twice the $1 you get for recycling goods you could not sell, so selling always beats scrapping - which was not true when the track bottomed out at the recycling rate. A neglected one that half the table depends on climbs fast, and $12 is genuinely reachable.
+A crowded industry can sink to $2 and no lower, and every band of every company there multiplies that $2 - a crowded industry is cheap to enter and poor to be in, both at once. A neglected one that half the table depends on climbs fast, and $12 is genuinely reachable.
 
 > **Designer's note.** A whole dollar per event was tried once before and abandoned, and it is worth knowing why it works now. On its own it inflated the city: the winning score at six seats went from 111 to 173, cash a seat held more than doubled, and the winner's margin over second roughly doubled. But the diagnosis was wrong. The problem was never the step - it was scoring a doubled economy at a rate set for the old one. The step is back, this time with every base $2 higher, the track running $2..$12 so the raised bases have somewhere to go, and cash converting at $50 per EP instead of $20. Measured over 2250 games: takings rise 83% and the winning score lands within 2% of where it was. Half-dollar steps bought a stable score by making the market too quiet to read - every industry now trades below its own base often enough to matter, Technology in 17% of games against 3%, and both ends of the track are reachable without either being a wall. See audit_full_dollar_step.js, audit_price_floor.js and audit_base_plus_two.js.
 
@@ -254,12 +370,12 @@ Setup / OPEX / Production, by level.
 
 | Industry | Level 1 | Level 2 | Level 3 |
 | --- | --- | --- | --- |
-| Utilities (UT) | 15 / 4 / 4 | 20 / 7 / 8 | 30 / 10 / 16 |
-| Retail (RE) | 10 / 5 / 4 | 15 / 9 / 8 | 25 / 14 / 16 |
-| Hospitality (HO) | 10 / 6 / 3 | 15 / 10 / 6 | 25 / 16 / 12 |
-| Manufacturing (MA) | 20 / 4 / 3 | 35 / 7 / 6 | 60 / 10 / 12 |
-| Healthcare (HC) | 20 / 5 / 2 | 35 / 9 / 4 | 60 / 14 / 8 |
-| Technology (TE) | 15 / 6 / 2 | 25 / 10 / 4 | 40 / 16 / 8 |
+| Utilities (UT) | 15 / 6 / 3 | 20 / 11 / 6 | 30 / 15 / 12 |
+| Retail (RE) | 15 / 10 / 4 | 25 / 18 / 8 | 40 / 28 / 16 |
+| Hospitality (HO) | 10 / 6 / 2 | 15 / 10 / 4 | 25 / 16 / 8 |
+| Manufacturing (MA) | 20 / 8 / 4 | 35 / 14 / 8 | 60 / 20 / 16 |
+| Healthcare (HC) | 20 / 10 / 3 | 35 / 18 / 6 | 60 / 28 / 12 |
+| Technology (TE) | 10 / 8 / 2 | 15 / 13 / 4 | 25 / 21 / 8 |
 
 ### Who pays whom
 
@@ -267,12 +383,12 @@ Every company pays a supplier bill - its printed OPEX less $2 a level of ground 
 
 | Industry | Supplier 1 | Supplier 2 | Supplier 3 |
 | --- | --- | --- | --- |
-| Utilities | HO | TE | HC |
-| Retail | TE | HO | MA |
-| Hospitality | MA | HC | RE |
-| Manufacturing | HC | RE | UT |
-| Healthcare | RE | UT | TE |
-| Technology | UT | MA | HO |
+| Utilities | HO | MA | TE |
+| Retail | UT | HC | MA |
+| Hospitality | RE | UT | HC |
+| Manufacturing | HC | TE | RE |
+| Healthcare | TE | RE | HO |
+| Technology | MA | HO | UT |
 
 The three are not equally common: across the ten Blueprints of an industry, the first supplier appears most often and the third least. Read the Blueprint in front of you rather than the table.
 
@@ -282,9 +398,11 @@ The three are not equally common: across the ten Blueprints of an industry, the 
 
 <a id="production"></a>
 
-## Production: paying the bills
+## Closing, first: paying the bills
 
-Every active company pays two bills each quarter, automatically, whether or not it sells anything afterwards:
+Trial rules in play: the supplier bill below is replaced by rule 1 of the Trial rules chapter, and the rent by rule 3, unless the variant 'Bills and revenue as printed in v23' is on.
+
+Every active company pays two bills at the start of every Closing, automatically, whatever its band pays it afterwards:
 
 - Its SUPPLIER BILL goes into the industry pots of the suppliers printed on its Blueprint, divided in proportion to the dependency values.
 - Its GROUND RENT - $2 for every level standing on a plot - goes to whoever owns that plot. A vertical company stacks all its levels on one plot, so its whole rent goes to one landlord; a horizontal one puts a level on each plot it covers, so each landlord collects $2. You pay nothing for standing on your own land.
@@ -305,27 +423,63 @@ If you close the window with the bill still short, the bank sells for you at tho
 
 <a id="revenue"></a>
 
-## Revenue: selling what you produce
+## Revenue: what the demand pays
 
-Each company produces a number of units printed on its Blueprint, doubled if it has been upgraded. That number is all it has: every ability below is a route for those units, never a source of more. You deliver them to demand icons your company can reach, and every unit an icon takes is paid at the current market price for your industry.
+Trial rules in play: the band table below is replaced by the three tiers of rule 2 of the Trial rules chapter, unless the variant 'Bills and revenue as printed in v23' is on. Which icons a company counts is unchanged.
 
-Demand icons are first come, first served, and the businesses a Hospitality company sells to are not - so it is usually right to take the contested icons first and send whatever is left to the neighbours. Anything you still cannot place is recycled for $1 a unit.
+Every company is paid once a quarter, in one go, for the demand it can reach: COUNT the demand icons of its industry it reaches, find the BAND that count falls in on its row of the band table below, and MULTIPLY the current market price of its industry by that band's number. That is its revenue. Nothing is delivered, nothing is counted unit by unit and nothing is recycled.
 
-Delivery goes in turn order. Every icon is first come, first served, so being early in the order is worth real money on a contested district - and it is the main thing REPOSITION buys you.
+An icon is never used up. Every icon is open to every company every quarter - two companies reaching the same icon both count it - so what you are paid depends on where you stand and how big you are, never on who got there first.
 
-### Which icons you may use
+Every company at the table is paid at the same time; there is nothing to hand round. The production printed on a Blueprint is the size of the company - what makes a bigger company need more icons for the same band - and the 'Revenue by the unit' variant still sells it unit by unit, the way the game played up to v22.
 
-Every district shows a 4x4 grid of demand. Each row is an industry; the four columns are levels 1 to 4. You may deliver to an icon if the row's industry is yours and the column is no higher than your company's level - so a bigger company reaches deeper into the same district, and the deeper icons are hungrier.
+### Which icons you count
 
-- Rows 3 and 4 of every district stay closed until Quarter 5.
-- At the end of Quarter 8 the entire demand grid is wiped clean and every icon reopens for Year 3.
-- AN ICON TAKES ITS OWN COLUMN IN GOODS: the level-1 icon takes one unit, the level-2 icon two, the level-3 icon three, the level-4 icon four. A level-3 company reaching columns 1, 2 and 3 therefore sells 1 + 2 + 3 = 6 units into a single clean row of its industry.
-- Each icon can be sold to once, by whoever gets there first - and it is filled whole, however many units it took, though you are only paid for units you actually had.
-- Anything you cannot sell is recycled for $1 a unit.
+Every district shows a 4x4 grid of demand. Each row is an industry; the four columns are levels 1 to 4. An icon counts for your company if the row's industry is yours, the column is no higher than your company's level, and the district is one your company reaches - so a bigger company counts deeper into the same district.
+
+- Rows 3 and 4 of every district are open from the first quarter, like rows 1 and 2.
+- An icon counts for every company that reaches it, every quarter. Nothing is ever wiped and nothing is ever tracked between quarters.
+- A level-3 company reaching columns 1, 2 and 3 therefore counts 3 icons in each row of its industry it reaches. The first and last rows of a district are always the same industry, so a company of that industry counts two icons a column there.
+- A crowded industry is priced by the price track, not rationed by the grid.
+
+### The band table
+
+Three bands - $, $$ and $$$ - for every industry and level. The two thresholds are the icon counts at which the middle and the top band begin; the three numbers after them are what the price is multiplied by in each band. A company that reaches no icon at all is still paid its bottom band. Technology's doubler is folded into its own row, so it is read off the same icon count as everyone else.
+
+| Industry | Level | $$ from | $$$ from | Pays price x ($ / $$ / $$$) |
+| --- | --- | --- | --- | --- |
+| Utilities | 1 | 1 | 2 | 1 / 1 / 2 |
+| Utilities | 2 | 4 | 6 | 2 / 4 / 6 |
+| Utilities | 3 | 7 | 12 | 7 / 10 / 12 |
+| Utilities | 4 | 14 | 24 | 23 / 24 / 24 |
+| Retail | 1 | 2 | 3 | 1 / 2 / 4 |
+| Retail | 2 | 5 | 8 | 4 / 6 / 8 |
+| Retail | 3 | 7 | 12 | 6 / 10 / 14 |
+| Retail | 4 | 12 | 20 | 10 / 17 / 24 |
+| Hospitality | 1 | 1 | 2 | 1 / 1 / 2 |
+| Hospitality | 2 | 2 | 4 | 1 / 3 / 4 |
+| Hospitality | 3 | 5 | 8 | 3 / 6 / 8 |
+| Hospitality | 4 | 10 | 16 | 7 / 13 / 16 |
+| Manufacturing | 1 | 2 | 4 | 2 / 3 / 4 |
+| Manufacturing | 2 | 5 | 8 | 4 / 7 / 8 |
+| Manufacturing | 3 | 10 | 16 | 7 / 14 / 16 |
+| Manufacturing | 4 | 19 | 32 | 10 / 25 / 32 |
+| Healthcare | 1 | 2 | 3 | 1 / 2 / 3 |
+| Healthcare | 2 | 4 | 6 | 2 / 4 / 6 |
+| Healthcare | 3 | 7 | 12 | 5 / 9 / 12 |
+| Healthcare | 4 | 14 | 24 | 13 / 20 / 24 |
+| Technology | 1 | 1 | 2 | 1 / 2 / 2 |
+| Technology | 2 | 2 | 4 | 1 / 4 / 4 |
+| Technology | 3 | 3 | 6 | 1 / 6 / 8 |
+| Technology | 4 | 4 | 8 | 2 / 9 / 16 |
+
+So a level-1 Healthcare company standing in a district whose first and last rows are Healthcare counts 2 icons, sits in its middle band, and is paid 2 x the Healthcare price - $12 at the base price. Upgrade it to level 2 and it counts the second column too, 4 icons, which is its new middle band at 4 x the price.
+
+> **Designer's note.** The bands were cut from a thousand measured games of the unit rule: for every industry and level, the top band begins at the icon count a company of that size could actually sell into, and each multiplier is the mean revenue that band earned divided by the mean price. Measured back, the band game pays a company-quarter within a dollar or two of the unit game at every level, and the quarter closes with nobody counting units. What the table cannot do is reward a player for one more unit of production; what it does instead is reward one more icon in reach, which is the decision the board shows. See audit_revenue.js for the drafting and audit_v23.js for the measurement.
 
 ### How far a company reaches
 
-A company can always sell into the district or districts its own plots sit in. Beyond that:
+A company can always count the district or districts its own plots sit in. Beyond that:
 
 - Logistic Hubs stand on plots. If any plot of your footprint is orthogonally beside a hub - up to four plots can be, since corners do not count - your company joins the network and reaches every district that any hub on the board stands in. A Megacorp headquarters counts as a hub for this, so building beside somebody else's monument puts you on the network too.
 - Utilities and Retail can never use hubs at all.
@@ -335,12 +489,24 @@ A company can always sell into the district or districts its own plots sit in. B
 
 | Industry | Ability |
 | --- | --- |
-| Utilities | Reads demand across a block of districts as wide as its level, positioned anywhere that still covers its own footprint. Never uses hubs. |
-| Retail | Sells into one extra district of your choice per level. Never uses hubs. |
-| Hospitality | May sell to the businesses and hubs around it instead of to demand icons - one unit at market price for each business or hub within its level in plots, no icon needed. Those units come out of its production like any other. |
-| Manufacturing | May route up to its level in units into OTHER industries' rows in its own district. Those units come out of its production - cross-selling is a place to send goods, not extra goods. |
+| Utilities | Counts demand across a block of districts as wide as its level, positioned anywhere that still covers its own footprint. Never uses hubs. |
+| Retail | A chain is its level in shopfronts: its own plot and one BRANCH for every level above the first, each on a plot somebody already owns, each in a district the chain can reach. It counts the icons of every district it stands in. Never uses hubs. |
+| Hospitality | Counts the businesses and hubs around it as icons on top of the grid - one icon for each business or hub within its level in plots. |
+| Manufacturing | Counts up to its level in icons from OTHER industries' rows in its own district, on top of its own rows. |
 | Healthcare | Reaches every district on the hub network without touching a hub. |
-| Technology | Every icon it fills takes twice its column in units - 2, 4, 6 or 8 - and pays for all of them. |
+| Technology | Its row of the band table is its own: the two units an icon used to take from it are built into its multipliers, so the same icons lift it faster. |
+
+### Retail branches
+
+Retail does not reach further by declaring it. It OPENS SHOPFRONTS: a chain is its level in shops, the home plot included, so a level-3 chain is its home and two branches, standing in three districts. Each branch takes a plot of its own, and the company counts the icons of every district it stands in as if it stood there.
+
+- A branch may only open on a plot SOMEBODY ALREADY OWNS - you or a rival - and the plot must be empty. It does not take the ground: the deed stays with its owner.
+- A branch on somebody else's plot pays them $2 of ground rent every quarter, exactly as a building standing on their land would.
+- Each branch must open in a district orthogonally beside one the chain already covers, counting the company's own plot and its existing branches. The chain joins up; it does not jump.
+- A branch takes a disc, like anything else you put on the board, and nobody can build on its plot while it stands.
+- Sell, merge or lose the company and its shopfronts come down. The ground stays with whoever owned it.
+
+> **Designer's note.** The branch used to take free land for nothing - it looked only at plots nobody held, then wrote itself in as the owner, so the whole price was a disc while the same plot bought outright costs cash AND a disc. Retail was scaling its reach for free while every other industry paid for its ground, and it showed: Retail decided 26% of games at three players and took the largest share of the land awards once those were paid for built ground. Requiring the ground to be owned first drops that to 21.4% and brings its land award into line with Utilities and Manufacturing, while branches still open at 1.68 a game so the mechanic survives. Pricing the plot instead of restricting it was measured too and does almost nothing - plotValue is a rounding error against a Retail chain's cash flow. It is WHERE a branch may go that matters, not what it costs. See audit_setup.js --branchrent, --branchbuy and --branchpay.
 
 ### B2B: the pots pay out
 
@@ -348,7 +514,11 @@ Each pot is split evenly among the companies of that industry - one equal share 
 
 Whatever will not divide cleanly stays in the pot and rides forward. A pot of $10 shared between three Healthcare companies pays $3 to each and carries $1 into next quarter.
 
-A pot with no company of that type to pay carries over in full, growing quarter by quarter. An industry nobody serves is often the most profitable thing on the board.
+A POT WITH NOBODY TO PAY STAYS. If an industry has no active company when its pot is shared out, the whole pot waits - and keeps growing - until somebody opens a company there. The first company in takes everything that accumulated, alone.
+
+> **Designer's note.** v21 wrote that quarter's money off instead; v22 put the carry back by the designer's choice, because a market that visibly waits for someone to answer it is the thematic reading. The price is known and measured: over 400 games a table size the waiting pot reaches $355, and the first company in has scooped up to $342, a mean of $31 to $67 a scoop. Writing it off instead cuts that to $76 and $66, and leaves an industry nobody wants entered a little less often.
+
+That is worth reading twice when you plan a build. An industry nobody is in may be sitting on a pot that pays for the company you open there.
 
 > **Designer's note.** Technology's doubler and Hospitality's neighbour bonus are the two abilities that scale with the board rather than with the card, and they are the reason those two industries look weak on paper and play strong. Utilities was originally 'distance less than level from any home district', which quietly let a level-3 utility see the entire city; it now reads an honest N x N block.
 
@@ -360,10 +530,10 @@ A pot with no company of that type to pay carries over in full, growing quarter 
 
 Every quarter ends with a new Logistic Hub being built on an empty plot that nobody owns. The first player in turn order chooses which one. That plot is filled for good - nothing can be built there afterwards - and the hub adds its own district to the network.
 
-### At the end of Quarter 4, 8 and 12
+### At the end of Quarter 4 and 8
 
-- The Real-Estate Mogul and The Omnipresent are awarded - 5 EP each to the outright leader at 2-3 players, 10 EP each at 4 or more. They are also paid at the final quarter if the game is called before Q12.
-- You may buy back loan discs: $30 at the end of Year 1, $35 at Year 2, $40 at Year 3.
+- The Real-Estate Mogul and The Omnipresent are awarded - 4 EP plus the number of players, to the outright leader alone, so 6 EP at two seats rising to 10 at six. They are also paid at the final quarter if the game is called before Q8.
+- You may buy back loan discs: $30 at the end of Year 1 and $40 at Year 2 - and $50 at Year 3, in the three-year game.
 
 Companies do not wait for the year end. A company scores the moment it is finished - see below - so by the time a year ends its EP are already banked. What a year end decides is who is holding the city.
 
@@ -392,9 +562,9 @@ Whoever forms the first Megacorp of the game also takes the IPO tile: a sixth co
 ### What a merger does
 
 - You choose one of the merged companies to become the Megacorp HQ. It keeps its building and returns its Blueprint to its industry deck.
-- All the others go to the bank as Distressed Assets - anyone may take them over later.
+- All the others go to the bank as Distressed Assets - their shopfronts come down - and anyone may take them over later.
 - The HQ stops trading: with no Blueprint it produces nothing and pays no OPEX. It still draws its equal share of its industry's pot every B2B - a headquarters that has stopped building has not stopped collecting.
-- Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry DIVIDED BY THE TILE'S TIER, rounded down. A tier 1 headquarters in an industry at $3 banks 3 EP a quarter; a tier 4 headquarters in the same industry banks nothing at all until that industry reaches $4. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for eight more quarters than one formed in Year 3.
+- Every quarter it stands, the HQ banks EP equal to the CURRENT PRICE of its industry DIVIDED BY THE TILE'S TIER, rounded down. A tier 1 headquarters in an industry at $3 banks 3 EP a quarter; a tier 4 headquarters in the same industry banks nothing at all until that industry reaches $4. A headquarters in an industry nobody serves is quietly earning while its price climbs, and one formed in Year 1 collects for four more quarters than one formed in Year 2.
 - It has no supplier bill, but it still stands on the ground, so its owner pays ground rent every quarter like any other building - $2 for every level standing on a plot, to that plot's owner. On your own land nothing is owed.
 - A headquarters is public infrastructure: it counts as a Logistic Hub. Any company built orthogonally beside one joins the network through it, whoever owns them. A monument that only collected would be a monument nobody wanted to build near - and the companies that gather round it are exactly the ones it pays a tithe to.
 - Sell a plot out from under a headquarters and it collects nothing at all - no pot share, no points, and it stops being a hub. A monument still needs its ground.
@@ -439,7 +609,7 @@ The sixteen tiles are four tiers of four. Tier 4 is the four cheapest to assembl
 
 Tiles are drawn from every tier that is in play, and how many depends on the table: TWO from each tier at two, three or four players, THREE at five, and at six players every tile in the game is available. So the box holds four tiles at two players, six at three, eight at four, twelve at five and all sixteen at six.
 
-> **Designer's note.** The wider draw at five and six is not variety for its own sake. A second Megacorp calls the final quarter, and the biggest tables are the ones with most reason to want that door open - twelve quarters with six people deliberating is a long evening. With the full box in play a second merger becomes findable rather than a matter of whether the two tiles you could use happened to be drawn: games ending early go from 8% at four players to 21% at five and 36% at six, and the average six-player game ends about two thirds of a quarter sooner. The deadline is CALLED far more often than it bites - 82% of six-player games against 25% of four-player ones - because a second Megacorp landing in Q11 or Q12 names a final quarter the game was going to play anyway.
+> **Designer's note.** The wider draw at five and six is not variety for its own sake. A second Megacorp calls the final quarter, and the biggest tables are the ones with most reason to want that door open - eight quarters with six people deliberating is still a long evening. With the full box in play a second merger becomes findable rather than a matter of whether the two tiles you could use happened to be drawn: games ending early go from 8% at four players to 21% at five and 36% at six, and the average six-player game ends about two thirds of a quarter sooner. The deadline is CALLED far more often than it bites - 82% of six-player games against 25% of four-player ones - because a second Megacorp landing in Q7 or Q8 names a final quarter the game was going to play anyway.
 
 > **Designer's note.** Before the tiers, a Local Syndicate built out of three level-1 companies earned exactly as much every quarter as an Omnicorp built out of four level-3s, and the Megacorp had grown to 33% of a winning score - the largest single bucket in the game, ahead of companies. Dividing the brand by the tier halved that to 17% and took the winner’s lead over last from 58.6 EP to 48.7, without making the merger itself any rarer. The draw rule barely registers at four players, where eight random tiles out of sixteen already average two per tier; it earns its keep at two, where it took the unclaimable tiles out of the box and Megacorps formed rose from 1.00 a game to 1.26.
 
@@ -460,16 +630,18 @@ Score steadily rather than chasing one big move. Breadth pays early, size pays l
 | Megacorp tile | +8 to +22 as printed |
 | Megacorp HQ, each quarter it stands | + its industry's price / its tile's tier, rounded down |
 | Megacorp HQ, every quarter | +its industry's price divided by the tile's tier; and it pays 1 EP to each rival company beside it, which that owner banks |
-| The Real-Estate Mogul - most plots owned, at every year end | +5 to the leader alone, +10 at 4+ players |
-| The Omnipresent - most districts you are present in, at every year end | +5 to the leader alone, +10 at 4+ players |
-| Cash on hand at the end | +1 per full $50 |
+| The Real-Estate Mogul - most plots BUILT ON, at every year end | +4 plus the number of players, to the leader alone |
+| The Omnipresent - most districts you have something standing in, at every year end | +4 plus the number of players, to the leader alone |
+| Cash on hand at the end | +1 per full $100 |
 | Each loan disc still in the bank | -5 |
 
-For The Omnipresent, a district counts if you own a plot in it or one of your active companies stands in it.
+BOTH AWARDS COUNT BUILT GROUND, NOT OWNED GROUND. For The Real-Estate Mogul, a plot counts if one of your active companies stands on it; a plot you hold the deed to and have not built on counts for nothing. For The Omnipresent, a district counts if one of your companies stands in it or you have a Retail branch there - a shopfront is somewhere you ARE, which is why it counts here and not for the Mogul.
+
+> **Designer's note.** They used to count the deeds, and the deeds are not the point. Measured, 78% of all land-award EP was going to ground with nothing standing on it - the awards had become a land-banking dividend rather than a race to develop the city, and the one thing they are written to reward, a horizontal company's disc spanning several districts, could not show through that noise. Counting built ground sends 6 to 9 points of games back to Utilities, Manufacturing and Technology at every table size, and bare ground now earns $0.2 of a $40 award instead of $31.9. It is worth little on its own and a great deal alongside the branch rule and the rebalanced cards: separately those give 8.8 and 1.8 points, together 15.4. See audit_setup.js --builtland and --tails.
 
 Ground rent is simply money. It is collected as it is earned and scores inside your cash at the end like every other dollar - there is nothing separate to track. What is worth knowing is how much of your income it quietly becomes: a plot with somebody else’s building on it pays you every quarter, and by six players half the plots a player owns carry a rival’s building.
 
-> **Designer's note.** This number has moved twice, both times because the price rules moved. It was $10 until the price track landed; the track made the economy bigger, and scoring that at the old rate doubled the cash line from about a third of a winning score to about half, so not spending was outscoring building. $20 put it back. Raising every base $2 and making each event worth a whole dollar has done the same thing again on a larger scale - takings rise 83% - and $50 puts it back a second time: measured over 2250 games the winning score lands within 2% of where it was, where leaving the rate at $20 would have inflated it 44%. A rate that only tracked the money would be $37; $50 is right because the bots price every decision through this number too, so a higher rate also makes building worth more than banking. See audit_base_plus_two.js. If the price rules ever move again, this number moves with them - they are one setting in two places.
+> **Designer's note.** This number has moved twice, both times because the price rules moved. It was $10 until the price track landed; the track made the economy bigger, and scoring that at the old rate doubled the cash line from about a third of a winning score to about half, so not spending was outscoring building. $20 put it back. Raising every base $2 and making each event worth a whole dollar has done the same thing again on a larger scale - takings rise 83% - and $50 puts it back a second time: measured over 2250 games the winning score lands within 2% of where it was, where leaving the rate at $20 would have inflated it 44%. A rate that only tracked the money would be $37; $50 is right because the bots price every decision through this number too, so a higher rate also makes building worth more than banking. See audit_base_plus_two.js. If the price rules ever move again, this number moves with them - they are one setting in two places. v22 doubled it again, to $100: with demand as a rate the same board absorbs more and cash piles higher, and the designer's reading is that money is the means and not the score.
 
 > **Designer's note.** Rent was briefly given its own scoring line while the balance of land was being investigated. It has been folded back into cash: the split changed no totals, and asking a table to keep a running rent tally all game to divide one number into two halves that add back to it is bookkeeping without a decision. The digital build still shows the flow, where it costs nothing. Land plus rent is about 27% of a winning score at two seats and 14% at six - see audit_idle_land.js.
 
@@ -481,7 +653,7 @@ Only the outright leader scores a land award, and a shared lead pays badly. The 
 
 ### When the game ends
 
-The game ends at the close of Quarter 12, OR at the close of the quarter AFTER any player launches their SECOND Megacorp - whichever comes first. The second Megacorp does not end the game; it CALLS the final quarter, and everyone gets that quarter to answer it. If it is launched in Q11 or later the game simply ends at Q12 as usual.
+The game ends at the close of Quarter 8, OR at the close of the quarter AFTER any player launches their SECOND Megacorp - whichever comes first. The second Megacorp does not end the game; it CALLS the final quarter, and everyone gets that quarter to answer it. If it is launched in Q7 or later the game simply ends at Q8 as usual. The three-year variant plays to Quarter 12 the same way.
 
 Most EP wins. If the final scores tie, the player still running more ACTIVE COMPANIES wins - headquarters do not count, because a headquarters has stopped trading. If that is level too, the player with more money; and if they are still tied, the player with fewer loan discs left in the bank.
 
@@ -502,11 +674,11 @@ Personas are asymmetric powers, one tied to each industry. They are dealt by def
 | Persona | Power |
 | --- | --- |
 | Systems Architect (TE) | Your Technology companies may upgrade vertically, stacking on one plot instead of needing a free neighbour - or spread as Technology usually does. You choose at each upgrade. |
-| Public Health Director (HC) | Your Healthcare companies may serve any column of a Healthcare row whatever their level - but a unit sold above your company's level pays $1 less than the price. |
-| White-Label Supplier (MA) | When your Manufacturing cross-sells into another industry's row, it may be paid that industry's price instead of its own - whichever is higher. |
+| Public Health Director (HC) | Your Healthcare companies reach every column of a Healthcare row whatever their level - they may count all four icons where a level-1 company counts one. |
+| White-Label Supplier (MA) | Your Manufacturing may be paid the best price among the rows of its own district, its own row included: that is the price its tiers are checked against. |
 | Resort Developer (HO) | Your Hospitality companies may upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them - or stack as Hospitality usually does. You choose at each upgrade. |
-| Supply Chain Expert (RE) | At the start of Production, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline. |
-| Concession Holder (UT) | At the start of Production you may switch your concession on: your Utilities production then sells for $1 above the current price this quarter. Every quarter you sell at that premium, the Utilities price falls one step at the end of the quarter. |
+| Supply Chain Expert (RE) | At the start of Closing, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline. |
+| Concession Holder (UT) | At the start of Closing you may switch your concession on: your Utilities then read the market price as $1 higher this quarter - the higher price is the one their tiers are checked against. Every quarter you are paid at that premium, the Utilities price falls one step at the end of the quarter. |
 
 > **Designer's note.** Each persona is a tilt, not a cage. They all deliberately point at doing more of one industry, and the entry bonus deliberately points the other way, so a persona changes your best line without collapsing it to one.
 
@@ -518,17 +690,21 @@ Personas are asymmetric powers, one tied to each industry. They are dealt by def
 
 Every one of these is off by default, and a table that leaves them alone plays exactly the rules in this book. They can be combined freely.
 
-The first three read as playing it the older way, because that is what they are: rules that were optional in v12 and became standard in v13. The beginner game is the opposite - not an older version of this game but a shorter way into it, and it has a section of its own below.
+The first seven read as playing it the older way, because that is what they are: three rules that were optional in v12 and became standard in v13, the three rules v23 changed, kept switchable so that v22 and v23 can be played side by side on the same seeds, and the book's own bills, bands and rent, which the trial rules replace. The beginner game is the opposite - not an older version of this game but a shorter way into it, and it has a section of its own below.
 
 | Variant | What changes |
 | --- | --- |
 | Score at the year end | A company waits for the next year end to take its EP, instead of scoring the moment it is built or upgraded. It still scores once per build or upgrade. |
 | Ordered decks | Each industry deck runs level 1 on top down to level 3 at the bottom, instead of being shuffled whole. No level 3 can be drafted, and the early game holds no surprises. |
-| Land awards at the end only | The Real-Estate Mogul and The Omnipresent are paid once, after Quarter 12, instead of at every year end. Land becomes a late-game race rather than something to hold all game. |
+| Land awards at the end only | The Real-Estate Mogul and The Omnipresent are paid once, after the final quarter, instead of at every year end. Land becomes a late-game race rather than something to hold all game. |
+| Revenue by the unit | Every company delivers its printed production one unit an icon and recycles the rest at $1, the way the game sold up to v22, instead of being paid by the band of icons it reaches. It plays the v23 bills and rent too. |
+| Three-year game | Twelve quarters instead of eight: a third year, with the land awards paid three times and a $50 loan buy-back at the end of it. |
+| Rows 3-4 open in Year 2 | Rows 3 and 4 of every district stay closed until Quarter 5, as they did up to v22. |
+| Bills and revenue as printed in v23 | Each company pays the OPEX printed in this book, split among its suppliers, is paid the market price times its band, and owes $2 of rent a level - instead of the trial rules' round supplier bills, three earning tiers and rent by plot value. |
 
 Whichever are on is shown in the waiting room before the game starts, and recorded with the finished game, so a variant table is never mistaken for a standard one in the records.
 
-> **Designer's note.** The three older rules are kept switchable so the two versions can be played side by side, not because they are balanced against the new. Two more were dropped in v20 after twenty-six recorded games in which nobody had switched either on: hubs on the road, which forced every hub rule in the game to answer for two shapes, and levels score heavy, which by its own description pushed land, cash and the entry bonuses into the background.
+> **Designer's note.** The older rules are kept switchable so the versions can be played side by side, not because they are balanced against the new. Two more were dropped in v20 after twenty-six recorded games in which nobody had switched either on: hubs on the road, which forced every hub rule in the game to answer for two shapes, and levels score heavy, which by its own description pushed land, cash and the entry bonuses into the background.
 
 > **Designer's note.** Hubs on plots is a genuine constriction: a quarter of the plots on the board have no orthogonal neighbour at all, so a badly placed hub connects nobody. That is the rule working as intended - it is why the hub picker tells you how many plots a spot would connect before you commit to it - but it is also the rule most likely to need another look after a few tables.
 
@@ -538,14 +714,14 @@ Whichever are on is shown in the waiting room before the game starts, and record
 
 ## The beginner game
 
-A shorter way in, for a table where somebody has never played. It is two years instead of three, and each track keeps one action instead of two, so there are four things you can do rather than eight. Everything cut is a subsystem that needs a second explanation; nothing cut is the engine of the game.
+A shorter way in, for a table where somebody has never played. It is the same two years as the standard game, but each track keeps one action instead of two, so there are four things you can do rather than eight. Everything cut is a subsystem that needs a second explanation; nothing cut is the engine of the game.
 
-What stays is the part worth learning. Your production still sells into the demand icons, your operating costs still flow into the pots of the industries your Blueprint buys from and are split among whoever owns companies there, and every build still pushes its own industry's price down a dollar and each of its suppliers' up one. Your customer is still your competitor.
+What stays is the part worth learning. Your companies are still paid by the demand icons they reach, your operating costs still flow into the pots of the industries your Blueprint buys from and are split among whoever owns companies there, and every build still pushes its own industry's price down a dollar and each of its suppliers' up one. Your customer is still your competitor.
 
 |  | The full game | The beginner game |
 | --- | --- | --- |
 | Players | 2-6 | 2-4 |
-| Length | 12 quarters, 3 years | 8 quarters, 2 years |
+| Length | 8 quarters, 2 years (12 with the three-year variant) | 8 quarters, 2 years |
 | Raise Capital | LOAN or SELL | LOAN |
 | M&A | BUY or LAUNCH | LAUNCH |
 | R&D | RESEARCH or UPGRADE | RESEARCH |
@@ -573,7 +749,7 @@ A COMPANY YOU LOSE IS GONE. Solvency works exactly as it does in the full game, 
 
 CASH ONLY SCORES IF YOU SPEND IT. There is no land to buy, nothing to upgrade and no Megacorp to form, so money has nowhere to go and piles up - measured, a seat ended this mode holding as much cash as a full game three quarters longer. Here it buys EP outright at a year end, and nowhere else. Money still in front of you when the game ends is worth nothing at all.
 
-AND THE PRICE RISES. EP cost $50 each at the end of Year 1 and $100 each at the end of Year 2. Buying early is half price, and the catch is that early is exactly when you are poorest and need the money to build. That is the decision: build now, or bank the points cheaply. In the full game cash scores on its own at $50 a point, with no window and no deadline.
+AND THE PRICE RISES. EP cost $50 each at the end of Year 1 and $100 each at the end of Year 2. Buying early is half price, and the catch is that early is exactly when you are poorest and need the money to build. That is the decision: build now, or bank the points cheaply. In the full game cash scores on its own at $100 a point, with no window and no deadline.
 
 > **Designer's note.** Measured over 200 games at each of the three table sizes, the last two quarters still carry a third to two fifths of the winning score, so the short game does not end before anything compounds. It is also markedly gentler than the full game: no seat ever ended with nothing standing, against one in twenty-eight to one in thirteen, and a player last at halfway reached the top half between a third and nearly a half of the time. The one figure that moved the wrong way is cash, which is a fifth to a quarter of a winning score here against about a seventh in the full game - the points Megacorps used to carry went to cash and to industry debuts. Somebody taught here learns to sit on money in a game that rewards it more than the real one does.
 
@@ -601,27 +777,27 @@ The server is authoritative: it runs the same rules engine and rejects anything 
 
 |  |  |
 | --- | --- |
-| Game length | 12 quarters (3 years of 4), or until someone launches a 2nd Megacorp |
+| Game length | 8 quarters (2 years of 4), or until someone launches a 2nd Megacorp; 12 under the three-year variant |
 | Players | 2 to 6 |
 | Workers | 2 each, or 3 each in a two-player game |
 | Discs | 12, covering plots owned + active companies + unpaid loans |
 | Company slots | 5, counting Megacorp headquarters |
 | Hand limit | 5 Blueprints |
-| Loan | +$20 and one disc; buy back for $30 / $35 / $40 at year ends; -5 EP if unpaid |
+| Loan | +$20 and one disc; buy back for $30 / $40 at the year ends ($50 at the third, in the three-year game); -5 EP if unpaid |
 | Sell a Blueprint | $4 / $8 / $12 by level; $2 / $4 / $6 in a forced sale |
 | Sell a company | half its setup, or the full setup if upgraded; halved again in a forced sale |
 | Plot value | road price (1-6) + $3 per structure on it or orthogonally touching (a hub is a structure) |
 | Upgrade | pay the setup cost again; production and OPEX double; level +1 |
 | Rent | $2 per company level, to the owners of the plots it stands on |
-| Unsold production | $1 per unit |
-| Industry pot | split evenly among that industry's active companies; the remainder rides forward |
-| Renovation | card must match the shell's level; from level 2 up, its scaling type too |
+| Revenue | the current price x the band your icon count falls in - see the band table; nothing is delivered or recycled |
+| Industry pot | split evenly among that industry's active companies; the remainder rides forward, and a pot with nobody to pay waits in full |
+| Renovation | any card of the shell's level, whatever its industry or shape; the company keeps the shell's footprint |
 | Final tie | most active companies, then most money, then fewest loan discs in the bank |
-| Demand rows 3-4 | closed until Quarter 5 |
-| Demand grid | wiped clean at the end of Quarter 8 |
+| Demand rows 3-4 | open from Quarter 1, like rows 1-2 |
+| Demand grid | icons are never used up: every company that reaches an icon counts it, every quarter |
 | Company scoring | 2 EP per level, the moment it is built - and again when it is upgraded |
 | Industry debut | 3 EP the first time you build in each industry, banked at once |
-| Land awards | 5 EP to the outright leader in plots, and in districts, at every year end - 10 at 4+ players |
+| Land awards | 4 EP plus the number of players, to the outright leader in plots, and in districts, at every year end |
 | Logistic Hub | one per quarter, on an empty unowned plot; reaches its own district; joins orthogonally |
 
 ---
@@ -669,9 +845,9 @@ Almost every term in this game is a real one, used the way a real business uses 
 | Term | Meaning, and use in play |
 | --- | --- |
 | Supply chain | The line of firms each buying from the one before it, all the way to the customer. In the game: printed on every Blueprint. Your OPEX is your place in somebody else's chain. |
-| B2B | Business to business - selling to other firms rather than to the public. In the game: the Revenue step where the industry pots are shared out. That money came from other players' bills, not from the districts. |
+| B2B | Business to business - selling to other firms rather than to the public. In the game: the Closing step where the industry pots are shared out. That money came from other players' bills, not from the districts. |
 | Industry pot | A sector's total spend, which the firms in it divide between them. In the game: every company in an industry draws one equal share, whatever its size. Supplying an industry nobody has built in is very lucrative. |
-| Demand | What the market will actually buy, at a price, right now. In the game: the coloured squares in each district. First come, first served. |
+| Demand | What the market will actually buy, at a price, right now. In the game: the coloured squares in each district. Open to everyone, every quarter. |
 | Vertical integration | Growing by owning more of your own supply chain - upward, on one site. In the game: how Retail, Hospitality and Healthcare upgrade, stacking the new level on a plot the company already holds. |
 | Horizontal integration | Growing by taking more ground at the same stage - outward, across sites. In the game: how Utilities, Manufacturing and Technology upgrade, each new level needing an empty owned plot beside the building. |
 | Logistic Hub | A distribution centre - it moves goods rather than making them. In the game: opens on an empty unowned plot each quarter and extends what the companies beside it can reach. |
@@ -680,8 +856,8 @@ Almost every term in this game is a real one, used the way a real business uses 
 
 | Term | Meaning, and use in play |
 | --- | --- |
-| Fiscal year | The twelve months a company reports on, which need not match the calendar. In the game: three of them, four quarters each. Accounts are settled at the end of every year. |
-| Quarter | A three-month reporting period; public companies report four times a year. In the game: one round - plan, act, produce, sell, close. |
+| Fiscal year | The twelve months a company reports on, which need not match the calendar. In the game: two of them, four quarters each - three in the three-year game. Accounts are settled at the end of every year. |
+| Quarter | A three-month reporting period; public companies report four times a year. In the game: one round - plan, act, close. |
 | EP | Not a real term - the game's own score. Entrepreneurial Points: buildings, industry debuts, Megacorps, land and leftover cash all convert to it. |
 
 > **Designer's note.** The jargon is load-bearing, not flavour. Playtesters who had never played a heavy economic game still knew roughly what R&D and a supply chain were, and that knowledge did real work in teaching - they guessed what the tracks did before the tracks were explained. The one place the game breaks from real usage is worth naming: OPEX here is the printed running cost of a company, split at the table into a supplier bill and ground rent, and the game never bills wages or stock beyond that. A finance person will read the word as broader than the game means it. The trade was deliberate - splitting the two payments is what let the table stop doing arithmetic mid-quarter - but it is the term most likely to need a second sentence when you teach it.
@@ -692,11 +868,190 @@ Almost every term in this game is a real one, used the way a real business uses 
 
 ---
 
+<a id="history"></a>
+
+## Annex: version history
+
+THE NUMBER MOVES WHEN A RULE MOVES. An edition is reprinted whenever something changes that would make an older book wrong at the table - not for a clearer sentence, a corrected typo or a new annex on its own. If you are holding an earlier edition, this is what you are missing.
+
+### v23 - this edition
+
+- REVENUE IS PAID BY BAND. A company counts the demand icons of its industry it reaches, reads the band that count falls in on its row of the band table - $, $$ or $$$ - and is paid the current price times that band's number, in one go. Nothing is delivered, nothing is counted unit by unit and nothing is recycled. v22 delivered one unit an icon and recycled the rest at $1; 'Revenue by the unit' still plays it that way.
+- THREE PHASES, NOT FIVE. Planning and Action as before; Production, Revenue and Closing are one Closing that settles at once - the bills, every company's band, the pots, the hub - and hands nobody the board.
+- THE STANDARD GAME IS TWO YEARS: eight quarters, two year ends, the loan buy-back at $30 and $40. v22 played three, with the buy-back at $30, $35 and $40; 'Three-year game' plays twelve quarters with a third year end and the $50 buy-back.
+- ROWS 3 AND 4 ARE OPEN FROM THE FIRST QUARTER. v22 locked them until Quarter 5; 'Rows 3-4 open in Year 2' locks them again.
+- THE PERSONAS ARE READ IN ICONS. The Public Health Director counts every column of a Healthcare row with no discount; the White-Label Supplier's Manufacturing is paid the best price among the rows of its district; the Concession Holder's premium is a dollar on the price its band multiplies.
+
+> **Designer's note.** Measured over 1000 games at three and at four players, every rule against its revert on the same seeds (audit_v23.js). THE BAND PAYS THE SAME ECONOMY: a company-quarter earns $10.3 / $25.2 / $43.9 at levels 1 to 3 under the band against $9.5 / $24.6 / $43.5 by the unit at three players, the winning score is 48.6 against 47.6, the winner's score is made of the same parts to within a point, and the seats and the industries win in the same proportions - with 25 deliveries a game (37 at four players) replaced by a payout nobody is asked about. TWO YEARS IS THE SAME GAME, SHORTER: against the three-year game the winning score falls from 81 to 49, the lead still changes hands 1.7 times a game and last changes at quarter 4.6 of 8 (6.5 of 12), land is 35% of a winner's score instead of 29% and Megacorps 7% instead of 15%, and a game asks for 46 worker placements instead of 68. ROWS OPEN FROM Q1 lift trade income by 22% (from $499 to $611 a game) and the share of level-1 company-quarters paid in the top band from 30% to 40%. Against v22 as a whole - all three reverts at once - the table makes 46 placements and no deliveries where it made 68 and 45: three decisions in five are gone, and what is left scores the same way.
+
+### v22
+
+- DEMAND IS NOT USED UP. An icon absorbs one unit a quarter from every company that reaches it (two from Technology) and is open again next quarter; nothing is tracked on the grid, nothing is wiped at Quarter 8, and nobody races anybody for an icon. v21 had an icon absorb its own column once, first come first served, and the table had already stopped playing it that way.
+- A POT WITH NOBODY TO PAY WAITS, as it did under v20. v21 wrote it off; the carry is back by choice, and the prize it hands the late entrant is measured in the B2B note.
+- CASH SCORES AT $100 AN EP, from $50. With demand as a rate the same board absorbs more and cash piles higher; money is the means, not the score.
+- A RETAIL CHAIN IS ITS LEVEL IN SHOPFRONTS, the home included: a level-3 chain is its home and two branches, in three districts. v21 opened a branch per level on top of the home, one district more at every level than the chain was ever meant to have.
+- ANY DISTRESSED STRUCTURE TAKES ANY CARD OF ITS LEVEL, whatever industry it was and whatever shape it stands in; the company keeps the shell's footprint. v21 required the same scaling type from level 2 up. Measured, renovations rise by two fifths and the horizontal industries take most of them.
+- A MERGE TAKES A CHAIN'S SHOPFRONTS DOWN, as a sale always did. Under v21 a merged Retail chain left its branches standing on the board in the bank's name.
+
+> **Designer's note.** Measured over 200 games a table size on the v21 cards: the rate rule removes the race for icons - seat spread 8.0 at both three and four players against 18.5 and 12.5 - halves the share of level-1 quarters that see no demand at all (48% to 24%), and grows trade income by about a quarter. It was measured and left unshipped once before, in audit_demand_flow.js; the physical prototype had been playing it for weeks.
+
+### v21
+
+- THE LAND AWARDS PAY FOR BUILT GROUND. The Real-Estate Mogul counts plots with one of your companies standing on them, and The Omnipresent counts districts you have a company or a Retail branch in. A plot you hold the deed to and have not built on counts for nothing. Under v20 both counted ownership, and 78% of all land-award points were going to empty ground.
+- A RETAIL BRANCH STANDS ON GROUND SOMEBODY OWNS. It may only open on a plot you or a rival already holds, it does not take the deed, and on a rival's plot it pays them $2 of rent every quarter. Under v20 a branch took free land for the price of a disc, while every other industry paid cash for its ground.
+- EVERY BLUEPRINT HAS A NEW PRICE. Entry is paired - Hospitality and Technology $10, Utilities and Retail $15, Manufacturing and Healthcare $20 - and five of the six now pay back in the same 2.50 quarters at base price, against a spread of 3.14x before. What differs instead is how far the price can fall before a company stops earning, from Retail's $1.50 to Manufacturing's $3.
+- THE DEMAND TABLE IS REDRAWN. Every industry now appears in exactly eight districts, so breadth carries none of the balance, and the years are deliberately tilted: Manufacturing and Utilities are early, Healthcare and Technology late, Hospitality flat across both.
+- THE SUPPLIER MATRIX IS REDIRECTED. Each industry still buys from three others and is named by three others, but fourteen of the eighteen links now run both ways rather than ten.
+- A new annex sets out every component and the numbers printed on it, and this one records the history.
+
+> **Designer's note.** Measured over 1500 games a table size, with a disjoint control block. At three players the three vertical industries took 90.9% of games under v20 and now take about 69.5%; the most-dominant industry is down from 43.6% to 34.8% and the quietest up from 1.9% to 9.1%. None of the three changes is worth much alone - the land awards are worth 8.8 points of that split and the branch rule 1.8 - and together they are worth 15.4, because built ground is what makes a branch worth having and the branch rule is what stops the industry that gains most from running away with it.
+
+### v20
+
+- A PLOT'S VALUE is its printed road price plus $3 for every structure standing on it or orthogonally touching it - the plot and its four neighbours, corners never counting. v19 priced by loose adjacency at $1 a neighbour, which made plot value the only rule in the game where a corner counted.
+- A LOGISTIC HUB IS A STRUCTURE like any other, so it moves a neighbour's price by the same $3. v19 carried a separate clause paying $1 for touching a hub, which was both redundant and backwards - a hub fills its plot permanently, which is more than a company does.
+- THE LAND AWARDS SCALE WITH THE TABLE: 4 EP plus the number of players, to the outright leader alone, so 6 EP at two seats rising to 10 at six. A flat prize was a rounding error at a big table and a third of a winning score at a small one.
+- TWO VARIANTS WERE REMOVED after twenty-six recorded games in which nobody switched either on: hubs on the road, and levels score heavy.
+- A BEGINNER GAME was added and tuned: 8 quarters, four actions, no Megacorps, land claimed free by building.
+
+### v19
+
+- A forced sale by the bank goes at the same half rates as the shortfall window. In v18 it fetched full price and handed out a loan nobody had asked for.
+- A game called on a year end pays the land awards ONCE. v18 paid them twice.
+- Entering an industry for the first time is 3 EP. v18 printed 5.
+- A Megacorp headquarters pays a tithe every quarter instead of scoring for its neighbours at the end.
+- A tie is broken by active companies first, then money, then loan discs.
+- A horizontal upgrade may take any owned empty plot, not only one of your own - you pay the owner rent for it.
+- The tile counts at five and six players were understated in v18.
+- This edition first carried the Blueprint annex.
+
+### v18
+
+- The glossary: what the economic jargon means in this game, and the one place the game uses a word more narrowly than finance does.
+
+### v17
+
+- THE PRICE ECONOMY WAS REBUILT. Every base price went up $2, the track was re-cut to run $2 to $12, a build moves a marker a whole dollar rather than half, and cash converts at $50 per EP instead of $20. The four are one setting in four places and cannot be taken separately.
+- A distressed building's buy-back price is exactly what the bank paid for it, rather than a flat half of setup.
+- When a Megacorp forms, you are always asked which company keeps the building.
+
+### v16 and earlier
+
+Not individually recorded. The v12, v15 and v16 editions entered this repository together with the first commit that tracked documents, and what each one changed before that was never written down. The engine's own anchor test still carries the v13 name, which is the earliest edition any check in the repository refers to.
+
+> **Designer's note.** This annex exists because a version number that nobody can decode is just a date. A publisher, a playtester holding a printout, or me in two years all need to be able to look at a cover and know which rules are in it. Everything here was reconstructed from the repository's own history rather than from memory, and where the record runs out - before v17 - it says so instead of guessing.
+
+---
+
+<a id="components"></a>
+
+## Annex: every component, and what is printed on it
+
+What is in the box, piece by piece, with the numbers that are printed on each one. The Blueprint cards have an annex of their own after this; everything else lives here.
+
+### The board: 16 districts in a 4x4 grid
+
+Twelve of the sixteen districts are SUBURB tiles drawn at random from a pool of sixteen, so a third of the pool is left out of every game and no two cities are alike. The other four are CENTRE districts, always present and always the same.
+
+| Tile family | In the pool | Placed each game |
+| --- | --- | --- |
+| Residential (R1-R5) | 5 | drawn |
+| Commercial (C1-C5) | 5 | drawn |
+| Academic (A1-A3) | 3 | drawn |
+| Industrial (I1-I3) | 3 | drawn |
+| Financial Centre (FC) | 1 | always |
+| Industrial Area (IA) | 1 | always |
+| City Centre (CC) | 1 | always |
+| Landmark (LM) | 1 | always |
+
+Twelve of the first sixteen rows are drawn freely, so a game can run short of a whole family - one Residential district, or no Academic at all - and that reshapes which industries are worth entering before a single card is played.
+
+### What demand is printed on each district
+
+Every district carries a 4x4 grid: four ROWS, one industry each, and four COLUMNS of rising value. ALL FOUR ROWS ARE OPEN FROM THE FIRST QUARTER. The first row of a district and its last row are ALWAYS THE SAME INDUSTRY, so the industry that opens a district also closes it - and a company of that industry counts two icons a column there.
+
+| District | Row 1 | Row 2 | Row 3 | Row 4 |
+| --- | --- | --- | --- | --- |
+| Residential | UT | RE | TE | UT |
+| Commercial | HO | MA | HC | HO |
+| Academic | RE | TE | HO | RE |
+| Industrial | MA | UT | RE | MA |
+| Financial Centre | HC | MA | UT | HC |
+| Industrial Area | TE | HO | HC | TE |
+| City Centre | HC | UT | MA | HC |
+| Landmark | TE | HC | HO | TE |
+
+Across a whole board that gives each industry the same breadth and slightly different depth - every industry appears in exactly eight districts, and Utilities and Hospitality carry twelve rows each against ten for the rest.
+
+| Industry | Rows on the board | Districts it appears in | In rows 1-2 | In rows 3-4 |
+| --- | --- | --- | --- | --- |
+| Utilities | 12 | 8 | 7 | 5 |
+| Retail | 10 | 8 | 6 | 4 |
+| Hospitality | 12 | 8 | 5 | 7 |
+| Manufacturing | 10 | 8 | 7 | 3 |
+| Healthcare | 10 | 8 | 3 | 7 |
+| Technology | 10 | 8 | 4 | 6 |
+
+> **Designer's note.** Equal spread at 8. The deliberate year tilt the rows carried up to v22 - Manufacturing and Utilities early, Healthcare and Technology late - went with the Year 2 lock: every row is open from the first quarter, and the table is kept as printed because the first and last rows still pair. The spread being equal six ways is what stops the demand table carrying any of the industry balance - whatever is left over is on the cards, where it can be read. Retail and Manufacturing are the only industries printed on NO centre district, so their demand swings with the draw more than anyone else's; Healthcare, on all four centres, swings least.
+
+### Discs, money and the loan
+
+| Component | Per player | What it does |
+| --- | --- | --- |
+| Discs | 12 (6 in the beginner game) | One for every plot you own, one for every company you run, and one for every loan outstanding. Running out of discs is what stops you, not running out of money. |
+| Starting cash | $25 / $22 / $19 by seat order | The later you sit, the less you start with - the first player pays for the first pick. |
+| Loan | $20 for one disc | Taken any time you can spare a disc. Each one still in the bank at the end is -5 EP. |
+
+### The price track
+
+One marker per industry on a track from $2 to $12, each dollar split into two cells. Building a company moves its own industry DOWN one dollar and each supplier named on its Blueprint UP one dollar. The ends are hard stops.
+
+| Industry | Base price | How it upgrades | Suppliers it pays |
+| --- | --- | --- | --- |
+| Utilities (UT) | $4 | Horizontal - a plot per level | HO, MA, TE |
+| Retail (RE) | $4 | Vertical - one plot, any level | UT, HC, MA |
+| Hospitality (HO) | $5 | Vertical - one plot, any level | RE, UT, HC |
+| Manufacturing (MA) | $5 | Horizontal - a plot per level | HC, TE, RE |
+| Healthcare (HC) | $6 | Vertical - one plot, any level | TE, RE, HO |
+| Technology (TE) | $6 | Horizontal - a plot per level | MA, HO, UT |
+
+Each industry buys from three others and is named as a supplier by three others, so the money cannot pool in one corner of the loop: twelve of the eighteen links run both ways.
+
+### What a company is worth at each level
+
+Setup is paid to build and again to upgrade. OPEX is charged every quarter - $2 a level of it is ground rent, the rest is the supplier bill. Production is the company's size: under the standard rules it is not sold unit by unit, and the top band of the band table begins at about that many icons, never above it. Growing a company adds a level and DOUBLES both its OPEX and its production.
+
+| Industry | Level 1 | Level 2 | Level 3 | Quarters to pay back at base price, by the unit |
+| --- | --- | --- | --- | --- |
+| Utilities | 15 / 6 / 3 | 20 / 11 / 6 | 30 / 15 / 12 | 2.50 |
+| Retail | 15 / 10 / 4 | 25 / 18 / 8 | 40 / 28 / 16 | 2.50 |
+| Hospitality | 10 / 6 / 2 | 15 / 10 / 4 | 25 / 16 / 8 | 2.50 |
+| Manufacturing | 20 / 8 / 4 | 35 / 14 / 8 | 60 / 20 / 16 | 1.67 |
+| Healthcare | 20 / 10 / 3 | 35 / 18 / 6 | 60 / 28 / 12 | 2.50 |
+| Technology | 10 / 8 / 2 | 15 / 13 / 4 | 25 / 21 / 8 | 2.50 |
+
+Entry is paired - Hospitality and Technology at $10, Utilities and Retail at $15, Manufacturing and Healthcare at $20 - and what differs is WHICH BAND A COMPANY NEEDS before it clears its bills. At base price a level-1 Manufacturing company is in profit from its bottom band, Healthcare and Technology from the middle one, and Utilities, Retail and Hospitality only at the top.
+
+| Industry at level 1, base price | Bottom band $ | Middle band $$ | Top band $$$ | Clears its bills from |
+| --- | --- | --- | --- | --- |
+| Manufacturing | +$2 | +$7 | +$12 | $ |
+| Healthcare | -$4 | +$2 | +$8 | $$ |
+| Technology | -$2 | +$4 | +$4 | $$ |
+| Utilities | -$2 | -$2 | +$2 | $$$ |
+| Retail | -$6 | -$2 | +$6 | $$$ |
+| Hospitality | -$1 | -$1 | +$4 | $$$ |
+
+> **Designer's note.** That is the whole industry character in one table. Manufacturing costs the most to enter and earns from its first icon; Retail turns over the most and is the one that cannot live on a quiet district - a level-1 chain in a district with two Retail rows counts two icons, which is its middle band, and still loses $2 a quarter at the base price until the price moves or the chain opens a branch. The bands were cut from a thousand measured games of the unit rule, so the economy they pay is the one the cards were tuned for; what moved is where the money is read: from the production printed on the card to the demand standing around it.
+
+> **Designer's note.** WHERE THIS LEAVES THE GAME, measured over 1500 games a table size with a disjoint block of the same rules as the control. At three players the three vertical industries took 90.9% of games before this rebalance and now take about 69.5%; the most-dominant industry is down from 43.6% to 34.8% and the quietest up from 1.9% to 9.1%, so nothing sits below one game in ten any more. The worst an industry is missing from a board is 23.9% of games, against 35.1%. Payback spread is 1.50x against 3.14x, and the supply loop runs 1.68x against 3.46x. Three changes did that and none of them is worth much alone: the land awards paying for built ground is worth 8.8 points of the industry split, the branch rule 1.8, and together they are worth 15.4 - they compound because built ground is what makes a branch worth having and the branch rule is what stops the industry that gains most from running away with it. Rounding Retail and Technology's upgrade ladders onto the deck's multiple of five, which was meant as a tidy-up, turned out to be worth a further point and a half, because the two cards needing it sat at opposite ends of the table. ONE STRUCTURE IS LEFT AND THE CARDS CANNOT REACH IT: the horizontal industries do best at two players and worst at six, 31.1% of games against 22.6%, because the land awards that pay them back are 37% of a winning score at two seats and 22% at six. It is monotonic, it is measured, and it is about half the size it used to be. See audit_setup.js --tails.
+
+---
+
 <a id="blueprints"></a>
 
 ## Annex: the sixty Blueprints
 
-Every card in the game, by industry. SETUP is what it costs to build, and again to upgrade. OPEX is the running cost printed on the card: $2 a level of it is ground rent to whoever owns the ground, and the rest is the supplier bill, divided between the suppliers in proportion to the shares below. PRODUCTION is how many units it makes each quarter, and it doubles on upgrade along with OPEX.
+Every card in the game, by industry. SETUP is what it costs to build, and again to upgrade. OPEX is the running cost printed on the card: $2 a level of it is ground rent to whoever owns the ground, and the rest is the supplier bill, divided between the suppliers in proportion to the shares below. PRODUCTION is the company's size - how many units it would make a quarter under 'Revenue by the unit', and about the icon count at which its top band begins - and it doubles on upgrade along with OPEX.
 
 > **Designer's note.** This annex is written out of the card data itself and checked against it cell by cell in check_rulebook.mjs, so a card cannot be retuned without the book following. It is the one part of the book nobody should ever edit by hand.
 
@@ -704,88 +1059,88 @@ Every card in the game, by industry. SETUP is what it costs to build, and again 
 
 | UT Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
 | --- | --- | --- | --- |
-| Solar Field I | 1 | 15 / 4 / 4 | HO 4 |
-| Hydro-Farm Initiative I | 1 | 15 / 4 / 4 | HO 4 |
-| Wind Farm I | 1 | 15 / 4 / 4 | TE 4 |
-| Biomass Plant I | 1 | 15 / 4 / 4 | TE 4 |
-| Tidal Generator I | 1 | 15 / 4 / 4 | HC 4 |
-| Fusion Conduit Hub II | 2 | 20 / 7 / 8 | HO 4, TE 3 |
-| Smart Grid Node II | 2 | 20 / 7 / 8 | HO 4, HC 3 |
-| Oceanic Turbine II | 2 | 20 / 7 / 8 | TE 4, HC 3 |
-| Geothermal Supernode III | 3 | 30 / 10 / 16 | HO 4, TE 3, HC 3 |
-| Antimatter Reactor III | 3 | 30 / 10 / 16 | HO 4, TE 3, HC 3 |
+| Solar Field I | 1 | 15 / 6 / 3 | HO 6 |
+| Hydro-Farm Initiative I | 1 | 15 / 6 / 3 | HO 6 |
+| Wind Farm I | 1 | 15 / 6 / 3 | MA 6 |
+| Biomass Plant I | 1 | 15 / 6 / 3 | MA 6 |
+| Tidal Generator I | 1 | 15 / 6 / 3 | TE 6 |
+| Fusion Conduit Hub II | 2 | 20 / 11 / 6 | HO 6, MA 5 |
+| Smart Grid Node II | 2 | 20 / 11 / 6 | HO 6, TE 5 |
+| Oceanic Turbine II | 2 | 20 / 11 / 6 | MA 6, TE 5 |
+| Geothermal Supernode III | 3 | 30 / 15 / 12 | HO 6, MA 5, TE 4 |
+| Antimatter Reactor III | 3 | 30 / 15 / 12 | HO 6, MA 5, TE 4 |
 
 ### Retail (RE) - base price $4, upgrades vertical
 
 | RE Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
 | --- | --- | --- | --- |
-| Corner Store I | 1 | 10 / 5 / 4 | TE 5 |
-| Pop-Up Kiosk I | 1 | 10 / 5 / 4 | TE 5 |
-| Local Market I | 1 | 10 / 5 / 4 | HO 5 |
-| Strip Mall I | 1 | 10 / 5 / 4 | HO 5 |
-| Vending Network I | 1 | 10 / 5 / 4 | MA 5 |
-| Supermarket II | 2 | 15 / 9 / 8 | TE 5, HO 4 |
-| Department Store II | 2 | 15 / 9 / 8 | TE 5, MA 4 |
-| Outlet Center II | 2 | 15 / 9 / 8 | HO 5, MA 4 |
-| Mega-Mall III | 3 | 25 / 14 / 16 | TE 6, HO 4, MA 4 |
-| Omni-Channel Hub III | 3 | 25 / 14 / 16 | TE 6, HO 4, MA 4 |
+| Corner Store I | 1 | 15 / 10 / 4 | UT 10 |
+| Pop-Up Kiosk I | 1 | 15 / 10 / 4 | UT 10 |
+| Local Market I | 1 | 15 / 10 / 4 | HC 10 |
+| Strip Mall I | 1 | 15 / 10 / 4 | HC 10 |
+| Vending Network I | 1 | 15 / 10 / 4 | MA 10 |
+| Supermarket II | 2 | 25 / 18 / 8 | UT 10, HC 8 |
+| Department Store II | 2 | 25 / 18 / 8 | UT 10, MA 8 |
+| Outlet Center II | 2 | 25 / 18 / 8 | HC 10, MA 8 |
+| Mega-Mall III | 3 | 40 / 28 / 16 | UT 12, HC 8, MA 8 |
+| Omni-Channel Hub III | 3 | 40 / 28 / 16 | UT 12, HC 8, MA 8 |
 
 ### Hospitality (HO) - base price $5, upgrades vertical
 
 | HO Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
 | --- | --- | --- | --- |
-| Motel I | 1 | 10 / 6 / 3 | MA 6 |
-| Bed & Breakfast I | 1 | 10 / 6 / 3 | MA 6 |
-| Transit Hostel I | 1 | 10 / 6 / 3 | HC 6 |
-| Roadside Inn I | 1 | 10 / 6 / 3 | HC 6 |
-| Capsule Hotel I | 1 | 10 / 6 / 3 | RE 6 |
-| Business Hotel II | 2 | 15 / 10 / 6 | MA 6, HC 4 |
-| Resort Lodge II | 2 | 15 / 10 / 6 | MA 6, RE 4 |
-| Boutique Hotel II | 2 | 15 / 10 / 6 | HC 6, RE 4 |
-| Luxury Casino III | 3 | 25 / 16 / 12 | MA 6, HC 5, RE 5 |
-| Orbit Resort III | 3 | 25 / 16 / 12 | MA 6, HC 5, RE 5 |
+| Motel I | 1 | 10 / 6 / 2 | RE 6 |
+| Bed & Breakfast I | 1 | 10 / 6 / 2 | RE 6 |
+| Transit Hostel I | 1 | 10 / 6 / 2 | UT 6 |
+| Roadside Inn I | 1 | 10 / 6 / 2 | UT 6 |
+| Capsule Hotel I | 1 | 10 / 6 / 2 | HC 6 |
+| Business Hotel II | 2 | 15 / 10 / 4 | RE 6, UT 4 |
+| Resort Lodge II | 2 | 15 / 10 / 4 | RE 6, HC 4 |
+| Boutique Hotel II | 2 | 15 / 10 / 4 | UT 6, HC 4 |
+| Luxury Casino III | 3 | 25 / 16 / 8 | RE 6, UT 5, HC 5 |
+| Orbit Resort III | 3 | 25 / 16 / 8 | RE 6, UT 5, HC 5 |
 
 ### Manufacturing (MA) - base price $5, upgrades horizontal
 
 | MA Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
 | --- | --- | --- | --- |
-| Assembly Workshop I | 1 | 20 / 4 / 3 | HC 4 |
-| Parts Fabricator I | 1 | 20 / 4 / 3 | HC 4 |
-| Textile Mill I | 1 | 20 / 4 / 3 | RE 4 |
-| Canning Facility I | 1 | 20 / 4 / 3 | RE 4 |
-| Injection Molder I | 1 | 20 / 4 / 3 | UT 4 |
-| Auto Plant II | 2 | 35 / 7 / 6 | HC 4, RE 3 |
-| Microchip Foundry II | 2 | 35 / 7 / 6 | HC 4, UT 3 |
-| Chemical Plant II | 2 | 35 / 7 / 6 | RE 4, UT 3 |
-| Heavy Robotics III | 3 | 60 / 10 / 12 | HC 4, RE 3, UT 3 |
-| Orbital Shipyard III | 3 | 60 / 10 / 12 | HC 4, RE 3, UT 3 |
+| Assembly Workshop I | 1 | 20 / 8 / 4 | HC 8 |
+| Parts Fabricator I | 1 | 20 / 8 / 4 | HC 8 |
+| Textile Mill I | 1 | 20 / 8 / 4 | TE 8 |
+| Canning Facility I | 1 | 20 / 8 / 4 | TE 8 |
+| Injection Molder I | 1 | 20 / 8 / 4 | RE 8 |
+| Auto Plant II | 2 | 35 / 14 / 8 | HC 8, TE 6 |
+| Microchip Foundry II | 2 | 35 / 14 / 8 | HC 8, RE 6 |
+| Chemical Plant II | 2 | 35 / 14 / 8 | TE 8, RE 6 |
+| Heavy Robotics III | 3 | 60 / 20 / 16 | HC 8, TE 6, RE 6 |
+| Orbital Shipyard III | 3 | 60 / 20 / 16 | HC 8, TE 6, RE 6 |
 
 ### Healthcare (HC) - base price $6, upgrades vertical
 
 | HC Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
 | --- | --- | --- | --- |
-| Urgent Care Clinic I | 1 | 20 / 5 / 2 | RE 5 |
-| Pharmacy I | 1 | 20 / 5 / 2 | RE 5 |
-| Dental Office I | 1 | 20 / 5 / 2 | UT 5 |
-| Wellness Center I | 1 | 20 / 5 / 2 | UT 5 |
-| Physical Therapy I | 1 | 20 / 5 / 2 | TE 5 |
-| General Hospital II | 2 | 35 / 9 / 4 | RE 5, UT 4 |
-| Trauma Center II | 2 | 35 / 9 / 4 | RE 5, TE 4 |
-| Specialized Clinic II | 2 | 35 / 9 / 4 | UT 5, TE 4 |
-| Biotech Campus III | 3 | 60 / 14 / 8 | RE 6, UT 4, TE 4 |
-| Cybernetics Inst. III | 3 | 60 / 14 / 8 | RE 6, UT 4, TE 4 |
+| Urgent Care Clinic I | 1 | 20 / 10 / 3 | TE 10 |
+| Pharmacy I | 1 | 20 / 10 / 3 | TE 10 |
+| Dental Office I | 1 | 20 / 10 / 3 | RE 10 |
+| Wellness Center I | 1 | 20 / 10 / 3 | RE 10 |
+| Physical Therapy I | 1 | 20 / 10 / 3 | HO 10 |
+| General Hospital II | 2 | 35 / 18 / 6 | TE 10, RE 8 |
+| Trauma Center II | 2 | 35 / 18 / 6 | TE 10, HO 8 |
+| Specialized Clinic II | 2 | 35 / 18 / 6 | RE 10, HO 8 |
+| Biotech Campus III | 3 | 60 / 28 / 12 | TE 12, RE 8, HO 8 |
+| Cybernetics Inst. III | 3 | 60 / 28 / 12 | TE 12, RE 8, HO 8 |
 
 ### Technology (TE) - base price $6, upgrades horizontal
 
 | TE Blueprint | Lvl | Setup / OPEX / Production | Suppliers (share of the bill) |
 | --- | --- | --- | --- |
-| App Startup I | 1 | 15 / 6 / 2 | UT 6 |
-| Data Center I | 1 | 15 / 6 / 2 | UT 6 |
-| Server Farm I | 1 | 15 / 6 / 2 | MA 6 |
-| IT Support Firm I | 1 | 15 / 6 / 2 | MA 6 |
-| Cloud Provider I | 1 | 15 / 6 / 2 | HO 6 |
-| Software Campus II | 2 | 25 / 10 / 4 | UT 6, MA 4 |
-| Network Hub II | 2 | 25 / 10 / 4 | UT 6, HO 4 |
-| Telecom Provider II | 2 | 25 / 10 / 4 | MA 6, HO 4 |
-| Sentient AI Cluster III | 3 | 40 / 16 / 8 | UT 6, MA 5, HO 5 |
-| Quantum Computing III | 3 | 40 / 16 / 8 | UT 6, MA 5, HO 5 |
+| App Startup I | 1 | 10 / 8 / 2 | MA 8 |
+| Data Center I | 1 | 10 / 8 / 2 | MA 8 |
+| Server Farm I | 1 | 10 / 8 / 2 | HO 8 |
+| IT Support Firm I | 1 | 10 / 8 / 2 | HO 8 |
+| Cloud Provider I | 1 | 10 / 8 / 2 | UT 8 |
+| Software Campus II | 2 | 15 / 13 / 4 | MA 8, HO 5 |
+| Network Hub II | 2 | 15 / 13 / 4 | MA 8, UT 5 |
+| Telecom Provider II | 2 | 15 / 13 / 4 | HO 8, UT 5 |
+| Sentient AI Cluster III | 3 | 25 / 21 / 8 | MA 8, HO 7, UT 6 |
+| Quantum Computing III | 3 | 25 / 21 / 8 | MA 8, HO 7, UT 6 |

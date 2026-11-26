@@ -3,26 +3,33 @@ import { createPortal } from "react-dom";
 import SiteChrome from "./Rulebook.jsx";
 import { EndOfGameThanks, shouldThank } from "./Feedback.jsx";
 import { t, useLang } from "./i18n.js";
+import { IndLogo, PhaseClock, PriceTrack, WorkerSlot, BlueprintCard, tintOf, inkOf, mix } from "./PhysicalUI.jsx";
 
 /* ============================== DATA ============================== */
 
-const BP_DATA = [{"code": "UT-01", "ind": "UT", "name": "Solar Field I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "HO", "val": 4}], "prod": 4}, {"code": "UT-02", "ind": "UT", "name": "Hydro-Farm Initiative I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "HO", "val": 4}], "prod": 4}, {"code": "UT-03", "ind": "UT", "name": "Wind Farm I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "TE", "val": 4}], "prod": 4}, {"code": "UT-04", "ind": "UT", "name": "Biomass Plant I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "TE", "val": 4}], "prod": 4}, {"code": "UT-05", "ind": "UT", "name": "Tidal Generator I", "lvl": 1, "setup": 15, "opex": 4, "deps": [{"ind": "HC", "val": 4}], "prod": 4}, {"code": "UT-06", "ind": "UT", "name": "Fusion Conduit Hub II", "lvl": 2, "setup": 20, "opex": 7, "deps": [{"ind": "HO", "val": 4}, {"ind": "TE", "val": 3}], "prod": 8}, {"code": "UT-07", "ind": "UT", "name": "Smart Grid Node II", "lvl": 2, "setup": 20, "opex": 7, "deps": [{"ind": "HO", "val": 4}, {"ind": "HC", "val": 3}], "prod": 8}, {"code": "UT-08", "ind": "UT", "name": "Oceanic Turbine II", "lvl": 2, "setup": 20, "opex": 7, "deps": [{"ind": "TE", "val": 4}, {"ind": "HC", "val": 3}], "prod": 8}, {"code": "UT-09", "ind": "UT", "name": "Geothermal Supernode III", "lvl": 3, "setup": 30, "opex": 10, "deps": [{"ind": "HO", "val": 4}, {"ind": "TE", "val": 3}, {"ind": "HC", "val": 3}], "prod": 16}, {"code": "UT-10", "ind": "UT", "name": "Antimatter Reactor III", "lvl": 3, "setup": 30, "opex": 10, "deps": [{"ind": "HO", "val": 4}, {"ind": "TE", "val": 3}, {"ind": "HC", "val": 3}], "prod": 16}, {"code": "RE-01", "ind": "RE", "name": "Corner Store I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "TE", "val": 5}], "prod": 4}, {"code": "RE-02", "ind": "RE", "name": "Pop-Up Kiosk I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "TE", "val": 5}], "prod": 4}, {"code": "RE-03", "ind": "RE", "name": "Local Market I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "HO", "val": 5}], "prod": 4}, {"code": "RE-04", "ind": "RE", "name": "Strip Mall I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "HO", "val": 5}], "prod": 4}, {"code": "RE-05", "ind": "RE", "name": "Vending Network I", "lvl": 1, "setup": 10, "opex": 5, "deps": [{"ind": "MA", "val": 5}], "prod": 4}, {"code": "RE-06", "ind": "RE", "name": "Supermarket II", "lvl": 2, "setup": 15, "opex": 9, "deps": [{"ind": "TE", "val": 5}, {"ind": "HO", "val": 4}], "prod": 8}, {"code": "RE-07", "ind": "RE", "name": "Department Store II", "lvl": 2, "setup": 15, "opex": 9, "deps": [{"ind": "TE", "val": 5}, {"ind": "MA", "val": 4}], "prod": 8}, {"code": "RE-08", "ind": "RE", "name": "Outlet Center II", "lvl": 2, "setup": 15, "opex": 9, "deps": [{"ind": "HO", "val": 5}, {"ind": "MA", "val": 4}], "prod": 8}, {"code": "RE-09", "ind": "RE", "name": "Mega-Mall III", "lvl": 3, "setup": 25, "opex": 14, "deps": [{"ind": "TE", "val": 6}, {"ind": "HO", "val": 4}, {"ind": "MA", "val": 4}], "prod": 16}, {"code": "RE-10", "ind": "RE", "name": "Omni-Channel Hub III", "lvl": 3, "setup": 25, "opex": 14, "deps": [{"ind": "TE", "val": 6}, {"ind": "HO", "val": 4}, {"ind": "MA", "val": 4}], "prod": 16}, {"code": "HO-01", "ind": "HO", "name": "Motel I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 3}, {"code": "HO-02", "ind": "HO", "name": "Bed & Breakfast I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 3}, {"code": "HO-03", "ind": "HO", "name": "Transit Hostel I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "HC", "val": 6}], "prod": 3}, {"code": "HO-04", "ind": "HO", "name": "Roadside Inn I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "HC", "val": 6}], "prod": 3}, {"code": "HO-05", "ind": "HO", "name": "Capsule Hotel I", "lvl": 1, "setup": 10, "opex": 6, "deps": [{"ind": "RE", "val": 6}], "prod": 3}, {"code": "HO-06", "ind": "HO", "name": "Business Hotel II", "lvl": 2, "setup": 15, "opex": 10, "deps": [{"ind": "MA", "val": 6}, {"ind": "HC", "val": 4}], "prod": 6}, {"code": "HO-07", "ind": "HO", "name": "Resort Lodge II", "lvl": 2, "setup": 15, "opex": 10, "deps": [{"ind": "MA", "val": 6}, {"ind": "RE", "val": 4}], "prod": 6}, {"code": "HO-08", "ind": "HO", "name": "Boutique Hotel II", "lvl": 2, "setup": 15, "opex": 10, "deps": [{"ind": "HC", "val": 6}, {"ind": "RE", "val": 4}], "prod": 6}, {"code": "HO-09", "ind": "HO", "name": "Luxury Casino III", "lvl": 3, "setup": 25, "opex": 16, "deps": [{"ind": "MA", "val": 6}, {"ind": "HC", "val": 5}, {"ind": "RE", "val": 5}], "prod": 12}, {"code": "HO-10", "ind": "HO", "name": "Orbit Resort III", "lvl": 3, "setup": 25, "opex": 16, "deps": [{"ind": "MA", "val": 6}, {"ind": "HC", "val": 5}, {"ind": "RE", "val": 5}], "prod": 12}, {"code": "MA-01", "ind": "MA", "name": "Assembly Workshop I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "HC", "val": 4}], "prod": 3}, {"code": "MA-02", "ind": "MA", "name": "Parts Fabricator I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "HC", "val": 4}], "prod": 3}, {"code": "MA-03", "ind": "MA", "name": "Textile Mill I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "RE", "val": 4}], "prod": 3}, {"code": "MA-04", "ind": "MA", "name": "Canning Facility I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "RE", "val": 4}], "prod": 3}, {"code": "MA-05", "ind": "MA", "name": "Injection Molder I", "lvl": 1, "setup": 20, "opex": 4, "deps": [{"ind": "UT", "val": 4}], "prod": 3}, {"code": "MA-06", "ind": "MA", "name": "Auto Plant II", "lvl": 2, "setup": 35, "opex": 7, "deps": [{"ind": "HC", "val": 4}, {"ind": "RE", "val": 3}], "prod": 6}, {"code": "MA-07", "ind": "MA", "name": "Microchip Foundry II", "lvl": 2, "setup": 35, "opex": 7, "deps": [{"ind": "HC", "val": 4}, {"ind": "UT", "val": 3}], "prod": 6}, {"code": "MA-08", "ind": "MA", "name": "Chemical Plant II", "lvl": 2, "setup": 35, "opex": 7, "deps": [{"ind": "RE", "val": 4}, {"ind": "UT", "val": 3}], "prod": 6}, {"code": "MA-09", "ind": "MA", "name": "Heavy Robotics III", "lvl": 3, "setup": 60, "opex": 10, "deps": [{"ind": "HC", "val": 4}, {"ind": "RE", "val": 3}, {"ind": "UT", "val": 3}], "prod": 12}, {"code": "MA-10", "ind": "MA", "name": "Orbital Shipyard III", "lvl": 3, "setup": 60, "opex": 10, "deps": [{"ind": "HC", "val": 4}, {"ind": "RE", "val": 3}, {"ind": "UT", "val": 3}], "prod": 12}, {"code": "HC-01", "ind": "HC", "name": "Urgent Care Clinic I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "RE", "val": 5}], "prod": 2}, {"code": "HC-02", "ind": "HC", "name": "Pharmacy I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "RE", "val": 5}], "prod": 2}, {"code": "HC-03", "ind": "HC", "name": "Dental Office I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "UT", "val": 5}], "prod": 2}, {"code": "HC-04", "ind": "HC", "name": "Wellness Center I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "UT", "val": 5}], "prod": 2}, {"code": "HC-05", "ind": "HC", "name": "Physical Therapy I", "lvl": 1, "setup": 20, "opex": 5, "deps": [{"ind": "TE", "val": 5}], "prod": 2}, {"code": "HC-06", "ind": "HC", "name": "General Hospital II", "lvl": 2, "setup": 35, "opex": 9, "deps": [{"ind": "RE", "val": 5}, {"ind": "UT", "val": 4}], "prod": 4}, {"code": "HC-07", "ind": "HC", "name": "Trauma Center II", "lvl": 2, "setup": 35, "opex": 9, "deps": [{"ind": "RE", "val": 5}, {"ind": "TE", "val": 4}], "prod": 4}, {"code": "HC-08", "ind": "HC", "name": "Specialized Clinic II", "lvl": 2, "setup": 35, "opex": 9, "deps": [{"ind": "UT", "val": 5}, {"ind": "TE", "val": 4}], "prod": 4}, {"code": "HC-09", "ind": "HC", "name": "Biotech Campus III", "lvl": 3, "setup": 60, "opex": 14, "deps": [{"ind": "RE", "val": 6}, {"ind": "UT", "val": 4}, {"ind": "TE", "val": 4}], "prod": 8}, {"code": "HC-10", "ind": "HC", "name": "Cybernetics Inst. III", "lvl": 3, "setup": 60, "opex": 14, "deps": [{"ind": "RE", "val": 6}, {"ind": "UT", "val": 4}, {"ind": "TE", "val": 4}], "prod": 8}, {"code": "TE-01", "ind": "TE", "name": "App Startup I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "UT", "val": 6}], "prod": 2}, {"code": "TE-02", "ind": "TE", "name": "Data Center I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "UT", "val": 6}], "prod": 2}, {"code": "TE-03", "ind": "TE", "name": "Server Farm I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 2}, {"code": "TE-04", "ind": "TE", "name": "IT Support Firm I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "MA", "val": 6}], "prod": 2}, {"code": "TE-05", "ind": "TE", "name": "Cloud Provider I", "lvl": 1, "setup": 15, "opex": 6, "deps": [{"ind": "HO", "val": 6}], "prod": 2}, {"code": "TE-06", "ind": "TE", "name": "Software Campus II", "lvl": 2, "setup": 25, "opex": 10, "deps": [{"ind": "UT", "val": 6}, {"ind": "MA", "val": 4}], "prod": 4}, {"code": "TE-07", "ind": "TE", "name": "Network Hub II", "lvl": 2, "setup": 25, "opex": 10, "deps": [{"ind": "UT", "val": 6}, {"ind": "HO", "val": 4}], "prod": 4}, {"code": "TE-08", "ind": "TE", "name": "Telecom Provider II", "lvl": 2, "setup": 25, "opex": 10, "deps": [{"ind": "MA", "val": 6}, {"ind": "HO", "val": 4}], "prod": 4}, {"code": "TE-09", "ind": "TE", "name": "Sentient AI Cluster III", "lvl": 3, "setup": 40, "opex": 16, "deps": [{"ind": "UT", "val": 6}, {"ind": "MA", "val": 5}, {"ind": "HO", "val": 5}], "prod": 8}, {"code": "TE-10", "ind": "TE", "name": "Quantum Computing III", "lvl": 3, "setup": 40, "opex": 16, "deps": [{"ind": "UT", "val": 6}, {"ind": "MA", "val": 5}, {"ind": "HO", "val": 5}], "prod": 8}];
+const BP_DATA = [{"code":"UT-01","ind":"UT","name":"Solar Field I","lvl":1,"setup":15,"opex":6,"deps":[{"ind":"HO","val":6}],"prod":3},{"code":"UT-02","ind":"UT","name":"Hydro-Farm Initiative I","lvl":1,"setup":15,"opex":6,"deps":[{"ind":"HO","val":6}],"prod":3},{"code":"UT-03","ind":"UT","name":"Wind Farm I","lvl":1,"setup":15,"opex":6,"deps":[{"ind":"MA","val":6}],"prod":3},{"code":"UT-04","ind":"UT","name":"Biomass Plant I","lvl":1,"setup":15,"opex":6,"deps":[{"ind":"MA","val":6}],"prod":3},{"code":"UT-05","ind":"UT","name":"Tidal Generator I","lvl":1,"setup":15,"opex":6,"deps":[{"ind":"TE","val":6}],"prod":3},{"code":"UT-06","ind":"UT","name":"Fusion Conduit Hub II","lvl":2,"setup":20,"opex":11,"deps":[{"ind":"HO","val":6},{"ind":"MA","val":5}],"prod":6},{"code":"UT-07","ind":"UT","name":"Smart Grid Node II","lvl":2,"setup":20,"opex":11,"deps":[{"ind":"HO","val":6},{"ind":"TE","val":5}],"prod":6},{"code":"UT-08","ind":"UT","name":"Oceanic Turbine II","lvl":2,"setup":20,"opex":11,"deps":[{"ind":"MA","val":6},{"ind":"TE","val":5}],"prod":6},{"code":"UT-09","ind":"UT","name":"Geothermal Supernode III","lvl":3,"setup":30,"opex":15,"deps":[{"ind":"HO","val":6},{"ind":"MA","val":5},{"ind":"TE","val":4}],"prod":12},{"code":"UT-10","ind":"UT","name":"Antimatter Reactor III","lvl":3,"setup":30,"opex":15,"deps":[{"ind":"HO","val":6},{"ind":"MA","val":5},{"ind":"TE","val":4}],"prod":12},{"code":"RE-01","ind":"RE","name":"Corner Store I","lvl":1,"setup":15,"opex":10,"deps":[{"ind":"UT","val":10}],"prod":4},{"code":"RE-02","ind":"RE","name":"Pop-Up Kiosk I","lvl":1,"setup":15,"opex":10,"deps":[{"ind":"UT","val":10}],"prod":4},{"code":"RE-03","ind":"RE","name":"Local Market I","lvl":1,"setup":15,"opex":10,"deps":[{"ind":"HC","val":10}],"prod":4},{"code":"RE-04","ind":"RE","name":"Strip Mall I","lvl":1,"setup":15,"opex":10,"deps":[{"ind":"HC","val":10}],"prod":4},{"code":"RE-05","ind":"RE","name":"Vending Network I","lvl":1,"setup":15,"opex":10,"deps":[{"ind":"MA","val":10}],"prod":4},{"code":"RE-06","ind":"RE","name":"Supermarket II","lvl":2,"setup":25,"opex":18,"deps":[{"ind":"UT","val":10},{"ind":"HC","val":8}],"prod":8},{"code":"RE-07","ind":"RE","name":"Department Store II","lvl":2,"setup":25,"opex":18,"deps":[{"ind":"UT","val":10},{"ind":"MA","val":8}],"prod":8},{"code":"RE-08","ind":"RE","name":"Outlet Center II","lvl":2,"setup":25,"opex":18,"deps":[{"ind":"HC","val":10},{"ind":"MA","val":8}],"prod":8},{"code":"RE-09","ind":"RE","name":"Mega-Mall III","lvl":3,"setup":40,"opex":28,"deps":[{"ind":"UT","val":12},{"ind":"HC","val":8},{"ind":"MA","val":8}],"prod":16},{"code":"RE-10","ind":"RE","name":"Omni-Channel Hub III","lvl":3,"setup":40,"opex":28,"deps":[{"ind":"UT","val":12},{"ind":"HC","val":8},{"ind":"MA","val":8}],"prod":16},{"code":"HO-01","ind":"HO","name":"Motel I","lvl":1,"setup":10,"opex":6,"deps":[{"ind":"RE","val":6}],"prod":2},{"code":"HO-02","ind":"HO","name":"Bed & Breakfast I","lvl":1,"setup":10,"opex":6,"deps":[{"ind":"RE","val":6}],"prod":2},{"code":"HO-03","ind":"HO","name":"Transit Hostel I","lvl":1,"setup":10,"opex":6,"deps":[{"ind":"UT","val":6}],"prod":2},{"code":"HO-04","ind":"HO","name":"Roadside Inn I","lvl":1,"setup":10,"opex":6,"deps":[{"ind":"UT","val":6}],"prod":2},{"code":"HO-05","ind":"HO","name":"Capsule Hotel I","lvl":1,"setup":10,"opex":6,"deps":[{"ind":"HC","val":6}],"prod":2},{"code":"HO-06","ind":"HO","name":"Business Hotel II","lvl":2,"setup":15,"opex":10,"deps":[{"ind":"RE","val":6},{"ind":"UT","val":4}],"prod":4},{"code":"HO-07","ind":"HO","name":"Resort Lodge II","lvl":2,"setup":15,"opex":10,"deps":[{"ind":"RE","val":6},{"ind":"HC","val":4}],"prod":4},{"code":"HO-08","ind":"HO","name":"Boutique Hotel II","lvl":2,"setup":15,"opex":10,"deps":[{"ind":"UT","val":6},{"ind":"HC","val":4}],"prod":4},{"code":"HO-09","ind":"HO","name":"Luxury Casino III","lvl":3,"setup":25,"opex":16,"deps":[{"ind":"RE","val":6},{"ind":"UT","val":5},{"ind":"HC","val":5}],"prod":8},{"code":"HO-10","ind":"HO","name":"Orbit Resort III","lvl":3,"setup":25,"opex":16,"deps":[{"ind":"RE","val":6},{"ind":"UT","val":5},{"ind":"HC","val":5}],"prod":8},{"code":"MA-01","ind":"MA","name":"Assembly Workshop I","lvl":1,"setup":20,"opex":8,"deps":[{"ind":"HC","val":8}],"prod":4},{"code":"MA-02","ind":"MA","name":"Parts Fabricator I","lvl":1,"setup":20,"opex":8,"deps":[{"ind":"HC","val":8}],"prod":4},{"code":"MA-03","ind":"MA","name":"Textile Mill I","lvl":1,"setup":20,"opex":8,"deps":[{"ind":"TE","val":8}],"prod":4},{"code":"MA-04","ind":"MA","name":"Canning Facility I","lvl":1,"setup":20,"opex":8,"deps":[{"ind":"TE","val":8}],"prod":4},{"code":"MA-05","ind":"MA","name":"Injection Molder I","lvl":1,"setup":20,"opex":8,"deps":[{"ind":"RE","val":8}],"prod":4},{"code":"MA-06","ind":"MA","name":"Auto Plant II","lvl":2,"setup":35,"opex":14,"deps":[{"ind":"HC","val":8},{"ind":"TE","val":6}],"prod":8},{"code":"MA-07","ind":"MA","name":"Microchip Foundry II","lvl":2,"setup":35,"opex":14,"deps":[{"ind":"HC","val":8},{"ind":"RE","val":6}],"prod":8},{"code":"MA-08","ind":"MA","name":"Chemical Plant II","lvl":2,"setup":35,"opex":14,"deps":[{"ind":"TE","val":8},{"ind":"RE","val":6}],"prod":8},{"code":"MA-09","ind":"MA","name":"Heavy Robotics III","lvl":3,"setup":60,"opex":20,"deps":[{"ind":"HC","val":8},{"ind":"TE","val":6},{"ind":"RE","val":6}],"prod":16},{"code":"MA-10","ind":"MA","name":"Orbital Shipyard III","lvl":3,"setup":60,"opex":20,"deps":[{"ind":"HC","val":8},{"ind":"TE","val":6},{"ind":"RE","val":6}],"prod":16},{"code":"HC-01","ind":"HC","name":"Urgent Care Clinic I","lvl":1,"setup":20,"opex":10,"deps":[{"ind":"TE","val":10}],"prod":3},{"code":"HC-02","ind":"HC","name":"Pharmacy I","lvl":1,"setup":20,"opex":10,"deps":[{"ind":"TE","val":10}],"prod":3},{"code":"HC-03","ind":"HC","name":"Dental Office I","lvl":1,"setup":20,"opex":10,"deps":[{"ind":"RE","val":10}],"prod":3},{"code":"HC-04","ind":"HC","name":"Wellness Center I","lvl":1,"setup":20,"opex":10,"deps":[{"ind":"RE","val":10}],"prod":3},{"code":"HC-05","ind":"HC","name":"Physical Therapy I","lvl":1,"setup":20,"opex":10,"deps":[{"ind":"HO","val":10}],"prod":3},{"code":"HC-06","ind":"HC","name":"General Hospital II","lvl":2,"setup":35,"opex":18,"deps":[{"ind":"TE","val":10},{"ind":"RE","val":8}],"prod":6},{"code":"HC-07","ind":"HC","name":"Trauma Center II","lvl":2,"setup":35,"opex":18,"deps":[{"ind":"TE","val":10},{"ind":"HO","val":8}],"prod":6},{"code":"HC-08","ind":"HC","name":"Specialized Clinic II","lvl":2,"setup":35,"opex":18,"deps":[{"ind":"RE","val":10},{"ind":"HO","val":8}],"prod":6},{"code":"HC-09","ind":"HC","name":"Biotech Campus III","lvl":3,"setup":60,"opex":28,"deps":[{"ind":"TE","val":12},{"ind":"RE","val":8},{"ind":"HO","val":8}],"prod":12},{"code":"HC-10","ind":"HC","name":"Cybernetics Inst. III","lvl":3,"setup":60,"opex":28,"deps":[{"ind":"TE","val":12},{"ind":"RE","val":8},{"ind":"HO","val":8}],"prod":12},{"code":"TE-01","ind":"TE","name":"App Startup I","lvl":1,"setup":10,"opex":8,"deps":[{"ind":"MA","val":8}],"prod":2},{"code":"TE-02","ind":"TE","name":"Data Center I","lvl":1,"setup":10,"opex":8,"deps":[{"ind":"MA","val":8}],"prod":2},{"code":"TE-03","ind":"TE","name":"Server Farm I","lvl":1,"setup":10,"opex":8,"deps":[{"ind":"HO","val":8}],"prod":2},{"code":"TE-04","ind":"TE","name":"IT Support Firm I","lvl":1,"setup":10,"opex":8,"deps":[{"ind":"HO","val":8}],"prod":2},{"code":"TE-05","ind":"TE","name":"Cloud Provider I","lvl":1,"setup":10,"opex":8,"deps":[{"ind":"UT","val":8}],"prod":2},{"code":"TE-06","ind":"TE","name":"Software Campus II","lvl":2,"setup":15,"opex":13,"deps":[{"ind":"MA","val":8},{"ind":"HO","val":5}],"prod":4},{"code":"TE-07","ind":"TE","name":"Network Hub II","lvl":2,"setup":15,"opex":13,"deps":[{"ind":"MA","val":8},{"ind":"UT","val":5}],"prod":4},{"code":"TE-08","ind":"TE","name":"Telecom Provider II","lvl":2,"setup":15,"opex":13,"deps":[{"ind":"HO","val":8},{"ind":"UT","val":5}],"prod":4},{"code":"TE-09","ind":"TE","name":"Sentient AI Cluster III","lvl":3,"setup":25,"opex":21,"deps":[{"ind":"MA","val":8},{"ind":"HO","val":7},{"ind":"UT","val":6}],"prod":8},{"code":"TE-10","ind":"TE","name":"Quantum Computing III","lvl":3,"setup":25,"opex":21,"deps":[{"ind":"MA","val":8},{"ind":"HO","val":7},{"ind":"UT","val":6}],"prod":8}];
 
 const INDUSTRIES = ["UT", "RE", "HO", "MA", "HC", "TE"];
 const BASE_PRICE = { UT: 4, RE: 4, HO: 5, MA: 5, HC: 6, TE: 6 };
 const SCALING = { UT: "H", MA: "H", TE: "H", RE: "V", HO: "V", HC: "V" };
-const IND_COLOR = { UT: "#E8B330", RE: "#3FAE6A", HO: "#D65B4A", MA: "#9066C8", HC: "#3E8FD0", TE: "#D6428B" };
+/* Checked, not chosen by eye: audit_palette.js measures every pair in CIE Lab against
+   a floor of 15, four times over - as seen normally and through each of the three
+   dichromacies. The old set failed five pair-views, worst of all Manufacturing
+   against Healthcare at 3.3 for a deuteranope, which is the commonest form and more
+   than one player at a full table. These clear the floor everywhere, worst pair 27.3,
+   and each industry keeps the colour family players already name it by. */
+const IND_COLOR = { UT: "#D9C70D", RE: "#5DD067", HO: "#DA421D", MA: "#744BAA", HC: "#324DE1", TE: "#DD61B0" };
 const IND_NAME = { UT: "Utilities", RE: "Retail", HO: "Hospitality", MA: "Manufacturing", HC: "Healthcare", TE: "Technology" };
 const IND_ABILITY = {
-  UT: "Reaches a level\u00d7level block of districts around it. Never uses hubs.",
-  RE: "Reaches 1 extra district per level, of its choice. Never uses hubs.",
-  HO: "Sells one unit to each business or hub within [level] plots of it, at full price, once the icons are full.",
-  MA: "May route up to [level] units into other industries' rows in its home district.",
+  UT: "Counts demand across a level\u00d7level block of districts around it. Never uses hubs.",
+  RE: "A chain of its level in shopfronts: one branch per level above the first, each in a reachable district on ground somebody owns. Never uses hubs.",
+  HO: "Counts each business or hub within [level] plots of it as an icon, on top of the grid.",
+  MA: "Counts up to [level] icons from other industries' rows in its home district, on top of its own.",
   HC: "Reaches every district on the hub network, not just its own.",
-  TE: "Every icon it fills takes twice its column in units - 2, 4, 6, 8.",
+  TE: "Its thresholds are its own: it reaches its better tiers on fewer icons than any other industry.",
 };
 
-const PLAYER_COLORS = ["#22D3EE", "#FB923C", "#A78BFA", "#FB7185", "#4ADE80", "#FACC15"];
+const PLAYER_COLORS = ["#1B8FB3", "#D06A10", "#7B61D9", "#D9416B", "#2E9E57", "#A37F00"];
 
 /* ============================== BOARD ============================== */
 
@@ -54,13 +61,13 @@ const TILES = {
 };
 const SUBURB_POOL = ["R1", "R2", "R3", "R4", "R5", "C1", "C2", "C3", "C4", "C5", "A1", "A2", "A3", "I1", "I2", "I3"];
 const CENTER_POOL = ["FC", "IA", "CC", "LM"];
-const TILE_LABEL = { R:"#D65B4A22", C:"#3E8FD022" };
+const TILE_LABEL = { R:"#DA421D22", C:"#324DE122" };
 
 const DEMAND_ROWS = {
-  R: ["UT", "RE", "HO", "UT"], C: ["RE", "UT", "MA", "RE"],
-  A: ["HO", "UT", "TE", "HO"], I: ["MA", "RE", "HC", "MA"],
-  FC: ["TE", "UT", "HC", "TE"], IA: ["MA", "RE", "TE", "MA"],
-  CC: ["HC", "HO", "TE", "HC"], LM: ["HO", "MA", "HC", "HO"],
+  R: ["UT", "RE", "TE", "UT"], C: ["HO", "MA", "HC", "HO"],
+  A: ["RE", "TE", "HO", "RE"], I: ["MA", "UT", "RE", "MA"],
+  FC: ["HC", "MA", "UT", "HC"], IA: ["TE", "HO", "HC", "TE"],
+  CC: ["HC", "UT", "MA", "HC"], LM: ["TE", "HC", "HO", "TE"],
 };
 function districtFamily(tname) {
   return ["FC", "IA", "CC", "LM"].includes(tname) ? tname : tname[0];
@@ -159,7 +166,7 @@ function buildBoard(rng) {
 
   const centerPlots = Object.keys(cellOf).filter((k) => CENTER_CELLS.some(([cr, cc]) => cr === cellOf[k].r && cc === cellOf[k].c));
   const distFromCenter = bfsDistances(graph, centerPlots);
-  const board = { tiles, graph, orth, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhPlots: [], hqFootprints: [] };
+  const board = { tiles, graph, orth, cellOf, owner: {}, occupiedBy: {}, distFromCenter, lhPlots: [], hqFootprints: [], branches: {} };
   board.priceLattice = computePriceLattice(board);
   return board;
 }
@@ -241,6 +248,109 @@ const plotFree = (board, plot) => !(plot in board.occupiedBy) && !plotIsLH(board
 const plotBuildable = (board, plot) => plot in board.owner && plotFree(board, plot);
 const plotBuyable = (board, plot) => !(plot in board.owner) && !plotIsLH(board, plot);
 const lhPlaceable = (board, plot) => !(plot in board.owner) && plotFree(board, plot);
+/* RETAIL OPENS BRANCHES INSTEAD OF REACHING ABSTRACTLY.
+
+   Its old ability was reach with no body: bestExtraDistrictsForRE sorted EVERY
+   district on the board by open demand, took the best few, free, with nothing
+   placed - and re-chose them at every single delivery. That is why Retail sold
+   95% of what it made while Utilities, with the same number of rows on the
+   board, sold 68%, and it is most of why Retail came out Good on five of the six
+   axes an industry is judged on.
+
+   A branch is that reach made physical. One per level, placed once on a free
+   unowned plot, and from then on that is where your chain is.
+
+   AND THE CHAIN HAS TO JOIN UP. A branch may only open in a district orthogonally
+   next to one this company already covers - its home district, or a branch it has
+   already opened - so the company spreads as a connected blob outward from where
+   it started rather than appearing wherever the demand happens to be best.
+   Diagonals do not count, the same as everywhere else on this board.
+
+   MEASURED, THOUGH, THE JOINING-UP IS NEARLY FREE. The guess when this was
+   written was that Retail's strength came from the freedom to aim its districts
+   rather than from how many it got. It is the other way round: making the chain
+   contiguous moves net cash per dollar of setup from 6.08 to 5.97, while cutting
+   the count by one moves it to 4.47. On a four-by-four board a blob of two to
+   four districts still reaches nearly as much demand as a free pick, because two
+   thirds of districts carry a Retail row and the next one along is usually one of
+   them. The count is the lever; the freedom is flavour - good flavour, and it
+   does fix a level-1 Retail having nowhere at all to sell, but not a balance fix. It holds the ground like anything else - so it costs a disc,
+   blocks the plot, and counts as a structure for what the land nearby is worth -
+   and it counts towards The Omnipresent, which is about where you are, but NOT
+   towards The Real-Estate Mogul, which is about how much you hold.
+
+   Branches carry NEGATIVE ids in board.occupiedBy. Every lookup that turns an id
+   back into a company already tolerates finding none, and the negative keeps
+   them from ever colliding with a real one. Hospitality counts each as its own
+   building, which is what any structure in range should do. */
+const branchId = (bizId, n) => -(bizId * 100 + n + 1);
+/* A RETAIL CHAIN IS ITS LEVEL IN SHOPFRONTS, the home plot included: a level-1 chain
+   is one shop, a level-3 chain is its home and two branches, standing in three
+   districts. It used to be a branch PER level on top of the home - four districts at
+   level 3 - which is one more than the designer's own count of the chain. */
+const branchesWanted = (biz) => (bizInd(biz) === "RE" ? Math.max(0, biz.level - 1) : 0);
+const branchPlotsOf = (board, biz) =>
+  Object.keys(board.branches || {}).filter((k) => board.branches[k].bizId === biz.id);
+const branchDistricts = (board, biz) =>
+  new Set(branchPlotsOf(board, biz).map((k) => { const c = board.cellOf[k]; return `${c.r},${c.c}`; }));
+
+/* Two districts side by side on the 4x4 grid of districts. Orthogonal only. */
+function districtsTouch(a, b) {
+  const [ar, ac] = a.split(",").map(Number), [br, bc] = b.split(",").map(Number);
+  return Math.abs(ar - br) + Math.abs(ac - bc) === 1;
+}
+/* Where the next branch goes: of the districts this chain can still REACH - the
+   ones orthogonally next to something it already covers - the one with the most
+   open Retail demand, and inside it a plot SOMEBODY ALREADY OWNS. Returning null when
+   the chain is boxed in is correct: a chain that cannot extend does not extend.
+
+   A branch used to take free ground for nothing: it looked only at plots nobody held,
+   then wrote itself in as the owner. The whole price was a disc, while the same plot
+   bought through BUY costs cash and a disc - so Retail scaled its reach for free while
+   every other industry paid for its land. Now the ground has to be owned first, by you
+   or by a rival, and a branch on a rival's plot pays them rent like any other
+   structure. Retail keeps its own special way of scaling; it stops getting it free. */
+function branchSpot(state, p, biz) {
+  const board = state.board;
+  const covered = new Set([...footprintDistricts(board, biz.footprint), ...branchDistricts(board, biz)]);
+  let best = null, bestScore = -1;
+  for (const k of Object.keys(board.graph)) {
+    if (!(k in board.owner) || !plotFree(board, k)) continue;   // the ground must already be owned
+    const c = board.cellOf[k];
+    const d = `${c.r},${c.c}`;
+    if (covered.has(d)) continue;
+    if (![...covered].some((cd) => districtsTouch(cd, d))) continue;
+    const sc = openIconsFor(state, "RE", k);
+    if (sc > bestScore) { bestScore = sc; best = k; }
+  }
+  return best;
+}
+function placeBranches(state, p, biz, log) {
+  const board = state.board;
+  let have = branchPlotsOf(board, biz).length;
+  const want = branchesWanted(biz);
+  while (have < want) {
+    if (discsFree(state, p) <= 0) break;          // a branch you cannot staff is not opened
+    const spot = branchSpot(state, p, biz);
+    if (!spot) break;
+    /* the ground is already owned, by this player or a rival - a branch no longer takes it */
+    board.occupiedBy[spot] = branchId(biz.id, have);
+    board.branches[spot] = { playerId: p.id, bizId: biz.id };
+    have++;
+    if (log) log(logMsg("{0} opens a {1} branch in {2}.", p.name, biz.bp.name, plotLabel(board, spot)), p.id);
+  }
+}
+function removeBranches(state, biz) {
+  /* The branch goes; the ground stays with whoever owns it. It was this player's own
+     doing when a branch seized free land, and deleting the owner was right then. Now
+     the plot was somebody's before the branch opened, and closing a shopfront cannot
+     dispossess them. */
+  const board = state.board;
+  for (const k of branchPlotsOf(board, biz)) {
+    delete board.branches[k];
+    delete board.occupiedBy[k];
+  }
+}
 const LOCAL5 = { NW: [0, 0], N: [0, 2], NE: [0, 4], W: [2, 0], E: [2, 4], SW: [4, 0], S: [4, 2], SE: [4, 4] };
 function isCCDistrict0(dr, dc) { return CENTER_CELLS.some(([cr, cc]) => cr - 1 === dr && cc - 1 === dc); }
 
@@ -394,7 +504,23 @@ function placeNewLH(state, rng, log) {
      good, and fall back to anywhere if the board is that full. */
   const useful = spots.filter((p) => orthOf(state.board, p).length > 0);
   const pool = useful.length ? useful : spots;
-  const plot = pool[Math.floor(rng() * pool.length)];
+  /* THE FIRST PLAYER PLACES IT, SO PLACE IT FOR THEM. This used to pick uniformly
+     at random, which meant the one first-player privilege that never expires was
+     worth exactly nothing in every simulation here - audit_first_player.js has
+     carried that warning in its header for some time, and every number anyone has
+     quoted about first-player strength was measured without it. A human first
+     player aims this every quarter; now the bot holding the seat does too.
+
+     Ties keep the random pick, so where nothing distinguishes two plots the
+     distribution is unchanged. */
+  const chooser = byId(state, state.turnOrder[0]);
+  let best = -Infinity, picks = [];
+  for (const sp of pool) {
+    const v = chooser ? lhPlacementScore(state, chooser, sp) : 0;
+    if (v > best) { best = v; picks = [sp]; }
+    else if (v === best) picks.push(sp);
+  }
+  const plot = picks[Math.floor(rng() * picks.length)];
   state.board.lhPlots.push(plot);
   logNewLH(state, [districtOf(state.board, plot)], log);
 }
@@ -411,23 +537,70 @@ function ownedFreeNeighbors(board, plot) { return freeNeighbors(board, plot).fil
 /* Rank candidate plots by how much demand a business of `ind` could actually reach
    from there: open icons in the home district, plus hub access if the industry can
    use it. Building blind was leaving ~80% of bot production unsold. */
-function plotDemandScore(state, ind, plotKeyStr) {
-  const board = state.board;
-  const c = board.cellOf[plotKeyStr];
+function openIconsFor(state, ind, plotKeyStr) {
+  const c = state.board.cellOf[plotKeyStr];
   if (!c) return 0;
-  const tileKey = `${c.r},${c.c}`;
-  const t = state.demand && state.demand.tiles ? state.demand.tiles[tileKey] : null;
-  let score = 0;
-  if (t) {
-    t.rows.forEach((rowInd, rowIdx) => {
-      if (rowInd !== ind) return;
-      const openable = rowIdx >= 2 && state.quarter <= 4 ? 0 : 1;
-      for (let l = 0; l < 4; l++) if (openable && !t.filled[rowIdx][l]) score += 1;
-    });
-  }
+  const t = state.demand && state.demand.tiles ? state.demand.tiles[`${c.r},${c.c}`] : null;
+  if (!t) return 0;
+  let n = 0;
+  t.rows.forEach((rowInd, rowIdx) => {
+    if (rowInd !== ind) return;
+    const openable = rowIdx >= 2 && state.quarter <= 4 && state.demand.lateRows ? 0 : 1;
+    for (let l = 0; l < 4; l++) if (openable) n += 1;
+  });
+  return n;
+}
+function plotDemandScore(state, ind, plotKeyStr) {
+  let score = openIconsFor(state, ind, plotKeyStr);
   const canLH = ind !== "UT" && ind !== "RE";      // those two are never on the network
-  if (canLH && plotHasLH(board, plotKeyStr)) score += 6;      // opens the whole hub network
+  if (canLH && plotHasLH(state.board, plotKeyStr)) score += 6;   // opens the whole hub network
   return score;
+}
+/* WHAT A HUB ON THIS PLOT WOULD BE WORTH TO p, who is the first player and the one
+   placing it. A hub pays two ways and they are not worth the same:
+
+     CONNECTING   a company of theirs standing orthogonally beside it joins the
+                  network and reaches EVERY district the network touches. Only
+                  Hospitality, Manufacturing and Technology can gain this -
+                  Utilities and Retail may never use hubs at all, and Healthcare
+                  is on the network already without touching one - and a company
+                  that already touches a hub gains nothing from touching a second.
+     EXTENDING    the hub's own district joins the network, so every company of
+                  theirs that is ALREADY on it can sell there too.
+
+   Connecting turns one district of reach into all of them, so it is weighted to
+   dominate a handful of icons. Rivals who would be connected by the same hub are
+   subtracted: joining two of their companies to the network to join one of yours
+   is a bad hub, and the first player can see that as easily as anyone. */
+function lhPlacementScore(state, p, plot) {
+  const board = state.board;
+  const nbrs = orthOf(board, plot);
+  if (!nbrs.length) return -1;            // connects nobody, now or ever
+  const seen = new Set();
+  let mine = 0, rivals = 0;
+  for (const k of nbrs) {
+    const id = board.occupiedBy[k];
+    if (id === undefined || seen.has(id)) continue;
+    seen.add(id);
+    for (const q of state.players) {
+      const b = q.businesses.find((x) => x.id === id);
+      if (!b) continue;
+      if (b.distressed || b.isHQ) break;
+      const ind = bizInd(b);
+      if (ind === "UT" || ind === "RE" || ind === "HC") break;        // gains nothing by touching
+      if (b.footprint.some((pk) => plotHasLH(board, pk))) break;      // already on the network
+      if (q.id === p.id) mine++; else rivals++;
+      break;
+    }
+  }
+  let extend = 0;
+  for (const b of activeBiz(p)) {
+    const ind = bizInd(b);
+    if (ind === "UT" || ind === "RE") continue;
+    const onNet = ind === "HC" || b.footprint.some((pk) => plotHasLH(board, pk));
+    if (onNet) extend += openIconsFor(state, ind, plot);
+  }
+  return mine * 10 - rivals * 4 + extend;
 }
 /* ---- how much of this company's output could actually be sold from here ----
    Built as a probe company and passed through the real eligibleSlotsFor, so it counts
@@ -445,11 +618,9 @@ function plotDemandScore(state, ind, plotKeyStr) {
    measures. */
 function placeableFor(state, owner, biz) {
   const slots = eligibleSlotsFor(state, biz, owner);
-  /* Counted in UNITS, not icons: an icon absorbs its own level (see deliverToSlot),
-     so this has to sum the columns rather than count the cells. A bot judging a
-     Blueprint by the old icon count would systematically under-build. */
-  const direct = slots.filter((s) => !s.cross)
-    .reduce((n, s) => n + (s.levelIdx + 1), 0) * exchangeRate(state, biz);
+  /* One unit an icon (see deliverToSlot), so icons ARE units here - times the
+     Technology doubler. */
+  const direct = slots.filter((s) => !s.cross).length * exchangeRate(state, biz);
   const cross = bizInd(biz) === "MA"
     ? Math.min(biz.level, slots.filter((s) => s.cross).length) : 0;
   const neighbours = bizInd(biz) === "HO" ? hoBonusUnits(state, biz, owner) : 0;
@@ -587,19 +758,40 @@ function makeDemandPool(board, rng) {
   const tiles = {};
   Object.entries(board.tiles).forEach(([key, tname]) => {
     const fam = districtFamily(tname);
-    tiles[key] = { rows: DEMAND_ROWS[fam], filled: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] };
+    tiles[key] = { rows: DEMAND_ROWS[fam] };
   });
-  return { tiles, hcBonusTiles: [] };
+  return { tiles, hcBonusTiles: [], used: {} };
 }
+/* DEMAND IS A RATE, NOT A STOCK. An icon is never used up: it is open to every
+   company every quarter, absorbs one unit (two from Technology), and the only thing
+   that closes it is the quarter gate on rows 3-4. The table plays it with no cubes
+   on the grid, and measured in audit_demand_flow.js and audit_revenue.js it removes
+   the race for icons entirely - delivery order stops being worth anything - and
+   halves the share of small-company quarters that see no demand at all.
+
+   What IS tracked is that one company cannot sell into the same icon twice in one
+   quarter: `used` maps a company to the icons it has delivered to this quarter and
+   is cleared when the next Production begins. A game saved before this existed has
+   no `used` and reads as nobody having sold yet, which is right for a quarter that
+   has not started. */
 function unlockY2(pool) { /* rows 2-3 gate purely on quarter at read-time; nothing to mutate */ }
-function refreshY3(pool) {
-  Object.values(pool.tiles).forEach((t) => { t.filled = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]; });
+function resetDeliveries(pool) { pool.used = {}; }
+const slotKey = (tileKey, rowIdx, levelIdx) => `${tileKey}|${rowIdx}|${levelIdx}`;
+function slotUsedBy(pool, bizId, tileKey, rowIdx, levelIdx) {
+  const u = pool.used && pool.used[bizId];
+  return !!(u && u[slotKey(tileKey, rowIdx, levelIdx)]);
 }
-function slotOpen(pool, tileKey, rowIdx, levelIdx, quarter) {
+function markSlotUsed(pool, bizId, tileKey, rowIdx, levelIdx) {
+  if (!pool.used) pool.used = {};
+  (pool.used[bizId] = pool.used[bizId] || {})[slotKey(tileKey, rowIdx, levelIdx)] = 1;
+}
+/* Open to a given company this quarter: the row's year gate, and whether this
+   company has already sold there. A probe company (id -1) has sold nowhere. */
+function slotOpen(pool, tileKey, rowIdx, levelIdx, quarter, bizId) {
   const t = pool.tiles[tileKey];
   if (!t) return false;
-  if (rowIdx >= 2 && quarter <= 4) return false;   // rows 3-4 open from Q5
-  return !t.filled[rowIdx][levelIdx];
+  if (rowIdx >= 2 && quarter <= 4 && pool.lateRows) return false;   // rows 3-4 wait for Year 2 only under the lateRows variant
+  return bizId === undefined || !slotUsedBy(pool, bizId, tileKey, rowIdx, levelIdx);
 }
 function slotIndustry(pool, tileKey, rowIdx) { return pool.tiles[tileKey]?.rows[rowIdx]; }
 
@@ -620,8 +812,7 @@ function bestExtraDistrictsForRE(state, biz, count, home) {
     let n = 0;
     t.rows.forEach((rowInd, rowIdx) => {
       if (rowInd !== "RE") return;
-      if (rowIdx >= 2 && state.quarter < 4) return;
-      for (let l = 0; l < Math.min(biz.level, 4); l++) if (!t.filled[rowIdx][l]) n++;
+      for (let l = 0; l < Math.min(biz.level, 4); l++) if (slotOpen(state.demand, d, rowIdx, l, state.quarter, biz.id)) n++;
     });
     return n;
   };
@@ -667,8 +858,7 @@ function bestUtBlock(state, biz, home) {
     let k = 0;
     t.rows.forEach((rowInd, ri) => {
       if (rowInd !== "UT") return;
-      if (ri >= 2 && state.quarter <= 4) return;
-      for (let l = 0; l < Math.min(biz.level, 4); l++) if (!t.filled[ri][l]) k++;
+      for (let l = 0; l < Math.min(biz.level, 4); l++) if (slotOpen(state.demand, d, ri, l, state.quarter, biz.id)) k++;
     });
     return acc + k;
   }, 0);
@@ -692,14 +882,15 @@ function utBlock(state, biz, home) {
   state.utBlocks[biz.id] = { quarter: state.quarter, level: biz.level, cells };
   return cells;
 }
-/* How many districts BEYOND its own a Retail company may sell into: one per level, plus
-   one while its owner's Supply Chain Expert bump is live. This is the single number the
-   delivery picker, the server and the reach calculation all read, so a human and a bot
-   holding the same persona get the same reach. */
+/* How many districts BEYOND its own a Retail company may sell into: its branches -
+   one fewer than its level - plus one while its owner's Supply Chain Expert bump is
+   live. This is the single number the delivery picker, the server and the reach
+   calculation all read, so a human and a bot holding the same persona get the same
+   reach. */
 function reAllowance(state, biz, owner) {
   const p = owner || ownerOf(state, biz);
   const bonus = (p && state.reExtraDistrict && state.reExtraDistrict[p.id]) ? 1 : 0;
-  return biz.level + bonus;
+  return branchesWanted(biz) + bonus;
 }
 function reachableDistricts(state, biz, chosenExtra) {
   const board = state.board;
@@ -718,15 +909,24 @@ function reachableDistricts(state, biz, chosenExtra) {
   }
   if (bizInd(biz) === "UT") utBlock(state, biz, home).forEach((d) => out.add(d));
   if (bizInd(biz) === "RE") {
-    /* The Supply Chain Expert reaches one district further this quarter. The bonus used
-       to be read only in the fallback branch below, so the moment a human confirmed a
-       pick it was skipped entirely and the persona did nothing in human hands. The
-       allowance is now one number, reAllowance, that the picker and the engine share. */
-    const allow = reAllowance(state, biz);
-    const explicit = chosenExtra || (state.reChoices && state.reChoices[biz.id]);
-    // never honour more than the allowance, whatever a client sent
-    const extra = explicit ? explicit.slice(0, allow) : bestExtraDistrictsForRE(state, biz, allow, home);
-    extra.forEach((d) => out.add(d));
+    /* Where the chain stands, not where it fancies this quarter. */
+    branchDistricts(board, biz).forEach((d) => out.add(d));
+    /* The Supply Chain Expert still reaches one district further, and that one is
+       still a choice rather than a building - it is a person, not a shop. Being a
+       choice, it is PINNED for the length of a delivery. bestExtraDistrictsForRE
+       ranks by OPEN icons, so recomputing it mid-delivery makes it drift the
+       moment this company fills the icons it was picked for - which is the exact
+       bug the old per-delivery pin on reChoices existed to stop, and which
+       test_re_reach_stable caught coming back through this one line. */
+    const bonus = reAllowance(state, biz) - branchesWanted(biz);
+    if (bonus > 0) {
+      state.reBonusPick = state.reBonusPick || {};
+      if (!state.reBonusPick[biz.id]) {
+        const covered = new Set([...home, ...branchDistricts(board, biz)]);
+        state.reBonusPick[biz.id] = bestExtraDistrictsForRE(state, biz, bonus, covered);
+      }
+      state.reBonusPick[biz.id].forEach((d) => out.add(d));
+    }
   }
   return out;
 }
@@ -831,7 +1031,7 @@ function eligibleSlotsFor(state, biz, owner) {
     t.rows.forEach((rowInd, rowIdx) => {
       if (rowInd !== ind) return;
       for (let levelIdx = 0; levelIdx < cap; levelIdx++) {
-        if (slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter)) out.push({ tileKey, rowIdx, levelIdx, cross: false });
+        if (slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter, biz.id)) out.push({ tileKey, rowIdx, levelIdx, cross: false });
       }
     });
   });
@@ -843,7 +1043,7 @@ function eligibleSlotsFor(state, biz, owner) {
       t.rows.forEach((rowInd, rowIdx) => {
         if (rowInd === ind) return; // own-industry slots already covered above
         for (let levelIdx = 0; levelIdx < Math.min(lvl, 4); levelIdx++) {
-          if (slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter)) out.push({ tileKey, rowIdx, levelIdx, cross: true });
+          if (slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter, biz.id)) out.push({ tileKey, rowIdx, levelIdx, cross: true });
         }
       });
     });
@@ -851,7 +1051,7 @@ function eligibleSlotsFor(state, biz, owner) {
   return out;
 }
 function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
-  if (!slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter)) return 0;
+  if (!slotOpen(state.demand, tileKey, rowIdx, levelIdx, state.quarter, biz.id)) return 0;
   const slotInd = slotIndustry(state.demand, tileKey, rowIdx);
   if (cross) {
     if (bizInd(biz) !== "MA" || slotInd === bizInd(biz)) return 0;
@@ -865,24 +1065,21 @@ function deliverToSlot(state, biz, tileKey, rowIdx, levelIdx, cross) {
      was enforced for anyone clicking the grid and for nobody reaching the endpoint
      another way. */
   if (!reachableDistricts(state, biz).has(tileKey)) return 0;
-  /* A demand icon absorbs ITS OWN LEVEL in goods: the level-1 icon takes one unit,
-     the level-4 icon takes four. A level-3 company reaches columns 1-3, so one clean
-     row of its industry takes 1 + 2 + 3 = 6 of its units rather than 3.
+  /* An icon absorbs ONE unit, every quarter, from every company that reaches it -
+     two from Technology, which is the only doubler. A level-3 company reaches columns
+     1-3, so one row of its industry takes three of its units a quarter, forever.
 
-     This is what makes a bigger company sell more of what it makes. Production
-     already scaled with level; the board's appetite did not, so two thirds of all
-     output was being recycled at $1 while the demand grid sat 80% empty - the icons
-     were open and the units could not reach them. Measured in audit_demand_depth.js:
-     waste falls from 65% to 49%, and it falls where it should - a level-3 company
-     goes from 61% wasted to 39% while a level-1 company is unchanged, because a
-     level-1 company still only reaches the level-1 icon. Companies covering their
-     OPEX do not move at all (91% either way).
+     It used to absorb its own column - 1 + 2 + 3 = 6 from that row, once, and then it
+     was gone for everybody until Year 3. That was the fix audit_demand_depth.js
+     shipped for two thirds of production being recycled; the rate rule gets the
+     waste lower still (45% to 31% in audit_revenue.js) by letting the same icons pay
+     every quarter instead of paying more once, and nobody is racing anybody for them.
 
-     Cross-selling still moves one unit per icon. It is Manufacturing reaching into
-     somebody else's row, and letting it scale here would make a level-3 Manufacturing
-     better at every industry than the industry is at itself. */
-  state.demand.tiles[tileKey].filled[rowIdx][levelIdx] = 1;
-  return cross ? 1 : (levelIdx + 1) * exchangeRate(state, biz);
+     Cross-selling moves one unit per icon too: Manufacturing reaching into somebody
+     else's row, and letting it scale would make a level-3 Manufacturing better at
+     every industry than the industry is at itself. */
+  markSlotUsed(state.demand, biz.id, tileKey, rowIdx, levelIdx);
+  return cross ? 1 : exchangeRate(state, biz);
 }
 /* What one unit of this company's output is actually worth to this owner, including
    any persona effect. `slotInd` is the row being sold into, which only differs from the
@@ -940,25 +1137,18 @@ function aboveLevelDiscount(state, p, biz, levelIdx) {
    units, which is what makes them decisions: where to send a unit, not whether to
    conjure one. */
 function autoDeliver(state, p, biz) {
-  /* A Retail company picks its extra districts ONCE per delivery, the way a human's
-     pick is pinned in reChoices. Without this the bot's pick was recomputed on every
-     slot by reachableDistricts, by open-icon count - so the moment it filled the icons
-     in one district the pick drifted to another, and the icons it had been counting
-     on became unreachable mid-delivery. Measured in audit_te_doubling.js: 39% of the
-     units Retail left over had enough capacity in reach when the delivery began;
-     pinned, that is 0% and Retail sells 59% of what it makes instead of 46%. */
-  if (bizInd(biz) === "RE" && !(state.reChoices && state.reChoices[biz.id])) {
-    state.reChoices = state.reChoices || {};
-    state.reChoices[biz.id] = bestExtraDistrictsForRE(state, biz, reAllowance(state, biz, p), footprintDistricts(state.board, biz.footprint));
-  }
+  /* Retail used to need its extra districts PINNED here for the length of a
+     delivery, because reachableDistricts recomputed them by open-icon count on
+     every slot and the pick drifted the moment it filled the icons it had been
+     counting on. A branch cannot drift: it is a building, placed once, and
+     reachableDistricts reads where it stands. Nothing to pin any more. */
   let remaining = bizProd(biz);
   let crossAllowance = bizInd(biz) === "MA" ? biz.level : 0;
   let earned = 0;
 
-  /* Demand icons are contested and first come first served; the businesses around a
-     Hospitality company are not going anywhere. So fill icons first, best-paying first -
-     which is not a fixed order, because a White-Label Supplier is paid the price of the
-     row it cross-sells into, and that can beat its own industry. */
+  /* Icons first, best-paying first - which is not a fixed order, because a White-Label
+     Supplier is paid the price of the row it cross-sells into, and that can beat its
+     own industry. The businesses around a Hospitality company take whatever is left. */
   const slots = eligibleSlotsFor(state, biz).map((s) => ({ ...s, pay: slotPay(state, p, biz, s) }))
     .sort((a, b) => b.pay - a.pay);
   for (const s of slots) {
@@ -1031,16 +1221,19 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
    flooded good is still worth twice what binning it is worth, which was not true
    when the track bottomed out at the recycling rate.
 
-   A marker on a blank cell reads as the NEXT number up, which is what makes the
-   halves work out: from $3 one company built leaves it still reading $3, and the
-   second takes it to $2.
+   Every move is TWO cells, so a marker only ever sits on an even one and every
+   even cell is a whole dollar. The odd cells are left over from the half-dollar
+   step; a marker on one reads as the next number up, which is what lets a game
+   saved under the old rules carry on without resetting every price.
 
-   Two things move a marker, and they are deliberately asymmetric:
+   Two things move a marker, and they are equal and opposite:
 
-     APPEARING AS A SUPPLIER on a Blueprint somebody builds moves it UP one cell.
-     BEING BUILT moves that industry's own marker DOWN one step. Each step is a whole
-     dollar - the two pressures are equal and opposite, and an industry that is built
-     as often as it is needed sits still.
+     APPEARING AS A SUPPLIER on a Blueprint somebody builds moves it UP $1.
+     BEING BUILT moves that industry's own marker DOWN $1.
+
+   So an industry that is built as often as it is needed sits still, and one
+   company is a whole dollar either way - from $3, one more company built takes
+   it to the $2 floor.
 
    The marker STOPS at each end. That is the reason this is one clamped position
    rather than the two counters it used to be: with separate demand and offer
@@ -1057,7 +1250,7 @@ function humanDeliver(state, human, tileKey, rowIdx, levelIdx, cross, log) {
    track and the hard stops - which were the real improvements - without that.
    See audit_price_track.js. */
 const PRICE_MIN = 2, PRICE_MAX = 12;
-const CELL_MIN = 0, CELL_MAX = (PRICE_MAX - PRICE_MIN) * 2;   // 18
+const CELL_MIN = 0, CELL_MAX = (PRICE_MAX - PRICE_MIN) * 2;   // 20
 const cellOfPrice = (p) => (p - PRICE_MIN) * 2;
 const clampCell = (c) => Math.max(CELL_MIN, Math.min(CELL_MAX, c));
 
@@ -1083,9 +1276,9 @@ function moveMarker(pm, ind, cells) {
   if (!pm.cell) pm.cell = {};
   pm.cell[ind] = clampCell(trackCell(pm, ind) + cells);
 }
-/* Building a company: its own industry down one cell, every industry it lists as a
-   supplier up two. A Blueprint with two suppliers therefore lifts $2 of price into
-   the city and takes half a dollar out of its own. */
+/* Building a company: its own industry down $1, every industry it lists as a
+   supplier up $1. Both are two cells. A Blueprint with two suppliers therefore
+   lifts $2 of price into the city and takes $1 out of its own. */
 const SUPPLIER_CELLS = 2, BUILT_CELLS = -2;
 function onLaunch(pm, ind, depInds) {
   moveMarker(pm, ind, BUILT_CELLS);
@@ -1111,15 +1304,15 @@ const PERSONAS = {
   tech_savvy:  { ind: "TE", name: "Systems Architect",
     blurb: "Your Technology companies may upgrade vertically, stacking on one plot instead of needing a free neighbour - or spread as Technology usually does. You choose at each upgrade." },
   preventive:  { ind: "HC", name: "Public Health Director",
-    blurb: "Your Healthcare companies may serve any column of a Healthcare row whatever their level - but a unit sold above your company's level pays $1 less than the price." },
+    blurb: "Your Healthcare companies reach every column of a Healthcare row whatever their level - they may count all four icons where a level-1 company counts one." },
   product_mgr: { ind: "MA", name: "White-Label Supplier",
-    blurb: "When your Manufacturing cross-sells into another industry's row, it may be paid that industry's price instead of its own - whichever is higher." },
+    blurb: "Your Manufacturing may be paid the best price among the rows of its own district, its own row included: that is the price its tiers are checked against." },
   customer_or: { ind: "HO", name: "Resort Developer",
     blurb: "Your Hospitality companies may upgrade horizontally, spreading across plots so more businesses and hubs sit adjacent to them - or stack as Hospitality usually does. You choose at each upgrade." },
   supply_chain:{ ind: "RE", name: "Supply Chain Expert",
-    blurb: "At the start of Production, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline." },
+    blurb: "At the start of Closing, you may raise one industry you do NOT operate by one step; your Retail then reaches one extra district this quarter. You may also decline." },
   gov_rel:     { ind: "UT", name: "Concession Holder",
-    blurb: "At the start of Production you may switch your concession on: your Utilities production then sells for $1 above the current price this quarter. Every quarter you sell at that premium, the Utilities price falls one step at the end of the quarter." },
+    blurb: "At the start of Closing you may switch your concession on: your Utilities then read the market price as $1 higher this quarter - the higher price is the one their tiers are checked against. Every quarter you are paid at that premium, the Utilities price falls one step at the end of the quarter." },
 };
 /* ============================== VARIANTS ==============================
    Optional rule changes the host turns on before a game starts. Every one is off
@@ -1142,9 +1335,17 @@ const VARIANTS = [
   { key: "orderedDecks", name: "Ordered decks",
     blurb: "Each industry deck runs level 1 down to level 3, instead of being shuffled whole. The early game holds no surprises and no level 3 can be drafted." },
   { key: "endgameLandAwards", name: "Land awards at the end only",
-    blurb: "The Real-Estate Mogul and The Omnipresent are paid once, after Quarter 12, instead of at every year end." },
+    blurb: "The Real-Estate Mogul and The Omnipresent are paid once, after the final quarter, instead of at every year end." },
+  { key: "printedV23", name: "Bills and revenue as printed in v23",
+    blurb: "Each company pays the OPEX printed in the rulebook, split among its suppliers, is paid the market price times its band, and owes $2 of rent a level - instead of the trial rules' round supplier bills, three earning tiers and rent by plot value." },
+  { key: "unitRevenue", name: "Revenue by the unit",
+    blurb: "Every company delivers its printed production one unit an icon and recycles the rest at $1, the way the game sold up to v22, instead of being paid by the band of icons it reaches. It plays the v23 bills and rent too." },
+  { key: "longGame", name: "Three-year game",
+    blurb: "Twelve quarters instead of eight: a third year, with the land awards paid three times and a $50 loan buy-back at the end of it." },
+  { key: "lateRows", name: "Rows 3-4 open in Year 2",
+    blurb: "Rows 3 and 4 of every district stay closed until Quarter 5, as they did up to v22." },
   { key: "beginner", name: "Beginner game",
-    blurb: "Two years instead of three, no Megacorps, and one action per track: LOAN, LAUNCH, RESEARCH and REPOSITION. Building claims its ground free, six discs instead of twelve, land scores districts only, and a company reaches one demand column above its level." },
+    blurb: "No Megacorps, and one action per track: LOAN, LAUNCH, RESEARCH and REPOSITION. Building claims its ground free, six discs instead of twelve, land scores districts only, and a company reaches one demand column above its level." },
 ];
 const VARIANT_KEYS = VARIANTS.map((v) => v.key);
 /* Anything off the wire is untrusted, so read only the keys we know and coerce
@@ -1155,6 +1356,77 @@ function normaliseVariants(v) {
   return out;
 }
 const hasVariant = (state, key) => !!(state && state.variants && state.variants[key]);
+
+/* ---------------- The trial rules ----------------
+   THREE RULES ON TOP OF v23, from the playtest sheet of 23 November 2026 and the cards
+   printed with it. They are the game the explainer videos teach and the game the printed
+   cards carry, so they are how the engine plays - unless "printedV23" puts the book's own
+   three rules back, which is also what keeps the two measurable side by side.
+
+   PAY. What a company hands its suppliers each quarter is one round TOTAL, set by two
+   things: the OPEX tier of its industry - Low for Utilities and Hospitality, Mid for
+   Manufacturing and Technology, High for Retail and Healthcare, the same three groups v23
+   prints as OPEX 6, 8 and 10 at Level 1 - and its level, the total doubling with each one:
+
+            Level 1   Level 2   Level 3   Level 4
+     Low       $5       $10       $20       $40
+     Mid      $10       $20       $40       $80
+     High     $15       $30       $60      $120
+
+   One supplier takes the whole of it and two take half each. The twelve cards that start
+   at Level 3 print three, and there the first supplier printed - the largest dependency
+   on the v23 card - takes half and the other two a quarter each, so $20 is $10 + $5 + $5.
+   Upgrading doubles what each supplier is handed, which is what doubles the total. The
+   printed OPEX is gone, and rent is never part of this bill.
+
+   (The first cut of this, on 23 November 2026, read the same line of the sheet as "$5,
+   $10, $20, $40 to EVERY supplier, by level alone". Didson corrected it the next day: the
+   figures were totals, and they depend on the tier. Three suppliers at Level 3 were his
+   open question; "half to the lead" was the option he chose.)
+
+   EARN. The band table stays, read as three tiers with the dollars already worked out.
+   The middle and top tiers each ask for two things - enough icons, and a market price at
+   or above the one printed - and a company collects the best tier it fully meets, the
+   Minimum otherwise, even with no icons. Nothing is multiplied at the table.
+
+   RENT. A floor standing on somebody else's plot owes $1 for every full $5 that plot is
+   worth at that moment, never less than $1, instead of a flat $2. Plot value itself is
+   untouched.
+
+   "Revenue by the unit" needs the printed production, which the trial cards do not carry,
+   so switching it on plays the printed bills and rent as well. */
+const OPEX_TIER = { UT: 1, HO: 1, MA: 2, TE: 2, RE: 3, HC: 3 };
+const OPEX_TIER_LABEL = { 1: "Low", 2: "Mid", 3: "High" };
+const TRIAL_BILL_STEP = 5;
+const TRIAL_RENT_STEP = 5;
+const trialOn = (state) => !hasVariant(state, "printedV23") && !hasVariant(state, "unitRevenue");
+const levelRow = (level) => Math.min(4, Math.max(1, level || 1));
+/* The whole supplier bill of a card of this industry standing at this level. */
+const supplierBill = (ind, level) => TRIAL_BILL_STEP * (OPEX_TIER[ind] || 1) * Math.pow(2, levelRow(level) - 1);
+/* ...and how it is divided among the suppliers the card prints, in the order it prints
+   them. Whole dollars always, and always the whole bill: on the sixty cards every share
+   is a multiple of $5, and the remainders only guard a card nobody has printed yet. */
+function supplierShares(bp, level) {
+  const n = (bp.deps || []).length;
+  if (!n) return [];
+  const total = supplierBill(bp.ind, level);
+  if (n === 1) return [total];
+  if (n === 2) { const half = Math.floor(total / 2); return [total - half, half]; }
+  const rest = Math.floor(total / 4);
+  return [total - rest * (n - 1), ...Array(n - 1).fill(rest)];
+}
+const sumOf = (xs) => xs.reduce((a, v) => a + v, 0);
+/* What one floor owes on this plot, this quarter. */
+function plotRentRate(state, plot) {
+  return trialOn(state) ? Math.max(1, Math.floor(plotValue(state, plot) / TRIAL_RENT_STEP)) : RENT_PER_LEVEL;
+}
+/* The supplier bill a card would carry at its printed level, before anything is built,
+   and what a bot should set aside for it. Under the printed rules the bots always held
+   back the whole OPEX, rent and all, and they still do. */
+const cardPotBill = (state, bp) => (trialOn(state)
+  ? sumOf(supplierShares(bp, bp.lvl))
+  : Math.max(0, bp.opex - RENT_PER_LEVEL * bp.lvl));
+const cardRunningCost = (state, bp) => (trialOn(state) ? cardPotBill(state, bp) : bp.opex);
 
 /* ---------------------------- BEGINNER MODE ----------------------------
    A shorter game that teaches the loop. Playtesters say teaching is the
@@ -1169,9 +1441,9 @@ const hasVariant = (state, key) => !!(state && state.variants && state.variants[
 
    What goes: Megacorps, and one action from each track - SELL, BUY, UPGRADE and
    GO PUBLIC - leaving LOAN, LAUNCH, RESEARCH and REPOSITION. Board Meeting
-   keeps its one seat, because first in turn order decides who sells into a
-   contested demand icon first and who places the hub, and without REPOSITION
-   the starting order would be frozen for the whole game.
+   keeps its one seat, because first in turn order places workers first and
+   places the hub, and without REPOSITION the starting order would be frozen
+   for the whole game.
 
    Three rules make the rest work, and each is load-bearing:
 
@@ -1197,10 +1469,16 @@ const hasVariant = (state, key) => !!(state && state.variants && state.variants[
 const isBeginner = (state) => hasVariant(state, "beginner");
 const BEGINNER_QUARTERS = 8;
 const BEGINNER_DISCS = 6;
+/* Two years is the standard game since v23 - eight quarters - and the third year is the
+   "Three-year game" variant. The 01/11/26 table played two years in five hours; measured,
+   the third year was the dearest third of the game to play and not the one that decided
+   it: 64% of all deliveries fell in it, while the share of the score earned in the last
+   two quarters is the same at eight quarters as at twelve. */
+const STANDARD_QUARTERS = 8, LONG_GAME_QUARTERS = 12;
 /* The last quarter of the game, before any Megacorp calls it early. */
-const finalQuarterOf = (state) => (isBeginner(state) ? BEGINNER_QUARTERS : 12);
+const finalQuarterOf = (state) => (isBeginner(state) ? BEGINNER_QUARTERS : hasVariant(state, "longGame") ? LONG_GAME_QUARTERS : STANDARD_QUARTERS);
 /* The quarters that close a year, and so pay the land award. */
-const yearEndsOf = (state) => (isBeginner(state) ? [4, 8] : [4, 8, 12]);
+const yearEndsOf = (state) => { const out = []; for (let q = 4; q <= finalQuarterOf(state); q += 4) out.push(q); return out; };
 /* The two dials the whole scoreboard hangs off, kept together because they are only
    meaningful against each other.
 
@@ -1374,7 +1652,20 @@ const COMPANY_SLOTS = 5;
    can operate - which is what made merging early feel like a punishment. */
 const companySlotsFor = (p) => COMPANY_SLOTS + (p.ipoTile ? 1 : 0);
 const canLaunchMore = (p) => companySlotsUsed(p) < companySlotsFor(p);
-const committedOpex = (p) => activeBiz(p).reduce((s, b) => s + bizOpex(b), 0);
+/* What a player's companies cost to keep open. The printed rules read the OPEX off the
+   cards; the trial rules have no such number, so it is the supplier bills plus whatever
+   rent is really owed. Callers that have no game to hand get the printed reading. */
+const committedOpex = (p, state) => (state && trialOn(state)
+  ? activeBiz(p).reduce((s, b) => s + bizPotBill(state, b) + bizGroundRent(state, p, b), 0)
+  : activeBiz(p).reduce((s, b) => s + bizOpex(b), 0));
+/* What a company costs to keep open for a quarter, as the bots weigh it. */
+const bizRunningCost = (state, p, b) => (trialOn(state)
+  ? bizPotBill(state, b) + bizGroundRent(state, p, b)
+  : bizOpex(b) + RENT_PER_LEVEL * b.level);
+/* What an upgrade adds to the quarter's bill. */
+const upgradeAddedBill = (state, b) => (trialOn(state)
+  ? sumOf(supplierShares(b.bp, b.level + 1)) - sumOf(supplierShares(b.bp, b.level))
+  : bizOpex(b));
 /* Ground rent used to be carved OUT of OPEX: the player paid the card's whole bill, the
    landlord took $2 a level from inside it, and only the remainder reached the suppliers'
    pots. Same money either way - but the table had to split one payment two ways, every
@@ -1388,14 +1679,19 @@ const committedOpex = (p) => activeBiz(p).reduce((s, b) => s + bizOpex(b), 0);
    The arithmetic is unchanged wherever every plot has an owner. Where it differs is a plot
    nobody owns: the old sum subtracted rent for it from the pot share and then paid it to
    nobody, destroying the money. Now there is no landlord, so there is nothing to pay. */
-const bizPotBill = (b) => Math.max(0, bizOpex(b) - RENT_PER_LEVEL * b.level);
+const bizPotBill = (state, b) => (trialOn(state)
+  ? sumOf(supplierShares(b.bp, b.level))
+  : Math.max(0, bizOpex(b) - RENT_PER_LEVEL * b.level));
 /* What each supplier is actually handed, in whole dollars: its share of the supplier bill
    in proportion to what the card owes it, with the odd dollars going to the largest
    dependency first so the whole bill leaves the player's hands. The screen reads this too,
    so what a card says it will pay and what the quarter really pays cannot drift apart. */
-function potShares(b) {
+function potShares(state, b) {
   const deps = b.bp.deps || [];
-  const bill = bizPotBill(b);
+  /* Under the trial rules the split is printed, not worked out: all of it, half each, or
+     half to the first supplier and a quarter to each of the other two. */
+  if (trialOn(state)) return supplierShares(b.bp, b.level);
+  const bill = bizPotBill(state, b);
   if (!deps.length || bill <= 0) return deps.map(() => 0);
   const depTotal = deps.reduce((s, d) => s + d.val, 0) || 1;
   const shares = deps.map((d) => Math.floor((bill * d.val) / depTotal));
@@ -1407,17 +1703,31 @@ function potShares(b) {
 const bizGroundRent = (state, p, b) => b.footprint.reduce((s, plot) => {
   const ownerId = state.board.owner[plot];
   if (ownerId === undefined || ownerId === p.id) return s;
-  return s + RENT_PER_LEVEL * levelsOn(b, plot);
+  return s + plotRentRate(state, plot) * levelsOn(b, plot);
+}, 0) + Object.keys(state.board.branches || {}).reduce((s, k) => {
+  /* A branch stands on ground somebody owns, so it pays that owner rent like anything
+     else standing on their land - one level's worth, since a shopfront is one storey. */
+  const br = state.board.branches[k];
+  if (!br || br.bizId !== b.id) return s;
+  const o = state.board.owner[k];
+  return (o === undefined || o === p.id) ? s : s + plotRentRate(state, k);
 }, 0);
+/* What the ground under a company charges in all, whoever owns it - the figure a card or
+   a tooltip can quote without knowing who will be standing there. */
+const bizRentAsTenant = (state, b) => b.footprint.reduce((s, plot) => s + plotRentRate(state, plot) * levelsOn(b, plot), 0)
+  + Object.keys(state.board.branches || {}).reduce((s, k) => {
+    const br = state.board.branches[k];
+    return br && br.bizId === b.id ? s + plotRentRate(state, k) : s;
+  }, 0);
 /* Every dollar of rent this player owes, companies and headquarters together. */
 const groundRentDue = (state, p) =>
   activeBiz(p).reduce((s, b) => s + bizGroundRent(state, p, b), 0) + hqRentDue(state, p);
 /* Everything owed at the close of this quarter: the supplier bills plus the rent. This is
    what a player has to be able to cover, and what the warning before a purchase tests. */
 const quarterBill = (state, p) =>
-  activeBiz(p).reduce((s, b) => s + bizPotBill(b), 0) + groundRentDue(state, p);
-function safeToSpend(p, spend, addedOpex = 0, buffer = 0.4) {
-  return p.cash - spend >= (committedOpex(p) + addedOpex) * buffer;
+  activeBiz(p).reduce((s, b) => s + bizPotBill(state, b), 0) + groundRentDue(state, p);
+function safeToSpend(p, spend, addedOpex = 0, buffer = 0.4, state = undefined) {
+  return p.cash - spend >= (committedOpex(p, state) + addedOpex) * buffer;
 }
 /* The cost of caution falls as the game shortens: an unused company slot earns nothing,
    while a company built now still takes its one score at the next year end and produces
@@ -1494,6 +1804,10 @@ function sellCompany(state, p, b, solvency = false) {
   if (solvency) recv = b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4);
   else recv = voluntarySalePrice(b);
   p.cash += recv; b.distressed = true;
+  /* The branches come down with the chain - they were its shopfronts, not land
+     holdings, and the ground goes back to nobody. Reclaim opens fresh ones
+     wherever the new owner wants them. */
+  removeBranches(state, b);
   /* THE GROUND GOES WITH THE COMPANY in the beginner game. Everywhere else the
      land stays yours, because you can sell it or build on it again - that is the
      whole of audit_liquidation's finding. Here there is no BUY, no SELL and no
@@ -1513,10 +1827,11 @@ function sellBpFromHand(state, p, bp, solvency = false) {
   p.hand = p.hand.filter((x) => x !== bp);
   if (state.decks[bp.ind]) state.decks[bp.ind].push(bp); // returns to bottom of its industry deck, recyclable
 }
-function worstRoiBusiness(p, pm, quarter, minAge = 1) {
+function worstRoiBusiness(p, pm, quarter, minAge = 1, state = null) {
   const cands = activeBiz(p).filter((b) => quarter - b.quarterBuilt >= minAge);
   if (!cands.length) return null;
-  const roi = (b) => bizProd(b) * price(pm, bizInd(b)) - bizOpex(b) - RENT_PER_LEVEL * b.level;
+  const take = (b) => (state && !unitRevenueOn(state) ? bandRevenue(state, p, b).revenue : bizProd(b) * price(pm, bizInd(b)));
+  const roi = (b) => take(b) - (state ? bizRunningCost(state, p, b) : bizOpex(b) + RENT_PER_LEVEL * b.level);
   return cands.reduce((worst, b) => (roi(b) < roi(worst) ? b : worst), cands[0]);
 }
 /* Score a Blueprint for launching. Price is the dominant term: an industry everyone
@@ -1562,7 +1877,7 @@ function landEPWeight(state, p) {
    Measured in audit_price_track.js. The final-scoring line used to hardcode 10 rather
    than read this constant, so the two could have drifted apart unnoticed; it reads the
    constant now. */
-const CASH_PER_EP = 50;
+const CASH_PER_EP = 100;
 
 /* What will this industry pay ME, once my own company is standing in it?
 
@@ -1591,10 +1906,73 @@ function priceAfterMyBuild(pm, ind) {
      - minus what it costs to get standing, also converted to points
 
    A company that cannot sell now scores negative, which is the whole point. */
+/* READING THE ECONOMY, as a table does (trial rules only).
+
+   A human at the table watches three things the bots used to ignore: how much money
+   each pot is collecting quarter after quarter, which tiers companies of an industry
+   are actually reaching, and what everybody holds in hand - drafted Blueprints sit
+   face up under each strip, so a rival's next build is public. The bots read the same
+   three signals:
+
+   - POT FLOW. What came into each pot over recent quarters (an even-weighted running
+     average), plus what the face-up cards in every hand would pay into it if built
+     (counted at 40%, since not all of them will be), shared among the companies of that
+     industry standing now, the cards of that industry waiting in hands (at half), and
+     the new company itself.
+   - TIERS REACHED. How often companies of the industry have collected the Minimum, the
+     middle and the top tier lately; a card is expected to earn that mix, blended half
+     and half with what its best plot would pay today.
+   - RIVALS' HANDS. Cards of the same industry in other hands crowd its demand and its
+     pot, so they count toward the competition a new company will meet.
+
+   Measured in audit_industries.js and audit_trial.js; the printed-v23 bots are left as
+   they were. */
+function notePotInflow(state, ind, amt) {
+  if (!state.potInQ) state.potInQ = {};
+  state.potInQ[ind] = (state.potInQ[ind] || 0) + amt;
+}
+function foldPotFlow(state) {
+  if (!state.potFlow) state.potFlow = {};
+  for (const ind of INDUSTRIES) {
+    const now = (state.potInQ && state.potInQ[ind]) || 0;
+    state.potFlow[ind] = state.potFlow[ind] == null ? now : 0.5 * state.potFlow[ind] + 0.5 * now;
+  }
+  state.potInQ = {};
+}
+function noteTierReached(state, ind, tier) {
+  if (!state.tierMix) state.tierMix = {};
+  const m = state.tierMix[ind] || (state.tierMix[ind] = { n: 0, p: [1 / 3, 1 / 3, 1 / 3] });
+  const a = 0.25;
+  m.p = m.p.map((v, k) => (1 - a) * v + a * (k === tier ? 1 : 0));
+  m.n++;
+}
+const handsOf = (state) => state.players.flatMap((pl) => pl.hand.map((c) => ({ c, pl })));
+function rivalHandCards(state, p, ind) {
+  return state.players.reduce((n, pl) => n + (pl === p ? 0 : pl.hand.filter((c) => c.ind === ind).length), 0);
+}
+function expectedPotShare(state, p, ind, exclude) {
+  const flow = (state.potFlow && state.potFlow[ind]) || 0;
+  let coming = 0;
+  for (const { c } of handsOf(state)) {
+    if (c === exclude) continue;
+    const k = (c.deps || []).findIndex((d) => d.ind === ind);
+    if (k >= 0) coming += supplierShares(c, c.lvl)[k] * 0.4;
+  }
+  const standing = state.players.reduce((n, pl) => n + activeBiz(pl).filter((b) => bizInd(b) === ind).length + megacorpHQs(pl).filter((b) => bizInd(b) === ind).length, 0);
+  const waiting = state.players.reduce((n, pl) => n + pl.hand.filter((c) => c.ind === ind && c !== exclude).length, 0) * 0.5;
+  return (flow + coming) / (standing + waiting + 1);
+}
+function expectedTrade(state, bp, snapshot) {
+  const m = state.tierMix && state.tierMix[bp.ind];
+  const t = tierTable(bp.ind, bp.lvl);
+  if (!m || m.n < 3 || !t) return snapshot;
+  const seen = m.p.reduce((a, v, k) => a + v * t.pays[k], 0);
+  return 0.5 * snapshot + 0.5 * seen;
+}
 function launchScore(state, p, bp, archetype) {
   const pm = state.pm;
   const px = priceAfterMyBuild(pm, bp.ind);
-  const qLeft = Math.max(1, 13 - (state.quarter || 1));
+  const qLeft = Math.max(1, finalQuarterOf(state) + 1 - (state.quarter || 1));
 
   // --- what it costs to get standing ---
   // Horizontal industries (UT/MA/TE) need one plot per level, and upgrading needs yet
@@ -1609,9 +1987,12 @@ function launchScore(state, p, bp, archetype) {
   // --- what it earns every quarter it stands ---
   // Rent is $2 per level, so a business on land you own returns that rent to you,
   // which materially narrows the gap between cheap-OPEX and expensive-OPEX industries.
-  const rent = RENT_PER_LEVEL * bp.lvl;
+  /* Under the trial rules the bill is the round supplier amount, and rent is whatever the
+     plot is worth - a dollar a floor on most of the board, so that is what a company
+     standing on borrowed ground is assumed to owe. */
+  const rent = trialOn(state) ? bp.lvl : RENT_PER_LEVEL * bp.lvl;
   const rentBack = owned >= nPlots ? rent : 0;
-  const effOpex = bp.opex + rent - rentBack;
+  const effOpex = (trialOn(state) ? cardPotBill(state, bp) : bp.opex) + rent - rentBack;
 
   /* Only what can be delivered earns the market price. Whatever the demand board
      cannot absorb is recycled at $1, so value it at $1 - which is what the bot will
@@ -1620,14 +2001,18 @@ function launchScore(state, p, bp, archetype) {
   const reach = bestSellableFor(state, p, bp);
   const sellable = reach === null ? bp.prod : Math.min(bp.prod, reach);
   const waste = Math.max(0, bp.prod - sellable);
-  let perQuarter = sellable * px + waste * 1 - effOpex;
+  /* Under the band rule the company is paid price x multiplier for the icons it would
+     reach from the best plot its owner holds. */
+  const bandTake = unitRevenueOn(state) ? null : bestBandRevenueFor(state, p, bp, px);
+  const reads = trialOn(state) && bandTake !== null;
+  let perQuarter = (bandTake === null ? sellable * px + waste * 1 : (reads ? expectedTrade(state, bp, bandTake) : bandTake)) - effOpex;
 
   /* Two things say the good years will not last, and both belong on the revenue, not
      on the finished score. Other companies in your industry compete for the same demand
      icons; a picked-over deck means more of them are coming. */
   if (perQuarter > 0) {
     const ownActive = state.players.reduce((n, pl) =>
-      n + activeBiz(pl).filter((b) => bizInd(b) === bp.ind).length, 0);
+      n + activeBiz(pl).filter((b) => bizInd(b) === bp.ind).length, 0) + (reads ? 0.5 * rivalHandCards(state, p, bp.ind) : 0);
     const deckLeft = (state.decks && state.decks[bp.ind]) ? state.decks[bp.ind].length : 5;
     perQuarter *= 1 / (1 + 0.45 * ownActive);
     perQuarter *= Math.min(1.15, 0.92 + 0.025 * deckLeft);
@@ -1645,7 +2030,8 @@ function launchScore(state, p, bp, archetype) {
   }
 
   // --- add it up, in points ---
-  const cashEP = (perQuarter * qLeft + potNow) / cashToEpRate(state);
+  const potFlowNow = reads ? expectedPotShare(state, p, bp.ind, bp) * qLeft : 0;
+  const cashEP = (perQuarter * qLeft + potNow + potFlowNow) / cashToEpRate(state);
   const buildEP = bp.lvl * levelEP(state);
   /* Entering an industry is owed once per game, ever. Reading the live ledger rather
      than "do I have one standing right now" stops a bot rebuilding an industry it has
@@ -1658,7 +2044,7 @@ function launchScore(state, p, bp, archetype) {
 
      A Megacorp headquarters banks EP equal to its industry's CURRENT PRICE every
      quarter, so entering that industry takes points off its owner for the rest of the
-     game - the price falls a dollar for every two companies built there. It is the only
+     game - the price falls a dollar for every company built there. It is the only
      pressure the table has on a runaway leader, and it costs nothing extra: you are
      building a company you were going to build anyway, in a different sector.
 
@@ -1704,6 +2090,179 @@ function launchScore(state, p, bp, archetype) {
    rule itself, asked a question - not a copy of it. */
 const sellableForBiz = (state, owner, biz) => placeableFor(state, owner, biz);
 
+/* ============================== REVENUE BY BAND (v23) ==============================
+   A company is paid its industry's PRICE times a MULTIPLIER, and the multiplier is read
+   off how many demand icons the company reaches: under `a` icons the first multiplier,
+   from `b` icons the third, in between the second. Nothing is delivered, nothing is
+   recycled, nothing is counted unit by unit - which is what four playtest forms asked
+   for. The thresholds and multipliers were derived from the shipped unit rule over a
+   thousand all-bot games a table size (draft_ranged_table.js, ranged_table.json), so
+   the band pays what the unit rule paid within $3 an industry and level, and the audit
+   that measured it (audit_revenue.js --ranged) found vertical strategies four points
+   less dominant and the "one more icon would have paid" quarters halved.
+
+   Icons are counted the way the bots always counted what they could sell: own-industry
+   icons within reach up to the company's level in columns, plus Manufacturing's
+   cross-sell icons up to its level, plus the businesses and hubs around a Hospitality
+   company. Technology's thresholds are in icons too, so its doubler is folded into its
+   multipliers rather than counted twice. The printed production stays on the card as the
+   industry's size, and the "Revenue by the unit" variant still sells it the old way. */
+const BAND_TABLE = {
+  UT: { 1: { a: 1, b: 2, m: [1, 1, 2] }, 2: { a: 4, b: 6, m: [2, 4, 6] }, 3: { a: 7, b: 12, m: [7, 10, 12] }, 4: { a: 14, b: 24, m: [23, 24, 24] } },
+  RE: { 1: { a: 2, b: 3, m: [1, 2, 4] }, 2: { a: 5, b: 8, m: [4, 6, 8] }, 3: { a: 7, b: 12, m: [6, 10, 14] }, 4: { a: 12, b: 20, m: [10, 17, 24] } },
+  HO: { 1: { a: 1, b: 2, m: [1, 1, 2] }, 2: { a: 2, b: 4, m: [1, 3, 4] }, 3: { a: 5, b: 8, m: [3, 6, 8] }, 4: { a: 10, b: 16, m: [7, 13, 16] } },
+  MA: { 1: { a: 2, b: 4, m: [2, 3, 4] }, 2: { a: 5, b: 8, m: [4, 7, 8] }, 3: { a: 10, b: 16, m: [7, 14, 16] }, 4: { a: 19, b: 32, m: [10, 25, 32] } },
+  HC: { 1: { a: 2, b: 3, m: [1, 2, 3] }, 2: { a: 4, b: 6, m: [2, 4, 6] }, 3: { a: 7, b: 12, m: [5, 9, 12] }, 4: { a: 14, b: 24, m: [13, 20, 24] } },
+  TE: { 1: { a: 1, b: 2, m: [1, 2, 2] }, 2: { a: 2, b: 4, m: [1, 4, 4] }, 3: { a: 3, b: 6, m: [1, 6, 8] }, 4: { a: 4, b: 8, m: [2, 9, 16] } },
+};
+const BAND_LABEL = ["$", "$$", "$$$"];
+/* THE TIERS, as the trial cards print them - Didson's frame of 25 November 2026. Each
+   tier is a margin over the card's own supplier bill, never an amount of its own:
+
+                   Minimum        middle          top
+     Easy        big loss      little loss    little profit     Hospitality, Utilities
+     Medium      little loss   breakeven      profit            Retail, Technology
+     Hard        breakeven     little profit  good profit       Manufacturing, Healthcare
+
+   "Little" is $5 a level ($5, $10, $15, $20), a loss or profit twice that is "big" or
+   plain "profit", and a good profit is three times. A big loss may be the whole bill: a
+   tier then pays $0, and the company has wasted its OPEX for the quarter. Pot shares are
+   on top of all this and are not counted. The grade is how hard the industry is to enter
+   and grow - spreading rather than stacking, dear to build, a High or Mid OPEX, few demand
+   rows on the map - so the industries that are hardest to hold pay the kindest margins.
+
+   The icons a tier asks for are the v23 band thresholds. Its price is base less $1 for
+   the middle tier, and for the top tier base plus $2 at Level 1, plus $1 at Level 2 and
+   the base itself from Level 3. Upgrading reaches a column more of demand in every row in
+   reach, and the bots showed icons were seldom what kept a company out of the top tier -
+   the price was; so each upgrade makes the top tier's price $1 easier to meet.
+
+   test_trial_rules.js pins this table cell by cell, and check_rulebook pins the book's. */
+const TIER_LABEL = ["Minimum", "Middle", "Top"];
+const ENTRY_GRADE = { HO: 0, UT: 0, RE: 1, TE: 1, MA: 2, HC: 2 };
+const ENTRY_GRADE_LABEL = ["Easy", "Medium", "Hard"];
+const TIER_MARGIN = [[-2, -1, 1], [-1, 0, 2], [0, 1, 3]];
+const TIER_STEP = 5;
+const topPriceOver = (level) => 2 - Math.min(2, levelRow(level) - 1);
+function tierTable(ind, level) {
+  const r = (BAND_TABLE[ind] || {})[levelRow(level)];
+  if (!r || !(ind in ENTRY_GRADE)) return null;
+  const L = levelRow(level), base = BASE_PRICE[ind], bill = supplierBill(ind, L), u = TIER_STEP * L;
+  const m = TIER_MARGIN[ENTRY_GRADE[ind]];
+  const a1 = Math.max(0, bill + m[0] * u);
+  const a2 = Math.max(a1 + 5, bill + m[1] * u);
+  const a3 = Math.max(a2 + 5, bill + m[2] * u);
+  return { icons: [0, r.a, r.b], price: [0, base - 1, base + topPriceOver(L)], pays: [a1, a2, a3] };
+}
+/* The best tier fully met: enough icons AND a high enough price, or the Minimum. */
+function tierFor(ind, level, icons, px) {
+  const table = tierTable(ind, level);
+  if (!table) return { tier: 0, pays: 0, table: null };
+  const tier = icons >= table.icons[2] && px >= table.price[2] ? 2 : icons >= table.icons[1] && px >= table.price[1] ? 1 : 0;
+  return { tier, pays: table.pays[tier], table };
+}
+const unitRevenueOn = (state) => hasVariant(state, "unitRevenue");
+/* How many icons a company reaches, in the unit the band table is written in. */
+function bandIcons(state, owner, biz) {
+  return Math.round(placeableFor(state, owner, biz) / exchangeRate(state, biz));
+}
+function bandFor(ind, level, icons) {
+  const r = (BAND_TABLE[ind] || {})[Math.min(4, Math.max(1, level))];
+  if (!r) return { band: 0, mult: 0, a: 0, b: 0 };
+  const band = icons < r.a ? 0 : icons >= r.b ? 2 : 1;
+  return { band, mult: r.m[band], a: r.a, b: r.b };
+}
+/* The price the band multiplies. A Concession Holder's Utilities sell a dollar over the
+   market in a quarter the concession is on; a White-Label Supplier's Manufacturing is
+   paid the best price among the rows of its own district, its own included. */
+function bandPrice(state, p, biz) {
+  const ind = bizInd(biz);
+  let px = price(state.pm, ind);
+  if (ind === "UT" && p && concessionOn(state, p)) px += 1;
+  if (ind === "MA" && p && hasPersona(p, "product_mgr")) {
+    footprintDistricts(state.board, biz.footprint).forEach((tk) => {
+      const t = state.demand.tiles[tk];
+      if (t) t.rows.forEach((ri) => { px = Math.max(px, price(state.pm, ri)); });
+    });
+  }
+  return px;
+}
+function bandRevenue(state, owner, biz) {
+  const p = owner || ownerOf(state, biz);
+  const icons = bandIcons(state, p, biz);
+  const px = bandPrice(state, p, biz);
+  if (trialOn(state)) {
+    /* The price a persona improves is the price the tiers are checked against. */
+    const { tier, pays, table } = tierFor(bizInd(biz), biz.level, icons, px);
+    return { icons, band: tier, mult: null, a: table ? table.icons[1] : 0, b: table ? table.icons[2] : 0, px, revenue: pays, tiers: table };
+  }
+  const { band, mult, a, b } = bandFor(bizInd(biz), biz.level, icons);
+  return { icons, band, mult, a, b, px, revenue: px * mult };
+}
+/* What a Blueprint would be paid from the best plot its owner already holds; with no
+   plot to stand on yet, the middle band at the price it would sell at. */
+function bestBandRevenueFor(state, p, bp, px) {
+  const mine = Object.keys(state.board.owner).filter((k) => state.board.owner[k] === p.id && plotFree(state.board, k));
+  const row = (BAND_TABLE[bp.ind] || {})[Math.min(4, Math.max(1, bp.lvl))];
+  const paid = (icons) => (trialOn(state) ? tierFor(bp.ind, bp.lvl, icons, px).pays : px * bandFor(bp.ind, bp.lvl, icons).mult);
+  if (!mine.length) return row ? (trialOn(state) ? paid(row.a) : px * row.m[1]) : 0;
+  let best = 0;
+  for (const plot of mine) {
+    const probe = { id: -1, bp, footprint: [plot], level: bp.lvl, upgraded: false, distressed: false, isHQ: false, scored: false, quarterBuilt: state.quarter };
+    best = Math.max(best, paid(bandIcons(state, p, probe)));
+  }
+  return best;
+}
+/* EVERYTHING A BLUEPRINT PRINTS, in the numbers this game is playing by, so that the card
+   on screen, the bots' sums and the Closing itself all read one source and cannot drift
+   apart. `biz` is the company when the card is built; without it the card is in a hand
+   or on a deck. "Next" is the same number once upgraded - the grey after the slash on
+   the printed card - and is null when there is no further to go.
+
+   Under the trial rules a tier is { icons, price, pays }. Under the printed rules there
+   is no price to meet and nothing worked out in advance: a tier is { icons, mult }, the
+   band's multiplier, and the card says so. */
+function cardFace(state, bp, biz) {
+  const trial = trialOn(state);
+  const level = biz ? biz.level : bp.lvl;
+  const upgraded = biz ? !!biz.upgraded : false;
+  const canGrow = !upgraded && level < 4;
+  const probe = (lvl, up) => ({ bp, level: lvl, upgraded: up, footprint: [] });
+  const earn = (lvl) => {
+    if (trial) return tierTable(bp.ind, lvl);
+    const r = (BAND_TABLE[bp.ind] || {})[levelRow(lvl)];
+    return r ? { icons: [0, r.a, r.b], price: null, mult: r.m.slice() } : null;
+  };
+  return {
+    trial, code: bp.code, ind: bp.ind, name: bp.name, level, upgraded, canGrow,
+    suppliers: (bp.deps || []).map((d) => d.ind),
+    pay: potShares(state, probe(level, upgraded)),
+    payNext: canGrow ? potShares(state, probe(level + 1, true)) : null,
+    earn: earn(level), earnNext: canGrow ? earn(level + 1) : null,
+    build: bp.setup, plots: SCALING[bp.ind] === "H" ? bp.lvl : 1,
+    ep: level * levelEP(state), epNext: canGrow ? (level + 1) * levelEP(state) : null,
+    sellCard: BP_SELL_PRICE[bp.lvl] || 4, liquidateCard: BP_SOLVENCY_PRICE[bp.lvl] || 2,
+    sellCompany: upgraded ? bp.setup : Math.floor(bp.setup / 2),
+    liquidateCompany: upgraded ? Math.floor(bp.setup / 2) : Math.floor(bp.setup / 4),
+    rentFlat: trial ? null : RENT_PER_LEVEL,
+    prod: trial ? null : bp.prod * (upgraded ? 2 : 1),
+  };
+}
+/* Every company that can trade is paid at once; there is nothing to hand round. */
+function runBandRevenue(state, log) {
+  for (const p of state.players) {
+    for (const b of activeBiz(p)) {
+      if (!businessCanProduce(state, b)) continue;
+      const r = bandRevenue(state, p, b);
+      noteTierReached(state, bizInd(b), r.band);
+      p.cash += r.revenue;
+      noteConcessionSale(state, p, b, r.revenue > 0 ? 1 : 0);
+      if (log && trialOn(state)) log(logMsg(["{0} reaches {1} icons at ${2}: the Minimum pays ${3}.", "{0} reaches {1} icons at ${2}: the middle tier pays ${3}.", "{0} reaches {1} icons at ${2}: the top tier pays ${3}."][r.band], b.bp.name, r.icons, r.px, r.revenue), p.id);
+      else if (log) log(logMsg(r.icons === 1 ? "{0} reaches {1} icon: band {2} pays {3} x ${4} = ${5}." : "{0} reaches {1} icons: band {2} pays {3} x ${4} = ${5}.", b.bp.name, r.icons, BAND_LABEL[r.band], r.mult, r.px, r.revenue), p.id);
+    }
+  }
+}
+
 /* What is upgrading worth, in the same points a build is measured in?
 
    Only two of the five archetypes ever upgraded, and they took the first upgradable
@@ -1726,13 +2285,13 @@ function upgradeScore(state, p, b, assumePlot) {
   /* The reason is a key and its values now, not a sentence. The KEY is the
      stable thing to test - the sentence is whatever language the reader has. */
   if (blocked && !(assumePlot && blocked.k.startsWith("no owned"))) return -Infinity;
-  const qLeft = Math.max(1, 13 - (state.quarter || 1));
+  const qLeft = Math.max(1, finalQuarterOf(state) + 1 - (state.quarter || 1));
   const px = price(state.pm, bizInd(b));   // upgrading adds no new supply to the market
   const spreads = upgradeScaling(p, b) === "H";
 
   const nowUnits = Math.min(bizProd(b), sellableForBiz(state, p, b));
-  const nowNet = nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1
-    - bizOpex(b) - RENT_PER_LEVEL * b.level;
+  const nowNet = (unitRevenueOn(state) ? nowUnits * px + Math.max(0, bizProd(b) - nowUnits) * 1 : bandRevenue(state, p, b).revenue)
+    - bizRunningCost(state, p, b);
 
   /* Where it would grow to. A sideways step reaches from a new plot, so ask the
      delivery rule about the grown footprint rather than assuming the reach is the same. */
@@ -1752,8 +2311,8 @@ function upgradeScore(state, p, b, assumePlot) {
   const grown = { ...b, level: b.level + 1, upgraded: true, footprint: grownFootprint };
   const grownProd = bizProd(grown);
   const grownUnits = Math.min(grownProd, sellableForBiz(state, p, grown));
-  const grownNet = grownUnits * px + Math.max(0, grownProd - grownUnits) * 1
-    - bizOpex(grown) - 3 * grown.level;
+  const grownNet = (unitRevenueOn(state) ? grownUnits * px + Math.max(0, grownProd - grownUnits) * 1 : bandRevenue(state, p, grown).revenue)
+    - (trialOn(state) ? bizRunningCost(state, p, { ...grown, levels: null }) : bizOpex(grown) + 3 * grown.level);
 
   const cashEP = (grownNet - nowNet) * qLeft / cashToEpRate(state);
   const buildEP = levelEP(state);                        // one more level on the card
@@ -1781,7 +2340,7 @@ function pickLaunchCandidate(p, archetype, pm, missingInds, buffer, state) {
   if (!p.hand.length) return null;
   let scored = [];
   for (const bp of p.hand) {
-    if (!safeToSpend(p, bp.setup, bp.opex, buffer)) continue;
+    if (!safeToSpend(p, bp.setup, state ? cardRunningCost(state, bp) : bp.opex, buffer, state || undefined)) continue;
     const s = state ? launchScore(state, p, bp, archetype)
                     : (bp.prod * price(pm, bp.ind) - bp.opex) / Math.max(1, bp.setup);
     scored.push([s, bp]);
@@ -1820,7 +2379,11 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   } else if (!footprint.every((plot) => plot in state.board.owner && plotFree(state.board, plot))) return false;
   if (!footprintIsContiguous(state.board, footprint)) return false;
   if (p.cash < bp.setup) return false;
-  if (discsFree(state, p) <= 0) return false;   // no disc left to mark the new company
+  /* One disc for the company, plus one for each branch a Retail will open. The
+     whole chain is checked up front rather than opened as far as the discs reach,
+     so "I can afford this" is one question with one answer. */
+  const needDiscs = 1 + (bp.ind === "RE" ? bp.lvl : 0);
+  if (discsFree(state, p) < needDiscs) return false;
   p.cash -= bp.setup;
   const biz = newBusiness(bp, footprint, state.quarter, state);
   /* The ground comes with the company here, free. businessCanProduce checks
@@ -1828,6 +2391,7 @@ function doLaunch(state, p, bp, rng, log, manualFootprint) {
   if (isBeginner(state)) footprint.forEach((plot) => (state.board.owner[plot] = p.id));
   footprint.forEach((plot) => (state.board.occupiedBy[plot] = biz.id));
   p.businesses.push(biz);
+  placeBranches(state, p, biz, log);
   p.hand = p.hand.filter((x) => x !== bp);
   scoreCompanyOnCompletion(state, p, biz);
   onLaunch(state.pm, bp.ind, bp.deps.map((d) => d.ind));
@@ -1909,6 +2473,11 @@ function doUpgrade(state, p, b, rng, log, manualPlot, dir) {
   }
   b.upgraded = true; b.level += 1;
   b.scored = false;
+  /* A level up is another shopfront. If there is no disc for it the company still
+     upgrades - the branch simply is not opened, and the owner can free a disc and
+     it will be opened at the next launch or upgrade. Kept below the two lines
+     above because audit_industries splices on them being adjacent. */
+  placeBranches(state, p, b, log);
   scoreCompanyOnCompletion(state, p, b);
   log(logMsg("{0} upgrades {1} to level {2} for ${3} (cash: ${4}).", p.name, b.bp.name, b.level, bizSetup(b), Math.round(p.cash)), p.id);
   return true;
@@ -1923,7 +2492,7 @@ function doDraw(state, p, industry, log) {
    server reads this file at boot, so if a deployment updates the client but not this
    file the two will disagree and the UI says so instead of silently playing by old
    rules. Change any rule, run the build, and this moves on its own. */
-const ENGINE_VERSION = "66679470";
+const ENGINE_VERSION = "cd48c7f3";
 /* Ground rent, per company LEVEL standing on a plot, paid to whoever owns it.
 
    It was $3 and is now $2. Rent and the supplier bill are charged separately, but the
@@ -2016,7 +2585,7 @@ function hqRentDue(state, p) {
     for (const plot of hq.footprint) {
       const ownerId = state.board.owner[plot];
       if (ownerId === undefined || ownerId === p.id) continue;
-      due += RENT_PER_LEVEL * levelsOn(hq, plot);
+      due += plotRentRate(state, plot) * levelsOn(hq, plot);
     }
   }
   return due;
@@ -2028,7 +2597,7 @@ function payHqRent(state, p, log) {
       if (ownerId === undefined || ownerId === p.id) continue;
       const owner = state.players.find((pl) => pl.id === ownerId);
       if (!owner) continue;
-      const due = Math.min(Math.max(0, p.cash), RENT_PER_LEVEL * levelsOn(hq, plot));
+      const due = Math.min(Math.max(0, p.cash), plotRentRate(state, plot) * levelsOn(hq, plot));
       if (due <= 0) continue;
       p.cash -= due;
       owner.cash += due;
@@ -2060,7 +2629,7 @@ function runProduction(state, log) {
       bill = quarterBill(state, p);
     }
     while (p.cash < bill) {
-      const worst = worstRoiBusiness(p, pm, state.quarter, 0);
+      const worst = worstRoiBusiness(p, pm, state.quarter, 0, state);
       if (!worst) break;
       sellCompany(state, p, worst, true);
       bill = quarterBill(state, p);
@@ -2071,7 +2640,7 @@ function runProduction(state, log) {
     for (const b of activeBiz(p)) {
       /* Two bills now, not one payment split afterwards: what the suppliers are owed,
          and what the landlords are owed. */
-      const supplierBill = bizPotBill(b);
+      const supplierBill = bizPotBill(state, b);
       const rentBill = bizGroundRent(state, p, b);
       const cost = supplierBill + rentBill;
       if (p.cash < cost) {
@@ -2100,17 +2669,25 @@ function runProduction(state, log) {
          Your own ground is skipped rather than paid and refunded: the saving is the
          same, and it is still recorded, because "what owning your own land saved you"
          is worth showing even though no money moved. */
-      for (const plot of b.footprint) {
-        const due = RENT_PER_LEVEL * levelsOn(b, plot);
-        if (due <= 0) continue;
+      const payLandlord = (plot, floors) => {
+        const due = plotRentRate(state, plot) * floors;
+        if (due <= 0) return;
         const ownerId = board.owner[plot];
-        if (ownerId === undefined) continue;
+        if (ownerId === undefined) return;
         const owner = players.find((pl) => pl.id === ownerId);
-        if (!owner) continue;
-        if (owner.id === p.id) { p.rentSaved = (p.rentSaved || 0) + due; continue; }
+        if (!owner) return;
+        if (owner.id === p.id) { p.rentSaved = (p.rentSaved || 0) + due; return; }
         owner.cash += due;
         owner.rentIn = (owner.rentIn || 0) + due;
         p.rentOut = (p.rentOut || 0) + due;
+      };
+      for (const plot of b.footprint) payLandlord(plot, levelsOn(b, plot));
+      /* A branch is one storey on ground that may be somebody else's, and its rent goes
+         to that owner like any other. It was being charged to the chain and handed to
+         nobody - the one place in the game where a paid dollar simply vanished. */
+      for (const k of Object.keys(board.branches || {})) {
+        const br = board.branches[k];
+        if (br && br.bizId === b.id) payLandlord(k, 1);
       }
       /* The supplier bill flows into each supplier's industry pot, split in
          proportion to what this business owes them. Whole dollars only: each supplier
@@ -2121,15 +2698,19 @@ function runProduction(state, log) {
       if (!state.pots) state.pots = Object.fromEntries(INDUSTRIES.map((i) => [i, 0]));
       const deps = b.bp.deps;
       if (deps.length && supplierBill > 0) {
-        const shares = potShares(b);
-        deps.forEach((d, i) => { state.pots[d.ind] += shares[i]; });
+        const shares = potShares(state, b);
+        deps.forEach((d, i) => { state.pots[d.ind] += shares[i]; notePotInflow(state, d.ind, shares[i]); });
       }
     }
   }
 }
 /* Revenue - B2B. Each industry pot is split evenly among the active businesses of that
    industry - one equal share each, whatever their level - and whatever will not divide
-   cleanly rides forward. An industry with no active business keeps its whole pot. */
+   cleanly rides forward. An industry with no active business KEEPS ITS WHOLE POT,
+   growing until somebody enters, and the first company in takes all of it. v21
+   wrote that quarter's money off instead; v22 put the carry back, because the
+   designer prefers a market that visibly waits for someone to answer it. The
+   written-off rule is kept measurable in audit_supply.js --expire. */
 /* Supply Chain Expert: at the start of Revenue, push one industry you do not operate up
    one step. It costs you nothing directly but helps a rival's market, and in exchange
    your Retail reaches one more district this quarter.
@@ -2264,6 +2845,7 @@ function runMegacorpTithe(state, log) {
   }
 }
 function runB2B(state, log) {
+  foldPotFlow(state);
   if (!state.pots) return;
   for (const ind of INDUSTRIES) {
     const pot = state.pots[ind];
@@ -2279,7 +2861,15 @@ function runB2B(state, log) {
       activeBiz(p).forEach((b) => { if (bizInd(b) === ind) recipients.push({ p, b }); });
       megacorpHQs(p).forEach((b) => { if (bizInd(b) === ind && businessCanProduce(state, b)) recipients.push({ p, b }); });
     });
-    if (!recipients.length) continue;                    // nobody to pay: carries over
+    /* NOBODY TO PAY: THE MONEY IS WRITTEN OFF. It used to ride forward, and a pot
+       nobody could collect simply grew - Technology stood empty for six quarters of
+       an average game and banked up to $262, so three games in four somebody walked
+       into an empty industry late and scooped around $50, uncontested, for the price
+       of one company. That is a windfall decided by who happened to be positioned,
+       not by anything anyone played. Expiring it takes the lump away without making
+       industries any emptier: measured, the quarters an industry sits unbuilt do not
+       move, because the prize was never what drew anyone in. */
+    if (!recipients.length) continue;   // nobody to pay: the pot stays and keeps growing
     /* One equal share each, whatever size the companies are, and whatever will not
        divide cleanly rides forward in the pot. A big company draws no more from the
        pot than a small one - it is the industry that is being paid, not the building. */
@@ -2300,6 +2890,7 @@ function potRecipients(state, ind) {
 /* Kept for the balance harnesses, which run all-bot tables and never enter the
    delivery phase. Real games go through advanceDelivery, in turn order. */
 function runBotRevenue(state) {
+  if (!unitRevenueOn(state)) { runBandRevenue(state, null); return; }
   for (const p of state.players) {
     if (p.isHuman) continue;
     for (const b of activeBiz(p)) if (businessCanProduce(state, b)) autoDeliver(state, p, b);
@@ -2321,7 +2912,6 @@ function runClosing(state, log, rng) {
   const { quarter, demand } = state;
   runConcessionErosion(state, log);
   if (quarter === 4) unlockY2(demand);
-  if (quarter === 8) refreshY3(demand);
   const firstPlayer = byId(state, state.turnOrder[0]);
   if (firstPlayer.isHuman) {
     state.phase = "placingLH";
@@ -2403,11 +2993,11 @@ function botBuyEP(state, p, quarter, log) {
   if (!price) return;
   const reserve = isLastYearEnd(state, quarter)
     ? 0
-    : committedOpex(p) * 2 + (p.hand.length ? Math.min(...p.hand.map((bp) => bp.setup)) : 0);
+    : committedOpex(p, state) * 2 + (p.hand.length ? Math.min(...p.hand.map((bp) => bp.setup)) : 0);
   const n = Math.floor(Math.max(0, p.cash - reserve) / price);
   if (n > 0) doBuyEP(state, p, quarter, n, log);
 }
-const LOAN_REPAY_RATE = { 4: 30, 8: 35, 12: 40 };
+const LOAN_REPAY_RATE = { 4: 30, 8: 40, 12: 50 };
 function doRepayLoan(p, quarter, log) {
   const rate = LOAN_REPAY_RATE[quarter];
   if (!rate || p.discsInBank <= 0 || p.cash < rate) return false;
@@ -2428,7 +3018,7 @@ function botRepayLoans(state, p, quarter, log) {
     return;
   }
   // mid-game: repay while it still leaves enough cash to cover committed OPEX
-  while (p.discsInBank > 0 && p.cash - rate >= committedOpex(p) * 0.6) {
+  while (p.discsInBank > 0 && p.cash - rate >= committedOpex(p, state) * 0.6) {
     if (!doRepayLoan(p, quarter, log)) break;
   }
 }
@@ -2547,12 +3137,29 @@ function awardRanked(state, scoreFn, label, log) {
 /* The two endgame land awards, exposed so the standings can show the same running
    totals players will actually be scored on. */
 function plotCount(state, p) {
-  return Object.values(state.board.owner).filter((id) => id === p.id).length;
+  /* THE AWARDS PAY FOR BUILT GROUND, NOT OWNED GROUND. They used to read board.owner,
+     so a plot bought and left bare scored exactly as much as one with a factory on it -
+     and measured, 78% of all land-award EP went to ground with nothing standing on it.
+     That buried the thing the awards are for: holding the most land is supposed to be a
+     race you win by DEVELOPING the city, and one horizontal disc spanning several
+     districts is the reason a horizontal industry is worth drafting. Neither could show
+     through a count dominated by land banking.
+
+     Branch plots stay out of this one. A branch holds its ground - it takes a disc and
+     nobody can build there - but The Real-Estate Mogul pays for how much land you have
+     developed, and a shopfront is not a holding. The Omnipresent, which pays for where
+     you ARE, counts them. */
+  const br = state.board.branches || {};
+  const built = new Set();
+  activeBiz(p).forEach((b) => b.footprint.forEach((x) => { if (!(String(x) in br)) built.add(String(x)); }));
+  return built.size;
 }
 function districtCount(state, p) {
+  /* Built ground again, and a branch is somewhere you ARE, so it counts here. Bare
+     plots do not: owning a corner of a district is not being present in it. */
   const districts = new Set();
-  Object.entries(state.board.owner).forEach(([plot, id]) => {
-    if (id === p.id) districts.add(`${state.board.cellOf[plot].r},${state.board.cellOf[plot].c}`);
+  Object.entries(state.board.branches || {}).forEach(([plot, br]) => {
+    if (br && br.playerId === p.id) { const c = state.board.cellOf[plot]; if (c) districts.add(`${c.r},${c.c}`); }
   });
   activeBiz(p).forEach((b) => b.footprint.forEach((plot) => districts.add(`${state.board.cellOf[plot].r},${state.board.cellOf[plot].c}`)));
   return districts.size;
@@ -2755,6 +3362,10 @@ function claimMegacorp(state, p, log, hqChoice) {
   match.have.forEach((b) => {
     if (b === hq) return;
     b.distressed = true;
+    /* The shopfronts come down with the chain, exactly as a sale takes them down. A
+       merged chain used to leave them standing in the bank's name - blocking plots
+       and counting districts for an owner who no longer had the company. */
+    removeBranches(state, b);
   });
   hq.isHQ = true;
   hq.distressed = false;
@@ -2776,15 +3387,23 @@ function claimMegacorp(state, p, log, hqChoice) {
 }
 
 /* ---------------- Renovation & plot market ---------------- */
-/* A renovation has to fit the structure that is already standing there, so the card
-   must match its level, and from level 2 up its scaling type as well: a distressed
-   horizontal shell occupies several plots and a vertical one occupies a single stacked
-   plot, and neither can be rebuilt as the other. At level 1 both occupy exactly one
-   plot, so a level-1 shell is open to any level-1 Blueprint. */
+/* A renovation has to fit the shell's LEVEL, and nothing else (v22). Any card of the
+   level renovates any distressed structure, whatever industry it was and whatever
+   shape it stands in: the company keeps the shell's footprint and per-plot levels
+   exactly as they are, pays rent and counts for the land awards on every plot of it,
+   and grows from there in its own industry's direction - so a stacked shell becomes
+   a one-plot Manufacturing and a row of plots a spread Healthcare. The engine already
+   carried hybrid footprints for the two personas that bend growth, so nothing new has
+   to stand up.
+
+   It used to require the same scaling type from level 2 up. Measured in
+   audit_renovation.js that rule blocked six offers a game at three players, and
+   dropping it is the best balance move of the v22 cycle: renovations rise 43%, about
+   one hybrid a game is formed, and the gain lands on the horizontal industries -
+   renovations into Utilities nearly double - because the common shell is a stacked
+   plot and a horizontal card may now take it without finding adjacent plots. */
 function renovationEligible(distressedBiz, bp) {
-  if (distressedBiz.level !== bp.lvl) return false;
-  if (distressedBiz.level === 1) return true;            // one plot either way: anything fits
-  return SCALING[bizInd(distressedBiz)] === SCALING[bp.ind];
+  return distressedBiz.level === bp.lvl;
 }
 function findDistressedTargets(state) {
   const out = [];
@@ -2894,6 +3513,10 @@ function doReclaim(state, p, biz, log) {
      company in that industry. That is a player's own portfolio broadening, not the
      company being paid for twice. */
   p.businesses.push(biz);
+  /* The shopfronts went when the chain failed; the new owner opens their own,
+     wherever suits them now, which is the point of the branches being placed
+     rather than abstract. */
+  placeBranches(state, p, biz, log);
   const from = prev && prev.id !== p.id ? ` (previously ${prev.name}'s)` : "";
   log(logMsg("{0} buys the distressed {1} ({2} L{3}) back from the bank{4} for ${5} (cash: ${6}).", p.name, biz.bp.name, bizInd(biz), biz.level, from, cost, Math.round(p.cash)), p.id);
   claimIndustryBonus(state, p, bizInd(biz), log);
@@ -2995,7 +3618,7 @@ const TRACK_HELP_BEGINNER = {
   raise_capital: "LOAN takes $20 from the bank for one of your discs. You have six discs, five of them needed for a full board of companies, so borrowing twice costs you a company bay.",
   ma: "LAUNCH builds a Blueprint from your hand onto any free plots nobody has taken \u2014 the ground comes with the company, free \u2014 and pays you 3 EP the first time you enter each industry.",
   rd: "RESEARCH draws the face-up top card of any industry deck. Decks are shuffled whole, so a level 2 or level 3 card can be drawn and built straight away: it is how you reach a bigger footprint here.",
-  board_meeting: "REPOSITION moves you to first in turn order. First sells into a contested demand icon before anybody else and places this quarter's Logistic Hub.",
+  board_meeting: "REPOSITION moves you to first in turn order. First places workers first next quarter, acts first on every track, and places this quarter's Logistic Hub.",
 };
 const trackHelp = (state, key) => (isBeginner(state) ? TRACK_HELP_BEGINNER[key] : TRACK_HELP[key]);
 /* Board Meeting asks for its help by name, and `t(boardMeetingHelp(state))`
@@ -3043,13 +3666,13 @@ function megacorpWorthIt(state, p, match) {
      is right, not because it did anything, and if the tile EP or the level EP ever
      move it is the line that stops the bot buying quarters that do not exist. */
   const ends = megacorpHQs(p).length + 1 >= MEGACORPS_TO_END;
-  const qLeft = ends ? 1 : Math.max(1, 13 - (state.quarter || 1));
+  const qLeft = ends ? 1 : Math.max(1, finalQuarterOf(state) + 1 - (state.quarter || 1));
   const hq = pickHQ(state, p, match.have, tierOfTile(match.tile));
   let lostPerQuarter = 0;
   for (const b of match.have) {
     const units = Math.min(bizProd(b), sellableForBiz(state, p, b));
-    const trade = units * price(state.pm, bizInd(b))
-      + Math.max(0, bizProd(b) - units) * 1 - bizOpex(b) - RENT_PER_LEVEL * b.level;
+    const trade = (unitRevenueOn(state) ? units * price(state.pm, bizInd(b)) + Math.max(0, bizProd(b) - units) * 1 : bandRevenue(state, p, b).revenue)
+      - bizRunningCost(state, p, b);
     lostPerQuarter += Math.max(0, trade);
   }
   /* This was a bonus and is now a bill: every rival building already standing beside
@@ -3069,7 +3692,7 @@ function hqGroundRent(state, p, b) {
   for (const plot of b.footprint) {
     const ownerId = state.board.owner[plot];
     if (ownerId === undefined || ownerId === p.id) continue;
-    due += RENT_PER_LEVEL * levelsOn(b, plot);
+    due += plotRentRate(state, plot) * levelsOn(b, plot);
   }
   return due;
 }
@@ -3078,7 +3701,7 @@ function hqGroundRent(state, p, b) {
    - the reverse of the rule this heuristic was written for, and the reverse again of
    the plain "keep the biggest" that preceded that. */
 function pickHQ(state, p, have, tier = 1) {
-  const qLeft = Math.max(1, 13 - (state.quarter || 1));
+  const qLeft = Math.max(1, finalQuarterOf(state) + 1 - (state.quarter || 1));
   /* Two things decide which building to keep: the industry it sits in, because the
      headquarters banks that industry's price DIVIDED BY THE TILE'S TIER every quarter,
      and what stands around it, because every rival building beside it collects the
@@ -3185,14 +3808,14 @@ function botChoosePlanningTrack(state, p) {
   const upTilt = p.archetype === "upgrade_focus" ? 2
                : p.archetype === "vest_rebuild" && state.quarter > 4 && state.quarter <= 8 ? 1 : 0;
   const buildValue = buildable ? buildable.score : -Infinity;
-  const growValue = growable && safeToSpend(p, bizSetup(growable.biz), bizOpex(growable.biz))
+  const growValue = growable && safeToSpend(p, bizSetup(growable.biz), upgradeAddedBill(state, growable.biz), 0.4, state)
     ? growable.score + upTilt : -Infinity;
   const growFirst = growValue > buildValue;
 
   let order;
   if (outOfCards) order = ["rd", "ma", "raise_capital"];        // nothing to build without Blueprints
   else if (nothingAffordable) order = ["raise_capital", "rd", "ma"];
-  else if (committedOpex(p) > p.cash * 0.7 && p.archetype !== "rush_cheap") order = ["raise_capital", "ma", "rd"];
+  else if (committedOpex(p, state) > p.cash * 0.7 && p.archetype !== "rush_cheap") order = ["raise_capital", "ma", "rd"];
   else order = growFirst ? ["rd", "ma", "raise_capital"] : ["ma", "rd", "raise_capital"];
   // Skip a track that cannot achieve anything for this player right now: an empty hand
   // makes M&A pointless, a full company slate and a full hand make R&D pointless.
@@ -3247,7 +3870,7 @@ function buildResolutionQueue(state) {
    likes, which is the same valuation the full game uses. RESEARCH the deck
    whose top card scores best, which is how a bot reaches a level-2 or level-3
    card - the only route to a big footprint here. REPOSITION to go first, which
-   decides who sells into a contested demand icon and who places the hub. */
+   decides who places workers first and who places the hub. */
 function botResolveBeginner(state, p, rng, log, track) {
   if (track === "ma") {
     const pick = bestLaunch(state, p, p.archetype, 0);
@@ -3271,7 +3894,7 @@ function botResolveBeginner(state, p, rng, log, track) {
   }
   if (track === "board_meeting") { doReposition(state, p, log); return; }
   /* raise_capital: LOAN is the only thing left on it. */
-  const tight = committedOpex(p) > p.cash * 0.8 || p.cash < 15;
+  const tight = committedOpex(p, state) > p.cash * 0.8 || p.cash < 15;
   const buildingSoon = p.hand.length > 0 && canLaunchMore(p) && discsFree(state, p) > 0
     && p.cash < Math.min(...p.hand.map((bp) => bp.setup));
   if ((tight || buildingSoon) && doLoan(state, p, log)) return;
@@ -3285,7 +3908,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     // end with that spare. Borrow late only when it converts straight into a company.
     const lateGame = state.quarter >= 9;
     const MAX_VOLUNTARY_DISCS = lateGame ? 1 : 3;
-    const genuineNeed = committedOpex(p) > p.cash * 0.8 || p.cash < 15;
+    const genuineNeed = committedOpex(p, state) > p.cash * 0.8 || p.cash < 15;
     // a company that cannot produce is pure OPEX drain - sell it before anything else
     // late game with money doing nothing: land is 10 EP for the most plots and 10 more
     // for the most districts, so buying beats holding
@@ -3300,7 +3923,7 @@ function botResolveOneAction(state, p, track, rng, log) {
           const fresh = districtsMine.has(`${c.r},${c.c}`) ? 0 : 1;   // new district = extra award progress
           return { k, cost: plotValue(state, k), score: fresh * 4 - plotValue(state, k) * 0.5 };
         }).sort((a, b) => b.score - a.score);
-        const pick = ranked.find((r) => p.cash - r.cost > committedOpex(p) * 0.6);
+        const pick = ranked.find((r) => p.cash - r.cost > committedOpex(p, state) * 0.6);
         if (pick && doBuyPlot(state, p, pick.k, log)) return;
       }
     }
@@ -3312,7 +3935,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     // the moment the track stopped going that low.
     const collapsed = activeBiz(p).find((b) => {
       if (price(state.pm, bizInd(b)) > PRICE_MIN) return false;
-      const net = bizProd(b) * PRICE_MIN - bizOpex(b) - RENT_PER_LEVEL * b.level;
+      const net = (unitRevenueOn(state) ? bizProd(b) * PRICE_MIN : bandRevenue(state, p, b).revenue) - bizRunningCost(state, p, b);
       return net < 0;
     });
     // ...but only when there is something better to put in its place: the company still
@@ -3331,7 +3954,7 @@ function botResolveOneAction(state, p, track, rng, log) {
     if (genuineNeed && p.discsInBank >= 3 && activeBiz(p).length) {
       // already carrying real debt just to keep the lights on - cut the worst offender loose
       // instead of financing it forever with more loans
-      const worst = worstRoiBusiness(p, state.pm, state.quarter, 0);
+      const worst = worstRoiBusiness(p, state.pm, state.quarter, 0, state);
       if (worst) { sellCompany(state, p, worst, false); log(logMsg("{0} cuts loose {1} rather than take another loan to cover it (cash: ${2}).", p.name, worst.bp.name, Math.round(p.cash)), p.id); }
       else doLoan(state, p, log);
     } else if (genuineNeed) doLoan(state, p, log);
@@ -3363,7 +3986,7 @@ function botResolveOneAction(state, p, track, rng, log) {
       .filter((db) => canReclaim(state, p, db))
       .map((db) => {
         const px = price(state.pm, bizInd(db));
-        const value = bizProd(db) * px - bizOpex(db) - RENT_PER_LEVEL * db.level;
+        const value = (unitRevenueOn(state) ? bizProd(db) * px : bandRevenue(state, p, db).revenue) - bizRunningCost(state, p, db);
         const fresh = missingIndustries(p).has(bizInd(db)) ? INDUSTRY_DEBUT_EP : 0;
         return { db, score: value + fresh - reclaimCost(db) * 0.25 };
       })
@@ -3439,7 +4062,7 @@ function botResolveOneAction(state, p, track, rng, log) {
        awards will still be paid, so the yearly variant makes this urgent from Q1 and
        the standard game keeps it a late-game move. */
     const landIsPoints = discsFree(state, p) > reserveForCompanies
-      && p.cash > committedOpex(p) * 1.5 + 10
+      && p.cash > committedOpex(p, state) * 1.5 + 10
       // either the awards pay often enough to chase all game, or it is late and the
       // money is otherwise going to convert at whatever the next year end charges
       && (landEPWeight(state, p) >= 3 || endgameSpendMode(state, p));
@@ -3492,7 +4115,7 @@ function botResolveOneAction(state, p, track, rng, log) {
        production the demand board cannot absorb is recycled at $1, so a company that
        already outruns its reach is the worst one on the list to grow. */
     const candidates = starved ? [] : activeBiz(p).filter((b) => !b.upgraded
-      && safeToSpend(p, bizSetup(b), bizOpex(b)) && !upgradeBlockedReason(state, p, b));
+      && safeToSpend(p, bizSetup(b), upgradeAddedBill(state, b), 0.4, state) && !upgradeBlockedReason(state, p, b));
     let upgradable = null, bestGain = -Infinity;
     for (const b of candidates) {
       const gain = upgradeScore(state, p, b);   // endgame points, same scale as a build
@@ -3606,14 +4229,19 @@ function continueProduction(state, log, rng) {
   runProduction(state, log);
   state.deliveryRemaining = {};
   state.crossSellRemaining = {};
-  state.reChoices = {};   // Retail re-picks its extra districts every delivery
+  state.reBonusPick = {};  // the Supply Chain Expert's one extra district, re-picked each delivery
   state.hoBonusPaid = {};
-  /* Delivery runs in turn order, everybody in one sequence. Demand icons are first
-     come first served, so who sells before whom is the whole point of being first
-     player - and this used to run every bot first, whatever the seating, which meant
-     a human at the front of the order still arrived to a picked-over board. */
+  resetDeliveries(state.demand);   // every icon is open to everyone again
+  state.demand.lateRows = hasVariant(state, "lateRows");
+  /* Delivery still walks the turn order, one player at a time, because a human has to
+     be handed the board somewhere in the sequence. Nothing hangs on the order any
+     more: an icon is not used up, so nobody arrives to a picked-over board. */
   state.deliveryOrder = [...state.turnOrder];
   state.deliveryCursor = 0;
+  /* Revenue by band needs nobody's hand: every company is paid for the icons it reaches and
+     the quarter closes. The unit-by-unit delivery below is the "Revenue by the unit"
+     variant, the way the game sold up to v22. */
+  if (!unitRevenueOn(state)) { runBandRevenue(state, log); finishQuarter(state, log, rng); return; }
   if (!advanceDelivery(state, log)) finishQuarter(state, log, rng);
 }
 /* Walk the delivery order: a bot sells where it stands, a human is handed the board.
@@ -3651,9 +4279,8 @@ function startDeliveryFor(state, playerId, log) {
   {
     state.phase = "delivering";
     state.awaitingPlayerId = playerId;
-    /* The Hospitality neighbour trade is no longer taken off the top. Icons are
-       contested and neighbours are not, so it is applied to whatever is left when the
-       player is done delivering - which is both the better play and their choice. */
+    /* The Hospitality neighbour trade is not taken off the top: it is applied to
+       whatever is left when the player is done delivering, which is their choice. */
     pending.forEach((b) => {
       state.deliveryRemaining[b.id] = bizProd(b);
       state.crossSellRemaining[b.id] = bizInd(b) === "MA" ? b.level : 0;
@@ -3742,7 +4369,7 @@ function finishQuarterAfterRepay(state, log, rng) {
      playability choice - a deadline you can respond to - not as a balance fix. */
   const rushers = endgameRushers(state);
   if (rushers.length && !state.finalQuarter) {
-    state.finalQuarter = Math.min(12, state.quarter + 1);
+    state.finalQuarter = Math.min(finalQuarterOf(state), state.quarter + 1);
     const who = rushers.map((p) => p.name).join(" and ");
     log(logMsg("\u23f9 {0} {1} launched {2} Megacorps \u2014 Q{3} is the FINAL QUARTER.", who, rushers.length === 1 ? "has" : "have", MEGACORPS_TO_END, state.finalQuarter), null);
   }
@@ -3815,14 +4442,30 @@ function draftedPressure(drafted) {
 function expectedDraftPrice(ind, bumps) {
   return PRICE_MIN + Math.ceil(clampCell(cellOfPrice(BASE_PRICE[ind]) + bumps[ind]) / 2);
 }
-function draftScoreNaive(bp) {
-  return (bp.prod * BASE_PRICE[bp.ind] - bp.opex) / Math.max(1, bp.setup);
+/* What a card nets a quarter at a given price, before anything is known about where it
+   will stand: the printed production less the printed OPEX, or under the trial rules the
+   middle tier it would have to be built to reach (the Minimum if the price is too low
+   for it) less its round supplier bill. */
+function draftNet(bp, px, state) {
+  if (!trialOn(state)) return bp.prod * px - bp.opex;
+  const tiers = tierTable(bp.ind, bp.lvl);
+  return tiers.pays[px >= tiers.price[1] ? 1 : 0] - cardPotBill(state, bp);
 }
-function draftScore(bp, drafted) {
+function draftScoreNaive(bp, state) {
+  return draftNet(bp, BASE_PRICE[bp.ind], state) / Math.max(1, bp.setup);
+}
+function draftScore(bp, drafted, state) {
   const bumps = draftedPressure(drafted);
   const px = expectedDraftPrice(bp.ind, bumps);
   const rent = RENT_PER_LEVEL * bp.lvl;                                 // paid, then returned on own land
-  const net = bp.prod * px - bp.opex;
+  let net = draftNet(bp, px, state);
+  /* Drafted cards are face up. Under the trial rules a bot also reads who will be paying
+     into this industry's pot: every drafted card that lists it as a supplier, shared with
+     the cards of the same industry already taken. */
+  if (state && trialOn(state)) {
+    const feeding = drafted.reduce((t, d) => { const k = (d.deps || []).findIndex((x) => x.ind === bp.ind); return t + (k >= 0 ? supplierShares(d, d.lvl)[k] : 0); }, 0);
+    net += 0.5 * feeding / (1 + drafted.filter((d) => d.ind === bp.ind).length);
+  }
   let s = net / Math.max(1, bp.setup + (SCALING[bp.ind] === "H" ? (bp.lvl - 1) * 3 : 0));
   // a deck the table is already raiding will be crowded on the board too
   const sameInd = drafted.filter((d) => d.ind === bp.ind).length;
@@ -3848,8 +4491,8 @@ function botDraftPick(state, p) {
     // read the draft so far and take the card that will still be worth something
     // once everyone has built what they are drafting
     const sc = (aware && !aware.includes(p.id))
-      ? draftScoreNaive(state.decks[ind][0])
-      : draftScore(state.decks[ind][0], state.draftedCards || []);
+      ? draftScoreNaive(state.decks[ind][0], state)
+      : draftScore(state.decks[ind][0], state.draftedCards || [], state);
     if (sc > bestScore) { bestScore = sc; best = ind; }
   }
   const card = state.decks[best].shift();
@@ -3904,6 +4547,7 @@ function initGame(numBots, seedNum, humanNames, marketAwareSeats, usePersonas, v
   numBots = Math.max(0, nPlayers - nHumans);
   const board = buildBoard(rng);
   const demand = makeDemandPool(board, rng);
+  demand.lateRows = !!V.lateRows;   // rows 3-4 wait for Year 2 only under the variant; since v23 they are open from Q1
   const pm = makePriceMatrix();
 
   const bpByInd = {};
@@ -4005,7 +4649,7 @@ function Chip({ children, color, style }) {
   return (
     <span
       className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
-      style={{ backgroundColor: color + "22", color, border: `1px solid ${color}55`, ...style }}
+      style={{ backgroundColor: tintOf(color, 0.78), color: inkOf(color, 0.55), border: `1px solid ${mix(color, "#1d1f20", 0.15)}`, ...style }}
     >
       {children}
     </span>
@@ -4014,12 +4658,12 @@ function Chip({ children, color, style }) {
 
 function PriceTicker({ pm }) {
   return (
-    <div data-tut="prices" className="flex flex-wrap gap-2">
+    <div data-tut="prices" className="flex flex-wrap gap-1">
       {INDUSTRIES.map((ind) => (
-        <div key={ind} className="flex items-center gap-1.5 px-2.5 py-1 rounded-md" style={{ backgroundColor: "#1c1f26" }}>
-          <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: IND_COLOR[ind] }} />
-          <span className="text-xs font-mono text-gray-300">{ind}</span>
-          <span className="text-sm font-mono font-bold text-white">${price(pm, ind)}</span>
+        <div key={ind} className="flex items-center gap-1.5" title={t(IND_NAME[ind])}
+          style={{ padding: "2px 7px 2px 3px", backgroundColor: "#ffffff", border: "1px solid #d4d4d7" }}>
+          <IndLogo ind={ind} size={20} />
+          <span style={{ fontFamily: "var(--font-head)", fontWeight: 700, fontSize: 16, lineHeight: 1 }}>${price(pm, ind)}</span>
         </div>
       ))}
     </div>
@@ -4032,37 +4676,42 @@ function distTypeOf(tname) { return ["FC", "IA", "CC", "LM"].includes(tname) ? "
 
 
 function DemandCenter({ tname, demand, quarter, tileKey, deliverInfo, onDeliver }) {
-  const fam = districtFamily(tname);
-  /* `tile`, not `t`: a local named t shadows the translate function, and the
-     screen it breaks is the whole board. */
+  /* The printed tile: its code, a column for each level a company must have reached, and
+     a row for each industry it wants - the industry's logo, then four cells in a pale wash
+     of its colour carrying one to four marks. The marks ARE the level, so the grid can be
+     read without the header. */
   const tile = demand.tiles[tileKey];
   const rows = tile.rows;
-  const y2Open = quarter > 4;   // rows 3-4 open from Q5 (end of Year 1)
+  const y2Open = quarter > 4 || !demand.lateRows;   // rows 3-4 wait for Year 2 only under the lateRows variant
   return (
-    <div className="flex flex-col items-center justify-center h-full w-full select-none" style={{ gap: 2, padding: 3 }}>
-      <div className="font-bold text-white/70 tracking-wide" style={{ fontSize: 9, lineHeight: 1 }}>{tname}</div>
+    <div className="pu-demand">
+      <div className="pu-demand-h"><b>{tname}</b>{[1, 2, 3, 4].map((l) => <span key={l}>L{l}</span>)}</div>
       {rows.map((ind, rowIdx) => {
         const locked = rowIdx >= 2 && !y2Open;
+        const wash = tintOf(IND_COLOR[ind], 0.68), mark = mix(IND_COLOR[ind], "#1d1f20", 0.32);
         return (
-          <div key={rowIdx} className="flex items-center" style={{ gap: 2, opacity: locked ? 0.45 : 1 }}
-            title={locked ? t("Locked until Year 2 (opens at the end of Q4)") : undefined}>
-            {locked && <span style={{ fontSize: 8, lineHeight: 1, marginRight: 1 }}>{"\uD83D\uDD12"}</span>}
+          <div key={rowIdx} className={"pu-drow" + (locked ? " locked" : "")}
+            title={locked ? t("Locked until Year 2 (opens at the end of Q4)") : t(IND_NAME[ind])}>
+            <IndLogo ind={ind} size={14} />
             {[0, 1, 2, 3].map((levelIdx) => {
-              const filled = !!tile.filled[rowIdx][levelIdx];
+              /* A cell is marked sold only for the company that is delivering, and only
+                 under "Revenue by the unit": demand is a rate, not a stock. */
+              const filled = !!(deliverInfo && deliverInfo.used && deliverInfo.used[`${tileKey}|${rowIdx}|${levelIdx}`]);
               const isNormalEligible = !locked && !filled && deliverInfo && deliverInfo.ind === ind && levelIdx < deliverInfo.cap && deliverInfo.reach.has(tileKey);
               const isCrossEligible = !locked && !filled && deliverInfo && deliverInfo.crossActive && ind !== deliverInfo.ind && levelIdx < deliverInfo.level && deliverInfo.crossHome.has(tileKey);
               const isEligible = isNormalEligible || isCrossEligible;
               const discounted = isNormalEligible && deliverInfo.discountFrom != null && levelIdx >= deliverInfo.discountFrom;
-              let bg = filled ? "#00000055" : IND_COLOR[ind] + "aa";
               return (
                 <div key={levelIdx}
                   onClick={() => { if (isEligible) onDeliver(tileKey, rowIdx, levelIdx, isCrossEligible); }}
-                  title={`${ind} \u00b7 Lvl ${levelIdx + 1}${filled ? " (met)" : ""}${isCrossEligible ? " (cross-sell)" : ""}${discounted ? " (above your level: pays $1 less)" : ""}`}
-                  className={isEligible ? "cursor-pointer" : ""}
-                  style={{ width: 16, height: 13, borderRadius: 2, backgroundColor: bg,
-                    border: isCrossEligible ? "2px solid #f5a623" : discounted ? "2px dashed #ffffff" : isNormalEligible ? "2px solid #ffffff" : "1px solid #00000044",
-                    boxShadow: isEligible ? "0 0 4px rgba(255,255,255,0.5)" : "none" }}
-                />
+                  title={`${ind} \u00b7 Lvl ${levelIdx + 1}${filled ? " (sold to this quarter)" : ""}${isCrossEligible ? " (cross-sell)" : ""}${discounted ? " (above your level: pays $1 less)" : ""}`}
+                  className={"pu-dcell" + (isEligible ? " pick" : "")}
+                  data-pick={isNormalEligible ? "own" : isCrossEligible ? "cross" : undefined}
+                  style={{ backgroundColor: filled ? "#d4d4d7" : wash,
+                    border: isCrossEligible ? "2px solid #e8930c" : discounted ? "2px dashed #1d1f20" : isNormalEligible ? "2px solid #1d1f20" : undefined,
+                    boxShadow: isEligible ? "0 0 4px rgba(29,31,32,0.35)" : "none" }}>
+                  {Array.from({ length: levelIdx + 1 }, (_, k) => <i key={k} style={{ backgroundColor: filled ? "#98989b" : mark }} />)}
+                </div>
               );
             })}
           </div>
@@ -4119,8 +4768,12 @@ const BODY = 5 * PLOT + 4 * IGAP + 2 * WALL;    // district body edge length
 const PITCH = BODY + ROAD;                      // district-to-district pitch
 const BOARD_PX = 4 * PITCH + ROAD;              // whole board edge length
 
-const ROAD_COLOR = "#c8cfdd";                   // light roads, as on the printed board
-const PLOT_EMPTY = "#20232c";
+const ROAD_COLOR = "#e3ecf5";                   // the pale steel of the printed board's streets
+const PLOT_EMPTY = "#ffffff";
+/* A street's price tag, darker the dearer it is - the printed board's own scale. */
+const ROAD_SHADE = ["#b5d9fd", "#b5d9fd", "#94bce3", "#749dc4", "#597ea3", "#416180", "#2c455d"];
+const roadShade = (v) => ROAD_SHADE[Math.max(0, Math.min(ROAD_SHADE.length - 1, v))];
+const roadInk = (v) => (v >= 3 ? "#ffffff" : "#1d2d3d");
 
 function districtOrigin(i0) { return ROAD + i0 * PITCH; }
 function roadOrigin(i) { return i * PITCH; }
@@ -4414,19 +5067,17 @@ function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot
     for (let dc = 1; dc <= 4; dc++) {
       const tname = board.tiles[`${dr},${dc}`];
       if (!tname) continue;
-      const bg = DIST_TYPE_COLOR[distTypeOf(tname)];
       layers.push(
         <div key={`d-${dr}-${dc}`} style={{
           position: "absolute", left: districtOrigin(dc - 1), top: districtOrigin(dr - 1),
-          width: BODY, height: BODY, backgroundColor: bg, borderRadius: 6,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.45)",
+          width: BODY, height: BODY, backgroundColor: "#ffffff", border: "1px solid #1d1f20", borderRadius: 2, boxSizing: "border-box",
         }} />
       );
       const dm = demandRect(dr, dc);
       layers.push(
         <div key={`dm-${dr}-${dc}`} style={{
           position: "absolute", left: dm.x, top: dm.y, width: dm.w, height: dm.h,
-          backgroundColor: "rgba(0,0,0,0.16)", borderRadius: 4, overflow: "hidden",
+          border: "1px solid #b7b7ba", borderRadius: 1, overflow: "hidden", boxSizing: "border-box",
         }}>
           <DemandCenter tname={tname} demand={demand} quarter={quarter}
             tileKey={`${dr},${dc}`} deliverInfo={deliverInfo} onDeliver={onDeliver} />
@@ -4446,12 +5097,12 @@ function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot
       layers.push(
         <div key={`pt-${r}-${c}`} style={{
           position: "absolute", left: rect.x, top: rect.y, width: rect.w, height: rect.h,
-          backgroundColor: "#000000", clipPath: isCorner ? CROSS_CLIP : undefined,
+          backgroundColor: roadShade(v), clipPath: isCorner ? CROSS_CLIP : undefined,
           borderRadius: isCorner ? 0 : 3,
           display: "flex", alignItems: "center", justifyContent: "center",
           pointerEvents: "none",
         }}>
-          <span style={{ fontSize: 11, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#ffffff", lineHeight: 1 }}>{v}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "var(--font-head)", color: roadInk(v), lineHeight: 1 }}>{v}</span>
         </div>
       );
     }
@@ -4486,27 +5137,27 @@ function BoardView({ board, players, demand, quarter, selectedPlot, onSelectPlot
   ));
 
   return (
-    <div data-tut="board" className="board-shell rounded-lg p-2" style={{ backgroundColor: "#0b0c0f", border: "1px solid #262a33" }}>
+    <div data-tut="board" className="board-shell rounded-lg p-2" style={{ backgroundColor: "#e9e9ea", border: "1px solid #d4d4d7" }}>
       <BoardViewport size={BOARD_PX}>
         <div style={{ position: "relative", width: BOARD_PX, height: BOARD_PX, overflow: "hidden", borderRadius: 2 }}>
           {layers}
         </div>
       </BoardViewport>
       <div className="flex flex-wrap gap-2 mt-2">
-        {Object.entries(DIST_TYPE_LABEL).map(([k, label]) => (
-          <div key={k} className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: DIST_TYPE_COLOR[k] }} />
-            <span className="text-[9px] text-gray-400">{t(label)}</span>
-          </div>
-        ))}
+        <div className="flex items-center gap-1">
+          <span className="text-[9px] text-gray-400">{t("Road price")}</span>
+          {[1, 2, 3, 4, 5, 6].map((v) => (
+            <span key={v} style={{ width: 15, height: 12, backgroundColor: roadShade(v), color: roadInk(v), fontSize: 10, fontWeight: 700, lineHeight: "12px", textAlign: "center", fontFamily: "var(--font-head)" }}>{v}</span>
+          ))}
+        </div>
         {selectMode && (
           <div className="flex items-center gap-1 ml-2">
-            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: "#0d2818", border: "2px solid #4ade80" }} />
-            <span className="text-[9px]" style={{ color: "#4ade80" }}>{t("Click to build here")}</span>
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: "#e3effb", border: "2px solid #2f9e55" }} />
+            <span className="text-[9px]" style={{ color: "#1f8a4c" }}>{t("Click to build here")}</span>
           </div>
         )}
         <div className="flex items-center gap-1 ml-2">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ border: "2px solid #22D3EE" }} />
+          <span className="w-2.5 h-2.5 rounded-full" style={{ border: "2px solid #1b8fb3" }} />
           <span className="text-[9px] text-gray-400">{t("Logistic Hub ({0})", lhCount(board))}</span>
         </div>
       </div>
@@ -4523,15 +5174,15 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
     for (const p of players) {
       const b = p.businesses.find((bb) => bb.id === bizId);
       // a distressed structure belongs to nobody: show it derelict, not in an owner's colour
-      if (b) { fill = b.distressed ? "#4a4d57" : IND_COLOR[b.bp.ind]; foundBiz = b; break; }
+      if (b) { fill = b.distressed ? "#b7b7ba" : IND_COLOR[b.bp.ind]; foundBiz = b; break; }
     }
   }
-  if (chosen) fill = "#1a4a2e";
-  else if (eligible) fill = "#0d2818";
+  if (chosen) fill = "#b5d9fd";
+  else if (eligible) fill = "#e3effb";
   const ownerColor = ownerId !== undefined ? PLAYER_COLORS[ownerId] : null;
-  const border = chosen || eligible ? "2px solid #4ade80"
-    : selected ? "2px solid #ffffff"
-    : "1px solid rgba(0,0,0,0.5)";
+  const border = chosen || eligible ? "2px solid #2f9e55"
+    : selected ? "2px solid #1d1f20"
+    : "1px solid rgba(29,31,32,0.6)";
   /* Storeys on THIS plot - not the company's level, and not its industry's habit. A
      level-3 company spread over two plots has a two-storey wing and a one-storey one;
      a Technology company owned by a Systems Architect stacks although its industry
@@ -4549,37 +5200,38 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
       onMouseEnter={(e) => { if (foundBiz && onHoverBiz) { const b = e.currentTarget.getBoundingClientRect(); onHoverBiz(foundBiz, b.right, b.top); } }}
       onMouseLeave={() => { if (foundBiz && onHoverBiz) onHoverBiz(null); }}
       className="cursor-pointer"
+      data-eligible={eligible && !chosen ? "1" : undefined}
       title={`$${plotValue({ board }, plotKeyStr)} plot value${isHub ? " \u00b7 Logistic Hub" : hasLH ? " \u00b7 adjacent to a Logistic Hub" : ""}`}
       style={{
         position: "absolute", left: rect.x, top: rect.y, width: rect.w, height: rect.h,
-        backgroundColor: fill, border, borderRadius: 4, zIndex: 3,
+        backgroundColor: fill, border, borderRadius: 2, zIndex: 3,
         boxSizing: "border-box",
       }}
     >
       {ownerColor && (
-        <span style={{ position: "absolute", inset: 1, borderRadius: "50%",
-          border: `2px solid ${ownerColor}`, pointerEvents: "none" }} />
+        <span style={{ position: "absolute", inset: 2, borderRadius: "50%", boxSizing: "border-box",
+          border: `3px solid ${ownerColor}`, backgroundColor: foundBiz ? "transparent" : ownerColor + "38", pointerEvents: "none" }} />
       )}
       {foundBiz && foundBiz.distressed && (
         <span title={t("Distressed - unowned")} style={{ position: "absolute", inset: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 11, fontWeight: 800, color: "#f5a623", pointerEvents: "none" }}>!</span>
+          fontSize: 11, fontWeight: 800, color: "#b86e00", pointerEvents: "none" }}>!</span>
       )}
       {/* Storeys as a numeral in the corner. Concentric rings were tried first and
           read as texture, not as a count - three rings in a 20px cell are a blur. */}
       {storeys > 1 && (
         <span title={`${storeys} storeys`} style={{
           position: "absolute", right: -2, bottom: -2, minWidth: 11, height: 11, padding: "0 2px",
-          borderRadius: 3, backgroundColor: IND_COLOR[bizInd(foundBiz)], color: "#0b0e14",
-          border: "1px solid #0b0e14", fontSize: 8, fontWeight: 800, lineHeight: "9px",
+          borderRadius: 3, backgroundColor: IND_COLOR[bizInd(foundBiz)], color: "#1d1f20",
+          border: "1px solid #b7b7ba", fontSize: 8, fontWeight: 800, lineHeight: "9px",
           display: "flex", alignItems: "center", justifyContent: "center",
           pointerEvents: "none", zIndex: 4, boxSizing: "border-box",
         }}>{storeys}</span>
       )}
       {isHub && (
         <span title={t("Logistic Hub")} style={{
-          position: "absolute", inset: 2, borderRadius: "50%", backgroundColor: "#22D3EE",
-          border: "1.5px solid #0e5f6f", pointerEvents: "none",
+          position: "absolute", inset: 2, borderRadius: "50%", backgroundColor: "#1b8fb3",
+          border: "1.5px solid #7fcfe0", pointerEvents: "none",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 9, fontWeight: 800, color: "#062b33",
         }}>H</span>
@@ -4590,8 +5242,8 @@ function PlotCell({ plotKeyStr, board, players, rect, selected, onSelect, eligib
           plot inspector does the arithmetic. */}
       {foundBiz && foundBiz.isHQ && (
         <span title={`Megacorp HQ: ${t(foundBiz.megacorpName)} \u2014 tier ${tierOfHQ(foundBiz)}, so it banks its industry's price divided by ${tierOfHQ(foundBiz)} each quarter`} style={{
-          position: "absolute", inset: 3, borderRadius: 2, backgroundColor: "#f5d76e",
-          border: "1.5px solid #7a5c00", pointerEvents: "none",
+          position: "absolute", inset: 3, borderRadius: 2, backgroundColor: "#ffe9a8",
+          border: "1.5px solid #a1843e", pointerEvents: "none",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 9, fontWeight: 800, color: "#3a2c00",
         }}>HQ</span>
@@ -4609,10 +5261,10 @@ function RentLine({ p }) {
   if (!inn && !out && !saved) return null;
   const net = inn - out;
   return (
-    <div className="mt-1.5 pt-1.5 text-[10px]" style={{ borderTop: "1px solid #262a33" }}>
+    <div className="mt-1.5 pt-1.5 text-[10px]" style={{ borderTop: "1px solid #d4d4d7" }}>
       <div className="flex items-center justify-between">
         <span className="text-gray-500">{t("Ground rent")}</span>
-        <span className="font-mono" style={{ color: net > 0 ? "#8fd3b6" : net < 0 ? "#fca5a5" : "#8b93a3" }}>
+        <span className="font-mono" style={{ color: net > 0 ? "#416180" : net < 0 ? "#b3261a" : "#5d5d60" }}>
           {net > 0 ? "+" : ""}${Math.round(net)}
         </span>
       </div>
@@ -4646,11 +5298,11 @@ function EPBreakdown({ hover }) {
     <Floating><div className="fixed rounded-md p-2.5 pointer-events-none" style={{ zIndex: 9999,
       left: Math.max(PAD, Math.min(hover.x - W - 12, vw - W - PAD)),
       ...vertical, width: W, maxHeight: vh - 2 * PAD, overflowY: "auto",
-      backgroundColor: "#0e1014", border: `1px solid ${PLAYER_COLORS[p.id]}88`, boxShadow: "0 4px 16px rgba(0,0,0,0.55)",
+      backgroundColor: "#f2f2f3", border: `1px solid ${PLAYER_COLORS[p.id]}88`, boxShadow: "0 4px 16px rgba(43,43,45,0.19)",
     }}>
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-xs font-bold" style={{ color: PLAYER_COLORS[p.id] }}>{p.name}</span>
-        <span className="text-xs font-bold font-mono" style={{ color: "#8fd3b6" }}>{epTotal(p).toFixed(0)} EP</span>
+        <span className="text-xs font-bold font-mono" style={{ color: "#416180" }}>{epTotal(p).toFixed(0)} EP</span>
       </div>
       {!log.length && <div className="text-[10px] text-gray-500 italic">{t("No points scored yet.")}</div>}
       {log.length > 0 && (
@@ -4661,7 +5313,7 @@ function EPBreakdown({ hover }) {
                 <span className="text-gray-300 leading-tight">
                   {epText(e)}{e.quarter ? <span className="text-gray-600"> &middot; Q{e.quarter}</span> : null}
                 </span>
-                <span className="font-mono shrink-0" style={{ color: e.amount < 0 ? "#fca5a5" : "#8fd3b6" }}>
+                <span className="font-mono shrink-0" style={{ color: e.amount < 0 ? "#b3261a" : "#416180" }}>
                   {e.amount > 0 ? "+" : ""}{e.amount.toFixed(0)}
                 </span>
               </div>
@@ -4718,10 +5370,10 @@ export const ordinal = (n) => n + (n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "
 
 /* The order the table will sell in, and how far through it the quarter is.
 
-   Delivery runs in turn order and demand icons are first come first served, so "does
-   that seat sell before me or after me" is a question every player has in front of
-   them - and nothing on screen answered it. You could usually infer the first player
-   from whoever sat on Board Meeting, and no further than that.
+   Delivery walks the turn order one player at a time, and the roster shows where the
+   quarter has got to. Icons are not used up, so the order no longer costs anybody
+   anything - it is a queue to be handed the board, not a race - but a player still
+   wants to know whose turn it is, and nothing on screen used to say.
 
    Which list is authoritative depends on the phase. Once delivery opens it is
    state.deliveryOrder, snapshotted from turnOrder as the phase begins; before then
@@ -4764,7 +5416,7 @@ function BizTooltip({ state, hover }) {
       left: Math.max(PAD, Math.min(hover.x + 14, vw - W - PAD)),
       ...vertical,
       width: W, maxHeight: vh - 2 * PAD, overflowY: "auto",
-      backgroundColor: "#0e1014", border: `1px solid ${IND_COLOR[b.bp.ind]}88`, boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+      backgroundColor: "#f2f2f3", border: `1px solid ${IND_COLOR[b.bp.ind]}88`, boxShadow: "0 4px 16px rgba(43,43,45,0.17)",
     }}>
       <div className="flex items-center justify-between mb-1">
         <Chip color={IND_COLOR[b.bp.ind]}>{b.bp.ind}</Chip>
@@ -4772,7 +5424,7 @@ function BizTooltip({ state, hover }) {
       </div>
       <div className="text-xs font-bold text-gray-100 mb-1.5">{t(b.bp.name)}</div>
       <div className="text-[10px] font-mono text-gray-300 space-y-0.5">
-        <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: owner ? PLAYER_COLORS[owner.id] : "#666" }} /> {t("Biz owner: {0}", owner ? owner.name : "\u2014")}</div>
+        <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: owner ? PLAYER_COLORS[owner.id] : "#98989b" }} /> {t("Biz owner: {0}", owner ? owner.name : "\u2014")}</div>
 <div className="flex items-center gap-1 flex-wrap">
           <span>{t("Land ({0} plots):", total)}</span>
           {holders.map(({ player, plots }) => (
@@ -4781,9 +5433,14 @@ function BizTooltip({ state, hover }) {
           {unowned > 0 && <span className="text-red-400">{t("{0} unowned", unowned)}</span>}
           {!holders.length && !unowned && <span className="text-gray-500">&mdash;</span>}
         </div>
-        <div>{t("Setup: ${0} · Suppliers: ${1} · Ground rent: ${2} (none on your own land)", bizSetup(b), bizPotBill(b), RENT_PER_LEVEL * b.level)}</div>
-        <div>{t("Split: {0}", b.bp.deps.map((d, i) => `${d.ind} $${potShares(b)[i]}`).join(", ") || "\u2014")}</div>
-        <div>{t("Production: {0}/qtr", bizProd(b))}</div>
+        <div>{t("Setup: ${0} · Suppliers: ${1} · Ground rent: ${2} (none on your own land)", bizSetup(b), bizPotBill(state, b), bizRentAsTenant(state, b))}</div>
+        <div>{t("Split: {0}", b.bp.deps.map((d, i) => `${d.ind} $${potShares(state, b)[i]}`).join(", ") || "\u2014")}</div>
+        {!trialOn(state) && <div>{t("Production: {0}/qtr", bizProd(b))}</div>}
+        {!unitRevenueOn(state) && canProduce && (() => { const r = bandRevenue(state, ownerOf(state, b), b);
+          if (!trialOn(state)) return <div>{t("Reaches {0} icons: band {1} pays {2} x ${3} = ${4}", r.icons, BAND_LABEL[r.band], r.mult, r.px, r.revenue)}</div>;
+          return <div>{r.band === 2 ? t("Reaches {0} icons at ${1}: the top tier pays ${2}", r.icons, r.px, r.revenue)
+            : r.band === 1 ? t("Reaches {0} icons at ${1}: the middle tier pays ${2}", r.icons, r.px, r.revenue)
+            : t("Reaches {0} icons at ${1}: the Minimum pays ${2}", r.icons, r.px, r.revenue)}</div>; })()}
         {!canProduce && <div className="text-red-400">{t("Land unowned — not producing")}</div>}
       </div>
     </div></Floating>
@@ -4808,15 +5465,15 @@ function PlotInfo({ board, players, selectedPlot, pm }) {
       <span>{t("Land owner:")} <span className="text-gray-100">{ownerName}</span></span>
       {biz ? (
         <span>
-          {t("Business:")} <span style={{ color: biz.distressed ? "#8b93a3" : IND_COLOR[biz.bp.ind] }}>{t(biz.bp.name)}</span>
+          {t("Business:")} <span style={{ color: biz.distressed ? "#5d5d60" : inkOf(IND_COLOR[biz.bp.ind]) }}>{t(biz.bp.name)}</span>
           {" "}(L{biz.level}{biz.upgraded ? "\u2191" : ""}) &mdash;{" "}
           {biz.distressed
-            ? <span style={{ color: "#f5a623" }}>{t("Distressed · unowned (renovate via M&A → Buy)")}</span>
+            ? <span style={{ color: "#b86e00" }}>{t("Distressed · unowned (renovate via M&A → Buy)")}</span>
             : biz.isHQ
-              ? <span style={{ color: "#f5d76e" }}>{t("Megacorp HQ")} &ldquo;{t(biz.megacorpName)}&rdquo; &middot; {bizOwnerName}
-                  {" "}&middot; <span style={{ color: "#c9a0ff" }}>{t("tier {0}", tierOfHQ(biz))}</span>
+              ? <span style={{ color: "#8a6500" }}>{t("Megacorp HQ")} &ldquo;{t(biz.megacorpName)}&rdquo; &middot; {bizOwnerName}
+                  {" "}&middot; <span style={{ color: "#6b4fb3" }}>{t("tier {0}", tierOfHQ(biz))}</span>
                   {" "}&middot; ${price(pm, bizInd(biz))} &divide; {tierOfHQ(biz)} ={" "}
-                  <b style={{ color: brandEPFor(price(pm, bizInd(biz)), tierOfHQ(biz)) ? "#8fd3b6" : "#8b93a3" }}>
+                  <b style={{ color: brandEPFor(price(pm, bizInd(biz)), tierOfHQ(biz)) ? "#416180" : "#5d5d60" }}>
                     {brandEPFor(price(pm, bizInd(biz)), tierOfHQ(biz))} EP
                   </b>{" " + t("a quarter")}</span>
               : bizOwnerName}
@@ -4878,94 +5535,57 @@ function plotShort(board, pk) {
   return `${board.tiles[`${c.r},${c.c}`] || "?"}\u00b7${c.pos}`;
 }
 
-function BPCard({ bp, onClick, disabled, small, player }) {
+function BPCard({ bp, onClick, disabled, small, player, state, note, width }) {
   const g = growthFor(player, bp);
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`text-left rounded-md p-2 transition ${disabled ? "opacity-40 cursor-not-allowed" : "hover:brightness-125 cursor-pointer"}`}
-      style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, width: small ? 128 : 148 }}
-    >
-      <div className="flex items-center justify-between mb-1">
-        <Chip color={IND_COLOR[bp.ind]}>{bp.ind}</Chip>
-        <span className="text-[10px] font-mono text-gray-400">{t("Lvl {0}", bp.lvl)}</span>
-      </div>
-      <div className="text-xs font-semibold text-gray-100 leading-tight mb-1.5" style={{ minHeight: 28 }}>{t(bp.name)}</div>
-      <div className="text-[10px] font-mono text-gray-400 space-y-0.5">
-        <div>{t("Setup ${0} · Opex ${1}", bp.setup, bp.opex)}</div>
-        <div>{t("Prod {0}", bp.prod)} &middot; {bp.deps.map((d) => `${d.ind} $${d.val}`).join(", ")}</div>
-        {/* The word has to be readable - "H" teaches nobody which industries spread -
-            but t("Horizontal * 1 plot") wraps on the 128px hand card. One plot is the
-            assumption anyway, so the count only appears when it is not one. */}
-        <div title={growthTitle(g, bp.ind)} style={{ color: IND_COLOR[bp.ind] }}>
-          {SCALING_GLYPH[g.dir]} {t(SCALING_NAME[g.dir])}{g.flipped ? " \u2605" : ""}
-          {plotsForBP(bp) > 1 ? " \u00b7 " + t("{0} plots", plotsForBP(bp)) : ""}
-        </div>
-      </div>
-    </button>
+    <BlueprintCard face={cardFace(state, bp)} color={IND_COLOR[bp.ind]} mode="hand" grow={g.dir} flipped={g.flipped}
+      compact={small} onClick={onClick} disabled={!!onClick && disabled} note={note} width={width} />
   );
 }
 
-function BizCard({ b, onUpgrade, onSell, canUpgrade }) {
-  return (
-    <div className="rounded-md p-2" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, width: 148 }}>
-      <div className="flex items-center justify-between mb-1">
-        <Chip color={IND_COLOR[b.bp.ind]}>{b.bp.ind}</Chip>
-        <span className="text-[10px] font-mono text-gray-400">{t("Lvl {0}", b.level)}{b.upgraded ? " \u2191" : ""}</span>
-      </div>
-      <div className="text-xs font-semibold text-gray-100 leading-tight mb-1.5" style={{ minHeight: 28 }}>{t(b.bp.name)}</div>
-      <div className="text-[10px] font-mono text-gray-400 mb-1.5">{t("Opex ${0} · Prod {1}", bizOpex(b), bizProd(b))}</div>
-      <div className="flex gap-1">
-        <button onClick={onUpgrade} disabled={!canUpgrade} className="flex-1 text-[10px] px-1.5 py-1 rounded font-semibold disabled:opacity-30 disabled:cursor-not-allowed"
-          style={{ backgroundColor: "#2a2e38", color: "#e5e7eb" }}>{t("Upgrade")}</button>
-        <button onClick={onSell} className="flex-1 text-[10px] px-1.5 py-1 rounded font-semibold" style={{ backgroundColor: "#3a2020", color: "#f3a5a5" }}>{t("Sell")}</button>
-      </div>
-    </div>
-  );
-}
 
 function TrackBoard({ state, human }) {
+  /* The printed board: a row of round worker slots for each track, filled left to right
+     as workers arrive, with the rule that catches everyone printed underneath. */
   const tracks = [
     ["raise_capital", t("Raise Capital"), ["LOAN", "SELL"]],
     ["ma", "M&A", ["BUY", "LAUNCH"]],
     ["rd", "R&D", ["RESEARCH", "UPGRADE"]],
   ];
+  const seat = (pid, i) => {
+    const p = pid !== null ? state.players[pid] : null;
+    return <WorkerSlot key={i} n={i + 1} color={p ? PLAYER_COLORS[pid] : null} label={p ? (p.name || "?").slice(0, 1) : null} title={p ? p.name : undefined} />;
+  };
+  const row = { display: "flex", alignItems: "center", gap: 8, padding: "5px 0", borderTop: "1px solid #e7e7ea" };
+  const name = { width: 104, flex: "none", fontFamily: "var(--font-head)", fontWeight: 700, fontSize: 13, letterSpacing: ".06em", textTransform: "uppercase", lineHeight: 1.15 };
+  const acts = { display: "block", fontWeight: 500, fontSize: 9.5, letterSpacing: ".1em", color: "#6f6f72" };
   return (
-    <div data-tut="tracks" className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-      <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">{t("Planning & Action Tracks")} <Help text={t("Place two workers, then tracks resolve first-in, last-out: whoever placed LAST acts FIRST. Committing early earns +1 extra action for every player who joins after you, but they all act before you do.")} /></div>
+    <div data-tut="tracks" className="p-3" style={{ backgroundColor: "#ffffff", border: "1px solid #d4d4d7" }}>
+      <div className="pu-head mb-1 flex items-center gap-1">{t("Planning & Action Tracks")} <Help text={t("Place two workers, then tracks resolve first-in, last-out: whoever placed LAST acts FIRST. Committing early earns +1 extra action for every player who joins after you, but they all act before you do.")} /></div>
       {tracks.map(([key, label, actions]) => (
-        <div key={key} className="flex items-center gap-2">
-          <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0 flex items-center gap-1">
-            {t(label)} <Help text={t(trackHelp(state, key))} />
+        <div key={key} style={row}>
+          <div style={name}>
+            <span className="flex items-center gap-1">{t(label)} <Help text={t(trackHelp(state, key))} /></span>
+            <span style={acts}>{actions.join(" \u00b7 ")}</span>
           </div>
-          <div className="flex gap-1">
-            {state.tracks[key].map((pid, i) => (
-              <div key={i} className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold"
-                style={{ backgroundColor: pid !== null ? PLAYER_COLORS[pid] + "33" : "#1c1f26", border: `1px solid ${pid !== null ? PLAYER_COLORS[pid] : "#33384355"}` }}>
-                {pid !== null ? ((state.players[pid] || {}).name || "?").slice(0, 1) : ""}
-              </div>
-            ))}
-          </div>
-          <div className="text-[9px] font-mono text-gray-600">{actions.join(" / ")}</div>
+          <div className="flex flex-wrap gap-1">{state.tracks[key].map((pid, i) => seat(pid, i))}</div>
         </div>
       ))}
-      <div className="flex items-center gap-2">
-        <div className="w-24 text-[10px] font-mono text-gray-400 shrink-0 flex items-center gap-1">
-          {t("Board Mtg")} <Help text={t(boardMeetingHelp(state))} />
+      <div style={row}>
+        <div style={name}>
+          <span className="flex items-center gap-1">{t("Board Mtg")} <Help text={t(boardMeetingHelp(state))} /></span>
+          <span style={acts}>{t("GO PUBLIC / REPOSITION")}</span>
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {state.tracks.board_meeting.map((pid, i) => {
             const locked = i > 0 && !state.ipoTileClaimed;
-            return (
-              <div key={i} className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold"
-                style={{ backgroundColor: locked ? "#0e1014" : pid !== null ? PLAYER_COLORS[pid] + "33" : "#1c1f26", border: `1px solid ${locked ? "#262a33" : pid !== null ? PLAYER_COLORS[pid] : "#33384355"}`, opacity: locked ? 0.4 : 1 }}>
-                {locked ? "\ud83d\udd12" : pid !== null ? (pid === 0 ? "Y" : state.players[pid].name.slice(0, 1)) : ""}
-              </div>
-            );
+            if (locked) return <WorkerSlot key={i} locked title={t("Under the IPO tile until the first Megacorp is formed.")} />;
+            return seat(pid, i);
           })}
         </div>
-        <div className="text-[9px] font-mono text-gray-600">{t("GO PUBLIC / REPOSITION")}</div>
+      </div>
+      <div style={{ marginTop: 4, paddingTop: 5, borderTop: "1px solid #1d1f20", fontFamily: "var(--font-head)", fontSize: 10.5, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#424244" }}>
+        {t("Resolve right to left \u00b7 last in acts first")}
       </div>
     </div>
   );
@@ -4976,12 +5596,12 @@ function LiquidationPanel({ state, human, log, onContinue }) {
   const short = Math.max(0, needed - human.cash);
   const ownedPlots = Object.entries(state.board.owner).filter(([k, v]) => v === human.id).map(([k]) => k);
   return (
-    <div className="rounded-lg p-3" style={{ backgroundColor: "#2a1a1a", border: "1px solid #7a3f3f" }}>
-      <div className="text-xs font-bold mb-1" style={{ color: "#fca5a5" }}>
+    <div className="rounded-lg p-3" style={{ backgroundColor: "#fbeceb", border: "1px solid #e3a59f" }}>
+      <div className="text-xs font-bold mb-1" style={{ color: "#b3261a" }}>
         {t("Cash shortfall — this quarter's bills (suppliers and rent) come to ${0}, you have ${1}", needed, Math.round(human.cash))}
         {" ("}{short > 0 ? t("${0} short", Math.round(short)) : t("covered, you may continue")}{")"}
       </div>
-      <div className="text-[10px] mb-2" style={{ color: "#e0b060" }}>
+      <div className="text-[10px] mb-2" style={{ color: "#8a6500" }}>
         {t("This is a forced sale:")} <b>{t("everything goes for half")}</b>{" "}
         {t("what a planned sale through Raise Capital would fetch. Sell hand BPs, businesses or plots below until the bill is covered, then continue.")}
       </div>
@@ -4990,8 +5610,8 @@ function LiquidationPanel({ state, human, log, onContinue }) {
           <div className="text-[10px] text-gray-400 mb-1">{t("Hand BPs (${0} / ${1} / ${2} by level):", BP_SOLVENCY_PRICE[1], BP_SOLVENCY_PRICE[2], BP_SOLVENCY_PRICE[3])}</div>
           <div className="flex flex-wrap gap-2 mb-2">
             {human.hand.map((bp, i) => (
-              <button key={i} onClick={() => { if (NET) return NET.send("liquidate", { type: "bp", index: i }); doSellBP(state, human, bp, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#e5e7eb" }}>
-                {t(bp.name)} <span style={{ color: "#f3a5a5" }}>${BP_SOLVENCY_PRICE[bp.lvl] || 2}</span>
+              <button key={i} onClick={() => { if (NET) return NET.send("liquidate", { type: "bp", index: i }); doSellBP(state, human, bp, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#f5f5f8", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#1d1f20" }}>
+                {t(bp.name)} <span style={{ color: "#b3261a" }}>${BP_SOLVENCY_PRICE[bp.lvl] || 2}</span>
               </button>
             ))}
           </div>
@@ -5002,8 +5622,8 @@ function LiquidationPanel({ state, human, log, onContinue }) {
           <div className="text-[10px] text-gray-400 mb-1">{t("Businesses:")}</div>
           <div className="flex flex-wrap gap-2 mb-2">
             {activeBiz(human).map((b) => (
-              <button key={b.id} onClick={() => { if (NET) return NET.send("liquidate", { type: "biz", bizId: b.id }); doSellCompany(state, human, b, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
-                {t(b.bp.name)} <span style={{ color: "#f3a5a5" }}>${b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4)}</span>
+              <button key={b.id} onClick={() => { if (NET) return NET.send("liquidate", { type: "biz", bizId: b.id }); doSellCompany(state, human, b, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#f5f5f8", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#1d1f20" }}>
+                {t(b.bp.name)} <span style={{ color: "#b3261a" }}>${b.upgraded ? Math.floor(bizSetup(b) / 2) : Math.floor(bizSetup(b) / 4)}</span>
               </button>
             ))}
           </div>
@@ -5014,15 +5634,15 @@ function LiquidationPanel({ state, human, log, onContinue }) {
           <div className="text-[10px] text-gray-400 mb-1">{t("Owned plots:")}</div>
           <div className="flex flex-wrap gap-2 mb-2">
             {ownedPlots.map((pk) => (
-              <button key={pk} onClick={() => { if (NET) return NET.send("liquidate", { type: "plot", plot: pk }); doSellPlot(state, human, pk, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
-                {plotLabel(state.board, pk)} <span style={{ color: "#f3a5a5" }}>${Math.floor(plotValue(state, pk) / 2)}</span>
+              <button key={pk} onClick={() => { if (NET) return NET.send("liquidate", { type: "plot", plot: pk }); doSellPlot(state, human, pk, log, true); onContinue(false); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#f5f5f8", border: "1px solid #c9c9cc55", color: "#1d1f20" }}>
+                {plotLabel(state.board, pk)} <span style={{ color: "#b3261a" }}>${Math.floor(plotValue(state, pk) / 2)}</span>
               </button>
             ))}
           </div>
         </>
       )}
       <button onClick={() => { if (NET) return NET.send("liquidateDone", {}); onContinue(true); }} disabled={short > 0 && (human.hand.length > 0 || activeBiz(human).length > 0 || ownedPlots.length > 0)}
-        className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
+        className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#5980a6", color: "#ffffff" }}>
         {t("Continue")}
       </button>
       {!human.hand.length && !activeBiz(human).length && !ownedPlots.length && short > 0 && (
@@ -5055,20 +5675,20 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
   const megacorpMatch = bestMegacorpMatch(activeBiz(human), state.megacorpPool);
 
   return (
-    <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
+    <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: "#eef6ff", border: "1px solid #749dc4" }}>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold" style={{ color: "#d3fcec" }}>{t("Your turn — {0}", label)}</span>
+        <span className="text-xs font-bold" style={{ color: "#2c455d" }}>{t("Your turn — {0}", label)}</span>
         <span className="text-[10px] font-mono text-gray-400">{t(entry.actionsRemaining > 1 ? "{0} actions left this track" : "{0} action left this track", entry.actionsRemaining)}</span>
       </div>
 
       {entry.track === "raise_capital" && mode === null && (
         <div className="flex gap-2">
           <button onClick={() => { if (NET) return NET.send("act", { type: "loan" }); doLoan(state, human, log); finish(); }} disabled={discsFree(state, human) <= 0}
-            className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Take Loan (+$20, +1 disc)")}</button>
+            className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>{t("Take Loan (+$20, +1 disc)")}</button>
           {/* The teaching game keeps one action per track. A button the engine
               would refuse is worse than no button: it reads as a bug. */}
           {!isBeginner(state) && (
-            <button onClick={() => setMode("sell")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Sell for cash")}</button>
+            <button onClick={() => setMode("sell")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>{t("Sell for cash")}</button>
           )}
         </div>
       )}
@@ -5077,24 +5697,24 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
           <div className="text-[10px] text-gray-400">{t("Hand BPs (${0} / ${1} / ${2} by level):", BP_SELL_PRICE[1], BP_SELL_PRICE[2], BP_SELL_PRICE[3])}</div>
           <div className="flex flex-wrap gap-2">
             {human.hand.map((bp, i) => (
-              <button key={i} onClick={() => { if (NET) return NET.send("act", { type: "sellBP", index: i }); doSellBP(state, human, bp, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#e5e7eb" }}>
-                {t(bp.name)} <span style={{ color: "#f3a5a5" }}>${BP_SELL_PRICE[bp.lvl] || 4}</span>
+              <button key={i} onClick={() => { if (NET) return NET.send("act", { type: "sellBP", index: i }); doSellBP(state, human, bp, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#f5f5f8", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#1d1f20" }}>
+                {t(bp.name)} <span style={{ color: "#b3261a" }}>${BP_SELL_PRICE[bp.lvl] || 4}</span>
               </button>
             ))}
           </div>
           <div className="text-[10px] text-gray-400">{t("Businesses:")}</div>
           <div className="flex flex-wrap gap-2">
             {activeBiz(human).map((b) => (
-              <button key={b.id} onClick={() => { if (NET) return NET.send("act", { type: "sellCompany", bizId: b.id }); doSellCompany(state, human, b, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
-                {t(b.bp.name)} <span style={{ color: "#f3a5a5" }}>${b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2)}</span>
+              <button key={b.id} onClick={() => { if (NET) return NET.send("act", { type: "sellCompany", bizId: b.id }); doSellCompany(state, human, b, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#f5f5f8", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#1d1f20" }}>
+                {t(b.bp.name)} <span style={{ color: "#b3261a" }}>${b.upgraded ? bizSetup(b) : Math.floor(bizSetup(b) / 2)}</span>
               </button>
             ))}
           </div>
           <div className="text-[10px] text-gray-400">{t("Owned plots (value = printed road price, +$1 per occupied plot touching it, +$1 if adjacent to an LH):")}</div>
           <div className="flex flex-wrap gap-2">
             {ownedPlots.length ? ownedPlots.map((pk) => (
-              <button key={pk} onClick={() => { if (NET) return NET.send("act", { type: "sellPlot", plot: pk }); doSellPlot(state, human, pk, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
-                {plotLabel(state.board, pk)} <span style={{ color: "#f3a5a5" }}>${plotValue(state, pk)}</span>
+              <button key={pk} onClick={() => { if (NET) return NET.send("act", { type: "sellPlot", plot: pk }); doSellPlot(state, human, pk, log); finish(); }} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#f5f5f8", border: "1px solid #c9c9cc55", color: "#1d1f20" }}>
+                {plotLabel(state.board, pk)} <span style={{ color: "#b3261a" }}>${plotValue(state, pk)}</span>
               </button>
             )) : <span className="text-[10px] text-gray-600 italic">{t("None owned.")}</span>}
           </div>
@@ -5104,9 +5724,9 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
 
       {entry.track === "ma" && mode === null && (
         <div className="flex gap-2">
-          <button onClick={() => setMode("launch")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Launch")}</button>
+          <button onClick={() => setMode("launch")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>{t("Launch")}</button>
           {!isBeginner(state) && (
-            <button onClick={() => setMode("buy")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Buy")}</button>
+            <button onClick={() => setMode("buy")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>{t("Buy")}</button>
           )}
         </div>
       )}
@@ -5114,14 +5734,14 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2">
             {human.hand.map((bp, i) => (
-              <BPCard key={i} bp={bp} player={human} disabled={!canLaunchMore(human) || human.cash < bp.setup || discsFree(state, human) <= 0} onClick={() => onStartLaunch(bp)} small />
+              <BPCard key={i} state={state} bp={bp} player={human} disabled={!canLaunchMore(human) || human.cash < bp.setup || discsFree(state, human) <= 0} onClick={() => onStartLaunch(bp)} small />
             ))}
             {!human.hand.length && <span className="text-xs text-gray-500 italic">{t("Hand is empty.")}</span>}
           </div>
           {(() => {
             const why = !canLaunchMore(human) ? t("all {0} of your company slots are taken (a Megacorp HQ holds one)", companySlotsFor(human))
               : discsFree(state, human) <= 0 ? t("all {0} of your discs are committed", discsPerPlayer(state)) : null;
-            return why ? <div className="text-[9px]" style={{ color: "#fca5a5" }}>{t("Can't launch: {0}.", why)}</div> : null;
+            return why ? <div className="text-[9px]" style={{ color: "#b3261a" }}>{t("Can't launch: {0}.", why)}</div> : null;
           })()}
           <div className="text-[9px] text-gray-500">{t("Pick a BP, then click its plot(s) on the board — owned, unoccupied plots only. Horizontal industries at level 2+ need a connected cluster.")}</div>
           <button onClick={() => setMode(null)} className="text-[10px] text-gray-500 underline">{t("back")}</button>
@@ -5134,7 +5754,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
             <b>{t("Buy it as it stands")}</b>{" "}
             {t("for what the bank paid for it, keeping its Blueprint and level, or")}{" "}
             <b>{t("renovate it")}</b>{" "}
-            {t("with a card from your hand for half that card’s setup. Location matters, since renovating changes industry. A renovation card must match the shell’s level, and from level 2 up its scaling type too; a level-1 shell takes any level-1 card:")}
+            {t("with a card from your hand for half that card’s setup. Location matters, since renovating changes industry. A renovation card must match the shell’s level - any industry, any shape - and the company keeps the shell’s footprint:")}
           </div>
           <div className="text-[9px] text-gray-500">
             {t("Buying as it stands scores no EP and moves no prices — it is the same company, already scored and already in the market. A renovation is a new business: it scores its levels, moves the market, and sends the old Blueprint to the bottom of its own deck. Either way, a first company in an industry still pays the entry bonus.")}
@@ -5144,24 +5764,24 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
               const locs = [...new Set(db.footprint.map((pk) => state.board.tiles[`${state.board.cellOf[pk].r},${state.board.cellOf[pk].c}`]))];
               const nearLH = db.footprint.some((pk) => plotHasLH(state.board, pk));
               return (
-                <div key={db.id} className="rounded p-1.5" style={{ backgroundColor: "#161920", border: "1px solid #33384355" }}>
+                <div key={db.id} className="rounded p-1.5" style={{ backgroundColor: "#f5f5f8", border: "1px solid #c9c9cc55" }}>
                   <div className="text-[9px] text-gray-500 mb-1">
                     {t("Was {0} L{1} — {2} ({3})", db.bp.ind, db.level, locs.join("+"),
                        t(db.footprint.length > 1 ? "{0} plots" : "{0} plot", db.footprint.length))}
                     {nearLH ? " \u00b7 " + t("near a Logistic Hub") : ""}
-                    {human.businesses.includes(db) && <span style={{ color: "#8fd3b6" }}> {t("· yours before you sold it")}</span>}
+                    {human.businesses.includes(db) && <span style={{ color: "#416180" }}> {t("· yours before you sold it")}</span>}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {/* take it over exactly as it stands, keeping its Blueprint and level */}
                     <button disabled={!canReclaim(state, human, db)}
-                      onClick={() => guardSpend(reclaimCost(db), bizPotBill(db), t("Buying back {0}", t(db.bp.name)), () => { if (NET) return NET.send("act", { type: "reclaim", bizId: db.id }); doReclaim(state, human, db, log); finish(); })}
+                      onClick={() => guardSpend(reclaimCost(db), bizPotBill(state, db), t("Buying back {0}", t(db.bp.name)), () => { if (NET) return NET.send("act", { type: "reclaim", bizId: db.id }); doReclaim(state, human, db, log); finish(); })}
                       className="text-[10px] px-2 py-1 rounded disabled:opacity-30"
-                      style={{ backgroundColor: "#1c2733", border: `1px solid ${IND_COLOR[db.bp.ind]}`, color: "#e5e7eb" }}>
-                      {t("Buy as-is:")} {t(db.bp.name)} <span style={{ color: "#8fd3b6" }}>${reclaimCost(db)}</span>
+                      style={{ backgroundColor: "#e9f0f6", border: `1px solid ${IND_COLOR[db.bp.ind]}`, color: "#1d1f20" }}>
+                      {t("Buy as-is:")} {t(db.bp.name)} <span style={{ color: "#416180" }}>${reclaimCost(db)}</span>
                     </button>
                     {bps.map((bp, i) => (
-                      <button key={i} onClick={() => guardSpend(Math.floor(bp.setup / 2), Math.max(0, bp.opex - RENT_PER_LEVEL * bp.lvl), t("Renovating into {0}", t(bp.name)), () => { if (NET) return NET.send("act", { type: "renovate", bizId: db.id, index: human.hand.indexOf(bp) }); doRenovate(state, human, db, bp, log); finish(); })} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#e5e7eb" }}>
-                        {t("Renovate into")} {t(bp.name)} <span style={{ color: "#a5d6f3" }}>${Math.floor(bp.setup / 2)}</span>
+                      <button key={i} onClick={() => guardSpend(Math.floor(bp.setup / 2), cardPotBill(state, bp), t("Renovating into {0}", t(bp.name)), () => { if (NET) return NET.send("act", { type: "renovate", bizId: db.id, index: human.hand.indexOf(bp) }); doRenovate(state, human, db, bp, log); finish(); })} className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#f5f5f8", border: `1px solid ${IND_COLOR[bp.ind]}55`, color: "#1d1f20" }}>
+                        {t("Renovate into")} {t(bp.name)} <span style={{ color: "#1f6f9c" }}>${Math.floor(bp.setup / 2)}</span>
                       </button>
                     ))}
                   </div>
@@ -5185,10 +5805,10 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
             return (
               <>
                 <button onClick={() => onStartBuy()} disabled={!!blocked}
-                  className="text-[10px] px-2 py-1 rounded disabled:opacity-30" style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
+                  className="text-[10px] px-2 py-1 rounded disabled:opacity-30" style={{ backgroundColor: "#f5f5f8", border: "1px solid #c9c9cc55", color: "#1d1f20" }}>
                   {t("Pick a plot to buy ({0} available)", unownedPlots.length)}
                 </button>
-                {blocked && <div className="text-[9px] mt-0.5" style={{ color: "#fca5a5" }}>{t("Can't buy: {0}.", blocked)}</div>}
+                {blocked && <div className="text-[9px] mt-0.5" style={{ color: "#b3261a" }}>{t("Can't buy: {0}.", blocked)}</div>}
               </>
             );
           })()}
@@ -5198,9 +5818,9 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
 
       {entry.track === "rd" && mode === null && (
         <div className="flex gap-2">
-          <button onClick={() => setMode("research")} disabled={human.hand.length >= 5} className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Research (choose a deck)")}</button>
+          <button onClick={() => setMode("research")} disabled={human.hand.length >= 5} className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>{t("Research (choose a deck)")}</button>
           {!isBeginner(state) && (
-            <button onClick={() => setMode("upgrade")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Upgrade")}</button>
+            <button onClick={() => setMode("upgrade")} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>{t("Upgrade")}</button>
           )}
         </div>
       )}
@@ -5212,7 +5832,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
               const top = deck && deck[0];
               return (
                 <button key={ind} onClick={() => { if (NET) return NET.send("act", { type: "research", ind }); doDraw(state, human, ind, log); finish(); }} disabled={!top}
-                  className="text-left rounded-md p-2 disabled:opacity-30" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}55`, width: 118 }}>
+                  className="text-left rounded-md p-2 disabled:opacity-30" style={{ backgroundColor: "#f5f5f8", border: `1px solid ${IND_COLOR[ind]}55`, width: 118 }}>
                   <div className="flex items-center justify-between mb-1">
                     <Chip color={IND_COLOR[ind]}>{ind}</Chip>
                     <span className="text-[9px] font-mono text-gray-500">{t("{0} left", deck ? deck.length : 0)}</span>
@@ -5245,16 +5865,16 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                       const opts = growOptions(state, human, b);
                       if (opts.length > 1) return onStartGrow(b, opts);
                       const one = opts[0] || {};
-                      guardSpend(bizSetup(b), bizPotBill({ ...b, upgraded: true, level: b.level + 1 }) - bizPotBill(b), t("Upgrading {0}", t(b.bp.name)), () => {
+                      guardSpend(bizSetup(b), bizPotBill(state, { ...b, upgraded: true, level: b.level + 1 }) - bizPotBill(state, b), t("Upgrading {0}", t(b.bp.name)), () => {
                         if (NET) return NET.send("act", { type: "upgrade", bizId: b.id, plot: one.plot, dir: one.dir });
                         const ok = doUpgrade(state, human, b, rng, log, one.plot, one.dir); if (ok) finish();
                       });
                     }}
                     className="text-[10px] px-2 py-1 rounded w-full text-left disabled:opacity-30"
-                    style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#e5e7eb" }}>
-                    {t(b.bp.name)} <span className="text-gray-500">L{b.level}&rarr;{b.level + 1}</span> <span style={{ color: "#a5d6f3" }}>${bizSetup(b)}</span>
+                    style={{ backgroundColor: "#f5f5f8", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, color: "#1d1f20" }}>
+                    {t(b.bp.name)} <span className="text-gray-500">L{b.level}&rarr;{b.level + 1}</span> <span style={{ color: "#1f6f9c" }}>${bizSetup(b)}</span>
                   </button>
-                  {why && <div className="text-[9px] mt-0.5" style={{ color: "#fca5a5" }}>{msgText(why)}</div>}
+                  {why && <div className="text-[9px] mt-0.5" style={{ color: "#b3261a" }}>{msgText(why)}</div>}
                 </div>
               );
             }) : <span className="text-[10px] text-gray-600 italic">{t("Nothing eligible to upgrade.")}</span>}
@@ -5270,8 +5890,7 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
           <div className="flex gap-2 flex-wrap">
             {/* No Megacorps in the teaching game, so Board Meeting is
                 REPOSITION alone - which is why the track survives at all: first
-                in turn order sells into a contested demand icon first and
-                places the hub. */}
+                in turn order places workers first and places the hub. */}
             {!isBeginner(state) && (
             <button disabled={!!blocked}
               /* Always ask which company keeps the building. This used to be
@@ -5281,21 +5900,21 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
                  somebody already took the IPO tile has nothing to do with whose
                  building this is. */
               onClick={() => { if (megacorpMatch) return setMode("hq"); if (NET) return NET.send("act", { type: "megacorp" }); claimMegacorp(state, human, log); finish(); }}
-              className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+              className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>
               {megacorpMatch
                 ? t("Go Public — form \"{0}\" (+{1} EP{2})", t(megacorpMatch.tile[0]), megacorpMatch.tile[2], !state.ipoTileClaimed ? " + " + t("IPO tile") : "")
                 : t("Go Public")}
             </button>
             )}
-            <button onClick={() => { if (NET) return NET.send("act", { type: "reposition" }); doReposition(state, human, log); finish(); }} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Reposition (become 1st)")}</button>
+            <button onClick={() => { if (NET) return NET.send("act", { type: "reposition" }); doReposition(state, human, log); finish(); }} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>{t("Reposition (become 1st)")}</button>
           </div>
-          {blocked && <div className="text-[10px] mt-1" style={{ color: "#fca5a5" }}>{t("Can’t go public: {0}. Reposition is your only option this turn.", msgText(blocked))}</div>}
+          {blocked && <div className="text-[10px] mt-1" style={{ color: "#b3261a" }}>{t("Can’t go public: {0}. Reposition is your only option this turn.", msgText(blocked))}</div>}
         </div>
         );
       })()}
       {entry.track === "board_meeting" && mode === "hq" && megacorpMatch && (
         <div className="space-y-2">
-          <div className="text-[11px] font-bold" style={{ color: "#d3fcec" }}>
+          <div className="text-[11px] font-bold" style={{ color: "#2c455d" }}>
             {t("Choose the HQ for “{0}”", t(megacorpMatch.tile[0]))}
           </div>
           <div className="text-[10px] text-gray-400">
@@ -5318,21 +5937,21 @@ function ActionPanel({ state, human, rng, log, onDone, onStartLaunch, onStartBuy
               const perQ = brandEPFor(price(state.pm, b.bp.ind), tier);
               return (
                 <button key={b.id} onClick={() => { if (NET) return NET.send("act", { type: "megacorp", hqId: b.id }); claimMegacorp(state, human, log, b); finish(); }}
-                  className="text-left rounded-md p-2" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}77`, width: 150 }}>
+                  className="text-left rounded-md p-2" style={{ backgroundColor: "#f5f5f8", border: `1px solid ${IND_COLOR[b.bp.ind]}77`, width: 150 }}>
                   <div className="flex items-center justify-between mb-0.5">
                     <Chip color={IND_COLOR[b.bp.ind]}>{b.bp.ind}</Chip>
                     <span className="text-[10px] font-mono text-gray-400">L{b.level}</span>
                   </div>
                   <div className="text-[10px] font-semibold text-gray-100 leading-tight">{t(b.bp.name)}</div>
-                  <div className="text-[9px] font-mono mt-0.5" style={{ color: perQ ? "#8fd3b6" : "#8b93a3" }}>
+                  <div className="text-[9px] font-mono mt-0.5" style={{ color: perQ ? "#416180" : "#5d5d60" }}>
                     {t("{0} EP/quarter", perQ)}{tier > 1 ? ` ($${price(state.pm, b.bp.ind)} ÷ ${tier})` : ""}
                   </div>
-                  <div className="text-[9px] font-mono" style={{ color: rivals ? "#fca5a5" : "#8b93a3" }}>
+                  <div className="text-[9px] font-mono" style={{ color: rivals ? "#b3261a" : "#5d5d60" }}>
                     {t(rivals === 1 ? "{0} rival neighbour" : "{0} rival neighbours", rivals)}
                     {rivals ? " " + t("(−{0} EP a quarter)", rivals * MEGACORP_TITHE_EP) : " " + t("(no tithe)")}
                   </div>
                   {!perQ && (
-                    <div className="text-[9px]" style={{ color: "#e0b060" }}>
+                    <div className="text-[9px]" style={{ color: "#8a6500" }}>
                       {t("banks nothing until {0} reaches ${1}", b.bp.ind, tier)}
                     </div>
                   )}
@@ -5359,8 +5978,8 @@ const TUT_CSS = `
 @keyframes tutSlideL { 0%,100% { transform:translateX(0) } 50% { transform:translateX(-26px) } }
 @keyframes tutSlideR { 0%,100% { transform:translateX(0) } 50% { transform:translateX(26px) } }
 @keyframes tutPop { 0%,100% { transform:scale(1); opacity:.35 } 50% { transform:scale(1.18); opacity:1 } }
-@keyframes tutPulse { 0%,100% { box-shadow:0 0 0 3px rgba(143,211,182,.9), 0 0 0 9999px rgba(6,8,11,.78) }
-                      50%     { box-shadow:0 0 0 7px rgba(143,211,182,.45), 0 0 0 9999px rgba(6,8,11,.78) } }
+@keyframes tutPulse { 0%,100% { box-shadow:0 0 0 3px rgba(89,128,166,.9), 0 0 0 9999px rgba(29,31,32,.5) }
+                      50%     { box-shadow:0 0 0 7px rgba(89,128,166,.45), 0 0 0 9999px rgba(29,31,32,.5) } }
 .tut-spot { position:fixed; border-radius:8px; pointer-events:none; z-index:10000;
             animation:tutPulse 1.8s ease-in-out infinite; transition:all .35s ease; }
 `;
@@ -5404,7 +6023,7 @@ function ArtChain() {                       // the six industries feeding each o
         return (
           <g key={ind} style={{ animation: `tutFlow 3s linear ${i * 0.5}s infinite` }}>
             <circle cx={x} cy={y} r="12" fill={IND_COLOR[ind]} />
-            <text x={x} y={y + 3.5} textAnchor="middle" fontSize="9" fontWeight="700" fill="#14161a">{ind}</text>
+            <text x={x} y={y + 3.5} textAnchor="middle" fontSize="9" fontWeight="700" fill="#ffffff">{ind}</text>
           </g>
         );
       })}
@@ -5415,21 +6034,21 @@ function ArtChain() {                       // the six industries feeding each o
 function ArtPrices() {                      // build your own -> down; pay a supplier -> up
   return (
     <svg viewBox="0 0 200 92" style={{ width: "100%", height: 92 }}>
-      <text x="6" y="16" fontSize="8" fill="#8b93a3">{t("you build Retail")}</text>
-      <line x1="6" y1="26" x2="194" y2="26" stroke="#262a33" strokeWidth="1" />
+      <text x="6" y="16" fontSize="8" fill="#5d5d60">{t("you build Retail")}</text>
+      <line x1="6" y1="26" x2="194" y2="26" stroke="#d4d4d7" strokeWidth="1" />
       <g style={{ animation: "tutSlideL 3s ease-in-out infinite" }}>
         <rect x="96" y="19" width="14" height="14" rx="2" fill={IND_COLOR.RE} />
-        <text x="103" y="30" textAnchor="middle" fontSize="8" fontWeight="700" fill="#14161a">RE</text>
+        <text x="103" y="30" textAnchor="middle" fontSize="8" fontWeight="700" fill="#ffffff">RE</text>
       </g>
-      <text x="6" y="46" fontSize="7" fill="#fca5a5">{t("price falls — more supply")}</text>
+      <text x="6" y="46" fontSize="7" fill="#b3261a">{t("price falls — more supply")}</text>
 
-      <text x="6" y="66" fontSize="8" fill="#8b93a3">{t("its supplier is paid")}</text>
-      <line x1="6" y1="76" x2="194" y2="76" stroke="#262a33" strokeWidth="1" />
+      <text x="6" y="66" fontSize="8" fill="#5d5d60">{t("its supplier is paid")}</text>
+      <line x1="6" y1="76" x2="194" y2="76" stroke="#d4d4d7" strokeWidth="1" />
       <g style={{ animation: "tutSlideR 3s ease-in-out infinite" }}>
         <rect x="96" y="69" width="14" height="14" rx="2" fill={IND_COLOR.TE} />
-        <text x="103" y="80" textAnchor="middle" fontSize="8" fontWeight="700" fill="#14161a">TE</text>
+        <text x="103" y="80" textAnchor="middle" fontSize="8" fontWeight="700" fill="#ffffff">TE</text>
       </g>
-      <text x="112" y="92" fontSize="7" fill="#8fd3b6">{t("price rises — more demand")}</text>
+      <text x="112" y="92" fontSize="7" fill="#597ea3">{t("price rises — more demand")}</text>
     </svg>
   );
 }
@@ -5437,19 +6056,19 @@ function ArtPrices() {                      // build your own -> down; pay a sup
 function ArtFilo() {                        // placed left to right, resolved right to left
   return (
     <svg viewBox="0 0 200 84" style={{ width: "100%", height: 84 }}>
-      <text x="6" y="12" fontSize="7.5" fill="#8b93a3">{t("placed left to right")}</text>
+      <text x="6" y="12" fontSize="7.5" fill="#5d5d60">{t("placed left to right")}</text>
       {[0, 1, 2, 3].map((i) => (
         <g key={i}>
           <rect x={14 + i * 44} y={22} width="34" height="24" rx="3"
-            fill="#1c1f26" stroke="#3a4152" />
-          <text x={31 + i * 44} y={38} textAnchor="middle" fontSize="9" fill="#8b93a3">{i + 1}</text>
+            fill="#f5f5f8" stroke="#b7b7ba" />
+          <text x={31 + i * 44} y={38} textAnchor="middle" fontSize="9" fill="#5d5d60">{i + 1}</text>
         </g>
       ))}
       {[3, 2, 1, 0].map((i, k) => (
-        <circle key={i} cx={31 + i * 44} cy={58} r="4" fill="#8fd3b6"
+        <circle key={i} cx={31 + i * 44} cy={58} r="4" fill="#597ea3"
           style={{ animation: `tutPop 2.4s ease-in-out ${k * 0.5}s infinite` }} />
       ))}
-      <text x="6" y="80" fontSize="7.5" fill="#8fd3b6">{t("resolved right to left — last in acts first")}</text>
+      <text x="6" y="80" fontSize="7.5" fill="#597ea3">{t("resolved right to left — last in acts first")}</text>
     </svg>
   );
 }
@@ -5468,43 +6087,43 @@ function ArtScaling() {
   const plot = (x, y, fill, stroke, extra = {}) => (
     <rect x={x} y={y} width="17" height="17" rx="2" fill={fill} stroke={stroke} strokeWidth="1" {...extra} />
   );
-  const GRID = "#2c3340", EMPTY = "#161920";
+  const GRID = "#c9c9cc", EMPTY = "#f5f5f8";
   return (
     <svg viewBox="0 0 200 104" style={{ width: "100%", height: 104 }}>
       {/* --- horizontal: one storey on each of three plots --- */}
-      <text x="6" y="10" fontSize="7.5" fontWeight="700" fill="#67e8f9">{t("HORIZONTAL")}</text>
-      <text x="6" y="19" fontSize="6.5" fill="#8b93a3">{H.join(" \u00b7 ")}</text>
+      <text x="6" y="10" fontSize="7.5" fontWeight="700" fill="#0e7c93">{t("HORIZONTAL")}</text>
+      <text x="6" y="19" fontSize="6.5" fill="#5d5d60">{H.join(" \u00b7 ")}</text>
       {[0, 1, 2, 3].map((i) => plot(6 + (i % 2) * 19, 26 + Math.floor(i / 2) * 19, EMPTY, GRID))}
-      {plot(6, 26, "#67e8f9", "#67e8f9")}
-      {plot(25, 26, "#67e8f9", "#67e8f9")}
+      {plot(6, 26, "#0e7c93", "#0e7c93")}
+      {plot(25, 26, "#1b8fb3", "#1b8fb3")}
       {/* the upgrade takes one more plot beside it */}
-      {plot(6, 45, "#67e8f9", "#67e8f9", { opacity: 0.55,
+      {plot(6, 45, "#1b8fb3", "#1b8fb3", { opacity: 0.55,
         style: { animation: "tutPop 3s ease-in-out infinite" } })}
-      <text x="50" y="36" fontSize="6.5" fill="#8b93a3">{t("a level 2 card")}</text>
-      <text x="50" y="45" fontSize="6.5" fill="#8b93a3">{t("needs 2 plots;")}</text>
-      <text x="50" y="54" fontSize="6.5" fill="#67e8f9">{t("upgrading takes")}</text>
-      <text x="50" y="63" fontSize="6.5" fill="#67e8f9">{t("a 3rd beside it")}</text>
+      <text x="50" y="36" fontSize="6.5" fill="#5d5d60">{t("a level 2 card")}</text>
+      <text x="50" y="45" fontSize="6.5" fill="#5d5d60">{t("needs 2 plots;")}</text>
+      <text x="50" y="54" fontSize="6.5" fill="#0e7c93">{t("upgrading takes")}</text>
+      <text x="50" y="63" fontSize="6.5" fill="#0e7c93">{t("a 3rd beside it")}</text>
 
       {/* --- vertical: every storey on one plot --- */}
-      <text x="112" y="10" fontSize="7.5" fontWeight="700" fill="#f5a623">{t("VERTICAL")}</text>
-      <text x="112" y="19" fontSize="6.5" fill="#8b93a3">{V.join(" \u00b7 ")}</text>
+      <text x="112" y="10" fontSize="7.5" fontWeight="700" fill="#b86e00">{t("VERTICAL")}</text>
+      <text x="112" y="19" fontSize="6.5" fill="#5d5d60">{V.join(" \u00b7 ")}</text>
       {[0, 1, 2, 3].map((i) => plot(112 + (i % 2) * 19, 26 + Math.floor(i / 2) * 19, EMPTY, GRID))}
-      {plot(112, 45, "#f5a623", "#f5a623")}
+      {plot(112, 45, "#b86e00", "#b86e00")}
       {/* storeys stacked above the same plot */}
-      <rect x="114" y="38" width="13" height="5" rx="1" fill="#f5a623" opacity="0.8" />
-      <rect x="116" y="31" width="9" height="5" rx="1" fill="#f5a623" opacity="0.55"
+      <rect x="114" y="38" width="13" height="5" rx="1" fill="#b86e00" opacity="0.8" />
+      <rect x="116" y="31" width="9" height="5" rx="1" fill="#b86e00" opacity="0.55"
         style={{ animation: "tutPop 3s ease-in-out infinite" }} />
-      <text x="152" y="36" fontSize="6.5" fill="#8b93a3">{t("any level fits")}</text>
-      <text x="152" y="45" fontSize="6.5" fill="#8b93a3">{t("on 1 plot;")}</text>
-      <text x="152" y="54" fontSize="6.5" fill="#f5a623">{t("upgrading")}</text>
-      <text x="152" y="63" fontSize="6.5" fill="#f5a623">{t("adds a storey")}</text>
+      <text x="152" y="36" fontSize="6.5" fill="#5d5d60">{t("any level fits")}</text>
+      <text x="152" y="45" fontSize="6.5" fill="#5d5d60">{t("on 1 plot;")}</text>
+      <text x="152" y="54" fontSize="6.5" fill="#b86e00">{t("upgrading")}</text>
+      <text x="152" y="63" fontSize="6.5" fill="#b86e00">{t("adds a storey")}</text>
 
       {/* Two short lines: this box is 200 units wide and the first draft ran off
           the end of it on both. */}
-      <text x="6" y="82" fontSize="6.5" fill="#8b93a3">
-        {t("Ground rent: ${0} per level on a plot, to whoever owns it.", RENT_PER_LEVEL)}
+      <text x="6" y="82" fontSize="6.5" fill="#5d5d60">
+        {t("Ground rent: $1 a floor for every full ${0} the plot is worth, to whoever owns it.", TRIAL_RENT_STEP)}
       </text>
-      <text x="6" y="93" fontSize="6.5" fill="#8b93a3">
+      <text x="6" y="93" fontSize="6.5" fill="#5d5d60">
         {t("Spreading splits it between plots; stacking piles it on one.")}
       </text>
     </svg>
@@ -5521,22 +6140,22 @@ function ArtMegacorp() {
   const plot = (x, y, fill, stroke, extra = {}) => (
     <rect x={x} y={y} width="17" height="17" rx="2" fill={fill} stroke={stroke} strokeWidth="1" {...extra} />
   );
-  const GRID = "#2c3340", EMPTY = "#161920", HQ = "#f5a623", RIVAL = "#67e8f9";
+  const GRID = "#c9c9cc", EMPTY = "#f5f5f8", HQ = "#e8930c", RIVAL = "#1b8fb3";
   const flow = (i) => ({ style: { animation: `tutFlow 3s linear ${i * 0.5}s infinite` } });
   return (
     <svg viewBox="0 0 200 104" style={{ width: "100%", height: 104 }}>
       {/* a 3x3 district with the headquarters in the middle */}
       {[0, 1, 2].flatMap((r) => [0, 1, 2].map((c) => plot(8 + c * 19, 14 + r * 19, EMPTY, GRID)))}
       {plot(27, 33, HQ, HQ)}
-      <text x="35.5" y="44.5" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#14161a">HQ</text>
+      <text x="35.5" y="44.5" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#ffffff">HQ</text>
       {/* the owner's own company: paid and charged, nets nothing */}
       {plot(8, 33, HQ, HQ, { opacity: 0.55 })}
-      <text x="16.5" y="44.5" textAnchor="middle" fontSize="6" fill="#14161a">0</text>
+      <text x="16.5" y="44.5" textAnchor="middle" fontSize="6" fill="#ffffff">0</text>
       {/* two rivals, each taking the tithe every quarter */}
       {plot(27, 14, RIVAL, RIVAL)}
       {plot(46, 33, RIVAL, RIVAL)}
-      <text x="35.5" y="25.5" textAnchor="middle" fontSize="6" fontWeight="700" fill="#14161a">+{MEGACORP_TITHE_EP}</text>
-      <text x="54.5" y="44.5" textAnchor="middle" fontSize="6" fontWeight="700" fill="#14161a">+{MEGACORP_TITHE_EP}</text>
+      <text x="35.5" y="25.5" textAnchor="middle" fontSize="6" fontWeight="700" fill="#ffffff">+{MEGACORP_TITHE_EP}</text>
+      <text x="54.5" y="44.5" textAnchor="middle" fontSize="6" fontWeight="700" fill="#ffffff">+{MEGACORP_TITHE_EP}</text>
       {/* the EP leaving the headquarters, one pulse per rival */}
       <text x="35.5" y="31" textAnchor="middle" fontSize="6" fontWeight="700" fill={RIVAL} {...flow(0)}>↑</text>
       <text x="45" y="43" fontSize="6" fontWeight="700" fill={RIVAL} {...flow(1)}>→</text>
@@ -5546,13 +6165,13 @@ function ArtMegacorp() {
       <text x="8" y="89" fontSize="6.5" fill={RIVAL}>{t("each rival: −{0} EP", MEGACORP_TITHE_EP)}</text>
 
       {/* what it earns and what it ends */}
-      <text x="76" y="20" fontSize="7.5" fontWeight="700" fill="#e5e7eb">{t("GOING PUBLIC")}</text>
-      <text x="76" y="31" fontSize="6.5" fill="#8b93a3">{t("Tile: {0}–{1} EP at once", MEGACORP_EP.lo, MEGACORP_EP.hi)}</text>
-      <text x="76" y="40" fontSize="6.5" fill="#8b93a3">{t("then price ÷ tier, every quarter")}</text>
+      <text x="76" y="20" fontSize="7.5" fontWeight="700" fill="#1d1f20">{t("GOING PUBLIC")}</text>
+      <text x="76" y="31" fontSize="6.5" fill="#5d5d60">{t("Tile: {0}–{1} EP at once", MEGACORP_EP.lo, MEGACORP_EP.hi)}</text>
+      <text x="76" y="40" fontSize="6.5" fill="#5d5d60">{t("then price ÷ tier, every quarter")}</text>
       <text x="76" y="53" fontSize="6.5" fill={RIVAL}>{t("Every rival company touching")}</text>
       <text x="76" y="62" fontSize="6.5" fill={RIVAL}>{t("it takes {0} EP a quarter off you", MEGACORP_TITHE_EP)}</text>
-      <text x="76" y="75" fontSize="6.5" fill="#8b93a3">{t("A player's {0}nd Megacorp calls", MEGACORPS_TO_END)}</text>
-      <text x="76" y="84" fontSize="6.5" fill="#8b93a3">{t("the final quarter for everybody")}</text>
+      <text x="76" y="75" fontSize="6.5" fill="#5d5d60">{t("A player's {0}nd Megacorp calls", MEGACORPS_TO_END)}</text>
+      <text x="76" y="84" fontSize="6.5" fill="#5d5d60">{t("the final quarter for everybody")}</text>
     </svg>
   );
 }
@@ -5562,17 +6181,17 @@ function ArtScoring() {
      wrong - 5, 1-at-year-end, 10 and $10 against an engine paying 3, 2 immediately,
      5 and $50 - and it stayed wrong after the words were fixed, because a picture is
      not something anybody thinks to re-read. */
-  const bars = [[`${INDUSTRY_DEBUT_EP} EP`, t("new industry"), "#8fd3b6", 78],
-                [`${TUT_LEVEL_EP} EP`, t("per company level"), "#67e8f9", 46],
-                [`${LAND_AWARD.sole}\u2013${LAND_AWARD_LARGE.sole} EP`, t("most land"), "#f5d76e", 62],
-                ["1 EP", t("per ${0} left", CASH_PER_EP), "#a97bd6", 30]];
+  const bars = [[`${INDUSTRY_DEBUT_EP} EP`, t("new industry"), "#416180", 78],
+                [`${TUT_LEVEL_EP} EP`, t("per company level"), "#1b8fb3", 46],
+                [`${LAND_AWARD.sole}\u2013${LAND_AWARD_LARGE.sole} EP`, t("most land"), "#b08400", 62],
+                ["1 EP", t("per ${0} left", CASH_PER_EP), "#73489a", 30]];
   return (
     <svg viewBox="0 0 200 96" style={{ width: "100%", height: 96 }}>
       {bars.map(([amt, label, col, w], i) => (
         <g key={i} style={{ animation: `tutFlow 3.2s linear ${i * 0.4}s infinite` }}>
           <rect x="52" y={8 + i * 22} width={w} height="12" rx="2" fill={col} opacity="0.85" />
-          <text x="48" y={18 + i * 22} textAnchor="end" fontSize="8" fontWeight="700" fill="#e5e7eb">{amt}</text>
-          <text x={58 + w} y={18 + i * 22} fontSize="7" fill="#8b93a3">{label}</text>
+          <text x="48" y={18 + i * 22} textAnchor="end" fontSize="8" fontWeight="700" fill="#1d1f20">{amt}</text>
+          <text x={58 + w} y={18 + i * 22} fontSize="7" fill="#5d5d60">{label}</text>
         </g>
       ))}
     </svg>
@@ -5620,13 +6239,13 @@ const TUT_LEVEL_EP = levelEP({ variants: {} });
 
 const TUTORIAL = [
   { title: "You are building a city's economy", target: "board", art: null,
-    body: "Every player is a founder. You buy land, build companies on it, and sell what they produce to the districts around them. Most Entrepreneurial Points at the end of Year 3 wins.",
-    points: ["3 years of 4 quarters \u2014 12 rounds in total",
+    body: "Every player is a founder. You buy land, build companies on it, and sell what they produce to the districts around them. Most Entrepreneurial Points at the end of Year 2 wins.",
+    points: ["2 years of 4 quarters \u2014 8 quarters in total",
              "The board is 16 districts, each with 4 plots",
-             "Coloured squares in a district are its demand: what it will buy"] },
+             "The rows in the middle of a district are its demand: what it will buy"] },
 
   { title: "Six industries that feed each other", target: "pots", art: ArtChain,
-    body: "Every company pays OPEX each quarter to companies in other industries \u2014 its suppliers, printed on its Blueprint. Those payments are the heart of the game.",
+    body: "Every quarter each company pays the suppliers printed on its Blueprint one round total: $5, $10 or $15 at Level 1, by its industry, and double that with every level. Those payments are the heart of the game.",
     points: [`Every industry buys from ${SUPPLY.each} others \u2014 and sells to ${SUPPLY.each} others`,
              `${SUPPLY.lines} supply lines in all: no dead ends, and no safe corner`,
              "Your supplier bill lands in your suppliers' industry pots; ground rent goes to landlords",
@@ -5646,12 +6265,12 @@ const TUTORIAL = [
              "You can only build on plots you already own, and they must be empty",
              "Upgrading once: a horizontal company takes another owned plot beside it, "
              + "a vertical one adds a storey where it stands",
-             `Ground rent is $${RENT_PER_LEVEL} per level on a plot, paid to whoever owns that plot`] },
+             `Ground rent is paid by the floor to whoever owns the plot: $1 for every full $${TRIAL_RENT_STEP} the plot is worth, and never less than $1`] },
 
   { title: "Prices move as the city is built", target: "prices", art: ArtPrices,
     body: "Build a company and you push your own industry's price DOWN \u2014 more supply. Every supplier you now pay gets pushed UP \u2014 more demand. Each of those is a whole dollar.",
-    points: [`A crowded industry can fall to $${PRICE_MIN}, still twice what recycling pays`,
-             `A neglected one can climb to $${PRICE_MAX} per unit`,
+    points: [`A crowded industry can fall to $${PRICE_MIN}, too low for the better tiers on its cards`,
+             `A neglected one can climb to $${PRICE_MAX}`,
              "Reading this strip is the main skill in the game"] },
 
   { title: "Placing workers: last in, first out", target: "tracks", art: ArtFilo,
@@ -5661,18 +6280,16 @@ const TUTORIAL = [
              "Placing last means acting first, with only one action"] },
 
   { title: "A quarter, step by step", target: "tracks", art: null,
-    body: "Each of the 12 quarters runs the same five phases. Planning and Action are where you act; the rest ask you only when there is a choice to make - where to deliver, what to sell short, where the hub goes.",
+    body: "Each of the 8 quarters runs the same three phases. Planning and Action are where you act; Closing settles everything at once and asks you only when there is a choice to make - what to sell short, where the hub goes, whether to repay a loan.",
     points: ["PLANNING \u2014 place your workers",
              "ACTION \u2014 tracks resolve and you act",
-             "PRODUCTION \u2014 supplier bills and ground rent are paid automatically",
-             "REVENUE \u2014 deliver production to demand icons for cash",
-             "CLOSING \u2014 a Logistic Hub is placed; years end with scoring"] },
+             "CLOSING \u2014 bills are paid, every company is paid its best tier, the pots are shared, a Logistic Hub is placed; years end with the land awards"] },
 
   { title: "Selling what you produce", target: "board", art: null,
-    body: "In Revenue you deliver to demand icons your company can reach. Every unit sold pays the current market price; an icon in column 1 takes one unit, column 2 two, and so on.",
+    body: "At the close of every quarter each company is paid in one go: count the demand icons of its industry it can reach, then read the three tiers on its card. The middle and top tiers each ask for enough icons AND a market price at or above the one printed. You collect the best tier you fully meet, and the Minimum otherwise. Nothing is multiplied and nothing is delivered.",
     points: ["A company reaches its own district, plus whatever its ability grants",
              "Logistic Hubs link districts \u2014 but Utilities and Retail can never use them",
-             "Anything you cannot sell recycles for just $1 a unit"] },
+             "More icons and a better price lift the tier: where you stand, how big you are and how crowded your industry is decide what you are paid"] },
 
   { title: "Your ledger", target: "ledger", art: null,
     body: "Everything you own lives here: cash, running costs, your twelve discs, your hand and your companies.",
@@ -5742,41 +6359,41 @@ function Tutorial({ onClose }) {
       {rect ? (
         <div className="tut-spot" style={{ top: rect.t - 4, left: rect.l - 4, width: rect.w + 8, height: rect.h + 8 }} />
       ) : (
-        <div style={{ position: "fixed", inset: 0, zIndex: 9999, backgroundColor: "rgba(6,8,11,.78)" }} />
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, backgroundColor: "rgba(29,31,32,.5)" }} />
       )}
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 10001 }} />
 
       <div onClick={(e) => e.stopPropagation()} style={{
-        ...card, zIndex: 10002, backgroundColor: "#14161a", border: "1px solid #2c5f4f",
-        borderRadius: 12, padding: 18, boxShadow: "0 20px 60px rgba(0,0,0,.7)", maxHeight: "88vh", overflowY: "auto",
+        ...card, zIndex: 10002, backgroundColor: "#ffffff", border: "1px solid #749dc4",
+        borderRadius: 12, padding: 18, boxShadow: "0 20px 60px rgba(43,43,45,0.24)", maxHeight: "88vh", overflowY: "auto",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#8fd3b6" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#416180" }}>
             {t("HOW TO PLAY")} &nbsp;{i + 1}/{TUTORIAL.length}
           </span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#6b7280", fontSize: 11, cursor: "pointer" }}>{t("skip")}</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#6f6f72", fontSize: 11, cursor: "pointer" }}>{t("skip")}</button>
         </div>
 
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#fff", margin: "6px 0 8px" }}>{t(step.title)}</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1d1f20", margin: "6px 0 8px" }}>{t(step.title)}</h2>
 
         {Art && (
-          <div style={{ backgroundColor: "#0f1115", border: "1px solid #262a33", borderRadius: 8, padding: 6, marginBottom: 10 }}>
+          <div style={{ backgroundColor: "#fafafb", border: "1px solid #d4d4d7", borderRadius: 8, padding: 6, marginBottom: 10 }}>
             <Art />
           </div>
         )}
 
-        <p style={{ fontSize: 12.5, lineHeight: 1.5, color: "#c3c9d4", margin: 0 }}>{t(step.body)}</p>
+        <p style={{ fontSize: 12.5, lineHeight: 1.5, color: "#424244", margin: 0 }}>{t(step.body)}</p>
 
         <ul style={{ margin: "10px 0 0", padding: 0, listStyle: "none" }}>
           {step.points.map((pt, k) => (
-            <li key={k} style={{ display: "flex", gap: 8, fontSize: 11.5, lineHeight: 1.45, color: "#9aa3b2", marginBottom: 4 }}>
-              <span style={{ color: "#2c5f4f", fontWeight: 700 }}>&#9679;</span><span>{t(pt)}</span>
+            <li key={k} style={{ display: "flex", gap: 8, fontSize: 11.5, lineHeight: 1.45, color: "#5d5d60", marginBottom: 4 }}>
+              <span style={{ color: "#416180", fontWeight: 700 }}>&#9679;</span><span>{t(pt)}</span>
             </li>
           ))}
         </ul>
 
         {rect && (
-          <div style={{ fontSize: 10, color: "#8fd3b6", marginTop: 9 }}>
+          <div style={{ fontSize: 10, color: "#416180", marginTop: 9 }}>
             {t("The highlighted area on screen is what this step is about.")}
           </div>
         )}
@@ -5785,7 +6402,7 @@ function Tutorial({ onClose }) {
           {TUTORIAL.map((_, k) => (
             <span key={k} onClick={() => setI(k)} style={{
               flex: 1, height: 3, borderRadius: 2, cursor: "pointer",
-              backgroundColor: k <= i ? "#2c5f4f" : "#262a33",
+              backgroundColor: k <= i ? "#5980a6" : "#e7e7ea",
             }} />
           ))}
         </div>
@@ -5793,10 +6410,10 @@ function Tutorial({ onClose }) {
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => setI((v) => Math.max(0, v - 1))} disabled={i === 0}
             style={{ padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-              backgroundColor: "#1c1f26", color: "#8b93a3", border: "1px solid #262a33", opacity: i === 0 ? 0.35 : 1 }}>{t("Back")}</button>
+              backgroundColor: "#f5f5f8", color: "#5d5d60", border: "1px solid #d4d4d7", opacity: i === 0 ? 0.35 : 1 }}>{t("Back")}</button>
           <button onClick={() => (last ? onClose() : setI((v) => v + 1))}
             style={{ flex: 1, padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
-              backgroundColor: "#2c5f4f", color: "#d3fcec", border: "none" }}>{last ? t("Start playing") : t("Next")}</button>
+              backgroundColor: "#5980a6", color: "#ffffff", border: "none" }}>{last ? t("Start playing") : t("Next")}</button>
         </div>
       </div>
     </Floating>
@@ -5869,7 +6486,6 @@ function GameScreens({ online }) {
     setTutorial(false);
   };
   const startedAt = useRef(null);
-  const [reSelection, setReSelection] = useState([]);
   /* Which final quarter this player has already been told about. Keyed on the quarter
      rather than a boolean so it cannot be re-shown by a re-render, and so a rematch -
      which starts a fresh state with no finalQuarter - announces the next one properly. */
@@ -6059,7 +6675,7 @@ function GameScreens({ online }) {
     if (!state || !pickMode) return;
     if (pickMode.kind === "launch") {
       const bp = pickMode.bp;
-      return guardSpend(bp.setup, Math.max(0, bp.opex - RENT_PER_LEVEL * bp.lvl),
+      return guardSpend(bp.setup, cardPotBill(state, bp),
         `Launching ${t(bp.name)}`, doConfirmPick);
     }
     if (pickMode.kind === "buy") {
@@ -6067,7 +6683,7 @@ function GameScreens({ online }) {
     }
     if (pickMode.kind === "grow") {
       const b = pickMode.biz;
-      return guardSpend(bizSetup(b), bizPotBill({ ...b, upgraded: true, level: b.level + 1 }) - bizPotBill(b), `Upgrading ${t(b.bp.name)}`, doConfirmPick);
+      return guardSpend(bizSetup(b), bizPotBill(state, { ...b, upgraded: true, level: b.level + 1 }) - bizPotBill(state, b), `Upgrading ${t(b.bp.name)}`, doConfirmPick);
     }
     doConfirmPick();
   }
@@ -6132,13 +6748,12 @@ function GameScreens({ online }) {
   const isHumanPlacingLH = state.phase === "placingLH" && myTurn;
   const isHumanRepaying = state.phase === "repayingLoans" && myTurn;
   const deliveringBiz = isHumanDelivering ? human.businesses.find((b) => b.id === state.deliveringBizId) : null;
-  const needsREChoice = deliveringBiz && bizInd(deliveringBiz) === "RE" && !state.reChoices[deliveringBiz.id];
   // one number for the picker: level, plus one while the Supply Chain bump is live
   const reAllow = deliveringBiz ? reAllowance(state, deliveringBiz, human) : 0;
   const isHumanSupplyChain = state.phase === "supplyChain" && myTurn;
   const scOptions = isHumanSupplyChain ? supplyChainOptions(state, human) : [];
   const scConcession = isHumanSupplyChain && concessionAvailable(state, human);
-  const deliverInfo = deliveringBiz && !needsREChoice ? {
+  const deliverInfo = deliveringBiz ? {
     ind: bizInd(deliveringBiz), level: deliveringBiz.level, reach: reachableDistricts(state, deliveringBiz),
     // how deep into a row this company may sell - see deliveryColumnCap
     cap: deliveryColumnCap(state, deliveringBiz, human),
@@ -6146,23 +6761,15 @@ function GameScreens({ online }) {
     discountFrom: bizInd(deliveringBiz) === "HC" && hasPersona(human, "preventive") ? deliveringBiz.level : null,
     crossActive: bizInd(deliveringBiz) === "MA" && (state.crossSellRemaining[deliveringBiz.id] || 0) > 0,
     crossHome: bizInd(deliveringBiz) === "MA" ? footprintDistricts(state.board, deliveringBiz.footprint) : new Set(),
+    // the icons this company has already sold into this quarter - the only ones the grid dims
+    used: (state.demand.used && state.demand.used[deliveringBiz.id]) || {},
   } : null;
 
-  function handleConfirmREChoice() {
-    if (!state || !deliveringBiz) return;
-    if (NET) { NET.send("reChoice", { bizId: deliveringBiz.id, districts: reSelection }); setReSelection([]); return; }
-    state.reChoices[deliveringBiz.id] = reSelection;
-    setReSelection([]);
-    setState({ ...state });
-  }
   function handleSupplyChain(ind) {
     if (!state) return;
     if (NET) return NET.send("supplyChain", { ind });
     chooseSupplyChain(state, human, ind, log, rngRef.current);
     setState({ ...state });
-  }
-  function toggleReDistrict(d, max) {
-    setReSelection((sel) => sel.includes(d) ? sel.filter((x) => x !== d) : sel.length < max ? [...sel, d] : sel);
   }
 
   function handleRepayOne() {
@@ -6227,7 +6834,7 @@ function GameScreens({ online }) {
   }
 
   return (
-    <div className="w-full min-h-screen p-4" style={{ backgroundColor: "#0e1014", fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
+    <div className="w-full min-h-screen p-4" style={{ backgroundColor: "#f2f2f3", fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
       <div className="max-w-6xl mx-auto">
         {/* Wraps on a narrow screen. Without flex-wrap the price ticker was pushed
             off the right edge of a phone instead of dropping below the title -
@@ -6239,7 +6846,7 @@ function GameScreens({ online }) {
               <h1 className="text-lg font-bold text-white tracking-tight">{t("ENTREPRENEURS")}</h1>
               <button onClick={() => setTutorial(true)} title={t("How to play")}
                 className="text-[10px] px-2 py-0.5 rounded"
-                style={{ backgroundColor: "#1c1f26", border: "1px solid #2c5f4f", color: "#8fd3b6", cursor: "pointer" }}>
+                style={{ backgroundColor: "#f5f5f8", border: "1px solid #749dc4", color: "#416180", cursor: "pointer" }}>
                 {t("How to play")}
               </button>
             </div>
@@ -6257,13 +6864,13 @@ function GameScreens({ online }) {
         )}
         {reviewing && (
           <div className="rounded-lg p-2 mb-3 flex items-center justify-between flex-wrap gap-2"
-            style={{ backgroundColor: "#1a2e26", border: "1px solid #2c5f4f" }}>
-            <span className="text-xs" style={{ color: "#d3fcec" }}>
+            style={{ backgroundColor: "#e3effb", border: "1px solid #749dc4" }}>
+            <span className="text-xs" style={{ color: "#2c455d" }}>
               {t("Reviewing the final board — the game is over, nothing can be changed.")}
             </span>
             <button onClick={() => setReviewing(false)}
               className="text-xs font-bold px-3 py-1 rounded"
-              style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
+              style={{ backgroundColor: "#5980a6", color: "#ffffff" }}>
               {t("Back to results")}
             </button>
           </div>
@@ -6282,15 +6889,15 @@ function GameScreens({ online }) {
             <TrackBoard state={state} human={human} />
 
             {isHumanPlanningTurn && (
-              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
-                <div className="text-xs font-bold mb-2" style={{ color: "#d3fcec" }}>{t("Place a meeple ({0} left this quarter)", humanMeeplesLeft)}</div>
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#eef6ff", border: "1px solid #749dc4" }}>
+                <div className="text-xs font-bold mb-2" style={{ color: "#2c455d" }}>{t("Place a worker ({0} left this quarter)", humanMeeplesLeft)}</div>
                 <div className="flex flex-wrap gap-2">
                   {/* `trk`, not `t` - `t` is the translate function, and a parameter of
                       that name shadowed it and crashed the whole screen. */}
                   {["raise_capital", "ma", "rd"].map((trk) => (
                     <span key={trk} className="inline-flex items-center gap-1">
                       <button onClick={() => handlePlaceMeeple(trk)} disabled={!state.tracks[trk].includes(null)}
-                        className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+                        className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>
                         {t(TRACK_LABEL[trk])}
                       </button>
                       <Help text={t(trackHelp(state, trk))} />
@@ -6299,8 +6906,8 @@ function GameScreens({ online }) {
                   <span className="inline-flex items-center gap-1">
                     <button onClick={() => handlePlaceMeeple("board_meeting")}
                       disabled={!state.tracks.board_meeting.some((s, i) => s === null && (i === 0 || state.ipoTileClaimed))}
-                      className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
-                      {t("Board Meeting (both meeples)")}
+                      className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>
+                      {t("Board Meeting (both workers)")}
                     </button>
                     <Help text={t(boardMeetingHelp(state))} />
                   </span>
@@ -6313,8 +6920,8 @@ function GameScreens({ online }) {
               </div>
             )}
             {isHumanResolving && pickMode && (
-              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
-                <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#eef6ff", border: "1px solid #749dc4" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#2c455d" }}>
                   {pickMode.kind === "launch"
                     ? t("Placing {0} — select {1}/{2} plot(s)", t(pickMode.bp.name), pickMode.selected.length, pickMode.nPlots)
                     : pickMode.kind === "grow" ? (() => {
@@ -6336,14 +6943,14 @@ function GameScreens({ online }) {
                 )}
                 <div className="flex gap-2">
                   <button onClick={handleConfirmPick} disabled={pickMode.selected.length < (pickMode.kind === "launch" ? pickMode.nPlots : 1)}
-                    className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>{t("Confirm")}</button>
-                  <button onClick={handleCancelPick} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Cancel")}</button>
+                    className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#5980a6", color: "#ffffff" }}>{t("Confirm")}</button>
+                  <button onClick={handleCancelPick} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>{t("Cancel")}</button>
                 </div>
               </div>
             )}
             {riskyConfirm && (
-              <div className="rounded-lg p-3" style={{ backgroundColor: "#2a1a1a", border: "1px solid #7a3f3f" }}>
-                <div className="text-xs font-bold mb-1" style={{ color: "#fca5a5" }}>
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#fbeceb", border: "1px solid #e3a59f" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#b3261a" }}>
                   {t("{0} leaves you short at the end of this quarter", riskyConfirm.what)}
                 </div>
                 <div className="text-[11px] text-gray-300 mb-2">
@@ -6353,12 +6960,12 @@ function GameScreens({ online }) {
                 <div className="flex gap-2">
                   <button onClick={() => { const go = riskyConfirm.go; setRiskyConfirm(null); go(); }}
                     className="text-[11px] font-semibold px-3 py-1.5 rounded"
-                    style={{ backgroundColor: "#7a3f3f", color: "#ffe4e4" }}>
+                    style={{ backgroundColor: "#f6d5d1", color: "#ffffff" }}>
                     {t("Do it anyway")}
                   </button>
                   <button onClick={() => setRiskyConfirm(null)}
                     className="text-[11px] px-3 py-1.5 rounded"
-                    style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+                    style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>
                     {t("Cancel")}
                   </button>
                 </div>
@@ -6370,8 +6977,8 @@ function GameScreens({ online }) {
                 replaces the warning with the one for that action. */}
             {isHumanResolving && !pickMode && <ActionPanel state={state} human={human} rng={rngRef.current} log={log} onDone={handleResolutionDone} onStartLaunch={handleStartLaunch} onStartGrow={handleStartGrow} onStartBuy={handleStartBuy} guardSpend={guardSpend} />}
             {scConcession && (
-              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
-                <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#eef6ff", border: "1px solid #749dc4" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#2c455d" }}>
                   {t("Concession Holder — sell Utilities at ${0} this quarter?", price(state.pm, "UT") + 1)}
                 </div>
                 <div className="text-[10px] text-gray-400 mb-2">
@@ -6379,17 +6986,17 @@ function GameScreens({ online }) {
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   <button onClick={() => handleSupplyChain("concession:on")} className="text-[10px] px-2 py-1 rounded"
-                    style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
-                    {t("Switch it on")} <span style={{ color: "#9ca3af" }}>{t("${0} a unit", price(state.pm, "UT") + 1)}</span>
+                    style={{ backgroundColor: "#f5f5f8", border: "1px solid #c9c9cc55", color: "#1d1f20" }}>
+                    {t("Switch it on")} <span style={{ color: "#5d5d60" }}>{t("${0} a unit", price(state.pm, "UT") + 1)}</span>
                   </button>
                   <button onClick={() => handleSupplyChain("concession:off")} className="text-[10px] px-2 py-1 rounded"
-                    style={{ backgroundColor: "#20232c", border: "1px solid #33384355", color: "#9ca3af" }}>{t("Leave it off")}</button>
+                    style={{ backgroundColor: "#ececef", border: "1px solid #c9c9cc55", color: "#5d5d60" }}>{t("Leave it off")}</button>
                 </div>
               </div>
             )}
             {isHumanSupplyChain && scOptions.length > 0 && (
-              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
-                <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#eef6ff", border: "1px solid #749dc4" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#2c455d" }}>
                   {t("Supply Chain Expert — you may raise one industry you do not operate")}
                 </div>
                 <div className="text-[10px] text-gray-400 mb-2">
@@ -6399,56 +7006,29 @@ function GameScreens({ online }) {
                   {scOptions.map((i) => (
                     <button key={i} onClick={() => handleSupplyChain(i)}
                       className="text-[10px] px-2 py-1 rounded"
-                      style={{ backgroundColor: "#1c1f26", border: "1px solid #33384355", color: "#e5e7eb" }}>
-                      {t(IND_NAME[i] || i)} <span style={{ color: "#9ca3af" }}>${price(state.pm, i)}</span>
+                      style={{ backgroundColor: "#f5f5f8", border: "1px solid #c9c9cc55", color: "#1d1f20" }}>
+                      {t(IND_NAME[i] || i)} <span style={{ color: "#5d5d60" }}>${price(state.pm, i)}</span>
                     </button>
                   ))}
                   {/* Lifting a rival industry helps whoever sells there, so declining is a
                       real option and not only a way to skip a screen. */}
                   <button onClick={() => handleSupplyChain("skip")} className="text-[10px] px-2 py-1 rounded"
-                    style={{ backgroundColor: "#20232c", border: "1px solid #33384355", color: "#9ca3af" }}>{t("Don't raise anything")}</button>
+                    style={{ backgroundColor: "#ececef", border: "1px solid #c9c9cc55", color: "#5d5d60" }}>{t("Don't raise anything")}</button>
                 </div>
               </div>
             )}
-            {isHumanDelivering && needsREChoice && (
-              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
-                <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
-                  {t(reAllow > 1 ? "{0} may reach {1} extra districts this delivery — pick {2}/{1}" : "{0} may reach {1} extra district this delivery — pick {2}/{1}",
-                     t(deliveringBiz.bp.name), reAllow, reSelection.length)}
-                </div>
-                <div className="text-[10px] text-gray-400 mb-2">
-                  {t("Retail may sell to any district(s) beyond its own, one per level. Choose which.")}
-                </div>
-                <div className="flex flex-wrap gap-1.5 mb-2" style={{ maxHeight: 160, overflowY: "auto" }}>
-                  {allDistrictKeys(state.board).filter((d) => !footprintDistricts(state.board, deliveringBiz.footprint).has(d)).map((d) => {
-                    const tname = state.board.tiles[d];
-                    const chosen = reSelection.includes(d);
-                    return (
-                      <button key={d} onClick={() => toggleReDistrict(d, reAllow)}
-                        className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: chosen ? "#1a4a2e" : "#1c1f26", border: chosen ? "1px solid #4ade80" : "1px solid #33384355", color: "#e5e7eb" }}>
-                        {tname}
-                      </button>
-                    );
-                  })}
-                </div>
-                <button onClick={handleConfirmREChoice} disabled={reSelection.length < 1 && reAllow > 0}
-                  className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
-                  {t("Confirm reach")}
-                </button>
-              </div>
-            )}
-            {isHumanDelivering && deliveringBiz && !needsREChoice && (
-              <div className="rounded-lg p-3" style={{ backgroundColor: "#1a2420", border: "1px solid #2c5f4f" }}>
-                <div className="text-xs font-bold mb-1" style={{ color: "#d3fcec" }}>
+            {isHumanDelivering && deliveringBiz && (
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#eef6ff", border: "1px solid #749dc4" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#2c455d" }}>
                   {t("Delivering {0} ({1} L{2}) — {3} unit(s) left", t(deliveringBiz.bp.name), bizInd(deliveringBiz), deliveringBiz.level, state.deliveryRemaining[deliveringBiz.id])}
                   {/* Never advertise more cross-sell than there is production to spend
                       on it: the allowance is a cap on where units may go, and showing
                       a number bigger than the units left reads as goods you do not
                       have. */}
-                  {bizInd(deliveringBiz) === "MA" && Math.min(state.crossSellRemaining[deliveringBiz.id] || 0, state.deliveryRemaining[deliveringBiz.id] || 0) > 0 && <span> &middot; <span style={{ color: "#f5a623" }}>{t("{0} of them may cross-sell", Math.min(state.crossSellRemaining[deliveringBiz.id], state.deliveryRemaining[deliveringBiz.id]))}</span></span>}
+                  {bizInd(deliveringBiz) === "MA" && Math.min(state.crossSellRemaining[deliveringBiz.id] || 0, state.deliveryRemaining[deliveringBiz.id] || 0) > 0 && <span> &middot; <span style={{ color: "#b86e00" }}>{t("{0} of them may cross-sell", Math.min(state.crossSellRemaining[deliveringBiz.id], state.deliveryRemaining[deliveringBiz.id]))}</span></span>}
                 </div>
                 {state.hoBonusPaid && state.hoBonusPaid[deliveringBiz.id] > 0 && (
-                  <div className="text-[10px] mb-1" style={{ color: "#8fd3b6" }}>
+                  <div className="text-[10px] mb-1" style={{ color: "#416180" }}>
                     {t("Hospitality bonus: {0} unit(s) already sold to neighbouring businesses/hubs.", state.hoBonusPaid[deliveringBiz.id])}
                   </div>
                 )}
@@ -6473,8 +7053,8 @@ function GameScreens({ online }) {
                   if (capacity >= left) {
                     if (!nbrsUsed) return null;
                     return (
-                      <div className="rounded p-1.5 mb-2" style={{ backgroundColor: "#16261f", border: "1px solid #2c5f4f" }}>
-                        <div className="text-[10px]" style={{ color: "#8fd3b6" }}>
+                      <div className="rounded p-1.5 mb-2" style={{ backgroundColor: "#e6f4ec", border: "1px solid #749dc4" }}>
+                        <div className="text-[10px]" style={{ color: "#416180" }}>
                           {t("Whatever the icons cannot take, your neighbours will: {0} within {1} take a unit each at ${2}. Nothing here has to be recycled.",
                              t(nbrs === 1 ? "{0} business and hub" : "{0} businesses and hubs", nbrs),
                              t(deliveringBiz.level === 1 ? "{0} plot" : "{0} plots", deliveringBiz.level), unit)}
@@ -6490,8 +7070,8 @@ function GameScreens({ online }) {
                     : onLH ? t("It is on the hub network; more hubs will open more districts.")
                     : t("It is not touching a Logistic Hub, so it can only sell in its own district.");
                   return (
-                    <div className="rounded p-1.5 mb-2" style={{ backgroundColor: "#2a2415", border: "1px solid #7a6a3f" }}>
-                      <div className="text-[10px]" style={{ color: "#f5d76e" }}>
+                    <div className="rounded p-1.5 mb-2" style={{ backgroundColor: "#fcf6e1", border: "1px solid #dccb93" }}>
+                      <div className="text-[10px]" style={{ color: "#8a6500" }}>
                         {t(left === 1 ? "{0} of {1} unit can be sold:" : "{0} of {1} units can be sold:", capacity, left)}
                         {" "}{t(direct / rate === 1 ? "{0} open demand icon in reach" : "{0} open demand icons in reach", direct / rate)}
                         {rate > 1 ? t(" × {0} per icon", rate) : ""}
@@ -6510,7 +7090,7 @@ function GameScreens({ online }) {
                   {bizInd(deliveringBiz) === "MA" && <span> {t("Amber-bordered cells are cross-sell slots — Manufacturing may fill another industry's demand within its own footprint.")}</span>}
                   {bizInd(deliveringBiz) === "HO" && <span> {t("Hospitality trades whatever the icons cannot take to the businesses and hubs around it, at full price, when you move on.")}</span>}
                 </div>
-                <button onClick={handleSkipDelivery} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+                <button onClick={handleSkipDelivery} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>
                   {hoBonusUnits(state, deliveringBiz, human) > 0 && (state.deliveryRemaining[deliveringBiz.id] || 0) > 0
                     ? <>{t("Sell to neighbours & move on")}</>
                     : <>{t("Recycle remainder & move on")}</>}
@@ -6519,8 +7099,8 @@ function GameScreens({ online }) {
             )}
             {isHumanLiquidating && <LiquidationPanel state={state} human={human} log={log} onContinue={handleLiquidationContinue} />}
             {isHumanPlacingLH && pickMode && pickMode.kind === "lh" && (
-              <div className="rounded-lg p-3" style={{ backgroundColor: "#0f2530", border: "1px solid #22D3EE" }}>
-                <div className="text-xs font-bold mb-1" style={{ color: "#67e8f9" }}>
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#e6f4f8", border: "1px solid #1b8fb3" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#0e7c93" }}>
                   {t("You’re 1st in turn order — place this quarter’s Logistic Hub ({0} picked)",
                      t("{0}/1 plot", pickMode.selected.length))}
                 </div>
@@ -6528,28 +7108,28 @@ function GameScreens({ online }) {
                   {t("Click one empty plot. Companies orthogonally beside it join the hub network, and the network reaches this district for everyone already on it.")}
                   {pickMode.selected.length === 1 && (() => {
                     const n = orthOf(state.board, pickMode.selected[0]).length;
-                    return <span style={{ color: n ? "#8fd3b6" : "#fca5a5" }}> {t(n === 1 ? "That plot connects {0} neighbouring plot." : "That plot connects {0} neighbouring plots.", n)}</span>;
+                    return <span style={{ color: n ? "#416180" : "#b3261a" }}> {t(n === 1 ? "That plot connects {0} neighbouring plot." : "That plot connects {0} neighbouring plots.", n)}</span>;
                   })()}
                 </div>
                 <div className="flex gap-2">
                   <button onClick={handleConfirmLH} disabled={!pickMode.selected.length}
-                    className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#0e5f6f", color: "#d3fcec" }}>{t("Confirm placement")}</button>
+                    className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#d8f1f7", color: "#2c455d" }}>{t("Confirm placement")}</button>
                   {pickMode.selected.length > 0 && (
-                    <button onClick={() => setPickMode({ kind: "lh", selected: [] })} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>{t("Reset selection")}</button>
+                    <button onClick={() => setPickMode({ kind: "lh", selected: [] })} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>{t("Reset selection")}</button>
                   )}
                 </div>
               </div>
             )}
             {!isHumanPlanningTurn && !isHumanResolving && !isHumanDelivering && !isHumanLiquidating && !isHumanPlacingLH && !isHumanRepaying && (
-              <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-                <div className="text-xs italic" style={{ color: awaitedName ? "#8fd3b6" : "#6b7280" }}>
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#ffffff", border: "1px solid #d4d4d7" }}>
+                <div className="text-xs italic" style={{ color: awaitedName ? "#416180" : "#6f6f72" }}>
                   {awaitedName ? t("Waiting for {0}…", awaitedName) : t("Waiting on other players…")}
                 </div>
                 {/* If someone has dropped out, the host can hand their seat to a bot so the
                     table is not stuck waiting on a browser that is never coming back. */}
                 {online && online.host && awaitedId != null && awaitedId !== online.seat
                   && state.players.find((p) => p.id === awaitedId && p.isHuman) && (
-                  <div className="mt-2 pt-2" style={{ borderTop: "1px solid #262a33" }}>
+                  <div className="mt-2 pt-2" style={{ borderTop: "1px solid #d4d4d7" }}>
                     {waitSecs >= 20 ? (
                       <div className="text-[10px] text-gray-500 mb-1.5">
                         {t("{0} has not acted for {1}s. If they have disconnected you can hand their seat to a bot.", awaitedName, waitSecs)}
@@ -6561,7 +7141,7 @@ function GameScreens({ online }) {
                         if (window.confirm(t("Replace {0} with a bot for the rest of the game? They will not be able to rejoin.", awaitedName))) online.onKick(awaitedId);
                       }}
                       className="text-[10px] px-2 py-1 rounded"
-                      style={{ backgroundColor: "#2a2415", border: "1px solid #7a6a3f", color: "#f5d76e", cursor: "pointer" }}>
+                      style={{ backgroundColor: "#fcf6e1", border: "1px solid #dccb93", color: "#8a6500", cursor: "pointer" }}>
                       {t("Replace {0} with a bot", awaitedName)}
                     </button>
                   </div>
@@ -6577,15 +7157,15 @@ function GameScreens({ online }) {
               const nextCost = laterEnds.length ? epPrice(state, laterEnds[0]) : 0;
               const affordable = epCost > 0 ? Math.floor(human.cash / epCost) : 0;
               return (
-              <div className="rounded-lg p-3" style={{ backgroundColor: "#0f2530", border: "1px solid #22D3EE" }}>
-                <div className="text-xs font-bold mb-1" style={{ color: "#67e8f9" }}>
+              <div className="rounded-lg p-3" style={{ backgroundColor: "#e6f4f8", border: "1px solid #1b8fb3" }}>
+                <div className="text-xs font-bold mb-1" style={{ color: "#0e7c93" }}>
                   {t("Year-end: you may repay loan discs at ${0} each — {1} outstanding (−{2} EP if left unpaid)",
                      LOAN_REPAY_RATE[state.quarter],
                      t(human.discsInBank === 1 ? "{0} disc" : "{0} discs", human.discsInBank),
                      human.discsInBank * 5)}
                 </div>
                 {epCost > 0 && (
-                  <div className="text-xs font-bold mb-1" style={{ color: "#c4b5fd" }}>
+                  <div className="text-xs font-bold mb-1" style={{ color: "#43346d" }}>
                     {nextCost
                       ? t("...and buy EP at ${0} each. Next year end they cost ${1}.", epCost, nextCost)
                       : t("...and buy EP at ${0} each. This is the last chance — cash left over scores nothing.", epCost)}
@@ -6594,22 +7174,22 @@ function GameScreens({ online }) {
                 <div className="text-[10px] text-gray-400 mb-2">{t("You have ${0} cash.", Math.round(human.cash))}</div>
                 <div className="flex gap-2 flex-wrap">
                   <button onClick={handleRepayOne} disabled={human.discsInBank <= 0 || human.cash < LOAN_REPAY_RATE[state.quarter]}
-                    className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#0e5f6f", color: "#d3fcec" }}>
+                    className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#d8f1f7", color: "#2c455d" }}>
                     Repay 1 disc (−${LOAN_REPAY_RATE[state.quarter]})
                   </button>
                   {epCost > 0 && (
                     <>
                       <button onClick={() => handleBuyEP(1)} disabled={affordable < 1}
-                        className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#4c3a73", color: "#ede9fe" }}>
+                        className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#ebe4fb", color: "#4c3a73" }}>
                         {t("Buy 1 EP (−${0})", epCost)}
                       </button>
                       <button onClick={() => handleBuyEP(affordable)} disabled={affordable < 2}
-                        className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#4c3a73", color: "#ede9fe" }}>
+                        className="text-xs font-bold px-3 py-1.5 rounded disabled:opacity-30" style={{ backgroundColor: "#ebe4fb", color: "#4c3a73" }}>
                         {t("Buy {0} (−${1})", t(affordable === 1 ? "{0} EP" : "all {0} EP", affordable), affordable * epCost)}
                       </button>
                     </>
                   )}
-                  <button onClick={handleDoneRepaying} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#20232c", color: "#e5e7eb" }}>
+                  <button onClick={handleDoneRepaying} className="text-xs font-semibold px-3 py-1.5 rounded" style={{ backgroundColor: "#ececef", color: "#1d1f20" }}>
                     {t("Done")}
                   </button>
                 </div>
@@ -6617,7 +7197,7 @@ function GameScreens({ online }) {
               );
             })()}
 
-            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+            <div className="rounded-lg p-3" style={{ backgroundColor: "#ffffff", border: "1px solid #d4d4d7" }}>
               <div className="flex items-center justify-between mb-2">
                 <span data-tut="ledger" className="text-xs font-bold text-gray-300 uppercase tracking-wide flex items-center gap-1">{t("Your player board")} <Help text={t("Your twelve discs are your whole footprint: one per plot you own, one per company (a Megacorp HQ still holds its own), and one for each outstanding loan. Run out and you cannot buy, build or borrow until you free one up.")} /></span>
                 <span className="text-[9px] font-mono text-gray-600">{human.name}</span>
@@ -6625,7 +7205,7 @@ function GameScreens({ online }) {
 
               {human.persona && PERSONAS[human.persona] && (
                 <div className="rounded-md p-2 mb-2" style={{
-                  backgroundColor: "#1c1f26",
+                  backgroundColor: "#f5f5f8",
                   border: `1px solid ${IND_COLOR[PERSONAS[human.persona].ind]}`,
                 }}>
                   <div className="flex items-center gap-1.5 mb-0.5">
@@ -6649,8 +7229,8 @@ function GameScreens({ online }) {
                       className="flex-1 rounded text-center" style={{
                         padding: "3px 0", fontSize: 9, fontWeight: 800, letterSpacing: 0.3,
                         backgroundColor: done ? IND_COLOR[ind] : "transparent",
-                        color: done ? "#0e1014" : live ? IND_COLOR[ind] : "#4b5563",
-                        border: `1px ${done ? "solid" : live ? "dashed" : "solid"} ${done || live ? IND_COLOR[ind] : "#2b3040"}`,
+                        color: done ? "#1d1f20" : live ? inkOf(IND_COLOR[ind]) : "#8a8a8d",
+                        border: `1px ${done ? "solid" : live ? "dashed" : "solid"} ${done || live ? IND_COLOR[ind] : "#c9c9cc"}`,
                       }}>
                       {ind}
                     </div>
@@ -6663,24 +7243,24 @@ function GameScreens({ online }) {
               </div>
 
               {(() => {
-                const suppliers = activeBiz(human).reduce((s, b) => s + bizPotBill(b), 0);
+                const suppliers = activeBiz(human).reduce((s, b) => s + bizPotBill(state, b), 0);
                 const rent = groundRentDue(state, human);
                 const after = human.cash - (suppliers + rent);
                 const discs = human.discsInBank;
                 const tiles = [
-                  { label: "CASH", value: `$${Math.round(human.cash)}`, color: "#8fd3b6" },
-                  { label: t("SUPPLIERS / QTR"), value: `$${Math.round(suppliers)}`, color: "#f3b0a5" },
-                  { label: t("GROUND RENT"), value: `$${Math.round(rent)}`, color: rent > 0 ? "#e0b060" : "#6b7280" },
-                  { label: t("AFTER BILLS"), value: `${after < 0 ? "\u2212" : ""}$${Math.abs(Math.round(after))}`, color: after < 0 ? "#fca5a5" : "#e5e7eb" },
-                  { label: t("LOAN DISCS"), value: `${discs}`, sub: discs ? `\u2212${discs * 5} EP` : "none", color: discs ? "#fca5a5" : "#6b7280" },
+                  { label: "CASH", value: `$${Math.round(human.cash)}`, color: "#416180" },
+                  { label: t("SUPPLIERS / QTR"), value: `$${Math.round(suppliers)}`, color: "#b3261a" },
+                  { label: t("GROUND RENT"), value: `$${Math.round(rent)}`, color: rent > 0 ? "#8a6500" : "#6f6f72" },
+                  { label: t("AFTER BILLS"), value: `${after < 0 ? "\u2212" : ""}$${Math.abs(Math.round(after))}`, color: after < 0 ? "#b3261a" : "#1d1f20" },
+                  { label: t("LOAN DISCS"), value: `${discs}`, sub: discs ? `\u2212${discs * 5} EP` : "none", color: discs ? "#b3261a" : "#6f6f72" },
                   { label: t("DISCS USED"), value: `${discsUsed(state, human)}/${discsPerPlayer(state)}`,
                     sub: `${plotsOwned(state, human)} land \u00b7 ${activeBiz(human).length} biz \u00b7 ${discs} loan`,
-                    color: discsFree(state, human) <= 0 ? "#fca5a5" : discsFree(state, human) <= 2 ? "#f5a623" : "#e5e7eb" },
+                    color: discsFree(state, human) <= 0 ? "#b3261a" : discsFree(state, human) <= 2 ? "#b86e00" : "#1d1f20" },
                 ];
                 return (
                   <div className="flex gap-1.5 mb-3">
                     {tiles.map((tile) => (
-                      <div key={tile.label} className="flex-1 rounded p-1.5" style={{ backgroundColor: "#1c1f26", border: "1px solid #2b3040" }}>
+                      <div key={tile.label} className="flex-1 rounded p-1.5" style={{ backgroundColor: "#f5f5f8", border: "1px solid #c9c9cc" }}>
                         <div className="text-[8px] font-bold text-gray-500 tracking-wide mb-0.5">{tile.label}</div>
                         <div className="text-sm font-bold font-mono leading-tight" style={{ color: tile.color }}>{tile.value}</div>
                         {tile.sub && <div className="text-[8px] font-mono text-gray-600">{tile.sub}</div>}
@@ -6691,8 +7271,8 @@ function GameScreens({ online }) {
               })()}
 
               {quarterBill(state, human) > human.cash && (
-                <div className="rounded p-1.5 mb-3" style={{ backgroundColor: "#2a1a1a", border: "1px solid #7a3f3f" }}>
-                  <div className="text-[9px] font-bold" style={{ color: "#fca5a5" }}>
+                <div className="rounded p-1.5 mb-3" style={{ backgroundColor: "#fbeceb", border: "1px solid #e3a59f" }}>
+                  <div className="text-[9px] font-bold" style={{ color: "#b3261a" }}>
                     {t("Short ${0} for next quarter's bills — raise cash or you'll be forced to liquidate.", Math.round(quarterBill(state, human) - human.cash))}
                   </div>
                 </div>
@@ -6702,7 +7282,7 @@ function GameScreens({ online }) {
                 {t("Hand")} &mdash; {human.hand.length}/5
               </div>
               <div className="flex flex-wrap gap-2 mb-3">
-                {human.hand.map((bp, i) => <BPCard key={i} bp={bp} player={human} disabled small />)}
+                {human.hand.map((bp, i) => <BPCard key={i} state={state} bp={bp} player={human} />)}
                 {!human.hand.length && <span className="text-xs text-gray-500 italic">{t("Empty.")}</span>}
               </div>
 
@@ -6711,37 +7291,23 @@ function GameScreens({ online }) {
               </div>
               <div className="flex flex-wrap gap-2">
                 {activeBiz(human).map((b) => {
+                  /* The company's own card, as it lies under the strip on the table: the
+                     IN HAND band is tucked away and BUILT is the one that matters. The tier
+                     it is being paid this quarter is marked, which the printed card cannot do. */
                   const canProd = businessCanProduce(state, b);
+                  const g = growthFor(human, b.bp);
+                  const r = canProd && !unitRevenueOn(state) ? bandRevenue(state, human, b) : null;
                   return (
-                    <div key={b.id} className="rounded-md p-2" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}55`, width: 148, opacity: canProd ? 1 : 0.5 }}
-                      onMouseEnter={(e) => { const r = e.currentTarget.getBoundingClientRect(); setHover({ biz: b, x: r.right, y: r.top }); }}
+                    <div key={b.id} style={{ opacity: canProd ? 1 : 0.55 }}
+                      onMouseEnter={(e) => { const r2 = e.currentTarget.getBoundingClientRect(); setHover({ biz: b, x: r2.right, y: r2.top }); }}
                       onMouseLeave={() => setHover(null)}>
-                      <div className="flex items-center justify-between mb-1">
-                        <Chip color={IND_COLOR[b.bp.ind]}>{b.bp.ind}</Chip>
-                        <span className="text-[10px] font-mono text-gray-400">{t("Lvl {0}", b.level)}{b.upgraded ? " \u2191" : ""}</span>
-                      </div>
-                      <div className="text-xs font-semibold text-gray-100 leading-tight mb-1" style={{ minHeight: 28 }}>{t(b.bp.name)}</div>
-                      {/* The same four numbers the blueprint showed, now that it is standing:
-                          setup is what an upgrade will cost again, opex is the running bill
-                          before suppliers and rent, and the scaling line says whether the next
-                          level needs another plot or stacks on this one. */}
-                      <div className="text-[9px] font-mono text-gray-400 space-y-0.5">
-                        <div>{t("setup ${0} · opex ${1}", bizSetup(b), bizOpex(b))}</div>
-                        <div className="flex items-center justify-between">
-                          <span style={{ color: "#f3b0a5" }}>{t("bill ${0}", bizPotBill(b) + bizGroundRent(state, human, b))}</span>
-                          <span>{t("prod {0}", bizProd(b))}</span>
-                        </div>
-                        {(() => { const g = growthFor(human, b.bp); return (
-                          <div title={growthTitle(g, b.bp.ind)} style={{ color: IND_COLOR[b.bp.ind] }}>
-                            {SCALING_GLYPH[g.dir]} {t(SCALING_NAME[g.dir])}{g.flipped ? " \u2605" : ""} &middot; {t(b.footprint.length === 1 ? "{0} plot" : "{0} plots", b.footprint.length)}
-                          </div>); })()}
-                        {/* Where it actually stands. The full label with grid coordinates is
-                            still what the plot tooltip and the bank list give. */}
-                        <div className="text-gray-500" title={b.footprint.map((pk) => plotLabel(state.board, pk)).join(" + ")}>
-                          {b.footprint.map((pk) => plotShort(state.board, pk)).join(" + ")}
-                        </div>
-                      </div>
-                      {!canProd && <div className="text-[9px] text-red-400 mt-0.5">{t("Land unowned — can't produce")}</div>}
+                      <BlueprintCard face={cardFace(state, b.bp, b)} color={IND_COLOR[b.bp.ind]} mode="built" grow={g.dir} flipped={g.flipped}
+                        live={r ? { icons: r.icons, px: r.px, tier: r.band } : null}
+                        note={<>
+                          <span title={b.footprint.map((pk) => plotLabel(state.board, pk)).join(" + ")}>{b.footprint.map((pk) => plotShort(state.board, pk)).join(" + ")}</span>
+                          {" \u00b7 "}<span style={{ color: "#b3261a" }}>{t("bill ${0}", bizPotBill(state, b) + bizGroundRent(state, human, b))}</span>
+                          {!canProd && <div className="text-red-400">{t("Land unowned — can't produce")}</div>}
+                        </>} />
                     </div>
                   );
                 })}
@@ -6760,24 +7326,24 @@ function GameScreens({ online }) {
                   const rivals = hqRivalNeighbours(state, human, hq);
                   const rent = bizGroundRent(state, human, hq);
                   return (
-                    <div key={hq.id} className="rounded-md p-2" style={{ backgroundColor: "#211d14", border: "1px solid #7a6a3f", width: 148, opacity: live ? 1 : 0.5 }}
+                    <div key={hq.id} className="rounded-md p-2" style={{ backgroundColor: "#f0ede6", border: "1px solid #dccb93", width: 148, opacity: live ? 1 : 0.5 }}
                       onMouseEnter={(e) => { const r = e.currentTarget.getBoundingClientRect(); setHover({ biz: hq, x: r.right, y: r.top }); }}
                       onMouseLeave={() => setHover(null)}>
                       <div className="flex items-center justify-between mb-1">
                         <Chip color={IND_COLOR[bizInd(hq)]}>{bizInd(hq)}</Chip>
-                        <span className="text-[10px] font-mono" style={{ color: "#c9a0ff" }}>{t("tier {0}", tier)}</span>
+                        <span className="text-[10px] font-mono" style={{ color: "#6b4fb3" }}>{t("tier {0}", tier)}</span>
                       </div>
-                      <div className="text-xs font-semibold leading-tight mb-1" style={{ color: "#f5d76e", minHeight: 28 }}>{t(hq.megacorpName)}</div>
+                      <div className="text-xs font-semibold leading-tight mb-1" style={{ color: "#8a6500", minHeight: 28 }}>{t(hq.megacorpName)}</div>
                       <div className="text-[9px] font-mono text-gray-400 space-y-0.5">
-                        <div style={{ color: "#f5d76e" }}>{t("Megacorp HQ")}</div>
+                        <div style={{ color: "#8a6500" }}>{t("Megacorp HQ")}</div>
                         <div className="flex items-center justify-between">
-                          <span style={{ color: "#f3b0a5" }}>{t("rent ${0}", rent)}</span>
-                          <span style={{ color: live && ep ? "#8fd3b6" : "#8b93a3" }}>{t("{0} EP/quarter", live ? ep : 0)}</span>
+                          <span style={{ color: "#b3261a" }}>{t("rent ${0}", rent)}</span>
+                          <span style={{ color: live && ep ? "#416180" : "#5d5d60" }}>{t("{0} EP/quarter", live ? ep : 0)}</span>
                         </div>
                         <div title={t("It banks EP instead of producing goods: its industry's price, divided by its tile's tier, every quarter.")}>
                           {t("brand ${0} ÷ {1}", goods, tier)}
                         </div>
-                        <div style={{ color: rivals ? "#fca5a5" : "#8b93a3" }}
+                        <div style={{ color: rivals ? "#b3261a" : "#5d5d60" }}
                           title={t("Every RIVAL company standing beside a headquarters takes {0} EP a quarter off its owner. Your own neighbours cost you nothing.", MEGACORP_TITHE_EP)}>
                           {rivals
                             ? t("−{0} EP/quarter · {1}", rivals * MEGACORP_TITHE_EP,
@@ -6790,7 +7356,7 @@ function GameScreens({ online }) {
                         <div className="text-gray-500">{t("holds 1 disc and 1 slot — an HQ cannot be sold")}</div>
                       </div>
                       {!live && <div className="text-[9px] text-red-400 mt-0.5">{t("Land unowned — banks no EP")}</div>}
-                      {live && !ep && <div className="text-[9px] mt-0.5" style={{ color: "#e0b060" }}>{t("banks nothing until {0} reaches ${1}", bizInd(hq), tier)}</div>}
+                      {live && !ep && <div className="text-[9px] mt-0.5" style={{ color: "#8a6500" }}>{t("banks nothing until {0} reaches ${1}", bizInd(hq), tier)}</div>}
                     </div>
                   );
                 })}
@@ -6801,62 +7367,50 @@ function GameScreens({ online }) {
           </div>
 
           <div className="side-col space-y-3">
-            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+            <div className="rounded-lg p-3" style={{ backgroundColor: "#ffffff", border: "1px solid #d4d4d7" }}>
               <div data-tut="standings" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("Standings")} <Help text={t("Score = {0} EP per company level, banked the moment you build or upgrade it, plus {1} EP the first time you build in each industry (once per game). Plus Megacorp tiles, their brand EP and tithe, land awards at every year end, ${2} = 1 EP, and -5 EP per unpaid loan disc. A tie is settled by more active companies, then money, then fewer loan discs. Hover a player for the full breakdown.", levelEP(state), INDUSTRY_DEBUT_EP, CASH_PER_EP)} /></div>
               <div className="space-y-2">
                 {[...state.players].sort((a, b) => epTotal(b) - epTotal(a)).map((p) => {
                   return (
-                    <div key={p.id} className="rounded p-1.5" style={{ backgroundColor: "#1c1f26" }}
+                    <div key={p.id} className="pu-player" style={{ borderLeftColor: PLAYER_COLORS[p.id] }}
                       onMouseEnter={(e) => { const r = e.currentTarget.getBoundingClientRect(); setEpHover({ p, x: r.left, y: r.top }); }}
                       onMouseLeave={() => setEpHover(null)}>
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PLAYER_COLORS[p.id] }} />
-                          <span className="font-semibold text-gray-200">{p.name}</span>
-                          {state.turnOrder[0] === p.id && <span className="text-[8px] font-mono text-gray-500">1st</span>}
-                        </div>
-                        <div className="font-mono font-bold" style={{ color: "#8fd3b6" }}>{epTotal(p).toFixed(0)} EP</div>
-                      </div>
-                      {/* This row used to read "Nbiz ... Ndisc", where the biz
-                          count was activeBiz - which EXCLUDES Megacorp HQs. So
-                          merging three companies into a Megacorp dropped you
-                          from "3biz" to "0biz" with the Megacorp shown nowhere,
-                          and the disc number was discsInBank (LOAN discs only)
-                          while the player board's t("DISCS USED") counts plots,
-                          companies AND loans. Two different quantities, both
-                          labelled "disc", that could never be reconciled.
-                          Megacorps are now counted, and the discs shown here are
-                          the same used-of-twelve the player board shows. */}
-                      <div className="flex items-center justify-between text-[9px] font-mono text-gray-500 mt-0.5">
-                        <span>
-                          ${Math.round(p.cash)} &middot;{" "}
-                          <span title={t("Active companies")}>{t("{0}biz", activeBiz(p).length)}</span>
-                          {megacorpHQs(p).length > 0 && (
-                            <span title={t("Megacorp HQ: {0}", megacorpHQs(p).map((b) => t(b.megacorpName)).join(", "))}
-                              style={{ color: "#f5d76e" }}> {t("+{0}MC", megacorpHQs(p).length)}</span>
-                          )} &middot; {t("{0}BP", p.hand.length)} &middot;{" "}
-                          <span title={t("Discs committed: {0} on land, {1} on companies, {2} pledged for loans", plotsOwned(state, p), companySlotsUsed(p), p.discsInBank)}>
-                            {t("{0}/{1} discs", discsUsed(state, p), discsPerPlayer(state))}
-                          </span>
+                      {/* The player box of the printed set: a name on its colour, the persona
+                          under it, and the four numbers a table glances at - cash, points,
+                          discs still free and cards in hand. The discs are the same twelve the
+                          player board counts: on land, on companies and pledged for loans. */}
+                      <div className="pu-player-top">
+                        <div className="pu-player-name">
+                          <b>{p.name}</b>
+                          {state.turnOrder[0] === p.id && <span className="pu-first">1st</span>}
                           {p.discsInBank > 0 && (
-                            <span title={t("Loan discs - 5 EP each at game end")} style={{ color: "#fca5a5" }}> {t("({0} loan)", p.discsInBank)}</span>
+                            <span className="pu-loan" title={t("Loan discs - 5 EP each at game end")}>{t("({0} loan)", p.discsInBank)}</span>
                           )}
-                        </span>
-                      </div>
-                      {p.persona && PERSONAS[p.persona] && (
-                        <div className="text-[9px] mt-0.5" style={{ color: IND_COLOR[PERSONAS[p.persona].ind] }}
-                          title={t(PERSONAS[p.persona].blurb)}>
-                          {t(PERSONAS[p.persona].name)}
+                          {p.persona && PERSONAS[p.persona] && (
+                            <small style={{ color: inkOf(IND_COLOR[PERSONAS[p.persona].ind]) }} title={t(PERSONAS[p.persona].blurb)}>{t(PERSONAS[p.persona].name)}</small>
+                          )}
                         </div>
-                      )}
-                      <div className="flex items-center gap-2 text-[9px] font-mono mt-0.5">
+                        <div className="pu-stat"><b>${Math.round(p.cash)}</b><i>{t("Cash")}</i></div>
+                        <div className="pu-stat"><b style={{ color: "#416180" }}>{epTotal(p).toFixed(0)}</b><i>EP</i></div>
+                        <div className="pu-stat" title={t("Discs committed: {0} on land, {1} on companies, {2} pledged for loans", plotsOwned(state, p), companySlotsUsed(p), p.discsInBank)}>
+                          <b>{discsPerPlayer(state) - discsUsed(state, p)}</b><i>{t("Discs free")}</i>
+                        </div>
+                        <div className="pu-stat"><b>{p.hand.length}</b><i>{t("Cards")}</i></div>
+                      </div>
+                      <div className="flex items-center gap-2 text-[9px] font-mono mt-0.5" style={{ color: "#6f6f72" }}>
+                        <span title={t("Active companies")}>{t("{0}biz", activeBiz(p).length)}</span>
+                        {megacorpHQs(p).length > 0 && (
+                          <span title={t("Megacorp HQ: {0}", megacorpHQs(p).map((b) => t(b.megacorpName)).join(", "))}
+                            style={{ color: "#8a6500" }}>{t("+{0}MC", megacorpHQs(p).length)}</span>
+                        )}
+                        <span style={{ color: "#98989b" }}>|</span>
                         <span title={t("Plots owned - the outright leader at every year end scores The Real-Estate Mogul")}
-                          style={{ color: landLead.plots.has(p.id) ? "#f5d76e" : "#6b7280" }}>
+                          style={{ color: landLead.plots.has(p.id) ? "#8a6500" : "#6f6f72" }}>
                           {landLead.plots.has(p.id) ? "\u265B " : ""}{t("{0} plots", plotCount(state, p))}
                         </span>
-                        <span style={{ color: "#3a4152" }}>|</span>
+                        <span style={{ color: "#98989b" }}>|</span>
                         <span title={t("Districts you have a presence in - the outright leader at every year end scores The Omnipresent")}
-                          style={{ color: landLead.districts.has(p.id) ? "#f5d76e" : "#6b7280" }}>
+                          style={{ color: landLead.districts.has(p.id) ? "#8a6500" : "#6f6f72" }}>
                           {landLead.districts.has(p.id) ? "\u265B " : ""}{t("{0} districts", districtCount(state, p))}
                         </span>
                       </div>
@@ -6867,9 +7421,9 @@ function GameScreens({ online }) {
               <div className="text-[9px] text-gray-600 mt-1.5">{t("Hover a player for a full scoring breakdown.")}</div>
             </div>
 
-            <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
-              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("The Bank")} <Help text={t("Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$35/$40. Distressed companies sit here until someone renovates them via M&amp;A - Buy. The players are listed in TURN ORDER: delivery runs in that sequence and demand icons are first come first served, so anyone above you sells before you do. Reposition moves a player to the front of it.")} /></div>
-              <div className="text-[9px] text-gray-500 mb-1.5">{t("Loan discs (−5 EP each at game end) ·")} <span title={t("Delivery runs in this order, and demand is first come first served")}>{t("in turn order")}</span>:</div>
+            <div className="rounded-lg p-3" style={{ backgroundColor: "#ffffff", border: "1px solid #d4d4d7" }}>
+              <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("The Bank")} <Help text={t("Loans give $20 for one disc and cost 5 EP each at game end; you may buy discs back at year end for $30/$40, and for $50 at the third year end of the three-year game. Distressed companies sit here until someone renovates them via M&amp;A - Buy. The players are listed in TURN ORDER: delivery is handed round in that sequence, and Reposition moves a player to the front of it.")} /></div>
+              <div className="text-[9px] text-gray-500 mb-1.5">{t("Loan discs (−5 EP each at game end) ·")} <span title={t("Delivery is handed round in this order")}>{t("in turn order")}</span>:</div>
               <div className="space-y-1 mb-2">
                 {/* Seat order until now, which is fixed for the whole game and tells
                     nobody anything. This list was the only per-player roster on screen
@@ -6880,13 +7434,13 @@ function GameScreens({ online }) {
                   const selling = bankOrder.soldThrough >= 0 && i === bankOrder.soldThrough;
                   return (
                     <div key={p.id} className="flex items-center justify-between text-[10px] rounded p-1"
-                      style={{ backgroundColor: "#1c1f26", opacity: sold ? 0.5 : 1,
-                        border: selling ? "1px solid #8fd3b6" : "1px solid transparent" }}>
+                      style={{ backgroundColor: "#f5f5f8", opacity: sold ? 0.5 : 1,
+                        border: selling ? "1px solid #749dc4" : "1px solid transparent" }}>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-[9px]" style={{ color: i === 0 ? "#8fd3b6" : "#4b5563", minWidth: 16 }}>{ordinal(i + 1)}</span>
+                        <span className="font-mono text-[9px]" style={{ color: i === 0 ? "#416180" : "#8a8a8d", minWidth: 16 }}>{ordinal(i + 1)}</span>
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PLAYER_COLORS[p.id] }} />
                         <span className={p.id === human.id ? "text-gray-100 font-semibold" : "text-gray-300"}>{p.name}</span>
-                        {selling && <span className="font-mono text-[8px]" style={{ color: "#8fd3b6" }}>{t("selling")}</span>}
+                        {selling && <span className="font-mono text-[8px]" style={{ color: "#416180" }}>{t("selling")}</span>}
                         {sold && <span className="font-mono text-[8px] text-gray-500">{t("sold")}</span>}
                       </div>
                       <span className="font-mono text-gray-400">{t(p.discsInBank === 1 ? "{0} disc" : "{0} discs", p.discsInBank)}</span>
@@ -6897,7 +7451,7 @@ function GameScreens({ online }) {
               <div className="text-[9px] text-gray-500 mb-1.5">{t("Distressed companies (renovate via M&A → Buy):")}</div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 120 }}>
                 {state.players.flatMap((p) => p.businesses.filter((b) => b.distressed).map((b) => (
-                  <div key={b.id} className="flex items-center justify-between text-[9px] rounded p-1" style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[b.bp.ind]}44` }}>
+                  <div key={b.id} className="flex items-center justify-between text-[9px] rounded p-1" style={{ backgroundColor: "#f5f5f8", border: `1px solid ${IND_COLOR[b.bp.ind]}44` }}>
                     <span className="text-gray-300">{t(b.bp.name)}
                       <span className="font-mono text-gray-500"> &middot; {b.footprint.map((pk) => plotLabel(state.board, pk)).join(" + ")}</span>
                     </span>
@@ -6914,34 +7468,28 @@ function GameScreens({ online }) {
 
             {/* The Megacorp list is short; the log shares its frame so the column
                 keeps a single, full-width block instead of two stubby ones. */}
-            <div data-tut="megacorps" className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+            <div data-tut="megacorps" className="rounded-lg p-3 mega-log" style={{ backgroundColor: "#ffffff", border: "1px solid #d4d4d7" }}>
 
               <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-1">{t("Megacorp tiles ({0} left)", state.megacorpPool.length)} <Help text={t("Merge the exact combination of company levels shown to claim a tile. One of the merged companies becomes the HQ: it keeps its building and your disc and stops trading, but it still draws its industry's pot share, banks its industry's price DIVIDED BY THE TILE'S TIER as EP every quarter (the \u00f7 number on each tile, rounded down - so a \u00f72 tile on a $7 good pays 3 EP a quarter, and pays nothing at all while the price is below the tier), counts as a Logistic Hub for anything built beside it, and pays {0} EP a quarter to every RIVAL company standing beside it - your own neighbours cost you nothing, since they pay themselves. You pay its ground rent from pocket, and it collects nothing if you sell the land under it. The rest go distressed. Each Megacorp locks one of your company slots; the first to go public wins the IPO tile, which adds a sixth bay.", MEGACORP_TITHE_EP)} /></div>
-              <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 140 }}>
+              <div className="overflow-y-auto" style={{ maxHeight: 190, display: "grid", gap: 3 }}>
                 {state.megacorpPool.map(([name, combo, ep], i) => (
-                  <div key={i} className="text-[10px] font-mono flex justify-between items-center gap-2 rounded px-1 py-0.5" style={{ backgroundColor: "#1c1f26" }}>
-                    <span className="text-gray-300">{t(name)}</span>
-                    <span className="flex items-center gap-1.5 shrink-0">
-                      {Object.entries(combo).map(([l, k], j) => (
-                        <span key={j} className="flex items-center gap-0.5 text-gray-400">
-                          {k}&times;<LevelBadge level={+l} />
-                        </span>
-                      ))}
-                      {/* THE TIER IS THE DIVISOR. A tile's one-off EP is only half of
-                          what it is worth: the headquarters then banks its industry's
-                          price DIVIDED BY THIS NUMBER every quarter for the rest of the
-                          game. A player choosing between two combinations cannot price
-                          that decision without seeing it, and until now it appeared
-                          nowhere in the interface. */}
-                      <span title={`Tier ${MEGACORP_TIER[name] || 1}: this headquarters banks its industry's price divided by ${MEGACORP_TIER[name] || 1}, every quarter. A lower divisor is better.`}
-                            style={{ color: "#c9a0ff", fontWeight: 700 }}>&divide;{MEGACORP_TIER[name] || 1}</span>
-                      <span style={{ color: "#8fd3b6", fontWeight: 700 }}>{ep}EP</span>
+                  /* A charter, as the printed tile reads: the name, a square for every
+                     company it asks for with that company's level in it, the tier, and
+                     the points it pays at once. THE TIER IS THE DIVISOR - the headquarters
+                     banks its industry's price divided by it every quarter for the rest of
+                     the game - so a player choosing between two charters has to see it. */
+                  <div key={i} className="pu-charter">
+                    <span className="pu-charter-name">{t(name)}</span>
+                    <span className="pu-charter-need">
+                      {Object.entries(combo).flatMap(([l, k]) => Array.from({ length: k }, (_, j) => <i key={l + "-" + j} title={`Level ${l}`}>L{l}</i>))}
                     </span>
+                    <span className="pu-charter-tier" title={`Tier ${MEGACORP_TIER[name] || 1}: this headquarters banks its industry's price divided by ${MEGACORP_TIER[name] || 1}, every quarter. A lower divisor is better.`}>&divide;{MEGACORP_TIER[name] || 1}</span>
+                    <span className="pu-charter-ep">{"\u2605"}{ep}</span>
                   </div>
                 ))}
               </div>
               <div className="text-[9px] text-gray-600 mt-1">{state.ipoTileClaimed ? t("IPO tile taken — both Board Meeting seats are open.") : t("IPO tile: a sixth company bay and Board Meeting's second seat, to whoever forms the first Megacorp.")}</div>
-              <div style={{ height: 1, backgroundColor: "#262a33", margin: "10px 0" }} />
+              <div style={{ height: 1, backgroundColor: "#e7e7ea", margin: "10px 0" }} />
 
               <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Log")}</div>
               <div className="space-y-1 overflow-y-auto" style={{ maxHeight: 220 }}>
@@ -6950,7 +7498,7 @@ function GameScreens({ online }) {
                     translated too; a value that is a PLAYER'S NAME never is, even
                     if somebody names themselves after a game term. */}
                 {logs.map((l) => (
-                  <div key={l.id} className="text-[10px] font-mono leading-snug" style={{ color: l.pid !== null ? PLAYER_COLORS[l.pid] : "#8b93a3" }}>
+                  <div key={l.id} className="text-[10px] font-mono leading-snug" style={{ color: l.pid !== null ? PLAYER_COLORS[l.pid] : "#5d5d60" }}>
                     {l.k === undefined ? l.msg
                       : t(l.k, ...(l.a || []).map((x) => (typeof x === "string" && !playerNames.has(x) ? t(x) : x)))}
                   </div>
@@ -6969,13 +7517,13 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
   const [showVariants, setShowVariants] = useState(false);
   const variantsOn = VARIANTS.filter((v) => variants[v.key]);
   return (
-    <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
-      <div className="max-w-md w-full rounded-xl p-6" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+    <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#f2f2f3" }}>
+      <div className="max-w-md w-full rounded-xl p-6" style={{ backgroundColor: "#ffffff", border: "1px solid #d4d4d7" }}>
         <h1 className="text-2xl font-bold text-white tracking-tight mb-1">{t("ENTREPRENEURS")}</h1>
-        <p className="text-sm text-gray-400 mb-6">{t("Build, produce, sell, score — 3 fiscal years, solo vs bots.")}</p>
+        <p className="text-sm text-gray-400 mb-6">{t("Build, pay, earn, score — 2 fiscal years, solo vs bots.")}</p>
         {onTutorial && (
           <button onClick={onTutorial} className="w-full mb-5 py-2 rounded-md text-xs font-semibold"
-            style={{ backgroundColor: "#1c1f26", border: "1px solid #2c5f4f", color: "#8fd3b6" }}>
+            style={{ backgroundColor: "#f5f5f8", border: "1px solid #749dc4", color: "#416180" }}>
             {t("New here? Read How to play first")}
           </button>
         )}
@@ -6983,17 +7531,17 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Your name")}</div>
           <input value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="You" maxLength={16}
             className="w-full rounded-md px-3 py-2 text-sm"
-            style={{ backgroundColor: "#1c1f26", border: "1px solid #262a33", color: "#e5e7eb", outline: "none" }} />
+            style={{ backgroundColor: "#f5f5f8", border: "1px solid #d4d4d7", color: "#1d1f20", outline: "none" }} />
         </div>
         <div className="mb-5">
           <button onClick={() => setPersonas(!personas)}
             className="w-full rounded-md px-3 py-2 text-left"
-            style={{ backgroundColor: "#1c1f26", border: `1px solid ${personas ? "#2c5f4f" : "#262a33"}` }}>
+            style={{ backgroundColor: "#f5f5f8", border: `1px solid ${personas ? "#749dc4" : "#d4d4d7"}` }}>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold" style={{ color: personas ? "#8fd3b6" : "#8b93a3" }}>
+              <span className="text-xs font-bold" style={{ color: personas ? "#416180" : "#5d5d60" }}>
                 {t("Personas")} {personas ? t("ON") : t("OFF")}
               </span>
-              <span className="text-[10px]" style={{ color: personas ? "#8fd3b6" : "#6b7280" }}>
+              <span className="text-[10px]" style={{ color: personas ? "#416180" : "#6f6f72" }}>
                 {personas ? "\u2713" : ""}
               </span>
             </div>
@@ -7006,10 +7554,10 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
               the standard game stays one click from the front door. */}
           <button onClick={() => setShowVariants((v) => !v)}
             className="w-full text-left text-[11px] mt-2 px-1"
-            style={{ background: "none", border: "none", color: "#8b93a3", cursor: "pointer" }}>
+            style={{ background: "none", border: "none", color: "#5d5d60", cursor: "pointer" }}>
             {showVariants ? "\u25be" : "\u25b8"} {t("Rule variants")}
-            {variantsOn.length ? <span style={{ color: "#8fd3b6" }}> &mdash; {t("{0} on", variantsOn.length)}</span>
-              : <span style={{ color: "#4b5563" }}> {t("— standard rules")}</span>}
+            {variantsOn.length ? <span style={{ color: "#416180" }}> &mdash; {t("{0} on", variantsOn.length)}</span>
+              : <span style={{ color: "#8a8a8d" }}> {t("— standard rules")}</span>}
           </button>
           {showVariants && VARIANTS.map((v) => (
             <button key={v.key} onClick={() => {
@@ -7021,10 +7569,10 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
                 setVariants(next);
               }}
               className="w-full rounded-md px-3 py-2 text-left mt-1.5"
-              style={{ backgroundColor: "#1c1f26", border: `1px solid ${variants[v.key] ? "#2c5f4f" : "#262a33"}` }}>
+              style={{ backgroundColor: "#f5f5f8", border: `1px solid ${variants[v.key] ? "#749dc4" : "#d4d4d7"}` }}>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold" style={{ color: variants[v.key] ? "#8fd3b6" : "#8b93a3" }}>{t(v.name)}</span>
-                <span className="text-[10px] shrink-0" style={{ color: variants[v.key] ? "#8fd3b6" : "#4b5563" }}>
+                <span className="text-xs font-bold" style={{ color: variants[v.key] ? "#416180" : "#5d5d60" }}>{t(v.name)}</span>
+                <span className="text-[10px] shrink-0" style={{ color: variants[v.key] ? "#416180" : "#8a8a8d" }}>
                   {variants[v.key] ? t("ON") + " \u2713" : t("OFF")}
                 </span>
               </div>
@@ -7042,7 +7590,7 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
             {(variants.beginner ? [1, 2, 3] : [1, 2, 3, 4, 5]).map((n) => (
               <button key={n} onClick={() => setNumBots(n)}
                 className="flex-1 py-2 rounded-md text-[11px] font-semibold transition whitespace-nowrap"
-                style={{ backgroundColor: numBots === n ? "#2c5f4f" : "#1c1f26", color: numBots === n ? "#d3fcec" : "#9ca3af", border: "1px solid #262a33" }}>
+                style={{ backgroundColor: numBots === n ? "#5980a6" : "#f5f5f8", color: numBots === n ? "#2c455d" : "#5d5d60", border: "1px solid #d4d4d7" }}>
                 {t(n > 1 ? "{0} bots" : "{0} bot", n)}
               </button>
             ))}
@@ -7056,7 +7604,7 @@ function SetupScreen({ numBots, setNumBots, onStart, playerName, setPlayerName, 
         <div className="mb-6 flex flex-wrap gap-1.5">
           {INDUSTRIES.map((ind) => (<Chip key={ind} color={IND_COLOR[ind]}>{t(IND_NAME[ind])}</Chip>))}
         </div>
-        <button onClick={onStart} className="w-full py-2.5 rounded-md text-sm font-bold" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
+        <button onClick={onStart} className="w-full py-2.5 rounded-md text-sm font-bold" style={{ backgroundColor: "#5980a6", color: "#ffffff" }}>
           {t("Start Game")}
         </button>
       </div>
@@ -7093,8 +7641,8 @@ function Help({ text, label }) {
         aria-label={label || "Help"}
         style={{
           width: 13, height: 13, borderRadius: "50%", lineHeight: "11px",
-          fontSize: 9, fontWeight: 700, color: "#8b93a3",
-          backgroundColor: "#1c1f26", border: "1px solid #3a4152",
+          fontSize: 9, fontWeight: 700, color: "#5d5d60",
+          backgroundColor: "#f5f5f8", border: "1px solid #b7b7ba",
           display: "inline-flex", alignItems: "center", justifyContent: "center",
           cursor: "help", flexShrink: 0,
         }}
@@ -7102,9 +7650,9 @@ function Help({ text, label }) {
       {open && (
         <Floating><span style={{
           position: "fixed", left: pos.x, top: pos.y, zIndex: 9999, width: 250,
-          backgroundColor: "#0e1014", border: "1px solid #3a4152", borderRadius: 6,
-          padding: "7px 9px", fontSize: 10, lineHeight: 1.45, color: "#d1d5db",
-          boxShadow: "0 6px 20px rgba(0,0,0,0.6)", pointerEvents: "none",
+          backgroundColor: "#f2f2f3", border: "1px solid #b7b7ba", borderRadius: 6,
+          padding: "7px 9px", fontSize: 10, lineHeight: 1.45, color: "#2b2b2d",
+          boxShadow: "0 6px 20px rgba(43,43,45,0.2)", pointerEvents: "none",
           fontWeight: 400, textTransform: "none", letterSpacing: 0,
         }}>{text}</span></Floating>
       )}
@@ -7129,7 +7677,7 @@ function IndustryReference({ state }) {
     const vh = typeof window !== "undefined" ? window.innerHeight : 900;
     setPos({
       x: Math.min(Math.max(PAD, r.left), vw - W - PAD),
-      y: Math.min(Math.max(PAD, r.bottom + 6), vh - 110),
+      y: Math.min(Math.max(PAD, r.bottom + 6), Math.max(PAD, vh - 330)),
     });
     setOver(ind);
   };
@@ -7137,46 +7685,31 @@ function IndustryReference({ state }) {
     ? t("Six separate decks, each ordered level 1 on top through level 3 at the bottom. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from.")
     : t("Six separate decks, each shuffled whole, so any level can be on top. The top card is always public, so RESEARCH is a real choice: you pick which deck to draw from.");
   return (
-    <div className="rounded-lg p-3" style={{ backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+    <div className="rounded-lg p-3" style={{ backgroundColor: "#ffffff", border: "1px solid #d4d4d7" }}>
       <div data-tut="pots" className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-1 flex items-center gap-1">
         {t("Industries")}
         <Help text={t("POT \u2014 a company's supplier bill lands in its suppliers' pots (its ground rent is billed separately, to landlords). Each quarter every pot is split evenly among the active businesses of that industry and any Megacorp HQ of that industry \u2014 one equal share each, whatever their size \u2014 and any remainder rides forward. A pot with nobody to pay keeps growing, so supplying an industry nobody builds is very lucrative.") + "\n\n" + t("DECK \u2014 ") + deckHelp} />
       </div>
       <div className="text-[9px] text-gray-500 mb-2">
-        {t("Pot, then the top Blueprint. Hover an industry for what it does.")}
+        {t("Price, then the pot. Hover an industry for what it does and the top Blueprint of its deck.")}
       </div>
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="pu-market">
         {INDUSTRIES.map((ind) => {
           const pot = state.pots ? state.pots[ind] : 0;
           const { n, levels } = potRecipients(state, ind);
           const deck = state.decks[ind];
           const top = deck && deck[0];
           return (
-            <div key={ind} className="rounded p-1.5"
-              onMouseEnter={enter(ind)} onMouseLeave={() => setOver(null)}
-              style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}55`, cursor: "help" }}>
-              <div className="flex items-center justify-between">
-                <Chip color={IND_COLOR[ind]}>{ind}</Chip>
-                <span className="text-[11px] font-bold font-mono" style={{ color: pot > 0 ? "#8fd3b6" : "#4b5563" }}>${pot.toFixed(0)}</span>
-              </div>
-              <div className="text-[8px] font-mono text-gray-500 leading-tight">
+            <div key={ind} className="pu-mrow" onMouseEnter={enter(ind)} onMouseLeave={() => setOver(null)} onClick={enter(ind)}>
+              <IndLogo ind={ind} size={22} />
+              <PriceTrack cell={trackCell(state.pm, ind)} cells={CELL_MAX} min={PRICE_MIN} max={PRICE_MAX} base={BASE_PRICE[ind]} color={IND_COLOR[ind]} />
+              <span className="pu-price">${price(state.pm, ind)}</span>
+              <span className={"pu-pot" + (pot > 0 ? "" : " empty")} style={{ backgroundColor: tintOf(IND_COLOR[ind], 0.82) }}><small>{t("pot")}</small>${pot.toFixed(0)}</span>
+              <span className="pu-mnote">
                 {n ? t("{0} biz · {1} lvl", n, levels) : t("no takers — carries over")}
-              </div>
-              <div className="mt-1 pt-1" style={{ borderTop: "1px solid #262a3399" }}>
-                {top ? (
-                  <>
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-[9px] text-gray-300 leading-tight truncate">{t(top.name)}</span>
-                      <span className="text-[8px] font-mono text-gray-500 shrink-0">{t("{0} left", deck.length)}</span>
-                    </div>
-                    <div className="text-[8px] font-mono text-gray-500 leading-tight">{t("L{0} · set ${1} · opex ${2} · prod {3}", top.lvl, top.setup, top.opex, top.prod)}
-                    </div>
-                    <div className="text-[8px] font-mono leading-tight" style={{ color: "#a5b4cf" }}>
-                      {top.deps.map((d) => `${d.ind} $${d.val}`).join(" \u00b7 ")}
-                    </div>
-                  </>
-                ) : <div className="text-[9px] text-gray-600 italic">{t("Deck empty")}</div>}
-              </div>
+                {" \u00b7 "}
+                {top ? <>L{top.lvl} {t(top.name)} ({t("{0} left", deck.length)})</> : t("Deck empty")}
+              </span>
             </div>
           );
         })}
@@ -7184,12 +7717,18 @@ function IndustryReference({ state }) {
       {over && (
         <Floating><span style={{
           position: "fixed", left: pos.x, top: pos.y, zIndex: 9999, width: 230,
-          backgroundColor: "#0e1014", border: `1px solid ${IND_COLOR[over]}88`, borderRadius: 6,
-          padding: "7px 9px", fontSize: 10, lineHeight: 1.45, color: "#d1d5db",
-          boxShadow: "0 6px 20px rgba(0,0,0,0.6)", pointerEvents: "none",
+          backgroundColor: "#ffffff", border: "1px solid #1d1f20", borderRadius: 2,
+          padding: "7px 9px", fontSize: 10, lineHeight: 1.45, color: "#2b2b2d",
+          boxShadow: "0 6px 20px rgba(43,43,45,0.2)", pointerEvents: "none",
         }}>
-          <span style={{ color: IND_COLOR[over], fontWeight: 700 }}>{t(IND_NAME[over] || over)}</span>
+          <span style={{ color: inkOf(IND_COLOR[over]), fontWeight: 700 }}>{t(IND_NAME[over] || over)}</span>
           <br />{t(IND_ABILITY[over])}
+          {state.decks[over] && state.decks[over][0] && (
+            <span style={{ display: "block", marginTop: 6 }}>
+              <span className="pu-lab" style={{ display: "block", marginBottom: 3 }}>{t("Top of the deck")}</span>
+              <BPCard state={state} bp={state.decks[over][0]} />
+            </span>
+          )}
         </span></Floating>
       )}
     </div>
@@ -7229,8 +7768,8 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
   }
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
-      <div className="w-full rounded-xl p-6" style={{ maxWidth: 620, backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+    <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#f2f2f3" }}>
+      <div className="w-full rounded-xl p-6" style={{ maxWidth: 620, backgroundColor: "#ffffff", border: "1px solid #d4d4d7" }}>
         <h1 className="text-xl font-bold text-white mb-1">{t("Draft your starting Blueprints")}</h1>
         <p className="text-sm text-gray-400 mb-1">
           {t("You are seated {0} this game.", t(ord))}{" "}
@@ -7246,7 +7785,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
             their own specialism \u2014 and everyone else's \u2014 while choosing Blueprints. */}
         {human.persona && PERSONAS[human.persona] && (
           <div className="rounded-md p-3 mb-3" style={{
-            backgroundColor: "#1c1f26",
+            backgroundColor: "#f5f5f8",
             border: `1px solid ${IND_COLOR[PERSONAS[human.persona].ind]}`,
           }}>
             <div className="flex items-center gap-2 mb-1">
@@ -7254,7 +7793,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
               <span className="text-sm font-bold text-white">{t("You are the")} {t(PERSONAS[human.persona].name)}</span>
             </div>
             <div className="text-[11px] text-gray-300 leading-snug">{t(PERSONAS[human.persona].blurb)}</div>
-            <div className="text-[10px] mt-1.5" style={{ color: IND_COLOR[PERSONAS[human.persona].ind] }}>
+            <div className="text-[10px] mt-1.5" style={{ color: inkOf(IND_COLOR[PERSONAS[human.persona].ind]) }}>
               {t("Worth weighing as you draft — but the {0} EP for entering each industry still rewards breadth.", INDUSTRY_DEBUT_EP)}
             </div>
           </div>
@@ -7268,9 +7807,9 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
             <div className="flex flex-wrap gap-1.5">
               {state.players.filter((p) => p.persona && p.id !== human.id).map((p) => (
                 <div key={p.id} className="rounded px-2 py-1" title={t(PERSONAS[p.persona].blurb)}
-                  style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[PERSONAS[p.persona].ind]}55` }}>
+                  style={{ backgroundColor: "#f5f5f8", border: `1px solid ${IND_COLOR[PERSONAS[p.persona].ind]}55` }}>
                   <span className="text-[10px] text-gray-400">{p.name}: </span>
-                  <span className="text-[10px] font-bold" style={{ color: IND_COLOR[PERSONAS[p.persona].ind] }}>
+                  <span className="text-[10px] font-bold" style={{ color: inkOf(IND_COLOR[PERSONAS[p.persona].ind]) }}>
                     {t(PERSONAS[p.persona].name)}
                   </span>
                 </div>
@@ -7297,13 +7836,13 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
                 const up = px > BASE_PRICE[ind], down = px < BASE_PRICE[ind];
                 return (
                   <div key={ind} className="rounded px-1.5 py-1" style={{
-                    backgroundColor: "#1c1f26",
-                    border: `1px solid ${taken ? IND_COLOR[ind] : "#262a33"}`,
+                    backgroundColor: "#f5f5f8",
+                    border: `1px solid ${taken ? IND_COLOR[ind] : "#d4d4d7"}`,
                   }}>
-                    <span className="text-[10px] font-bold" style={{ color: IND_COLOR[ind] }}>{ind}</span>
+                    <span className="text-[10px] font-bold" style={{ color: inkOf(IND_COLOR[ind]) }}>{ind}</span>
                     <span className="text-[10px] font-mono text-gray-400"> &times;{taken}</span>
                     <span className="text-[10px] font-mono ml-1" style={{
-                      color: up ? "#8fd3b6" : down ? "#fca5a5" : "#6b7280",
+                      color: up ? "#416180" : down ? "#b3261a" : "#6f6f72",
                     }}>${px}{up ? " \u2191" : down ? " \u2193" : ""}</span>
                   </div>
                 );
@@ -7311,37 +7850,28 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
             </div>
           </div>
         )}
-        <div className="grid grid-cols-3 gap-2 mb-5">
+        {/* As many columns as whole cards fit: three on a desk, two on a phone, where a
+            third of the screen is too narrow for a card to be read. */}
+        <div className="mb-5" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(164px, 1fr))", gap: 8 }}>
           {INDUSTRIES.map((ind) => {
             const deck = state.decks[ind] || [];
             const top = deck[0];
             const done = picked >= need;
             return (
-              <button key={ind} onClick={() => take(ind)} disabled={!top || done || !myTurn}
-                className="text-left rounded-md p-2 disabled:opacity-30"
-                style={{ backgroundColor: "#1c1f26", border: `1px solid ${IND_COLOR[ind]}66` }}>
-                <div className="flex items-center justify-between mb-1">
-                  <Chip color={IND_COLOR[ind]}>{ind}</Chip>
-                  <span className="text-[9px] font-mono text-gray-500">{t("{0} left", deck.length)}</span>
-                </div>
-                {top ? (
-                  <>
-                    <div className="text-[10px] font-semibold text-gray-100 leading-tight" style={{ minHeight: 26 }}>{t(top.name)}</div>
-                    <div className="text-[9px] font-mono text-gray-500">{t("L{0} · set ${1} · opex ${2} · prod {3}", top.lvl, top.setup, top.opex, top.prod)}</div>
-                    <div className="text-[9px] font-mono" style={{ color: "#a5b4cf" }}>
-                      {top.deps.map((d) => `${d.ind} $${d.val}`).join(" \u00b7 ")}
-                    </div>
-                  </>
-                ) : <div className="text-[10px] text-gray-600 italic">{t("Empty")}</div>}
-              </button>
+              <div key={ind}>
+                <div className="pu-lab mb-1">{t(IND_NAME[ind])}</div>
+                {top
+                  ? <BPCard state={state} bp={top} player={human} onClick={() => take(ind)} disabled={done || !myTurn} width="100%" note={t("{0} left", deck.length)} />
+                  : <div className="text-[10px] text-gray-600 italic" style={{ padding: 8, border: "1px dashed #b7b7ba" }}>{t("Empty")}</div>}
+              </div>
             );
           })}
         </div>
 
-        <div className="rounded-md p-2 mb-4" style={{ backgroundColor: "#101318" }}>
+        <div className="rounded-md p-2 mb-4" style={{ backgroundColor: "#fafafb" }}>
           <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">{t("Your hand")} &mdash; {picked}/{need}</div>
           <div className="flex flex-wrap gap-2">
-            {human.hand.map((bp, i) => <BPCard key={i} bp={bp} player={human} disabled small />)}
+            {human.hand.map((bp, i) => <BPCard key={i} state={state} bp={bp} player={human} />)}
             {!picked && <span className="text-[10px] text-gray-600 italic">{t("Nothing drafted yet.")}</span>}
           </div>
         </div>
@@ -7349,13 +7879,13 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
         {waitingFor ? (
           <>
             <div className="w-full py-2.5 rounded-md text-sm font-bold text-center"
-              style={{ backgroundColor: "#1c1f26", color: "#8fd3b6" }}>
+              style={{ backgroundColor: "#f5f5f8", color: "#416180" }}>
               {t("Waiting for {0} to draft…", waitingFor)}
             </div>
             {/* Drafting is the first thing that happens, so it is where a player who
                 never made it into the game leaves everyone else stranded. */}
             {host && onKick && state.awaitingPlayerId != null && state.awaitingPlayerId !== seatId && (
-              <div className="mt-2 pt-2 text-center" style={{ borderTop: "1px solid #262a33" }}>
+              <div className="mt-2 pt-2 text-center" style={{ borderTop: "1px solid #d4d4d7" }}>
                 <div className="text-[10px] text-gray-500 mb-1.5">
                   {t("If {0} has disconnected, you can hand their seat to a bot.", waitingFor)}
                 </div>
@@ -7363,7 +7893,7 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
                     if (window.confirm(t("Replace {0} with a bot for the rest of the game? They will not be able to rejoin.", waitingFor))) onKick(state.awaitingPlayerId);
                   }}
                   className="text-[10px] px-2 py-1 rounded"
-                  style={{ backgroundColor: "#2a2415", border: "1px solid #7a6a3f", color: "#f5d76e", cursor: "pointer" }}>
+                  style={{ backgroundColor: "#fcf6e1", border: "1px solid #dccb93", color: "#8a6500", cursor: "pointer" }}>
                   {t("Replace {0} with a bot", waitingFor)}
                 </button>
               </div>
@@ -7372,12 +7902,12 @@ function DraftScreen({ state, log, onDone, seatId, host, onKick, spectator }) {
         ) : onDone ? (
           <button onClick={onDone} disabled={picked < need}
             className="w-full py-2.5 rounded-md text-sm font-bold disabled:opacity-30"
-            style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
+            style={{ backgroundColor: "#5980a6", color: "#ffffff" }}>
             {picked < need ? t("Pick {0} more", need - picked) : t("Start Year 1")}
           </button>
         ) : (
           <div className="w-full py-2.5 rounded-md text-sm font-bold text-center"
-            style={{ backgroundColor: "#1c1f26", color: "#9ca3af" }}>
+            style={{ backgroundColor: "#f5f5f8", color: "#5d5d60" }}>
             {picked < need ? t("Pick {0} more", need - picked) : t("Waiting for the others…")}
           </div>
         )}
@@ -7404,21 +7934,21 @@ function FinalQuarterNotice({ state, human, onClose }) {
   const quartersLeft = Math.max(0, q - state.quarter + 1);
   return (
     <Floating>
-      <div style={{ position: "fixed", inset: 0, zIndex: 10050, backgroundColor: "rgba(6,8,11,.82)" }} />
+      <div style={{ position: "fixed", inset: 0, zIndex: 10050, backgroundColor: "rgba(29,31,32,.5)" }} />
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 10051 }} />
       <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label={t("Final quarter called")} style={{
         position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)",
-        width: "min(92vw,460px)", zIndex: 10052, backgroundColor: "#14161a",
-        border: "1px solid #f5a623", borderRadius: 12, padding: 20,
-        boxShadow: "0 20px 60px rgba(0,0,0,.75)",
+        width: "min(92vw,460px)", zIndex: 10052, backgroundColor: "#ffffff",
+        border: "1px solid #e8930c", borderRadius: 12, padding: 20,
+        boxShadow: "0 20px 60px rgba(43,43,45,0.26)",
       }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.4, color: "#f5a623", marginBottom: 6 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.4, color: "#b86e00", marginBottom: 6 }}>
           {t("⏹ THE DEADLINE IS CALLED")}
         </div>
-        <div style={{ fontSize: 17, fontWeight: 800, color: "#f3f4f6", marginBottom: 10 }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: "#1d1f20", marginBottom: 10 }}>
           {t("Quarter {0} is the FINAL quarter.", q)}
         </div>
-        <div style={{ fontSize: 12.5, color: "#c9cfda", lineHeight: 1.55 }}>
+        <div style={{ fontSize: 12.5, color: "#424244", lineHeight: 1.55 }}>
           {mine
             ? t("You have launched your {0} Megacorp, which calls the end of the game.", t(MEGACORPS_TO_END === 2 ? "second" : `${MEGACORPS_TO_END}th`))
             : t(callers.length > 1 ? "{0} have launched a {1} Megacorp, which calls the end of the game."
@@ -7426,7 +7956,7 @@ function FinalQuarterNotice({ state, human, onClose }) {
                 who, t(MEGACORPS_TO_END === 2 ? "second" : `${MEGACORPS_TO_END}th`))}
           {" "}{t("Everyone still plays Quarter {0} in full — it is a deadline, not a finish line.", q)}
         </div>
-        <div style={{ fontSize: 12.5, color: "#c9cfda", lineHeight: 1.55, marginTop: 10 }}>
+        <div style={{ fontSize: 12.5, color: "#424244", lineHeight: 1.55, marginTop: 10 }}>
           {quartersLeft <= 1
             ? (isBeginner(state)
                 ? t("This is the last quarter. Cash scores only what you spent on EP at a year end, and every loan disc still in the bank costs you 5.")
@@ -7435,7 +7965,7 @@ function FinalQuarterNotice({ state, human, onClose }) {
         </div>
         <button onClick={onClose} style={{
           marginTop: 16, width: "100%", padding: "9px 0", borderRadius: 8, border: "none",
-          backgroundColor: "#f5a623", color: "#1a1206", fontSize: 13, fontWeight: 800, cursor: "pointer",
+          backgroundColor: "#e8930c", color: "#1a1206", fontSize: 13, fontWeight: 800, cursor: "pointer",
         }}>{t("Understood")}</button>
       </div>
     </Floating>
@@ -7467,36 +7997,23 @@ function formatElapsed(seconds) {
 
 /* A small stack of pips reads faster than "L3" when scanning a list of Megacorp
    requirements: one filled block per level, so height maps to company size. */
-function LevelBadge({ level }) {
-  const COLORS = ["#6b7280", "#8fd3b6", "#67e8f9", "#f5d76e"];
-  return (
-    <span title={`Level ${level}`} style={{ display: "inline-flex", alignItems: "flex-end", gap: 1, verticalAlign: "middle", height: 11 }}>
-      {Array.from({ length: level }).map((_, i) => (
-        <span key={i} style={{
-          width: 3.5, height: 3 + i * 2.4, backgroundColor: COLORS[Math.min(level, 4) - 1],
-          borderRadius: 0.5, display: "inline-block",
-        }} />
-      ))}
-    </span>
-  );
-}
 /* Shows the whole match at a glance - which year, which quarter, which phase - rather
    than a single line naming only the current step. */
 function MatchTracker({ state, elapsed, lastActive, idleLimit }) {
   const year = Math.ceil(state.quarter / 4);
   const qInYear = ((state.quarter - 1) % 4) + 1;
+  /* Three phases since v23: the two where you act, and one where the quarter closes
+     around you - bills, revenue by band, the pots, the hub, the year end. */
   const PHASES = [
-    ["planning", "Planning"], ["resolving", "Action"], ["production", "Production"],
-    ["delivering", "Revenue"], ["closing", "Closing"],
+    ["planning", "Planning"], ["resolving", "Action"], ["closing", "Closing"],
   ];
   const phaseNow =
     state.phase === "planning" ? "planning"
     : state.phase === "resolving" ? "resolving"
-    : state.phase === "production" || state.phase === "supplyChain" ? "production"
-    : state.phase === "delivering" || state.phase === "liquidating" ? "delivering"
-    : ["placingLH", "repayingLoans"].includes(state.phase) ? "closing"
+    : ["production", "supplyChain", "delivering", "liquidating", "placingLH", "repayingLoans"].includes(state.phase) ? "closing"
     : null;
   const detail =
+    state.phase === "production" ? t("bills and revenue") :
     state.phase === "delivering" ? "B2C" :
     state.phase === "liquidating" ? t("cash shortfall") :
     state.phase === "supplyChain" ? t("supply chain") :
@@ -7505,28 +8022,16 @@ function MatchTracker({ state, elapsed, lastActive, idleLimit }) {
   const pill = (label, on, done) => (
     <span key={label} style={{
       padding: "1.5px 6px", borderRadius: 3, fontSize: 10.5, fontWeight: on ? 800 : 600,
-      backgroundColor: on ? "#2c5f4f" : "transparent",
-      color: on ? "#d3fcec" : done ? "#6b7280" : "#8b93a3",
-      border: `1px solid ${on ? "#3f8a70" : "#262a33"}`,
+      backgroundColor: on ? "#5980a6" : "transparent",
+      color: on ? "#2c455d" : done ? "#6f6f72" : "#5d5d60",
+      border: `1px solid ${on ? "#5980a6" : "#d4d4d7"}`,
     }}>{label}</span>
   );
   const clock = formatElapsed(elapsed);
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono" style={{ fontSize: 10.5 }}>
-      <span className="flex items-center gap-1">
-        {[1, 2, 3].map((y) => pill(`Y${y}`, y === year, y < year))}
-      </span>
-      <span style={{ color: "#3a4152" }}>|</span>
-      <span className="flex items-center gap-1">
-        {[1, 2, 3, 4].map((q) => pill(`Q${q}`, q === qInYear, q < qInYear))}
-      </span>
-      <span style={{ color: "#3a4152" }}>|</span>
-      <span className="flex items-center gap-1">
-        {PHASES.map(([k, label]) => pill(t(label), k === phaseNow, false))}
-      </span>
-      {detail && <span style={{ color: "#8fd3b6" }}>({detail})</span>}
-      <span style={{ color: "#3a4152" }}>|</span>
-      <span title={t("Time played")} style={{ color: "#8b93a3" }}>{clock}</span>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1" style={{ fontSize: 10.5 }}>
+      <PhaseClock phase={phaseNow} detail={detail} quarter={state.quarter} lastQuarter={finalQuarterOf(state)} />
+      <span title={t("Time played")} className="font-mono" style={{ color: "#5d5d60" }}>{clock}</span>
       {/* How long since anybody did anything, and what happens if that keeps up.
           A table where somebody stopped answering is closed after idleLimit, and
           the play in it is written down as unfinished - so the countdown is worth
@@ -7538,10 +8043,10 @@ function MatchTracker({ state, elapsed, lastActive, idleLimit }) {
         const left = idleLimit - idle;
         const hours = Math.round(idleLimit / 3600000);
         // quiet until it is worth noticing, then louder as it runs out
-        const colour = left <= 3600000 ? "#fca5a5" : left <= 6 * 3600000 ? "#e0b060" : "#6b7280";
+        const colour = left <= 3600000 ? "#b3261a" : left <= 6 * 3600000 ? "#8a6500" : "#6f6f72";
         return (
           <>
-            <span style={{ color: "#3a4152" }}>|</span>
+            <span style={{ color: "#98989b" }}>|</span>
             <span style={{ color: colour }}
               title={t("Nobody has done anything for {0}. A game left alone for {1} hours is closed, and what was played in it is recorded as unfinished.", formatElapsed(idle / 1000), hours)}>
               {t("idle {0}", formatElapsed(idle / 1000))}
@@ -7559,8 +8064,8 @@ function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
   const ranked = [...state.players].sort(finalRank);
   const clock = formatElapsed(elapsed || 0);
   return (
-    <div className="w-full min-h-screen flex items-start justify-center p-4 overflow-y-auto" style={{ backgroundColor: "#0e1014" }}>
-      <div className="w-full rounded-xl p-6" style={{ maxWidth: 1200, backgroundColor: "#14161a", border: "1px solid #262a33" }}>
+    <div className="w-full min-h-screen flex items-start justify-center p-4 overflow-y-auto" style={{ backgroundColor: "#f2f2f3" }}>
+      <div className="w-full rounded-xl p-6" style={{ maxWidth: 1200, backgroundColor: "#ffffff", border: "1px solid #d4d4d7" }}>
         <div className="flex items-baseline justify-between mb-1 flex-wrap gap-2">
           <h1 className="text-xl font-bold text-white">{t("Game Over")}</h1>
           <span className="text-xs font-mono text-gray-500">
@@ -7575,7 +8080,7 @@ function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
             const positives = log.filter((e) => e.amount > 0).reduce((s, e) => s + e.amount, 0);
             const negatives = log.filter((e) => e.amount < 0).reduce((s, e) => s + e.amount, 0);
             return (
-              <div key={p.id} className="rounded-md" style={{ backgroundColor: i === 0 ? "#1a2e26" : "#1c1f26", border: i === 0 ? "1px solid #2c5f4f" : "1px solid transparent" }}>
+              <div key={p.id} className="rounded-md" style={{ backgroundColor: i === 0 ? "#e3effb" : "#f5f5f8", border: i === 0 ? "1px solid #749dc4" : "1px solid transparent" }}>
                 <div className="w-full flex items-center justify-between p-2.5 text-left">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono text-gray-500">#{i + 1}</span>
@@ -7588,7 +8093,7 @@ function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
                 </div>
                 {open && (
                   <div className="px-2.5 pb-2.5">
-                    <div className="rounded p-2" style={{ backgroundColor: "#101318" }}>
+                    <div className="rounded p-2" style={{ backgroundColor: "#fafafb" }}>
                       {!log.length && <div className="text-[10px] text-gray-500 italic">{t("No points scored.")}</div>}
                       <div className="space-y-0.5">
                         {log.map((e, k) => (
@@ -7596,7 +8101,7 @@ function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
                             <span className="text-gray-300 leading-tight">
                               {epText(e)}{e.quarter ? <span className="text-gray-600"> &middot; Q{e.quarter}</span> : null}
                             </span>
-                            <span className="font-mono shrink-0" style={{ color: e.amount < 0 ? "#fca5a5" : "#8fd3b6" }}>
+                            <span className="font-mono shrink-0" style={{ color: e.amount < 0 ? "#b3261a" : "#416180" }}>
                               {e.amount > 0 ? "+" : ""}{e.amount.toFixed(0)}
                             </span>
                           </div>
@@ -7604,11 +8109,11 @@ function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
                       </div>
                       <RentLine p={p} />
                       {log.length > 0 && (
-                        <div className="flex items-center justify-between mt-1.5 pt-1.5 text-[10px] font-mono" style={{ borderTop: "1px solid #262a33" }}>
+                        <div className="flex items-center justify-between mt-1.5 pt-1.5 text-[10px] font-mono" style={{ borderTop: "1px solid #d4d4d7" }}>
                           <span className="text-gray-500">
                             {t("earned +{0}", positives.toFixed(0))}{negatives < 0 ? t(", lost {0}", negatives.toFixed(0)) : ""}
                           </span>
-                          <span className="font-bold" style={{ color: "#8fd3b6" }}>{p.epBank.toFixed(0)} EP</span>
+                          <span className="font-bold" style={{ color: "#416180" }}>{p.epBank.toFixed(0)} EP</span>
                         </div>
                       )}
                     </div>
@@ -7620,17 +8125,17 @@ function GameOverScreen({ state, onRestart, online, onReview, elapsed }) {
         </div>
         {online && !online.host ? (
           <div className="w-full py-2.5 rounded-md text-sm font-bold text-center"
-            style={{ backgroundColor: "#1c1f26", color: "#8fd3b6" }}>
+            style={{ backgroundColor: "#f5f5f8", color: "#416180" }}>
             {t("Waiting for the host to start a rematch…")}
           </div>
         ) : (
-        <button onClick={onRestart} className="w-full py-2.5 rounded-md text-sm font-bold" style={{ backgroundColor: "#2c5f4f", color: "#d3fcec" }}>
+        <button onClick={onRestart} className="w-full py-2.5 rounded-md text-sm font-bold" style={{ backgroundColor: "#5980a6", color: "#ffffff" }}>
           {online ? t("Play again — same players") : t("Play Again")}
         </button>
         )}
         {onReview && (
           <button onClick={onReview} className="w-full mt-2 py-2 rounded-md text-xs font-semibold"
-            style={{ backgroundColor: "#1c1f26", color: "#8b93a3", border: "1px solid #262a33" }}>
+            style={{ backgroundColor: "#f5f5f8", color: "#5d5d60", border: "1px solid #d4d4d7" }}>
             {t("Review the final board, log and stats")}
           </button>
         )}

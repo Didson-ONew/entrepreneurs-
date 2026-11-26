@@ -9,10 +9,10 @@ const api = async (path, body) => {
   return { status: r.status, body: await r.json().catch(() => ({})) };
 };
 
-const box = { backgroundColor: "#14161a", border: "1px solid #262a33" };
+const box = { backgroundColor: "#ffffff", border: "1px solid #d4d4d7" };
 const field = {
   width: "100%", padding: "9px 11px", borderRadius: 6, fontSize: 14,
-  backgroundColor: "#1c1f26", border: "1px solid #33384a", color: "#e5e7eb", marginBottom: 10,
+  backgroundColor: "#f5f5f8", border: "1px solid #c9c9cc", color: "#1d1f20", marginBottom: 10,
 };
 const btn = (bg, fg) => ({
   width: "100%", padding: "10px 12px", borderRadius: 6, fontSize: 14, fontWeight: 700,
@@ -88,28 +88,28 @@ function AccountPanel({ account, setAccount, onName }) {
   if (account) {
     return (
       <div className="rounded-lg px-3 py-2 mb-3 flex items-center justify-between"
-        style={{ backgroundColor: "#101318", border: "1px solid #2c5f4f" }}>
-        <div className="text-[11px]" style={{ color: "#8fd3b6" }}>
+        style={{ backgroundColor: "#fafafb", border: "1px solid #749dc4" }}>
+        <div className="text-[11px]" style={{ color: "#416180" }}>
           {t("Signed in as")} <b>{account.name}</b>
-          <div className="text-[10px]" style={{ color: "#6b7280" }}>{t("Only you can play under this name.")}</div>
+          <div className="text-[10px]" style={{ color: "#6f6f72" }}>{t("Only you can play under this name.")}</div>
         </div>
-        <button style={{ ...link, color: "#9ca3af", fontSize: 11 }}
+        <button style={{ ...link, color: "#5d5d60", fontSize: 11 }}
           onClick={() => send("/api/logout", {}, () => { setAccount(null); accountChanged(); })} disabled={busy}>{t("Sign out")}</button>
       </div>
     );
   }
 
   const fieldset = (
-    <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#101318" }}>
+    <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#fafafb" }}>
       {pane === "signin" && (<>
         <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Sign in")}</div>
         <input style={field} placeholder={t("Your name")} value={form.name || ""} onChange={set("name")} maxLength={24} />
         <input style={field} type="password" placeholder="Password" value={form.password || ""} onChange={set("password")} />
-        <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
+        <button disabled={busy} style={btn("#5980a6", "#ffffff")}
           onClick={() => send("/api/login", { name: form.name, password: form.password }, done)}>{t("Sign in")}</button>
         <div className="flex justify-between mt-2 text-[10px]">
-          <button style={{ ...link, color: "#8fd3b6" }} onClick={() => open("register")}>{t("Create an account")}</button>
-          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("forgot")}>{t("Forgot password")}</button>
+          <button style={{ ...link, color: "#416180" }} onClick={() => open("register")}>{t("Create an account")}</button>
+          <button style={{ ...link, color: "#5d5d60" }} onClick={() => open("forgot")}>{t("Forgot password")}</button>
         </div>
       </>)}
 
@@ -131,13 +131,13 @@ function AccountPanel({ account, setAccount, onName }) {
           {questions.map((q) => <option key={q.key} value={q.key}>{q.text}</option>)}
         </select>
         <input style={field} placeholder={t("Your answer")} value={form.answer || ""} onChange={set("answer")} maxLength={120} />
-        <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
+        <button disabled={busy} style={btn("#5980a6", "#ffffff")}
           onClick={() => send("/api/register", { name: form.name, password: form.password,
             question: form.question, answer: form.answer }, done)}>
           {t("Create account")}
         </button>
         <div className="mt-2 text-[10px]">
-          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("signin")}>{t("I already have one")}</button>
+          <button style={{ ...link, color: "#5d5d60" }} onClick={() => open("signin")}>{t("I already have one")}</button>
         </div>
       </>)}
 
@@ -147,7 +147,7 @@ function AccountPanel({ account, setAccount, onName }) {
           {t("Type your name and answer the question you chose when you registered.")}
         </div>
         <input style={field} placeholder={t("Your name")} value={form.name || ""} onChange={set("name")} maxLength={24} />
-        <button disabled={busy} style={btn("#20232c", "#e5e7eb")}
+        <button disabled={busy} style={btn("#ececef", "#1d1f20")}
           onClick={() => send("/api/question", { name: form.name }, (b) => {
             setForm((f) => ({ ...f, name: b.name }));
             setQuestion(b.question);
@@ -156,17 +156,17 @@ function AccountPanel({ account, setAccount, onName }) {
           {t("Continue")}
         </button>
         <div className="mt-2 text-[10px]">
-          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("signin")}>{t("Back to sign in")}</button>
+          <button style={{ ...link, color: "#5d5d60" }} onClick={() => open("signin")}>{t("Back to sign in")}</button>
         </div>
       </>)}
 
       {pane === "answer" && (<>
         <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Your question")}</div>
-        <div className="text-[11px] mb-2" style={{ color: "#8fd3b6" }}>{question}</div>
+        <div className="text-[11px] mb-2" style={{ color: "#416180" }}>{question}</div>
         <input style={field} placeholder={t("Your answer")} value={form.answer || ""} onChange={set("answer")} maxLength={120} />
         <input style={field} type="password" placeholder={t("New password (8 characters or more)")}
           value={form.password || ""} onChange={set("password")} />
-        <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
+        <button disabled={busy} style={btn("#5980a6", "#ffffff")}
           onClick={() => send("/api/recover", { name: form.name, answer: form.answer, password: form.password }, done)}>
           {t("Set password and sign in")}
         </button>
@@ -174,7 +174,7 @@ function AccountPanel({ account, setAccount, onName }) {
           {t("Your old password cannot be shown to you — it is stored scrambled, which is what keeps it safe even if the file is stolen. Setting a new one is the way back in.")}
         </div>
         <div className="mt-2 text-[10px]">
-          <button style={{ ...link, color: "#9ca3af" }} onClick={() => open("forgot")}>{t("Wrong name")}</button>
+          <button style={{ ...link, color: "#5d5d60" }} onClick={() => open("forgot")}>{t("Wrong name")}</button>
         </div>
       </>)}
 
@@ -188,17 +188,17 @@ function AccountPanel({ account, setAccount, onName }) {
         <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Choose a new password")}</div>
         <input style={field} type="password" placeholder={t("New password (8 characters or more)")}
           value={form.password || ""} onChange={set("password")} />
-        <button disabled={busy} style={btn("#2c5f4f", "#d3fcec")}
+        <button disabled={busy} style={btn("#5980a6", "#ffffff")}
           onClick={() => send("/api/reset", { token: resetToken, password: form.password }, done)}>
           {t("Set password and sign in")}
         </button>
       </>)}
 
-      {err && <div className="text-[10px] mt-2" style={{ color: "#fca5a5" }}>{err}</div>}
-      {note && <div className="text-[10px] mt-2" style={{ color: "#8fd3b6" }}>{note}</div>}
+      {err && <div className="text-[10px] mt-2" style={{ color: "#b3261a" }}>{err}</div>}
+      {note && <div className="text-[10px] mt-2" style={{ color: "#416180" }}>{note}</div>}
       {pane !== "reset" && pane !== "answer" && (
         <div className="mt-2 text-[10px]">
-          <button style={{ ...link, color: "#6b7280" }} onClick={() => setPane(null)}>{t("Not now — play as a guest")}</button>
+          <button style={{ ...link, color: "#6f6f72" }} onClick={() => setPane(null)}>{t("Not now — play as a guest")}</button>
         </div>
       )}
     </div>
@@ -206,11 +206,11 @@ function AccountPanel({ account, setAccount, onName }) {
 
   if (pane) return fieldset;
   return (
-    <div className="text-[10px] mb-3" style={{ color: "#6b7280" }}>
+    <div className="text-[10px] mb-3" style={{ color: "#6f6f72" }}>
       {t("Playing as a guest.")}{" "}
-      <button style={{ ...link, color: "#8fd3b6" }} onClick={() => open("signin")}>{t("Sign in")}</button>
+      <button style={{ ...link, color: "#416180" }} onClick={() => open("signin")}>{t("Sign in")}</button>
       {" " + t("or") + " "}
-      <button style={{ ...link, color: "#8fd3b6" }} onClick={() => open("register")}>{t("reserve your name")}</button>.
+      <button style={{ ...link, color: "#416180" }} onClick={() => open("register")}>{t("reserve your name")}</button>.
     </div>
   );
 }
@@ -326,8 +326,8 @@ function Lobby({ onEnter }) {
   };
 
   const yourGames = mine.signedIn && mine.games.length ? (
-    <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#101318", border: "1px solid #2c5f4f" }}>
-      <div className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: "#8fd3b6" }}>
+    <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#fafafb", border: "1px solid #749dc4" }}>
+      <div className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: "#416180" }}>
         {t("Your games ({0})", mine.games.length)}
       </div>
       <div className="text-[10px] text-gray-500 mb-2">
@@ -336,21 +336,21 @@ function Lobby({ onEnter }) {
       {mine.games.map((g) => (
         <button key={g.code} onClick={() => resumeGame(g)} disabled={busy}
           className="w-full text-left rounded-md p-2 mb-1.5"
-          style={{ backgroundColor: "#1c1f26",
-            border: `1px solid ${g.yourTurn ? "#3f8a70" : "#262a33"}`, cursor: "pointer" }}>
+          style={{ backgroundColor: "#f5f5f8",
+            border: `1px solid ${g.yourTurn ? "#5980a6" : "#d4d4d7"}`, cursor: "pointer" }}>
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px]" style={{ color: "#d5d9e0" }}>{g.code}</span>
+            <span className="font-mono text-[11px]" style={{ color: "#2b2b2d" }}>{g.code}</span>
             {g.yourTurn
-              ? <span className="text-[10px] font-bold" style={{ color: "#8fd3b6" }}>{t("your turn")}</span>
-              : <span className="text-[10px]" style={{ color: "#6b7280" }}>
+              ? <span className="text-[10px] font-bold" style={{ color: "#416180" }}>{t("your turn")}</span>
+              : <span className="text-[10px]" style={{ color: "#6f6f72" }}>
                   {g.started ? t("waiting on someone else") : t("not started")}
                 </span>}
           </div>
-          <div className="text-[10px] mt-0.5" style={{ color: "#8b93a3" }}>
+          <div className="text-[10px] mt-0.5" style={{ color: "#5d5d60" }}>
             {g.started ? t("Year {0}, Q{1}", Math.ceil(g.quarter / 4), g.quarter) : t("in the waiting room")}
             {" \u00b7 "}{g.players.join(", ")}
           </div>
-          <div className="text-[9px] mt-0.5" style={{ color: "#6b7280" }}>
+          <div className="text-[9px] mt-0.5" style={{ color: "#6f6f72" }}>
             {t("closes in {0} if nobody plays", untilRetired(g.retiresAt))}
           </div>
         </button>
@@ -359,7 +359,7 @@ function Lobby({ onEnter }) {
   ) : null;
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
+    <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#f2f2f3" }}>
       <div className="rounded-xl p-6" style={{ ...box, width: "100%", maxWidth: 420 }}>
         <h1 className="text-2xl font-bold text-white tracking-tight mb-1">{t("ENTREPRENEURS")}</h1>
         <p className="text-sm text-gray-400 mb-5">{t("Play online with friends — 2 to 6 players.")}</p>
@@ -371,52 +371,52 @@ function Lobby({ onEnter }) {
 
         {/* Signed in, the name is your account's and not a free-text field: changing it
             here would only mean being refused at Create room. Sign out to play as a guest. */}
-        <input style={{ ...field, ...(account ? { color: "#8fd3b6", cursor: "not-allowed" } : null) }}
+        <input style={{ ...field, ...(account ? { color: "#416180", cursor: "not-allowed" } : null) }}
           placeholder={t("Your name")} value={name} maxLength={16} readOnly={!!account}
           onChange={(e) => { setName(e.target.value); setReturning(false); }} />
         {returning && !!name && !account && !(nick && (nick.taken || nick.registered)) && (
-          <div className="text-[10px] -mt-2 mb-3" style={{ color: "#8fd3b6" }}>
-            {t("Welcome back, {0}.", name)} <span style={{ color: "#6b7280" }}>{t("Not you? Just type over it.")}</span>
+          <div className="text-[10px] -mt-2 mb-3" style={{ color: "#416180" }}>
+            {t("Welcome back, {0}.", name)} <span style={{ color: "#6f6f72" }}>{t("Not you? Just type over it.")}</span>
           </div>
         )}
         {/* A registered name is not a warning, it is a locked door - say so plainly
             rather than letting them press Create room and be refused. */}
         {nick && nick.registered && !nick.yours && (
-          <div className="text-[10px] -mt-2 mb-3" style={{ color: "#fca5a5" }}>
+          <div className="text-[10px] -mt-2 mb-3" style={{ color: "#b3261a" }}>
             <b>{nick.name}</b> {t("is a registered player, so only they can play under it.")}{" "}
-            <span style={{ color: "#6b7280" }}>{t("Sign in if that is you, or pick another name.")}</span>
+            <span style={{ color: "#6f6f72" }}>{t("Sign in if that is you, or pick another name.")}</span>
           </div>
         )}
         {nick && nick.taken && !nick.registered && (
-          <div className="text-[10px] -mt-2 mb-3" style={{ color: "#e0b060" }}>
+          <div className="text-[10px] -mt-2 mb-3" style={{ color: "#8a6500" }}>
             {t("Someone else already plays as")} <b>{nick.name}</b>.{" "}
             {t("Records are kept by name, so your scores would add together in one hall-of-fame row.")}
-            <span style={{ color: "#6b7280" }}> {t("Add something to tell yourselves apart — or carry on, if it really is you.")}</span>
+            <span style={{ color: "#6f6f72" }}> {t("Add something to tell yourselves apart — or carry on, if it really is you.")}</span>
           </div>
         )}
         {nick && !nick.taken && !nick.registered && nick.mine && !returning && (
-          <div className="text-[10px] -mt-2 mb-3" style={{ color: "#8fd3b6" }}>
+          <div className="text-[10px] -mt-2 mb-3" style={{ color: "#416180" }}>
             {t("Your records are under this name.")}{" "}
-            <span style={{ color: "#6b7280" }}>{t("Reserve it above and nobody else can use it.")}</span>
+            <span style={{ color: "#6f6f72" }}>{t("Reserve it above and nobody else can use it.")}</span>
           </div>
         )}
 
-        <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#101318" }}>
+        <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: "#fafafb" }}>
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Start a new game")}</div>
           <div className="text-[11px] text-gray-500 mb-2">{t("Six chairs in all. Add bots for the chairs you want filled; the rest stay empty.")}</div>
           <div className="flex gap-1 mb-3">
             {[0, 1, 2, 3, 4, 5].map((b) => (
               <button key={b} onClick={() => setBots(b)}
                 className="flex-1 text-[11px] font-semibold px-1 py-1.5 rounded whitespace-nowrap"
-                style={{ backgroundColor: bots === b ? "#2c5f4f" : "#1c1f26", color: bots === b ? "#d3fcec" : "#9ca3af", border: "none", cursor: "pointer" }}>
+                style={{ backgroundColor: bots === b ? "#5980a6" : "#f5f5f8", color: bots === b ? "#2c455d" : "#5d5d60", border: "none", cursor: "pointer" }}>
                 {t(b === 1 ? "{0} bot" : "{0} bots", b)}
               </button>
             ))}
           </div>
-          <button onClick={create} disabled={busy} style={btn("#2c5f4f", "#d3fcec")}>{t("Create room")}</button>
+          <button onClick={create} disabled={busy} style={btn("#5980a6", "#ffffff")}>{t("Create room")}</button>
         </div>
 
-        <div className="rounded-lg p-3" style={{ backgroundColor: "#101318" }}>
+        <div className="rounded-lg p-3" style={{ backgroundColor: "#fafafb" }}>
           <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("Join a friend")}</div>
           <p className="text-[10px] text-gray-500 mb-2">
             {t("If the game has already started or the table is full, you will join as a watcher — you can see the whole board, chat and talk, but not play.")}
@@ -424,16 +424,16 @@ function Lobby({ onEnter }) {
           <input style={{ ...field, textTransform: "uppercase", letterSpacing: 2, fontFamily: "ui-monospace, monospace" }}
             placeholder={t("ROOM CODE")} value={code} maxLength={6}
             onChange={(e) => setCode(e.target.value)} />
-          <button onClick={join} disabled={busy} style={btn("#20232c", "#e5e7eb")}>{t("Join room")}</button>
+          <button onClick={join} disabled={busy} style={btn("#ececef", "#1d1f20")}>{t("Join room")}</button>
         </div>
 
         {/* Said before anybody starts a game rather than discovered afterwards. A
             table that goes quiet is closed, and what was played in it is kept. */}
-        <p className="text-[10px] mt-3" style={{ color: "#6b7280", lineHeight: 1.5 }}>
+        <p className="text-[10px] mt-3" style={{ color: "#6f6f72", lineHeight: 1.5 }}>
           {t("A game nobody touches for {0} hours is closed, so abandoned tables do not pile up. What was played in it is still recorded — it just does not count towards the statistics, because it never finished.", mine.idleHours || 48)}
         </p>
 
-        {err && <div className="text-xs mt-3" style={{ color: "#fca5a5" }}>{err}</div>}
+        {err && <div className="text-xs mt-3" style={{ color: "#b3261a" }}>{err}</div>}
       </div>
     </div>
   );
@@ -442,23 +442,23 @@ function Lobby({ onEnter }) {
 /* One switch, used for personas and for every variant, so they all read the same
    way and a guest sees the host's choices without being able to change them. */
 function OptionToggle({ on, name, blurb, onToggle, readOnly }) {
-  const edge = on ? "#2c5f4f" : "#262a33";
+  const edge = on ? "#5980a6" : "#d4d4d7";
   const body = (
     <>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-bold" style={{ color: on ? "#8fd3b6" : "#8b93a3" }}>{name}</span>
-        <span className="text-[10px] shrink-0" style={{ color: on ? "#8fd3b6" : "#4b5563" }}>{on ? "ON \u2713" : "OFF"}</span>
+        <span className="text-xs font-bold" style={{ color: on ? "#416180" : "#5d5d60" }}>{name}</span>
+        <span className="text-[10px] shrink-0" style={{ color: on ? "#416180" : "#8a8a8d" }}>{on ? "ON \u2713" : "OFF"}</span>
       </div>
       <div className="text-[10px] text-gray-500 mt-0.5" style={{ lineHeight: 1.4 }}>{blurb}</div>
     </>
   );
   if (readOnly) {
     return <div className="w-full rounded-md px-3 py-2 text-left mb-1.5"
-      style={{ backgroundColor: "#1c1f26", border: `1px solid ${edge}` }}>{body}</div>;
+      style={{ backgroundColor: "#f5f5f8", border: `1px solid ${edge}` }}>{body}</div>;
   }
   return (
     <button onClick={onToggle} className="w-full rounded-md px-3 py-2 text-left mb-1.5"
-      style={{ backgroundColor: "#1c1f26", border: `1px solid ${edge}`, cursor: "pointer" }}>{body}</button>
+      style={{ backgroundColor: "#f5f5f8", border: `1px solid ${edge}`, cursor: "pointer" }}>{body}</button>
   );
 }
 
@@ -491,36 +491,36 @@ function WaitingRoom({ me, lobby, onLeave }) {
     if (r.body.error) setErr(r.body.error);
   };
   return (
-    <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#0e1014" }}>
+    <div className="w-full min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#f2f2f3" }}>
       <div className="rounded-xl p-6" style={{ ...box, width: "100%", maxWidth: 420 }}>
         <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">{t("Room code")}</div>
         <div className="flex items-center gap-2 mb-4">
-          <div className="text-3xl font-bold tracking-widest" style={{ color: "#8fd3b6", fontFamily: "ui-monospace, monospace" }}>{me.code}</div>
+          <div className="text-3xl font-bold tracking-widest" style={{ color: "#416180", fontFamily: "ui-monospace, monospace" }}>{me.code}</div>
           <button onClick={() => navigator.clipboard && navigator.clipboard.writeText(me.code)}
-            className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#1c1f26", color: "#9ca3af", border: "1px solid #33384a", cursor: "pointer" }}>{t("copy")}</button>
+            className="text-[10px] px-2 py-1 rounded" style={{ backgroundColor: "#f5f5f8", color: "#5d5d60", border: "1px solid #c9c9cc", cursor: "pointer" }}>{t("copy")}</button>
         </div>
         <p className="text-[11px] text-gray-500 mb-4">{t("Share this code — your friends enter it under “Join a friend”.")}</p>
 
         <div className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2">{t("In the room")}</div>
         <div className="space-y-1.5 mb-4">
           {(lobby ? lobby.members : [{ name: me.name, seat: me.seat, host: me.host }]).map((m) => (
-            <div key={m.seat} className="flex items-center justify-between text-sm rounded p-2" style={{ backgroundColor: "#1c1f26" }}>
+            <div key={m.seat} className="flex items-center justify-between text-sm rounded p-2" style={{ backgroundColor: "#f5f5f8" }}>
               <span className="text-gray-200">{m.name}{m.seat === me.seat ? " " + t("(you)") : ""}</span>
               {m.host ? <span className="text-[10px] text-gray-500">{t("host")}</span>
                 : me.host ? (
                   <button onClick={() => kick(m.seat)} title={t("Remove this player")}
-                    className="text-[10px]" style={{ background: "none", border: "none", color: "#8b93a3", textDecoration: "underline", cursor: "pointer" }}>
+                    className="text-[10px]" style={{ background: "none", border: "none", color: "#5d5d60", textDecoration: "underline", cursor: "pointer" }}>
                     {t("remove")}
                   </button>
                 ) : null}
             </div>
           ))}
           {lobby && Array.from({ length: lobby.bots }).map((_, i) => (
-            <div key={`b${i}`} className="flex items-center justify-between text-sm rounded p-2" style={{ backgroundColor: "#141720" }}>
+            <div key={`b${i}`} className="flex items-center justify-between text-sm rounded p-2" style={{ backgroundColor: "#f5f5f8" }}>
               <span className="text-gray-500 italic">{t("Bot")}</span>
               {me.host && i === lobby.bots - 1 ? (
                 <button onClick={() => setBots(lobby.bots - 1)} title={t("Remove this bot")}
-                  className="text-[10px]" style={{ background: "none", border: "none", color: "#8b93a3", textDecoration: "underline", cursor: "pointer" }}>
+                  className="text-[10px]" style={{ background: "none", border: "none", color: "#5d5d60", textDecoration: "underline", cursor: "pointer" }}>
                   {t("remove")}
                 </button>
               ) : null}
@@ -531,7 +531,7 @@ function WaitingRoom({ me, lobby, onLeave }) {
           {me.host && lobby && lobby.members.length + lobby.bots < 6 && (
             <button onClick={() => setBots(lobby.bots + 1)}
               className="w-full text-left text-sm rounded p-2"
-              style={{ backgroundColor: "#141720", border: "1px dashed #2c3340", color: "#6b7280", cursor: "pointer" }}>
+              style={{ backgroundColor: "#f5f5f8", border: "1px dashed #c9c9cc", color: "#6f6f72", cursor: "pointer" }}>
               {t("+ add a bot")}
             </button>
           )}
@@ -551,10 +551,10 @@ function WaitingRoom({ me, lobby, onLeave }) {
         {me.host && !!catalogue.length && (
           <button onClick={() => setShowVariants((v) => !v)}
             className="w-full text-left text-[11px] mb-1.5 px-1"
-            style={{ background: "none", border: "none", color: "#8b93a3", cursor: "pointer" }}>
+            style={{ background: "none", border: "none", color: "#5d5d60", cursor: "pointer" }}>
             {showVariants ? "\u25be" : "\u25b8"} {t("Rule variants")}
-            {variantsOn.length ? <span style={{ color: "#8fd3b6" }}> &mdash; {t("{0} on", variantsOn.length)}</span>
-              : <span style={{ color: "#4b5563" }}> {t("— standard rules")}</span>}
+            {variantsOn.length ? <span style={{ color: "#416180" }}> &mdash; {t("{0} on", variantsOn.length)}</span>
+              : <span style={{ color: "#8a8a8d" }}> {t("— standard rules")}</span>}
           </button>
         )}
         {me.host && showVariants && catalogue.map((v) => (
@@ -563,10 +563,10 @@ function WaitingRoom({ me, lobby, onLeave }) {
         ))}
         {!me.host && !!variantsOn.length && (
           <div className="rounded-md px-3 py-2 mb-1.5 text-[11px]"
-            style={{ backgroundColor: "#1c1f26", border: "1px solid #2c5f4f", color: "#8fd3b6" }}>
+            style={{ backgroundColor: "#f5f5f8", border: "1px solid #749dc4", color: "#416180" }}>
             <div className="font-bold mb-1">{t("The host changed the rules:")}</div>
             {variantsOn.map((v) => (
-              <div key={v.key} className="text-[10px]" style={{ color: "#c3c9d4", lineHeight: 1.45 }}>
+              <div key={v.key} className="text-[10px]" style={{ color: "#424244", lineHeight: 1.45 }}>
                 &bull; <strong>{v.name}</strong> &mdash; {v.blurb}
               </div>
             ))}
@@ -575,7 +575,7 @@ function WaitingRoom({ me, lobby, onLeave }) {
         <div className="mb-3" />
         {me.host ? (
           <>
-            <button onClick={start} disabled={total < 2 || total > 6} style={{ ...btn("#2c5f4f", "#d3fcec"), opacity: total < 2 || total > 6 ? 0.35 : 1 }}>
+            <button onClick={start} disabled={total < 2 || total > 6} style={{ ...btn("#5980a6", "#ffffff"), opacity: total < 2 || total > 6 ? 0.35 : 1 }}>
               {total < 2 ? t("Need at least 2 players")
                 : total > 6 ? t("A table seats 6 — remove someone")
                   : t("Start game ({0} players)", total)}
@@ -585,7 +585,7 @@ function WaitingRoom({ me, lobby, onLeave }) {
         ) : (
           <div className="text-xs text-gray-500 italic text-center py-2">{t("Waiting for the host to start…")}</div>
         )}
-        {err && <div className="text-xs mt-3" style={{ color: "#fca5a5" }}>{err}</div>}
+        {err && <div className="text-xs mt-3" style={{ color: "#b3261a" }}>{err}</div>}
 
         {lobby && lobby.watchers && lobby.watchers.length > 0 && (
           <div className="mt-3">
@@ -596,12 +596,12 @@ function WaitingRoom({ me, lobby, onLeave }) {
           </div>
         )}
         {me.spectator && (
-          <div className="mt-3 rounded p-2 text-[11px]" style={{ backgroundColor: "#1c2733", color: "#8fd3b6" }}>
+          <div className="mt-3 rounded p-2 text-[11px]" style={{ backgroundColor: "#e9f0f6", color: "#416180" }}>
             {t("You are watching this room. The host starts the game when the players are ready.")}
           </div>
         )}
         <button onClick={onLeave} className="w-full mt-3 text-xs"
-          style={{ background: "none", border: "none", color: "#6b7280", textDecoration: "underline", cursor: "pointer", padding: "6px 0" }}>
+          style={{ background: "none", border: "none", color: "#6f6f72", textDecoration: "underline", cursor: "pointer", padding: "6px 0" }}>
           {me.spectator ? t("Stop watching") : me.host ? t("Cancel this room and go back") : t("Leave this room")}
         </button>
         <p className="text-[10px] text-gray-600 mt-1 text-center">
@@ -935,10 +935,10 @@ function TablePanel({ me, chat, onSend }) {
       <div style={{ position: "fixed", right: 10, bottom: 10, zIndex: 9997, width: open ? 300 : "auto" }}>
         {!open && (
           <button onClick={() => setOpen(true)}
-            style={{ ...btn, backgroundColor: "#14161a", border: "1px solid #2c5f4f", color: "#8fd3b6",
-              padding: "8px 12px", fontWeight: 700, boxShadow: "0 6px 18px rgba(0,0,0,0.5)" }}>
+            style={{ ...btn, backgroundColor: "#ffffff", border: "1px solid #749dc4", color: "#416180",
+              padding: "8px 12px", fontWeight: 700, boxShadow: "0 6px 18px rgba(43,43,45,0.17)" }}>
             {t("Table")} {unread > 0 && (
-              <span style={{ marginLeft: 6, backgroundColor: "#c0392b", color: "#fff", borderRadius: 8,
+              <span style={{ marginLeft: 6, backgroundColor: "#b3261a", color: "#ffffff", borderRadius: 8,
                 padding: "1px 6px", fontSize: 10 }}>{unread}</span>
             )}
             {voice.on && <span style={{ marginLeft: 6 }}>{"\uD83C\uDFA4"}</span>}
@@ -946,51 +946,51 @@ function TablePanel({ me, chat, onSend }) {
         )}
 
         {open && (
-          <div style={{ backgroundColor: "#14161a", border: "1px solid #262a33", borderRadius: 10,
-            boxShadow: "0 10px 30px rgba(0,0,0,0.55)", overflow: "hidden" }}>
+          <div style={{ backgroundColor: "#ffffff", border: "1px solid #d4d4d7", borderRadius: 10,
+            boxShadow: "0 10px 30px rgba(43,43,45,0.19)", overflow: "hidden" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 4, padding: 6,
-              borderBottom: "1px solid #262a33" }}>
+              borderBottom: "1px solid #d4d4d7" }}>
               {["chat", "voice"].map((k) => (
                 <button key={k} onClick={() => setTab(k)}
                   style={{ ...btn, flex: 1, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
-                    backgroundColor: tab === k ? "#2c5f4f" : "#1c1f26",
-                    color: tab === k ? "#d3fcec" : "#8b93a3" }}>
+                    backgroundColor: tab === k ? "#5980a6" : "#f5f5f8",
+                    color: tab === k ? "#2c455d" : "#5d5d60" }}>
                   {k}{k === "voice" && voice.on ? " \u25CF" : ""}
                 </button>
               ))}
-              <button onClick={() => setOpen(false)} style={{ ...btn, color: "#6b7280" }}>&#10005;</button>
+              <button onClick={() => setOpen(false)} style={{ ...btn, color: "#6f6f72" }}>&#10005;</button>
             </div>
 
             {tab === "chat" && (
               <div>
                 <div style={{ height: 210, overflowY: "auto", padding: "8px 10px" }}>
                   {!chat.length && (
-                    <div style={{ fontSize: 11, color: "#6b7280", fontStyle: "italic" }}>
+                    <div style={{ fontSize: 11, color: "#6f6f72", fontStyle: "italic" }}>
                       {t("No messages yet. Say hello to the table.")}
                     </div>
                   )}
                   {chat.map((m) => (
                     <div key={m.id} style={{ marginBottom: 7 }}>
                       <div style={{ fontSize: 10, fontWeight: 700,
-                        color: m.seat === me.seat ? "#8fd3b6" : "#9aa3b2" }}>
+                        color: m.seat === me.seat ? "#416180" : "#5d5d60" }}>
                         {m.seat === me.seat ? "You" : m.name}
                       </div>
-                      <div style={{ fontSize: 12, color: "#d5d9e0", lineHeight: 1.35, wordBreak: "break-word" }}>
+                      <div style={{ fontSize: 12, color: "#2b2b2d", lineHeight: 1.35, wordBreak: "break-word" }}>
                         {m.text}
                       </div>
                     </div>
                   ))}
                   <div ref={endRef} />
                 </div>
-                <div style={{ display: "flex", gap: 6, padding: 8, borderTop: "1px solid #262a33" }}>
+                <div style={{ display: "flex", gap: 6, padding: 8, borderTop: "1px solid #d4d4d7" }}>
                   <input value={draft} maxLength={400}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") send(); }}
                     placeholder={t("Message the table")}
-                    style={{ flex: 1, backgroundColor: "#1c1f26", border: "1px solid #262a33",
-                      borderRadius: 5, color: "#e5e7eb", fontSize: 12, padding: "6px 8px", outline: "none" }} />
+                    style={{ flex: 1, backgroundColor: "#f5f5f8", border: "1px solid #d4d4d7",
+                      borderRadius: 5, color: "#1d1f20", fontSize: 12, padding: "6px 8px", outline: "none" }} />
                   <button onClick={send} disabled={!draft.trim()}
-                    style={{ ...btn, backgroundColor: "#2c5f4f", color: "#d3fcec", fontWeight: 700,
+                    style={{ ...btn, backgroundColor: "#5980a6", color: "#ffffff", fontWeight: 700,
                       opacity: draft.trim() ? 1 : 0.4 }}>{t("Send")}</button>
                 </div>
               </div>
@@ -1005,34 +1005,34 @@ function TablePanel({ me, chat, onSend }) {
                         happens to is never the host - so it has to be visible, not an
                         error you discover halfway through a game. */}
                     {!micPossible() ? (
-                      <div style={{ fontSize: 11, color: "#e0b060", lineHeight: 1.45, marginBottom: 9 }}>
+                      <div style={{ fontSize: 11, color: "#8a6500", lineHeight: 1.45, marginBottom: 9 }}>
                         {insecureReason()}
                       </div>
                     ) : (
-                      <div style={{ fontSize: 11, color: "#9aa3b2", lineHeight: 1.45, marginBottom: 9 }}>
+                      <div style={{ fontSize: 11, color: "#5d5d60", lineHeight: 1.45, marginBottom: 9 }}>
                         {t("Talk to the other players while you play. Your browser will ask for microphone permission. Audio goes directly between players, not through the server.")}
                       </div>
                     )}
                     <button onClick={voice.start} disabled={!micPossible()}
-                      style={{ ...btn, width: "100%", backgroundColor: micPossible() ? "#2c5f4f" : "#20232c",
-                        color: micPossible() ? "#d3fcec" : "#6b7280",
+                      style={{ ...btn, width: "100%", backgroundColor: micPossible() ? "#5980a6" : "#ececef",
+                        color: micPossible() ? "#2c455d" : "#6f6f72",
                         fontWeight: 700, padding: "8px 0", cursor: micPossible() ? "pointer" : "not-allowed" }}>
                       {"\uD83C\uDFA4"} {t("Join voice call")}
                     </button>
                   </>
                 ) : (
                   <>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#6f6f72", marginBottom: 6 }}>
                       {t("ON THE CALL")}
                     </div>
                     <div style={{ marginBottom: 9 }}>
-                      <div style={{ fontSize: 12, color: "#8fd3b6" }}>
-                        {t("You")} {voice.muted && <span style={{ color: "#fca5a5" }}>{t("(muted)")}</span>}
+                      <div style={{ fontSize: 12, color: "#416180" }}>
+                        {t("You")} {voice.muted && <span style={{ color: "#b3261a" }}>{t("(muted)")}</span>}
                       </div>
                       {voice.peers.map((p) => (
                         <div key={p.seat} style={{ fontSize: 12,
-                          color: p.state === "failed" ? "#fca5a5"
-                            : p.state === "connected" ? "#d5d9e0" : "#8b93a3" }}>
+                          color: p.state === "failed" ? "#b3261a"
+                            : p.state === "connected" ? "#2b2b2d" : "#5d5d60" }}>
                           {p.name}
                           {p.state === "failed" && " \u2014 " + t("could not connect")}
                           {p.state === "connecting" && " \u2014 " + t("connecting…")}
@@ -1044,30 +1044,30 @@ function TablePanel({ me, chat, onSend }) {
                           rather than leaving "could not connect" to be read as
                           a bug in their phone. */}
                       {voice.relay === false && voice.peers.some((p) => p.state === "failed") && (
-                        <div style={{ fontSize: 11, color: "#e0b060", lineHeight: 1.45, marginTop: 6 }}>
+                        <div style={{ fontSize: 11, color: "#8a6500", lineHeight: 1.45, marginTop: 6 }}>
                           {t("No relay is set up on this server, so a direct path has to exist between the two of you. Mobile networks usually block one. On wifi it should connect; otherwise use chat, or ask the host to configure a TURN relay.")}
                         </div>
                       )}
                       {!voice.peers.length && (
-                        <div style={{ fontSize: 11, color: "#6b7280", fontStyle: "italic", marginTop: 3 }}>
+                        <div style={{ fontSize: 11, color: "#6f6f72", fontStyle: "italic", marginTop: 3 }}>
                           {t("Waiting for someone else to join…")}
                         </div>
                       )}
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button onClick={voice.toggleMute}
-                        style={{ ...btn, flex: 1, backgroundColor: "#1c1f26", border: "1px solid #262a33",
-                          color: voice.muted ? "#fca5a5" : "#8fd3b6", fontWeight: 700 }}>
+                        style={{ ...btn, flex: 1, backgroundColor: "#f5f5f8", border: "1px solid #d4d4d7",
+                          color: voice.muted ? "#b3261a" : "#416180", fontWeight: 700 }}>
                         {voice.muted ? "Unmute" : "Mute"}
                       </button>
                       <button onClick={voice.stop}
-                        style={{ ...btn, flex: 1, backgroundColor: "#3a1f1f", border: "1px solid #7a3f3f",
-                          color: "#fca5a5", fontWeight: 700 }}>{t("Leave call")}</button>
+                        style={{ ...btn, flex: 1, backgroundColor: "#fbeceb", border: "1px solid #e3a59f",
+                          color: "#b3261a", fontWeight: 700 }}>{t("Leave call")}</button>
                     </div>
                   </>
                 )}
                 {voice.error && (
-                  <div style={{ marginTop: 8, fontSize: 11, color: "#fca5a5", lineHeight: 1.4 }}>
+                  <div style={{ marginTop: 8, fontSize: 11, color: "#b3261a", lineHeight: 1.4 }}>
                     {voice.error}
                   </div>
                 )}
@@ -1225,7 +1225,7 @@ function OnlineTable({ onTable }) {
   }, [me]);
 
   if (checking) return (
-    <div className="w-full min-h-screen flex items-center justify-center" style={{ backgroundColor: "#0e1014" }}>
+    <div className="w-full min-h-screen flex items-center justify-center" style={{ backgroundColor: "#f2f2f3" }}>
       <div className="text-sm text-gray-500">{t("Reconnecting…")}</div>
     </div>
   );
@@ -1264,13 +1264,13 @@ function OnlineTable({ onTable }) {
           host shown to everybody at the table. */}
       {rulesMismatch && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 9998,
-          backgroundColor: "#3a2415", borderBottom: "1px solid #7a6a3f",
-          color: "#f5d76e", fontSize: 12, padding: "6px 10px", textAlign: "center" }}>
+          backgroundColor: "#edddd2", borderBottom: "1px solid #dccb93",
+          color: "#8a6500", fontSize: 12, padding: "6px 10px", textAlign: "center" }}>
           {t("This page and the server are on different rules")}
           ({t("page")} <code>{getEngineVersion()}</code>, {t("server")} <code>{serverEngine}</code>).{" "}
           <button onClick={() => window.location.reload(true)}
             style={{ background: "none", border: "none", padding: 0, font: "inherit",
-              color: "#f5d76e", textDecoration: "underline", cursor: "pointer" }}>
+              color: "#8a6500", textDecoration: "underline", cursor: "pointer" }}>
             {t("Reload the page")}
           </button>
           {" \u2014 " + t("that fixes it almost every time. If it comes back, the host needs to redeploy.")}
@@ -1285,13 +1285,13 @@ function OnlineTable({ onTable }) {
         {me.spectator && (
           <span title={t("You can chat and join the voice call, but you cannot take actions.")}
             style={{ fontSize: 10, padding: "2px 7px", borderRadius: 999, cursor: "help",
-              backgroundColor: "#1c2733", border: "1px solid #3a4152", color: "#8fd3b6" }}>
+              backgroundColor: "#e9f0f6", border: "1px solid #b7b7ba", color: "#416180" }}>
             {t("watching")}
           </span>
         )}
-        <span style={{ fontSize: 10, fontFamily: "ui-monospace, monospace", color: "#6b7280" }}>{t("room")} {me.code}</span>
+        <span style={{ fontSize: 10, fontFamily: "ui-monospace, monospace", color: "#6f6f72" }}>{t("room")} {me.code}</span>
         <button onClick={() => setMuted((v) => !v)} title={muted ? t("Turn the turn chime on") : t("Turn the turn chime off")}
-          style={{ fontSize: 11, background: "none", border: "none", cursor: "pointer", color: muted ? "#6b7280" : "#8fd3b6", padding: 0, lineHeight: 1 }}>
+          style={{ fontSize: 11, background: "none", border: "none", cursor: "pointer", color: muted ? "#6f6f72" : "#416180", padding: 0, lineHeight: 1 }}>
           {muted ? "\uD83D\uDD07" : "\uD83D\uDD0A"}
         </button>
         {/* Two different things that used to be one button.
@@ -1307,27 +1307,27 @@ function OnlineTable({ onTable }) {
             t("Your games") when they come back. */}
         {me.spectator ? (
           <button onClick={() => leave(true)} title={t("Stop watching and go back to the lobby")}
-            style={{ fontSize: 10, color: "#6b7280", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+            style={{ fontSize: 10, color: "#6f6f72", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
             {t("stop watching")}
           </button>
         ) : (
           <button onClick={() => leave(false)} title={t("Back to the lobby. Your seat is kept - the game is under Your games when you want it.")}
-            style={{ fontSize: 10, color: "#6b7280", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+            style={{ fontSize: 10, color: "#6f6f72", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
             {t("lobby")}
           </button>
         )}
         <span style={{
           fontSize: 10, padding: "2px 7px", borderRadius: 999,
-          backgroundColor: conn === "offline" ? "#3a1f1f" : conn === "polling" ? "#33301a" : "#14301f",
-          color: conn === "offline" ? "#fca5a5" : conn === "polling" ? "#f5d76e" : "#8fd3b6",
-          border: "1px solid #2b3040",
+          backgroundColor: conn === "offline" ? "#fbeceb" : conn === "polling" ? "#fcf6e1" : "#e6f4ec",
+          color: conn === "offline" ? "#b3261a" : conn === "polling" ? "#8a6500" : "#416180",
+          border: "1px solid #c9c9cc",
         }} title={conn === "polling" ? t("Live stream blocked; updating by polling instead") : undefined}>
           {conn === "offline" ? t("offline") : conn === "polling" ? t("syncing") : t("live")}</span>
       </div>
       {toast && (
         <div style={{
           position: "fixed", bottom: 14, left: "50%", transform: "translateX(-50%)", zIndex: 95,
-          backgroundColor: "#2a1a1a", border: "1px solid #7a3f3f", color: "#fca5a5",
+          backgroundColor: "#fbeceb", border: "1px solid #e3a59f", color: "#b3261a",
           padding: "8px 14px", borderRadius: 8, fontSize: 12,
         }}>{toast}</div>
       )}

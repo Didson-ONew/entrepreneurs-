@@ -21,8 +21,9 @@ const section = (t) => console.log(`\n${t}`);
 (async () => {
   section("The catalogue the lobby renders from");
   const cat = await get("/api/variants");
-  /* Was five. roadHubs and heavyLevelEP have been removed. */
-  check("the server publishes the variant list", Array.isArray(cat.variants) && cat.variants.length === 4,
+  /* Was five. roadHubs and heavyLevelEP have been removed; "printedV23" came in with the
+     trial rules, to put the book's bills, bands and rent back. */
+  check("the server publishes the variant list", Array.isArray(cat.variants) && cat.variants.length === 8,
     (cat.variants || []).map((v) => v.key).join(", "));
   check("every entry has a name and an explanation",
     cat.variants.every((v) => v.key && v.name && v.blurb));

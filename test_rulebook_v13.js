@@ -63,13 +63,19 @@ for (const [n, rows] of Object.entries(E.STARTING)) {
 
 /* --------------------------------------------------------- the six industries */
 section("The six industries - setup / OPEX / production per level");
+/* A deliberate snapshot, not a derivation: if these numbers drifted silently the book
+   and the cards could agree with each other while both being wrong. Rebalanced with the
+   rest of the game - entry paired at (HO,TE) $10, (UT,RE) $15 and (MA,HC) $20, which
+   lands payback level at 2.50 quarters for five of six. Levels 2 and 3 follow each
+   industry's own printed curve for OPEX; setup is rounded onto the multiple of five
+   the rest of the deck uses, and production doubles. */
 const V10 = {
-  UT: { base: 4, scale: "H", lv: [[15, 4, 4], [20, 7, 8], [30, 10, 16]] },
-  RE: { base: 4, scale: "V", lv: [[10, 5, 4], [15, 9, 8], [25, 14, 16]] },
-  HO: { base: 5, scale: "V", lv: [[10, 6, 3], [15, 10, 6], [25, 16, 12]] },
-  MA: { base: 5, scale: "H", lv: [[20, 4, 3], [35, 7, 6], [60, 10, 12]] },
-  HC: { base: 6, scale: "V", lv: [[20, 5, 2], [35, 9, 4], [60, 14, 8]] },
-  TE: { base: 6, scale: "H", lv: [[15, 6, 2], [25, 10, 4], [40, 16, 8]] },
+  UT: { base: 4, scale: "H", lv: [[15, 6, 3], [20, 11, 6], [30, 15, 12]] },
+  RE: { base: 4, scale: "V", lv: [[15, 10, 4], [25, 18, 8], [40, 28, 16]] },
+  HO: { base: 5, scale: "V", lv: [[10, 6, 2], [15, 10, 4], [25, 16, 8]] },
+  MA: { base: 5, scale: "H", lv: [[20, 8, 4], [35, 14, 8], [60, 20, 16]] },
+  HC: { base: 6, scale: "V", lv: [[20, 10, 3], [35, 18, 6], [60, 28, 12]] },
+  TE: { base: 6, scale: "H", lv: [[10, 8, 2], [15, 13, 4], [25, 21, 8]] },
 };
 for (const [ind, want] of Object.entries(V10)) {
   check(`${ind} base $${want.base}, ${want.scale === "H" ? "horizontal" : "vertical"}`,
@@ -182,7 +188,10 @@ section("B2B - one equal share each, remainder rides forward");
   st2.pots = Object.fromEntries(E.INDUSTRIES.map((i) => [i, 0]));
   st2.pots.TE = 40;
   E.runB2B(st2, () => {});
-  check("a pot with nobody to pay carries over in full", st2.pots.TE === 40);
+  /* v21 wrote it off; v22 put the carry back by the designer's choice. The first
+     company into an empty industry scoops the lot, and that is a measured, chosen
+     prize for the late entrant (audit_supply.js --expire measures the other rule). */
+  check("a pot with nobody to pay carries over in full", st2.pots.TE === 40, `pot $${st2.pots.TE}`);
 }
 
 /* ------------------------------------------------------- going public / IPO */
@@ -390,7 +399,9 @@ section("A headquarters banks its industry's price every quarter");
 
 section("Its owner pays the ground rent out of pocket");
 {
-  const st = E.initGame(0, 33, ["A", "B"], undefined, false);
+  /* The printed rent, $2 a level. Under the trial rules a headquarters keeps its floors
+     and pays the plot's own rate for each; test_trial_rules.js pins that. */
+  const st = E.initGame(0, 33, ["A", "B"], undefined, false, { printedV23: true });
   const [a, b] = st.players;
   const plots = Object.keys(st.board.graph);
   const reBp = E.BP_DATA.find((x) => x.ind === "RE" && x.lvl === 2);
@@ -518,7 +529,7 @@ section("Personas - Concession Holder");
 }
 
 /* ------------------------------------------------------------- renovation */
-section("Renovation - level always, scaling type from level 2 up");
+section("Renovation - level always, any shape (v22)");
 {
   const shell = (ind, level) => ({ level, bp: E.BP_DATA.find((x) => x.ind === ind && x.lvl === level) });
   const card = (ind, lvl) => E.BP_DATA.find((x) => x.ind === ind && x.lvl === lvl);
@@ -527,12 +538,14 @@ section("Renovation - level always, scaling type from level 2 up");
     E.renovationEligible(shell("UT", 1), card("RE", 1)) === true);
   check("a level-1 vertical shell takes a level-1 horizontal card",
     E.renovationEligible(shell("HC", 1), card("TE", 1)) === true);
-  check("a level-2 horizontal shell REFUSES a level-2 vertical card",
-    E.renovationEligible(shell("UT", 2), card("RE", 2)) === false);
-  check("a level-2 vertical shell REFUSES a level-2 horizontal card",
-    E.renovationEligible(shell("HC", 2), card("MA", 2)) === false);
-  check("a level-3 horizontal shell REFUSES a level-3 vertical card",
-    E.renovationEligible(shell("MA", 3), card("HO", 3)) === false);
+  /* v22: a shell of the level takes any card of the level, whatever its shape - the
+     company keeps the shell's footprint. v21 refused these three. */
+  check("a level-2 horizontal shell takes a level-2 vertical card",
+    E.renovationEligible(shell("UT", 2), card("RE", 2)) === true);
+  check("a level-2 vertical shell takes a level-2 horizontal card",
+    E.renovationEligible(shell("HC", 2), card("MA", 2)) === true);
+  check("a level-3 horizontal shell takes a level-3 vertical card",
+    E.renovationEligible(shell("MA", 3), card("HO", 3)) === true);
   check("a level-2 horizontal shell accepts another horizontal level-2 card",
     E.renovationEligible(shell("UT", 2), card("TE", 2)) === true);
   check("a level-3 vertical shell accepts another vertical level-3 card",
@@ -556,8 +569,8 @@ section("Scoring - tiebreak");
 section("Other constants");
 check("12 discs each", E.DISCS_PER_PLAYER === 12);
 check("5 company slots", E.COMPANY_SLOTS === 5);
-check("loan buy-back $30 / $35 / $40 at year ends",
-  E.LOAN_REPAY_RATE[4] === 30 && E.LOAN_REPAY_RATE[8] === 35 && E.LOAN_REPAY_RATE[12] === 40);
+check("loan buy-back $30 / $40 at the two year ends, $50 at the third of the three-year game",
+  E.LOAN_REPAY_RATE[4] === 30 && E.LOAN_REPAY_RATE[8] === 40 && E.LOAN_REPAY_RATE[12] === 50);
 check("Blueprint sale $4 / $8 / $12", E.BP_SELL_PRICE[1] === 4 && E.BP_SELL_PRICE[2] === 8 && E.BP_SELL_PRICE[3] === 12);
 check("16 Megacorp tiles, 8 to 22 EP",
   E.MEGACORP_TILES.length === 16 && Math.min(...E.MEGACORP_TILES.map((t) => t[2])) === 8
@@ -642,7 +655,7 @@ section("v13: the rules that used to be variants");
     me.epBank - bankBefore === 4 && biz.scored === true, `banked ${me.epBank - bankBefore} EP`);
 
   // "The Real-Estate Mogul and The Omnipresent are awarded [at every year end]"
-  check("the land awards pay at every year end", E.landPayouts(st) === 3, `${E.landPayouts(st)} payouts`);
+  check("the land awards pay at every year end - two in the two-year game", E.landPayouts(st) === 2, `${E.landPayouts(st)} payouts`);
 
   // "Each industry deck is shuffled whole, so any level can be sitting on top"
   let sawHigh = false;

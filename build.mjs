@@ -44,12 +44,13 @@ function stampEngineVersion() {
 }
 stampEngineVersion();
 
-const css = readFileSync("app.css", "utf8");
+/* The type of the printed set travels inside the page with everything else. */
+const css = readFileSync("fonts.css", "utf8") + readFileSync("app.css", "utf8");
 
 const page = (title, script) =>
   `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>` +
   `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>` +
-  `<meta name="theme-color" content="#0e1014"/><title>${title}</title>` +
+  `<meta name="theme-color" content="#f2f2f3"/><title>${title}</title>` +
   `<style>${css}</style></head><body><div id="root"></div>` +
   `<script>${script}</script></body></html>`;
 

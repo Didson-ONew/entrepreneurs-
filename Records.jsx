@@ -11,10 +11,10 @@ import { t, useLang } from "./i18n.js";
    ========================================================================== */
 
 const INK = {
-  bg: "#14161a", edge: "#262a33", panel: "#0f1115",
-  text: "#c3c9d4", dim: "#8b93a3", head: "#ffffff", accent: "#f5d76e", accentBg: "#231f14",
+  bg: "#ffffff", edge: "#d4d4d7", panel: "#fafafb",
+  text: "#424244", dim: "#5d5d60", head: "#1d1f20", accent: "#b08400", accentBg: "#fcf6e1",
 };
-const GOLD = ["#f5d76e", "#c9ccd4", "#c98f5b"];   // 1st, 2nd, 3rd
+const GOLD = ["#b08400", "#8a8d96", "#a8662a"];   // 1st, 2nd, 3rd
 
 /* The record book stores industries as the two-letter code printed on the
    components. The screen shows the name, which is a string the game already
@@ -105,12 +105,12 @@ function HallOfFame({ data }) {
           </tr></thead>
           <tbody>
             {hof.map((e, i) => (
-              <tr key={e.name + i} style={{ backgroundColor: i % 2 ? "transparent" : "#12141a" }}>
+              <tr key={e.name + i} style={{ backgroundColor: i % 2 ? "transparent" : "#fafafb" }}>
                 <td style={{ ...td, color: GOLD[i] || INK.dim, fontWeight: i < 3 ? 700 : 400, fontFamily: "ui-monospace, monospace" }}>{i + 1}</td>
-                <td style={{ ...td, color: i < 3 ? GOLD[i] : "#e5e7eb", fontWeight: 600, whiteSpace: "normal" }}>
+                <td style={{ ...td, color: i < 3 ? GOLD[i] : "#1d1f20", fontWeight: 600, whiteSpace: "normal" }}>
                   {e.name}
                   {/* a quiet bar so the shape of the table reads at a glance */}
-                  <div style={{ height: 2, marginTop: 3, borderRadius: 2, backgroundColor: i < 3 ? GOLD[i] : "#2c5f4f",
+                  <div style={{ height: 2, marginTop: 3, borderRadius: 2, backgroundColor: i < 3 ? GOLD[i] : "#5980a6",
                     width: `${Math.max(4, Math.round((e.ep / most) * 100))}%`, opacity: 0.55 }} />
                 </td>
                 <td style={{ ...num, color: INK.head, fontWeight: 700 }}>{e.ep}</td>
@@ -155,10 +155,10 @@ function Statistics({ data }) {
           return (
             <div key={e.source} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
               <span style={{ fontSize: 11, color: INK.text, width: 190, flexShrink: 0 }}>{t(SOURCE_LABEL[e.source] || e.source)}</span>
-              <span style={{ flex: 1, height: 8, backgroundColor: "#1c1f26", borderRadius: 4, overflow: "hidden" }}>
-                <span style={{ display: "block", height: "100%", width: `${w}%`, backgroundColor: neg ? "#7a3f3f" : "#2c5f4f" }} />
+              <span style={{ flex: 1, height: 8, backgroundColor: "#f5f5f8", borderRadius: 4, overflow: "hidden" }}>
+                <span style={{ display: "block", height: "100%", width: `${w}%`, backgroundColor: neg ? "#f6d5d1" : "#5980a6" }} />
               </span>
-              <span style={{ fontSize: 11, fontFamily: "ui-monospace, monospace", color: neg ? "#fca5a5" : INK.head, width: 46, textAlign: "right" }}>
+              <span style={{ fontSize: 11, fontFamily: "ui-monospace, monospace", color: neg ? "#b3261a" : INK.head, width: 46, textAlign: "right" }}>
                 {e.perPlayer > 0 ? "+" : ""}{e.perPlayer}
               </span>
             </div>
@@ -175,11 +175,11 @@ function Statistics({ data }) {
           <tbody>
             {(data.industries || []).map((i) => (
               <tr key={i.ind}>
-                <td style={{ ...td, color: "#e5e7eb", fontWeight: 600 }}>{t(IND_LABEL[i.ind] || i.ind)}</td>
+                <td style={{ ...td, color: "#1d1f20", fontWeight: 600 }}>{t(IND_LABEL[i.ind] || i.ind)}</td>
                 <td style={num}>{i.entered}</td>
                 <td style={num}>{i.wonWith}</td>
                 <td style={{ ...td, width: "45%" }}>
-                  <span style={{ display: "block", height: 6, borderRadius: 3, backgroundColor: "#2c5f4f",
+                  <span style={{ display: "block", height: 6, borderRadius: 3, backgroundColor: "#5980a6",
                     width: `${Math.round((i.entered / maxEntered) * 100)}%` }} />
                 </td>
               </tr>
@@ -200,7 +200,7 @@ function Statistics({ data }) {
             <tbody>
               {data.personas.map((p) => (
                 <tr key={p.key}>
-                  <td style={{ ...td, color: "#e5e7eb", fontWeight: 600 }}>{t(p.name)}</td>
+                  <td style={{ ...td, color: "#1d1f20", fontWeight: 600 }}>{t(p.name)}</td>
                   <td style={{ ...td, color: INK.dim }}>{t(IND_LABEL[p.ind] || p.ind)}</td>
                   <td style={num}>{p.played}</td>
                   <td style={num}>{p.won}</td>
@@ -234,13 +234,13 @@ function Recent({ data }) {
                 ? " \u00b7 " + t(m.variants.length === 1 ? "{0} variant" : "{0} variants", m.variants.length) : ""}
               {m.durationMs ? ` \u00b7 ${duration(m.durationMs)}` : ""}
             </span>
-            <span style={{ fontSize: 9.5, color: "#4b5563", fontFamily: "ui-monospace, monospace" }}>{m.engine}</span>
+            <span style={{ fontSize: 9.5, color: "#8a8a8d", fontFamily: "ui-monospace, monospace" }}>{m.engine}</span>
           </div>
           {m.players.map((p) => (
             <div key={p.rank} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, marginBottom: 2 }}>
               <span style={{ width: 14, color: GOLD[p.rank - 1] || INK.dim, fontWeight: p.rank === 1 ? 700 : 400,
                 fontFamily: "ui-monospace, monospace" }}>{p.rank}</span>
-              <span style={{ flex: 1, color: p.human ? "#e5e7eb" : INK.dim, fontStyle: p.human ? "normal" : "italic" }}>
+              <span style={{ flex: 1, color: p.human ? "#1d1f20" : INK.dim, fontStyle: p.human ? "normal" : "italic" }}>
                 {p.name}{p.persona ? "" : ""}
               </span>
               <span style={{ fontFamily: "ui-monospace, monospace", color: p.rank === 1 ? INK.head : INK.text }}>{p.ep} EP</span>
@@ -283,7 +283,7 @@ function Filters({ data, filter, setFilter }) {
   };
   const toggle = (on) => ({
     ...control, fontWeight: 700,
-    borderColor: on ? "#7a6a3f" : INK.edge,
+    borderColor: on ? "#dccb93" : INK.edge,
     backgroundColor: on ? INK.accentBg : "transparent",
     color: on ? INK.accent : INK.dim,
   });
@@ -345,12 +345,12 @@ export function Records({ onClose }) {
   return (
     <Portal>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 10040,
-        backgroundColor: "rgba(6,8,11,.82)", backdropFilter: "blur(2px)" }} />
+        backgroundColor: "rgba(29,31,32,.5)", backdropFilter: "blur(2px)" }} />
       <div role="dialog" aria-label={t("Records")} onClick={(e) => e.stopPropagation()} style={{
         position: "fixed", zIndex: 10041, top: "3vh", bottom: "3vh",
         left: "50%", transform: "translateX(-50%)", width: "min(96vw, 860px)",
-        backgroundColor: INK.bg, border: "1px solid #7a6a3f", borderRadius: 12,
-        boxShadow: "0 24px 70px rgba(0,0,0,.75)", display: "flex", flexDirection: "column", overflow: "hidden",
+        backgroundColor: INK.bg, border: "1px solid #dccb93", borderRadius: 12,
+        boxShadow: "0 24px 70px rgba(43,43,45,0.26)", display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
           borderBottom: `1px solid ${INK.edge}`, flexShrink: 0, flexWrap: "wrap" }}>
@@ -364,7 +364,7 @@ export function Records({ onClose }) {
             {TABS.map(([k, label]) => (
               <button key={k} onClick={() => setTab(k)} style={{
                 fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 6, cursor: "pointer",
-                border: `1px solid ${tab === k ? "#7a6a3f" : INK.edge}`,
+                border: `1px solid ${tab === k ? "#dccb93" : INK.edge}`,
                 backgroundColor: tab === k ? INK.accentBg : "transparent",
                 color: tab === k ? INK.accent : INK.dim,
               }}>{t(label)}</button>

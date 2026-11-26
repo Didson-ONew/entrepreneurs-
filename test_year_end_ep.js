@@ -90,7 +90,7 @@ section("the full game still scores cash exactly as it did");
   p.cash = 500;
   const before = E.epTotal(p);
   E.finalizeGame(st);
-  check("$500 is still 10 EP at $50 each", E.epTotal(p) === before + 10,
+  check("$500 is 5 EP at $100 each", E.epTotal(p) === before + 5,
     `${before} -> ${E.epTotal(p)}`);
   check("and a bot is told cash is worth the old flat rate",
     E.cashToEpRate(st) === E.CASH_PER_EP, `${E.cashToEpRate(st)}`);

@@ -33,7 +33,12 @@ const check = (label, cond) => { console.log(`${cond ? "  ok  " : " FAIL "} ${la
 function short(kind) {
   const st = E.initGame(1, 4242, ["Short"], undefined, false);
   const me = E.byId(st, 0);
-  const bp = E.BP_DATA.find((b) => b.ind === "RE" && b.lvl === 2);   // opex 9, two levels
+  /* A copy of the card with nothing to sell. These checks are about what happens when
+     the bill CANNOT be met, so the company must not earn its way out of the shortfall -
+     and tying that to where Retail demand happens to sit makes the test hostage to the
+     demand table. Production zero guarantees the shortfall whatever the cards say. The
+     spread is a copy, because BP_DATA is shared with every other test in this process. */
+  const bp = { ...E.BP_DATA.find((b) => b.ind === "RE" && b.lvl === 2), prod: 0 };
   const plot = Object.keys(st.board.graph).find((k) => !(k in st.board.owner));
   st.board.owner[plot] = me.id;
   const biz = { id: 9001, bp, footprint: [plot], level: 2, upgraded: false, distressed: false, scored: true, epOnCard: 0, quarterBuilt: 1 };
@@ -53,11 +58,16 @@ console.log("\nA Blueprint sold for you goes at the solvency price, not the plan
   const { st, me } = short("bp");
   const bp = me.hand[0];
   const bill = E.quarterBill(st, me);
+  /* Cash set so that exactly a solvency-price sale covers the bill, the same way the
+     plot case below does it. The window's price leaves nothing; the planned-sale price
+     would leave the difference sitting in hand. Reading it this way separates the two
+     prices cleanly and does not care what the bill happens to be, so a rebalance of the
+     cards cannot quietly turn the check into a tautology. */
+  me.cash = bill - E.BP_SOLVENCY_PRICE[bp.lvl];
   const discs = me.discsInBank;
   E.runProduction(st, () => {});
-  const got = me.cash + bill;   // cash after paying the bill, plus the bill = what the sale raised
-  check(`raised $${got} for a level-${bp.lvl} card - the window's $${E.BP_SOLVENCY_PRICE[bp.lvl]}, not $${E.BP_SELL_PRICE[bp.lvl]}`,
-    got === E.BP_SOLVENCY_PRICE[bp.lvl] || me.cash === 0);
+  check("the Blueprint was sold for you", me.hand.length === 0);
+  check(`it fetched the window's $${E.BP_SOLVENCY_PRICE[bp.lvl]}, not $${E.BP_SELL_PRICE[bp.lvl]}`, me.cash === 0);
   check("no hidden loan was taken", me.discsInBank === discs);
 }
 

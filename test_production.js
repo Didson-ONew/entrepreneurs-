@@ -52,15 +52,16 @@ function connectedRun(st, n) {
 }
 
 /* Count how many demand slots the whole board has open for this company right now. */
-/* `own` is counted in UNITS, not icons: an icon absorbs its own column, so a level-3
-   company facing a clean row of its industry takes 1 + 2 + 3 = 6 units from it.
-   `ownIcons` keeps the raw cell count for the tests that are about icons being
-   consumed rather than units being sold. Cross-sell still moves one unit per icon. */
+/* `own` is counted in UNITS, which since v22 is the icon count: an icon absorbs one
+   unit from each company that reaches it (two from Technology, applied by the
+   caller), so a level-3 company facing a row of its industry takes 3 units from it a
+   quarter. `ownIcons` is kept for the tests that read as icons. Cross-sell moves one
+   unit per icon too. */
 function openSlots(st, biz, owner) {
   const all = E.eligibleSlotsFor(st, biz, owner);
   const own = all.filter((s) => !s.cross);
   return {
-    own: own.reduce((n, s) => n + (s.levelIdx + 1), 0),
+    own: own.length,
     ownIcons: own.length,
     cross: all.filter((s) => s.cross).length,
   };
@@ -133,11 +134,11 @@ section("No company can earn more than its production is worth");
 }
 
 /* ============================================================== Manufacturing */
-/* How many demand icons are filled anywhere on the board right now. */
+/* How many icon-sales have been recorded on the board this quarter: an icon is never
+   used up, but each company's sales into it are, so the per-company record is what
+   counts. */
 function filledIcons(st) {
-  let n = 0;
-  Object.values(st.demand.tiles).forEach((t) => t.filled.forEach((row) => row.forEach((v) => { if (v) n++; })));
-  return n;
+  return Object.values(st.demand.used || {}).reduce((n, u) => n + Object.keys(u).length, 0);
 }
 
 section("Manufacturing's cross-sell spends production, it does not add any");

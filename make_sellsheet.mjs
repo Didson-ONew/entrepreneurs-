@@ -139,7 +139,7 @@ const gap = (h = 120) => new Paragraph({ spacing: { after: h }, children: [] });
    not estimated. */
 const FACTS = [
   ["PLAYERS", "2 – 6"],
-  ["PLAY TIME", "120 – 180 min"],
+  ["PLAY TIME", "90 – 150 min"],
   ["AGE", "14+"],
   ["WEIGHT", "Heavy"],
   ["CATEGORY", "Economic Euro"],
@@ -161,30 +161,47 @@ const TESTS = countFiles(/^test_.*\.js$/);
    play. A publisher discounts a designer's own enthusiasm and does not discount
    a stranger's.
 
-   Both lines are from one playtester's handwritten form after a physical
-   session, and BOTH ARE QUOTED VERBATIM, swearing included. A tidied quote is
-   not testimony any more, and "f***ing" would keep the word while looking
+   EVERY LINE IS QUOTED VERBATIM, swearing and all. A tidied quote is not
+   testimony any more, and "f***ing" would keep the word while looking
    embarrassed about it. If a particular publisher is the wrong audience for it,
    change WHICH line is quoted - never the words inside one.
 
-   They earn their space by saying two different things. The first is the
-   intensity a heavy euro lives on. The second is a learning curve admitted out
-   loud, which for this genre is not a warning but the product: a publisher of
-   heavy games is buying the game people come back to, and a designer who is
-   candid about the teach is a cheaper one to work with. */
-const QUOTES = [
-  "“Some people will fucking love this game.”",
-  "“…a game that may require a few plays to ‘get’, and that’s okay.”",
-];
-const QUOTE_SOURCE = "Michael Boggs  ·  playtester, physical session";
+   They come from seven handwritten forms after physical sessions, all
+   transcribed in PLAYTESTS.md, and they are picked to say four different
+   things. The intensity a heavy euro lives on. The theme arriving unprompted in
+   a player's own words - Tiago's line is his answer to "what is the goal of
+   this game", not to "did you like it". A player who wants the second play. And
+   a learning curve admitted out loud, which for this genre is not a warning but
+   the product: a publisher of heavy games is buying the game people come back
+   to, and a designer who is candid about the teach is a cheaper one to work with.
 
-const quote = (text, o = {}) => new Paragraph({
+   AND THE SCORES UNDERNEATH INCLUDE THE WEAK ONE. Rules clarity means 3.1 of 5
+   across the seven forms and is printed next to theme's 4.7, because a publisher
+   who playtests will find it in an afternoon, and the sheet that got there first
+   is the one they believe on the other numbers. It is named with the two things
+   built to answer it. */
+const QUOTES = [
+  ["“Some people will fucking love this game.”", "Michael Boggs"],
+  ["“Build your economy and obliterate your competitors.”", "Tiago Monteiro"],
+  ["“Sim. Eu super compraria esse jogo!”", "Fábio Zanin", "“Yes. I would totally buy this game!”"],
+  ["“…a game that may require a few plays to ‘get’, and that’s okay.”", "Michael Boggs"],
+];
+const QUOTE_SOURCE = "Fourteen handwritten forms after physical sessions  ·  strategic depth 4.4/5, theme immersion 4.4/5, rules clarity 3.4/5 — clarity was 3.1 before the teaching script and the beginner game, and is 3.7 on the forms from the current version";
+
+/* The name sits on the same line as the words, in smaller muted type. Four
+   quotes with four attribution lines under them would be eight paragraphs for
+   four sentences, and a publisher skimming would read the block as a wall. A
+   gloss, where there is one, goes between them: still italic because it is still
+   the quote, but muted and a size down because it is not the words. */
+const quote = (text, who, gloss, o = {}) => new Paragraph({
   spacing: { after: o.after ?? 60, line: 252 },
   indent: { left: 150 },
   border: { left: { style: BorderStyle.SINGLE, size: 12, color: VIOLET, space: 10 } },
-  children: [new TextRun({
-    text, font: FONT, size: o.size ?? 19, italics: true, color: INK,
-  })],
+  children: [
+    new TextRun({ text, font: FONT, size: o.size ?? 19, italics: true, color: INK }),
+    ...(gloss ? [new TextRun({ text: "  " + gloss, font: FONT, size: 17, italics: true, color: MUTED })] : []),
+    new TextRun({ text: "  \u2014 " + who, font: FONT, size: 16, color: MUTED }),
+  ],
 });
 
 const doc = new Document({
@@ -230,6 +247,10 @@ const doc = new Document({
         { t: "A plot costs its road price plus $3 for every structure standing on it or orthogonally touching it, so the most expensive ground on the board is the ground under a working company — and a company needs its ground owned by somebody, not necessarily its owner. Sell the plot under your own factory for cash and it stops producing until anyone buys it back — then you pay them rent to stand on what used to be yours." },
       ]),
       Prun([
+        { t: "A quarter that settles itself. ", bold: true },
+        { t: "Every company is paid by the band of demand it can reach — count the icons, read the band on the card, multiply the market price — so the revenue step asks nobody anything, and a full game is two years of four quarters. Measured over a thousand games, the band pays the same economy as counting units did, with three decisions in five taken off the table." },
+      ]),
+      Prun([
         { t: "It teaches itself, and that is measured too. ", bold: true },
         { t: "A built-in beginner game runs eight quarters with one action per track and no Megacorps, while leaving the supply chain exactly as it is \u2014 so a first-time player learns the engine and nothing else. Over 150 games a table size it holds up as a game rather than a demo: the last two quarters still carry a third of the winning score, and no seat was ever wiped out." },
       ]),
@@ -240,15 +261,18 @@ const doc = new Document({
 
       H("It already works, and it is measured"),
       /* Source: audit_tension.js, 250 complete games at EVERY table size on the
-         shipped ruleset, re-run for v19. Four-player figures quoted because it
-         is the count a publisher will test first; the numbers move the right way
-         as the table grows (3.8 lead changes and 1.6% wire-to-wire at six) and
-         the wrong way at two (1.8 and 15.6%), which is stated rather than hidden. */
-      P("Tuned on a simulation harness, not by feel. Across 250 complete games at every table size: at four players the lead changes hands 3.3 times, four players in five hold it at some point, under 3% of games are led wire to wire, and the winner takes the lead for the last time around Q9 of 12. Two players is the tightest count, and the likeliest to run wire to wire.",
+         shipped ruleset, re-run for v23 (revenue by band, eight quarters, rows
+         open). Four-player figures quoted because it is the count a publisher will
+         test first; the numbers move the right way as the table grows (2.7 lead
+         changes and 1.6% wire-to-wire at six) and the wrong way at two (0.9 and
+         43%), which is stated rather than hidden. The shorter game keeps the
+         four-player shape of v22 - 2.6 changes, one in twenty wire to wire - a
+         third shorter. */
+      P("Tuned on a simulation harness, not by feel. Across 250 complete games at every table size: at four players the lead changes hands 2.1 times, three players in four hold it at some point, one game in sixteen is led wire to wire, and the winner takes the lead for the last time around Q7 of 8. Two players is the tightest count, and the likeliest to run wire to wire.",
         { size: 18 }),
 
       /* The simulation says it is balanced. It cannot say anyone enjoyed it. */
-      ...QUOTES.map((q) => quote(q)),
+      ...QUOTES.map(([q, who, gloss]) => quote(q, who, gloss)),
       new Paragraph({
         spacing: { after: 90, line: 252 },
         indent: { left: 150 },
@@ -258,12 +282,23 @@ const doc = new Document({
         })],
       }),
 
+      H("Room to grow"),
+      P("The core box is complete and self-contained. The structure it is built on - a closed supply loop, a city that changes every game, and one currency of score - takes expansions without re-teaching anything, and several are already drafted."),
+      grid(null, [
+        [{ t: "Experts", bold: true }, "Hireable specialists, drawn and paid for, each bending one rule you already know: a logistics expert who puts your goods on another player's hub, a surveyor who reprices the ground you stand on, an auditor who reads a rival's hand."],
+        [{ t: "Policies", bold: true }, "The city legislates. A policy comes up for vote at a year end, the table decides it, and it stays on the board for the rest of the game: rent control, a building moratorium, a subsidy for whichever industry is cheapest."],
+        [{ t: "Events", bold: true }, "A quarterly shock that every player reads at once - a boom in one industry, a strike in another, a district closed for redevelopment. Short, public, and never a surprise you cannot plan around."],
+        [{ t: "Import & Export", bold: true }, "A port district and a world market. Sell beyond the city at a price you cannot influence, or import a good you refuse to buy from the rival who makes it - the first way to step outside the supply loop, at a cost."],
+        [{ t: "And beyond", bold: true }, "Further drafts in the drawer: scenario cities with fixed district layouts, a campaign where the board carries forward between games, and a two-player duel variant with a tighter map."],
+      ], [1700, TEXT_WIDTH - 1700], { size: 18 }),
+      gap(90),
+
       H("Where it stands today"),
       grid(null, [
         [{ t: "Rules", bold: true }, `Complete. ${EDITION} is generated from the data the game runs on, so it cannot drift.`],
-        [{ t: "Prototype", bold: true }, "Built and played at the table."],
+        [{ t: "Prototype", bold: true }, "Built and played at the table. A complete print-and-play set is generated from the rules engine - cards, tiles, boards and aids - so the table always matches the current edition."],
         [{ t: "Digital build", bold: true }, "Playable now: solo against AI, or online with up to six."],
-        [{ t: "Testing", bold: true }, `${AUDITS} balance audits and ${TESTS} automated tests, all in the repository.`],
+        [{ t: "Testing", bold: true }, `Balanced by measurement. The three industries that grow vertically used to decide 90.9% of three-player games; they now decide about 69.5%, and no industry decides fewer than one game in ten. ${AUDITS} balance audits and ${TESTS} automated tests, all in the repository.`],
         [{ t: "Teaching mode", bold: true }, "A built-in beginner game: 8 quarters, four actions, no Megacorps. Measured over 150 games a table size."],
         [{ t: "Art", bold: true }, "Functional placeholder. Open to your direction."],
       ], [1700, TEXT_WIDTH - 1700], { size: 18 }),
@@ -294,10 +329,10 @@ const doc = new Document({
               left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
             children: [
               P("CONTACT", { size: 16, bold: true, color: MUTED, after: 50 }),
-              P("Designer:  [Your name]", { size: 18, after: 40 }),
-              P("Email:  [your@email]", { size: 18, after: 40 }),
-              P("Location:  [City, Country]", { size: 18, after: 40 }),
-              P("Play it:  [link]", { size: 18, after: 0 }),
+              P("Designer:  Didson New", { size: 18, after: 40 }),
+              P("Email:  didson.onew@gmail.com", { size: 18, after: 40 }),
+              P("Location:  S\u00e3o Paulo, Brazil", { size: 18, after: 40 }),
+              P("Play it:  entrepreneurs.itch.io", { size: 18, after: 0 }),
             ],
           }),
         ] })],

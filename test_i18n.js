@@ -70,7 +70,7 @@ async function run(lang) {
   for (let i = 0; i < 60 && !reached; i++) {
     if (await crashed()) break;
     const t = await txt();
-    if (/Your turn|Place a meeple|Sua vez|Coloque um trabalhador|Planning|Planejamento|轮到你了|放置一个工人|规划/.test(t) && /Q1/.test(t)) { reached = true; break; }
+    if (/Your turn|Place a worker|Sua vez|Coloque um trabalhador|Planning|Planejamento|轮到你了|放置一个工人|规划/.test(t) && /Q1/.test(t)) { reached = true; break; }
     if (/Year 1|Ano 1|第 1 年/.test(t)) { await click(/Year 1|Ano 1|第 1 年/); await sleep(1000); continue; }
     const deck = page.locator("button").filter({ hasText: /\d+\s*(?:left|restante)|还剩\s*\d+/i }).first();
     if (await deck.count() && await deck.isEnabled().catch(() => false)) { await deck.click({ timeout: 2500 }).catch(() => {}); await sleep(300); continue; }

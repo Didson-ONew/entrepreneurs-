@@ -1,0 +1,93 @@
+/* A Retail company's reach must not move while it is delivering.
+
+   THE ORIGINAL BUG. Retail's extra districts used to be recomputed by open-icon
+   count on every slot, so the moment it filled the icons in one district the pick
+   drifted to another and the rest of the district it had been counting on became
+   unreachable mid-delivery. A third of the units Retail left over had had enough
+   capacity in reach when the delivery began. It was fixed by pinning the pick for
+   the length of a delivery, and test_re_pick_pinned guarded that pin.
+
+   THE PIN IS GONE, AND SO IS THE REASON FOR IT. Retail now opens branches - real
+   buildings on real plots, one per level, placed when the company is launched or
+   upgraded - and reachableDistricts reads where they stand. A building cannot
+   drift. This checks the property the pin existed to provide, against the
+   mechanism that replaced it: reach is the home district plus the branches,
+   it is identical before and after a delivery, and nothing about selling moves it.
+
+   Run: node test_re_reach_stable.js
+*/
+const fs = require("fs"), path = require("path"), vm = require("vm");
+let fails = 0;
+const check = (w, ok, note = "") => { if (!ok) fails++; console.log(`${ok ? "  ok  " : " FAIL "} ${w}${note ? `  [${note}]` : ""}`); };
+const src = fs.readFileSync(path.join(__dirname, "EntrepreneursGame.jsx"), "utf8");
+const engine = src.slice(0, src.indexOf("/* ============================== REACT UI ============================== */"))
+  .replace(/^\s*(import|export)\s.*$/gm, "");
+const box = {}; const sb = { console, Math, Set, Object, Array, JSON, String, Map, box };
+vm.createContext(sb);
+vm.runInContext(engine + `box.E = { logEntry, initGame, mulberry32, advanceDraft, startPlanning,
+  advancePlanning, activeBiz, bizInd, autoDeliver, businessCanProduce, reachableDistricts,
+  footprintDistricts, branchDistricts, branchPlotsOf, ownerOf, branchesWanted, reAllowance };`, sb);
+const E = box.E;
+
+/* A seeded game where a bot holds a producing Retail company partway through. */
+let found = null;
+for (let seed = 1; seed <= 60 && !found; seed++) {
+  const st = E.initGame(3, seed, ["Seat 1"], undefined, true, undefined);
+  st.players[0].isHuman = false;
+  if (st.phase === "drafting") { E.advanceDraft(st, () => {}); E.startPlanning(st); }
+  E.advancePlanning(st, E.mulberry32(seed + 777), (m) => {
+    if (found) return;
+    if (!/Quarter 6/.test(E.logEntry(m, null).msg)) return;
+    for (const p of st.players) for (const b of E.activeBiz(p)) {
+      if (E.bizInd(b) === "RE" && E.businessCanProduce(st, b)) {
+        found = { seed, st: JSON.parse(JSON.stringify(st)), pid: p.id, bid: b.id };
+        return;
+      }
+    }
+  });
+}
+check("a bot with a producing Retail company was found by Q6", !!found, found && `seed ${found.seed}`);
+
+if (found) {
+  const st = found.st;
+  const p = st.players.find((x) => x.id === found.pid);
+  const biz = p.businesses.find((b) => b.id === found.bid);
+  const key = (s) => [...s].sort().join("|");
+
+  const home = E.footprintDistricts(st.board, biz.footprint);
+  const branches = E.branchDistricts(st.board, biz);
+  const before = E.reachableDistricts(st, biz);
+
+  /* ONE BRANCH PER LEVEL IS A CEILING, NOT A PROMISE. A branch has to stand on
+     ground somebody already owns, so a chain that cannot find such a plot in a
+     district it can reach simply does not extend - and the bots buy land on a
+     heuristic that knows nothing about branches, so they often cannot. What must
+     hold is that it never exceeds its level, and that every shopfront it does have
+     is on owned ground. */
+  const br = E.branchPlotsOf(st.board, biz);
+  check("it has no more branches than levels",
+    br.length <= E.branchesWanted(biz),
+    `level ${biz.level}, ${br.length} branches`);
+  check("every branch stands on ground somebody owns",
+    br.every((k) => k in st.board.owner), `${br.length} branches`);
+  /* The Supply Chain Expert adds one district on top of the branches, and it is a
+     choice rather than a shop, so it is allowed for by name rather than by
+     slackening the equality - that equality is the point of the check. */
+  const persona = Math.max(0, E.reAllowance(st, biz, E.ownerOf(st, biz)) - E.branchesWanted(biz));
+  check("its reach is exactly home + branches + any persona district",
+    before.size === home.size + branches.size + persona,
+    `${before.size} reached, ${home.size} home + ${branches.size} branch + ${persona} persona`);
+
+  /* Deliver everything it has. Under the old rule this is the point at which the
+     pick drifted, because filling icons changed which districts scored best. */
+  E.autoDeliver(st, p, biz);
+  const after = E.reachableDistricts(st, biz);
+
+  check("selling its whole output does not move its reach",
+    key(after) === key(before), `${key(before)} -> ${key(after)}`);
+  check("and the branches are still standing where they were",
+    key(E.branchDistricts(st.board, biz)) === key(branches));
+}
+
+console.log(fails ? `\n${fails} check(s) failed\n` : "\nall checks passed\n");
+process.exit(fails ? 1 : 0);

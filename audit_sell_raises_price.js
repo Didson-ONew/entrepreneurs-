@@ -43,10 +43,9 @@ if (CUT < 0) { console.error("the engine marker moved - update this script"); pr
    "this company just went out of service" is the thing being hooked, so hook that. */
 const NEEDLES = {
   sell: "  p.cash += recv; b.distressed = true;",
-  merge: `  match.have.forEach((b) => {
-    if (b === hq) return;
-    b.distressed = true;
-  });`,
+  /* Since v22 a merge also takes a chain's branches down, and that line - four spaces
+     in, inside claimMegacorp - is the one line unique to the merge path. */
+  merge: "    removeBranches(state, b);",
   renovate: "  distressedBiz.distressed = false;",
   /* A reclaim no longer re-scores the company, so the line this used to anchor on
      is gone. quarterBuilt is the line that still marks the moment the building
@@ -65,11 +64,8 @@ const PATCHES = {
   /* The Megacorp's name is passed through so the audit can tell one merge from
      the next - without it, consecutive merges look like a single enormous
      action and the "worst single action" figure runs away. */
-  merge: `  match.have.forEach((b) => {
-    if (b === hq) return;
-    b.distressed = true;
-    if (box.onRetire) box.onRetire(b, "merge", name);
-  });`,
+  merge: `    removeBranches(state, b);
+    if (box.onRetire) box.onRetire(b, "merge", name);`,
   /* Coming back online has to undo the retirement, or sell-then-renovate is a
      ratchet that lifts a price for free, every turn, forever. */
   renovate: `  distressedBiz.distressed = false;
